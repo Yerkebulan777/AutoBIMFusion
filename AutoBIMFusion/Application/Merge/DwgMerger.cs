@@ -63,7 +63,14 @@ internal sealed class DwgMerger(double gapPercent, OperationLogger log)
         {
             if (!string.IsNullOrEmpty(tempPath) && File.Exists(tempPath))
             {
-                File.Delete(tempPath);
+                try
+                {
+                    File.Delete(tempPath);
+                }
+                catch (System.Exception deleteEx)
+                {
+                    _log.Warn(deleteEx, $"Не удалось удалить временный файл: {tempPath}");
+                }
             }
         }
     }

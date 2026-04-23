@@ -1,0 +1,191 @@
+# Известные проблемы и TODO
+
+**Актуализировано:** 2025-01-16
+
+Файл содержит подтверждённые недочёты и планируемые улучшения, выявленные при code review.
+Исправленные пункты удаляются из этого документа.
+
+---
+
+## 🔴 Критичные — требуют решения
+
+### KI-1. Race condition на системном Clipboard при встраивании растров
+
+**Где:** `ViewportLayoutExporter.EmbedSingleRasterAsync`, `TryCopyImageToClipboard`
+
+**Описание:** Clipboard — глобальный системный ресурс. Между `Clipboard.SetDataObject` и `._PASTECLIP` другой процесс может перезаписать содержимое. Пользователь теряет свои данные из буфера обмена.
+
+**Риск:** Вставка не того изображения или сбой `PASTECLIP` без понятной причины.
+
+**Варианты решения:**
+- Сохранять/восстанавливать содержимое Clipboard перед/после операции.
+- Рассмотреть программное создание `Ole2Frame` без использования Clipboard (сложнее, но надёжнее).
+
+---
+
+### KI-2. `WblockCloneObjects` с `DuplicateRecordCloning.Replace` мутирует целевой документ
+
+**Где:** `BlockInserter.cs#L64`
+
+```csharp
+sourceDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Replace, false);
+```
+
+**Описание:** `Replace` перезаписывает существующие в целевом документе `LayerTableRecord`, `LinetypeTableRecord`, стили текста и прочие символьные таблицы. Если в исходных DWG слой «0» или «Defpoints» имеет другой цвет/тип линии — он заменится в целевом файле.
+
+**Риск:** Неожиданное изменение визуальных свойств уже вставленных объектов при merge очередного файла.
+
+**Варианты решения:**
+- Перейти на `DuplicateRecordCloning.Ignore` (новые объекты получат существующие стили).
+- Использовать `DuplicateRecordCloning.MangleName` с префиксом источника.
+- Либо явно задокументировать в `README`, почему выбран `Replace`.
+
+---
+
+### KI-3. `Clipboard.Clear()` стирает данные пользователя
+
+**Где:** `ViewportLayoutExporter.cs#L267-L273`
+
+**Описание:** После встраивания OLE-растров вызывается `Clipboard.Clear()` — безвозвратно удаляет содержимое системного буфера обмена пользователя.
+
+**Риск:** Потеря данных пользователя, негативный UX.
+
+**Варианты решения:**
+- Убрать `Clear()` полностью.
+- Либо сохранять `IDataObject` до операции и восстанавливать после.
+
+---
+
+### KI-4. Поиск нового OLE по Handle — хрупкий хак
+
+**Где:** `ViewportLayoutExporter.GetMaxHandleInModelSpace`, `FindNewOle2Frame`
+
+**Описание:** Handle в AutoCAD обычно монотонно возрастает, но это не гарантировано API. При высокой нагрузке или специфических сценариях новый объект может получить Handle меньше текущего максимума.
+
+**Риск:** `FindNewOle2Frame` вернёт `ObjectId.Null`, OLE останется неотмасштабированным или непривязанным.
+
+**Варианты решения:**
+- Захватывать `ObjectIdCollection` всех объектов MS до `PASTECLIP`, затем найти разницу после.
+- Или использовать `Database.ObjectModified` / события, если доступны в контексте команды.
+
+---
+
+## 🟡 Средние — влияют на стабильность и UX
+
+### KI-5. Отсутствие CancellationToken
+
+**Где:** `MergeCommands.MergeFiles`, `DwgMerger.MergeSingleFile`, `ViewportLayoutExporter.ExportToTempAsync`
+
+**Описание:** Операция слияния на сотнях файлов может занимать минуты. Пользователь не может прервать процесс штатно, кроме как принудительно закрыть AutoCAD.
+
+**Варианты решения:**
+- Протянуть `CancellationToken` через всю цепочку вызовов.
+- Проверять `token.ThrowIfCancellationRequested()` в цикле `MergeFiles`.
+- Обрабатывать `OperationCanceledException` в UI для корректного сообщения.
+
+---
+
+### KI-6. Fire-and-forget команда без защиты от непойманных исключений
+
+**Где:** `MergeCommands.cs#L18-L20`
+
+```csharp
+public void MergeDwgFolderCommand()
+{
+    _ = MergeDwgFolderCommandAsync();
+}
+```
+
+**Описание:** Если исключение вылетит до входа в `try` (например, при создании `OperationLogger`), оно уйдёт в `TaskScheduler.UnobservedTaskException` и пользователь не увидит причину.
+
+**Варианты решения:**
+```csharp
+_ = MergeDwgFolderCommandAsync().ContinueWith(t =>
+{
+    if (t.IsFaulted)
+        Debug.WriteLine(t.Exception);
+}, TaskScheduler.Default);
+```
+
+---
+
+### KI-7. `await` внутри `using (doc.LockDocument())`
+
+**Где:** `MergeCommands.cs#L94-L115`
+
+**Описание:** В AutoCAD `DocumentLock.Dispose()` должен вызываться из UI-потока. `await` возвращает управление в тот же `SynchronizationContext`, но если где-то глубже добавят `ConfigureAwait(false)`, `Dispose` вызовется в пуле потоков и приведёт к `eLockChange`.
+
+**Варианты решения:**
+- Вынести `await` за пределы `using`, либо
+- Зафиксировать правило: все `await` в проекте должны оставаться в UI-потоке (без `ConfigureAwait(false)`).
+
+---
+
+### KI-8. `RasterImagePathFixer` дублирует один и тот же файл на диск
+
+**Где:** `RasterImagePathFixer.cs#L38-L56`
+
+**Описание:** Если два `RasterImageDef` ссылаются на один физический файл, логика генерирует `image_1.jpg`, `image_2.jpg` и т.д., копируя один и тот же файл несколько раз.
+
+**Варианты решения:**
+- Вести `Dictionary<string, string> sourcePath -> destFileName`.
+- Один исходный файл → одно целевое имя.
+
+---
+
+### KI-9. `ProgressMeter` может застрять в UI при исключении
+
+**Где:** `MergeCommands.cs#L130-L157`
+
+**Описание:** `ProgressMeter` — AutoCAD COM-объект. Если внутри цикла `MeterProgress` вылетит исключение, `pm.Stop()` не вызовется, и прогресс-бар останется висеть в UI.
+
+**Варианты решения:**
+- Явно вызывать `pm.Stop()` в `catch` или `finally`.
+- Либо обернуть в собственный `IDisposable`, который гарантирует `Stop`.
+
+---
+
+## 🟢 Улучшения — архитектура и гибкость
+
+### KI-10. Жёсткие лимиты без возможности настройки
+
+| Параметр | Текущее значение | Проблема |
+|----------|-----------------|----------|
+| `MaxFileSizeBytes` | 15 МБ | Большие DWG (с растрами, облаками точек) отсекаются безальтернативно |
+| `MaxRecursionDepth` | 3 | Глубокая вложенность папок игнорируется |
+| `MaxScaleMultiplier` | 100.0 | Масштабы крупнее 1:100 принудительно меняются |
+
+**Варианты решения:**
+- Вынести в конфигурационный файл или настройки плагина.
+- Либо хотя бы в именованные константы с XML-документацией.
+
+---
+
+### KI-11. `OperationLogger` — нарушение SRP
+
+**Где:** `Infrastructure/Logging/OperationLogger.cs`
+
+**Описание:** Класс делает три вещи одновременно: пишет в Serilog, выводит в командную строку AutoCAD, форматирует сообщения. Unit-тестирование затруднено.
+
+**Варианты решения:**
+- Разделить на `IEditorOutput`, `IFileLogger`, `IMessageFormatter`.
+- `OperationLogger` становится фасадом, но зависит от абстракций.
+
+---
+
+### KI-12. `TryCloseDocument` может переключить активный документ
+
+**Где:** `ViewportLayoutExporter.cs#L235-L245`
+
+**Описание:** Если `sourceDoc` в момент закрытия является активным, `CloseAndDiscard()` переключает фокус AutoCAD на другой документ — side effect для пользователя.
+
+**Варианты решения:**
+- Запоминать `MdiActiveDocument` до открытия и восстанавливать после `finally`.
+- Или не делать `sourceDoc` активным (`docs.MdiActiveDocument = sourceDoc`) если это не строго необходимо.
+
+---
+
+## Связанные документы
+
+- [TECHNICAL_DOCUMENTATION.md](TECHNICAL_DOCUMENTATION.md) — архитектура и runtime-поток
+- [ALGORITHM.md](ALGORITHM.md) — математика viewport'ов и алгоритм merge

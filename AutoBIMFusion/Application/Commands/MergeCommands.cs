@@ -131,7 +131,13 @@ public sealed class MergeCommands
         ArgumentException.ThrowIfNullOrEmpty(rootPath);
         DirectoryInfo dir = new(rootPath);
         DirectoryInfo? parent = dir.Parent;
-        ArgumentNullException.ThrowIfNull(parent);
+
+        if (parent is null)
+        {
+            string name = string.IsNullOrEmpty(dir.Name) ? "MergedDrawings" : dir.Name;
+            return Path.Combine(dir.FullName, $"{name}.dwg");
+        }
+
         return Path.Combine(parent.FullName, $"{dir.Name}.dwg");
     }
 
