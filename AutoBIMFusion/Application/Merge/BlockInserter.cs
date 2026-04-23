@@ -1,101 +1,114 @@
-using AutoBIMFusion.Application.Utils;
+using AutoBIMFusion.Application.Merge.Layouts;
 using AutoBIMFusion.Infrastructure.Logging;
 
 namespace AutoBIMFusion.Application.Merge;
 
 /// <summary>
-/// Вставляет содержимое временных DWG как определения блоков и раскладывает вхождения вдоль оси X.
+/// Вставляет содержимое временных DWG как нативные объекты в Model Space целевого чертежа,
+/// располагая их вдоль оси X с заданным зазором.
 /// </summary>
 internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 {
     private readonly double _gapPercent = gapPercent;
     private readonly OperationLogger _log = log;
-    private HashSet<string>? _usedNames;
     private double _rightMax;
 
-    public string BuildUniqueName(Database db, string baseName)
-    {
-        EnsureNamesLoaded(db);
-
-        string sanitizedBase = LayoutUtil.SanitizeSymbolName(baseName);
-        string name = sanitizedBase;
-        int idx = 1;
-
-        while (!_usedNames!.Add(name))
-        {
-            name = $"{sanitizedBase}_{idx}";
-            idx++;
-        }
-
-        return name;
-    }
-
-    private void EnsureNamesLoaded(Database db)
-    {
-        ArgumentNullException.ThrowIfNull(db);
-
-        if (_usedNames is not null)
-        {
-            return;
-        }
-
-        using Transaction tr = db.TransactionManager.StartTransaction();
-        BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
-
-        _usedNames = bt
-            .Cast<ObjectId>()
-            .Select(id => (BlockTableRecord)tr.GetObject(id, OpenMode.ForRead))
-            .Select(btr => btr.Name)
-            .ToHashSet();
-
-        tr.Commit();
-
-        _log.Info($"Инициализация BlockInserter: {_usedNames.Count} существующих блоков");
-    }
-
     /// <summary>
-    /// Присоединяет файл по указанному пути как внешнюю ссылку (XREF), размещает её вхождение
-    /// и немедленно внедряет (Bind) в целевой чертёж в соответствии с настройками.
-    /// Возвращает мировые границы вхождения или null при ошибке вставки.
+    /// Открывает временный DWG, клонирует все объекты из его Model Space
+    /// в целевой чертёж как нативные сущности с учётом смещения.
+    /// Возвращает мировые границы вставленных объектов или null при ошибке.
     /// </summary>
-    public Extents3d? InsertAndBindXref(Database targetDb, string sourceFilePath, string blockName, Extents3d sourceBounds)
+    public Extents3d? InsertNativeObjects(Database targetDb, string sourceFilePath, string sourceName, Extents3d sourceBounds)
     {
         Point3d insertPt = CalcInsertionPoint(sourceBounds);
+        Matrix3d displacement = Matrix3d.Displacement(new Vector3d(insertPt.X, insertPt.Y, insertPt.Z));
 
         try
         {
-            ObjectId xrefId;
-            using (Transaction tr = targetDb.TransactionManager.StartTransaction())
+            using Database sourceDb = new(false, true);
+            sourceDb.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
+
+            ObjectIdCollection sourceIds = new();
+            ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
+
+            using (Transaction tr = sourceDb.TransactionManager.StartTransaction())
             {
-                xrefId = targetDb.AttachXref(sourceFilePath, blockName);
+                BlockTableRecord ms = (BlockTableRecord)tr.GetObject(sourceMsId, OpenMode.ForRead);
 
-                ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
-                BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForWrite);
-
-                BlockReference bref = new(insertPt, xrefId);
-                bref.SetDatabaseDefaults();
-                _ = ms.AppendEntity(bref);
-                tr.AddNewlyCreatedDBObject(bref, true);
+                foreach (ObjectId id in ms)
+                {
+                    if (!id.IsNull && !id.IsErased)
+                    {
+                        _ = sourceIds.Add(id);
+                    }
+                }
 
                 tr.Commit();
             }
 
-            using ObjectIdCollection xrefsToBind = [];
-            _ = xrefsToBind.Add(xrefId);
-            targetDb.BindXrefs(xrefsToBind, true);
+            if (sourceIds.Count == 0)
+            {
+                _log.Warn($"BlockInserter: {sourceName} — Model Space пуст");
+                return null;
+            }
+
+            ObjectId targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
+            IdMapping map = new();
+            sourceDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Replace, false);
+
+            Extents3d? worldBounds = null;
+            int clonedCount = 0;
+
+            using (Transaction tr = targetDb.TransactionManager.StartTransaction())
+            {
+                foreach (IdPair pair in map)
+                {
+                    if (!pair.IsCloned || !pair.IsPrimary)
+                    {
+                        continue;
+                    }
+
+                    if (tr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
+                    {
+                        ent.TransformBy(displacement);
+                        clonedCount++;
+
+                        Extents3d? ext = GeometryUtils.TryGetExtents(ent);
+                        if (ext.HasValue)
+                        {
+                            worldBounds = worldBounds.HasValue
+                                ? GeometryUtils.Union(worldBounds.Value, ext.Value)
+                                : ext.Value;
+                        }
+                    }
+                }
+
+                tr.Commit();
+            }
+
+            if (clonedCount == 0)
+            {
+                _log.Warn($"BlockInserter: {sourceName} — не удалось клонировать объекты");
+                return null;
+            }
+
+            if (!worldBounds.HasValue)
+            {
+                worldBounds = new Extents3d(
+                    new Point3d(insertPt.X + sourceBounds.MinPoint.X, insertPt.Y + sourceBounds.MinPoint.Y, 0),
+                    new Point3d(insertPt.X + sourceBounds.MaxPoint.X, insertPt.Y + sourceBounds.MaxPoint.Y, 0)
+                );
+            }
+
+            _rightMax = worldBounds.Value.MaxPoint.X;
+            _log.Info($"BlockInserter: {sourceName} — вставлено {clonedCount} нативных объектов");
+            return worldBounds;
         }
         catch (System.Exception ex)
         {
-            _log.Error(ex, $"BlockInserter: {blockName}");
+            _log.Error(ex, $"BlockInserter: {sourceName}");
             return null;
         }
-
-        Extents3d worldBounds = new(
-            new Point3d(insertPt.X + sourceBounds.MinPoint.X, insertPt.Y + sourceBounds.MinPoint.Y, 0),
-            new Point3d(insertPt.X + sourceBounds.MaxPoint.X, insertPt.Y + sourceBounds.MaxPoint.Y, 0)
-        );
-        _rightMax = worldBounds.MaxPoint.X;
-        return worldBounds;
     }
 
     private Point3d CalcInsertionPoint(Extents3d bounds)
@@ -110,5 +123,4 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
         _log.Debug($"Позиция вставки: X={insertPt.X:F2}, Y={insertPt.Y:F2}, gap={gap:F0}");
         return insertPt;
     }
-
 }

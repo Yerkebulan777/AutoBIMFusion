@@ -44,16 +44,15 @@ internal sealed class DwgMerger(double gapPercent, OperationLogger log)
                 return MergeResult.Warn(fileName, "Пустой файл");
             }
 
-            string blockName = _blockInserter.BuildUniqueName(targetDb, layoutName);
-            Extents3d? worldBounds = _blockInserter.InsertAndBindXref(targetDb, tempPath, blockName, bounds.Value);
+            Extents3d? worldBounds = _blockInserter.InsertNativeObjects(targetDb, tempPath, layoutName, bounds.Value);
 
             if (worldBounds is null)
             {
-                return MergeResult.Fail(fileName, "Не удалось вставить блок");
+                return MergeResult.Fail(fileName, "Не удалось вставить объекты");
             }
 
-            _log.Info($"Успешно вставлен блок '{blockName}'");
-            return MergeResult.Ok(fileName, blockName);
+            _log.Info($"Успешно вставлены нативные объекты '{layoutName}'");
+            return MergeResult.Ok(fileName, layoutName);
         }
         catch (System.Exception ex)
         {
