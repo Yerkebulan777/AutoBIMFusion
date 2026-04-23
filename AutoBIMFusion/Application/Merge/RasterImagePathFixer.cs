@@ -47,21 +47,17 @@ internal static class RasterImagePathFixer
                     continue;
                 }
 
-                string resolvedPath;
-                try
+                if (!TryResolveImagePath(db, path, out string resolvedPath, out System.Exception? resolveError))
                 {
-                    // Правило 1: используем FindFile для стабильного разрешения путей
-                    resolvedPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.EmbeddedImageFile);
-                }
-                catch (System.Exception ex)
-                {
-                    log.Warn(ex, $"RasterImageDef '{entry.Key}': ошибка разрешения пути: {path}");
-                    continue;
-                }
+                    if (resolveError is not null)
+                    {
+                        log.Warn(resolveError, $"RasterImageDef '{entry.Key}': ошибка разрешения пути: {path}");
+                    }
+                    else
+                    {
+                        log.Warn($"RasterImageDef '{entry.Key}': файл не найден: {path}");
+                    }
 
-                if (string.IsNullOrEmpty(resolvedPath) || !File.Exists(resolvedPath))
-                {
-                    log.Warn($"RasterImageDef '{entry.Key}': файл не найден: {path}");
                     continue;
                 }
 
@@ -99,6 +95,35 @@ internal static class RasterImagePathFixer
         if (fixedCount > 0)
         {
             log.Info($"RasterImagePathFixer: обработано {fixedCount} изображений");
+        }
+    }
+
+    private static bool TryResolveImagePath(Database db, string path, out string resolvedPath, out System.Exception? resolveError)
+    {
+        resolvedPath = string.Empty;
+        resolveError = null;
+
+        if (Path.IsPathRooted(path) && File.Exists(path))
+        {
+            resolvedPath = path;
+            return true;
+        }
+
+        try
+        {
+            string foundPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.EmbeddedImageFile);
+            if (!string.IsNullOrEmpty(foundPath) && File.Exists(foundPath))
+            {
+                resolvedPath = foundPath;
+                return true;
+            }
+
+            return false;
+        }
+        catch (System.Exception ex)
+        {
+            resolveError = ex;
+            return false;
         }
     }
 }

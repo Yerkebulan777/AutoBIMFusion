@@ -74,7 +74,7 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
 
                 // Обновление RasterImageDef должно выполняться в command context,
                 // иначе возможен eLockViolation при открытии объектов на запись.
-                NormalizeRasterImagePaths(sourceDoc.Database, sourceFilePath);
+                NormalizeRasterImagePaths(sourceDoc.Database);
 
                 AcadApp.SetSystemVariable("TILEMODE", 1);
                 await sourceDoc.Editor.CommandAsync("._REGEN");
@@ -241,14 +241,8 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         return Path.Combine(Path.GetTempPath(), $"{name}-{Guid.NewGuid()}.dwg");
     }
 
-    private static void NormalizeRasterImagePaths(Database db, string sourceFilePath)
+    private static void NormalizeRasterImagePaths(Database db)
     {
-        string? sourceDir = Path.GetDirectoryName(sourceFilePath);
-        if (string.IsNullOrEmpty(sourceDir))
-        {
-            return;
-        }
-
         using Transaction tr = db.TransactionManager.StartTransaction();
         ObjectId dictId = RasterImageDef.GetImageDictionary(db);
         if (dictId.IsNull)
@@ -289,9 +283,7 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
                     continue;
                 }
 
-                // Преобразуем в относительный путь относительно папки исходного файла
-                string relativePath = Path.GetRelativePath(sourceDir, resolvedPath);
-                def.SourceFileName = relativePath;
+                def.SourceFileName = resolvedPath;
                 def.Load(); // Правило 2: загружаем определение после смены пути
             }
             catch
