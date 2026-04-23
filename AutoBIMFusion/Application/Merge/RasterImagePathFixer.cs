@@ -46,7 +46,7 @@ internal static class RasterImagePathFixer
             }
 
             // Правило 1: используем FindFile для стабильного разрешения путей
-            string resolvedPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.Image);
+            string resolvedPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.EmbeddedImageFile);
             if (string.IsNullOrEmpty(resolvedPath) || !File.Exists(resolvedPath))
             {
                 log.Warn($"RasterImageDef '{entry.Key}': файл не найден: {path}");
