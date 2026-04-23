@@ -33,44 +33,54 @@ internal static class RasterImagePathFixer
 
         foreach (DBDictionaryEntry entry in dict)
         {
-            if (tr.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def)
-            {
-                continue;
-            }
-
-            string? path = def.SourceFileName;
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                log.Warn($"RasterImageDef '{entry.Key}': путь не задан");
-                continue;
-            }
-
-            // Правило 1: используем FindFile для стабильного разрешения путей
-            string resolvedPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.EmbeddedImageFile);
-            if (string.IsNullOrEmpty(resolvedPath) || !File.Exists(resolvedPath))
-            {
-                log.Warn($"RasterImageDef '{entry.Key}': файл не найден: {path}");
-                continue;
-            }
-
-            string fileName = Path.GetFileName(resolvedPath);
-            string destPath = Path.Combine(targetDir, fileName);
-
-            // Обработка коллизий имён
-            int counter = 1;
-            string uniqueDestPath = destPath;
-            string uniqueFileName = fileName;
-            while (copiedFiles.Contains(uniqueDestPath) || File.Exists(uniqueDestPath))
-            {
-                string name = Path.GetFileNameWithoutExtension(fileName);
-                string ext = Path.GetExtension(fileName);
-                uniqueFileName = $"{name}_{counter}{ext}";
-                uniqueDestPath = Path.Combine(targetDir, uniqueFileName);
-                counter++;
-            }
-
             try
             {
+                if (tr.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def)
+                {
+                    continue;
+                }
+
+                string? path = def.SourceFileName;
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    log.Warn($"RasterImageDef '{entry.Key}': путь не задан");
+                    continue;
+                }
+
+                string resolvedPath;
+                try
+                {
+                    // Правило 1: используем FindFile для стабильного разрешения путей
+                    resolvedPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.EmbeddedImageFile);
+                }
+                catch (System.Exception ex)
+                {
+                    log.Warn(ex, $"RasterImageDef '{entry.Key}': ошибка разрешения пути: {path}");
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(resolvedPath) || !File.Exists(resolvedPath))
+                {
+                    log.Warn($"RasterImageDef '{entry.Key}': файл не найден: {path}");
+                    continue;
+                }
+
+                string fileName = Path.GetFileName(resolvedPath);
+                string destPath = Path.Combine(targetDir, fileName);
+
+                // Обработка коллизий имён
+                int counter = 1;
+                string uniqueDestPath = destPath;
+                string uniqueFileName = fileName;
+                while (copiedFiles.Contains(uniqueDestPath) || File.Exists(uniqueDestPath))
+                {
+                    string name = Path.GetFileNameWithoutExtension(fileName);
+                    string ext = Path.GetExtension(fileName);
+                    uniqueFileName = $"{name}_{counter}{ext}";
+                    uniqueDestPath = Path.Combine(targetDir, uniqueFileName);
+                    counter++;
+                }
+
                 File.Copy(resolvedPath, uniqueDestPath, overwrite: true);
                 _ = copiedFiles.Add(uniqueDestPath);
                 def.SourceFileName = uniqueFileName; // относительный путь к папке DWG
@@ -80,7 +90,7 @@ internal static class RasterImagePathFixer
             }
             catch (System.Exception ex)
             {
-                log.Warn(ex, $"Не удалось скопировать растр: {path}");
+                log.Warn(ex, $"RasterImageDef '{entry.Key}': не удалось обработать изображение");
             }
         }
 

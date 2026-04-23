@@ -260,28 +260,44 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         DBDictionary dict = (DBDictionary)tr.GetObject(dictId, OpenMode.ForRead);
         foreach (DBDictionaryEntry entry in dict)
         {
-            if (tr.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def)
+            try
             {
-                continue;
-            }
+                if (tr.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def)
+                {
+                    continue;
+                }
 
-            string path = def.SourceFileName;
-            if (string.IsNullOrWhiteSpace(path))
+                string path = def.SourceFileName;
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    continue;
+                }
+
+                string resolvedPath;
+                try
+                {
+                    // Правило 1: используем FindFile для стабильного разрешения путей
+                    resolvedPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.EmbeddedImageFile);
+                }
+                catch
+                {
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(resolvedPath) || !File.Exists(resolvedPath))
+                {
+                    continue;
+                }
+
+                // Преобразуем в относительный путь относительно папки исходного файла
+                string relativePath = Path.GetRelativePath(sourceDir, resolvedPath);
+                def.SourceFileName = relativePath;
+                def.Load(); // Правило 2: загружаем определение после смены пути
+            }
+            catch
             {
-                continue;
+                // Пропускаем поврежденное определение, чтобы не прерывать экспорт файла.
             }
-
-            // Правило 1: используем FindFile для стабильного разрешения путей
-            string resolvedPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.EmbeddedImageFile);
-            if (string.IsNullOrEmpty(resolvedPath) || !File.Exists(resolvedPath))
-            {
-                continue;
-            }
-
-            // Преобразуем в относительный путь относительно папки исходного файла
-            string relativePath = Path.GetRelativePath(sourceDir, resolvedPath);
-            def.SourceFileName = relativePath;
-            def.Load(); // Правило 2: загружаем определение после смены пути
         }
 
         tr.Commit();
