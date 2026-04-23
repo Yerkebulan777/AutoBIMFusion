@@ -1,4 +1,5 @@
 using AutoBIMFusion.Infrastructure.Logging;
+using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 
 namespace AutoBIMFusion.Application.Merge;
@@ -38,13 +39,21 @@ internal static class RasterImagePathFixer
                 continue;
 
             string? path = def.SourceFileName;
-            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                log.Warn($"RasterImageDef '{entry.Key}': путь не задан");
+                continue;
+            }
+
+            // Правило 1: используем FindFile для стабильного разрешения путей
+            string resolvedPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.Image);
+            if (string.IsNullOrEmpty(resolvedPath) || !File.Exists(resolvedPath))
             {
                 log.Warn($"RasterImageDef '{entry.Key}': файл не найден: {path}");
                 continue;
             }
 
-            string fileName = Path.GetFileName(path);
+            string fileName = Path.GetFileName(resolvedPath);
             string destPath = Path.Combine(targetDir, fileName);
 
             // Обработка коллизий имён
@@ -62,11 +71,12 @@ internal static class RasterImagePathFixer
 
             try
             {
-                File.Copy(path, uniqueDestPath, overwrite: true);
+                File.Copy(resolvedPath, uniqueDestPath, overwrite: true);
                 copiedFiles.Add(uniqueDestPath);
                 def.SourceFileName = uniqueFileName; // относительный путь к папке DWG
+                def.Load(); // Правило 2: загружаем определение после смены пути
                 fixedCount++;
-                log.Info($"RasterImage скопирован: {path} -> {uniqueFileName}");
+                log.Info($"RasterImage скопирован: {resolvedPath} -> {uniqueFileName}");
             }
             catch (System.Exception ex)
             {

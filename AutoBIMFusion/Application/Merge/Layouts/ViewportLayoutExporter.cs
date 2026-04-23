@@ -2,6 +2,7 @@ using AutoBIMFusion.Application.AcadSupport;
 using AutoBIMFusion.Application.Utils;
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.DatabaseServices;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Application.Merge.Layouts;
@@ -263,14 +264,17 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
             if (string.IsNullOrWhiteSpace(path))
                 continue;
 
-            if (Path.IsPathRooted(path) && File.Exists(path))
-                continue;
-
-            string resolved = Path.GetFullPath(Path.Combine(sourceDir, path));
-            if (File.Exists(resolved))
+            // Правило 1: используем FindFile для стабильного разрешения путей
+            string resolvedPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.Image);
+            if (string.IsNullOrEmpty(resolvedPath) || !File.Exists(resolvedPath))
             {
-                def.SourceFileName = resolved;
+                continue;
             }
+
+            // Преобразуем в относительный путь относительно папки исходного файла
+            string relativePath = Path.GetRelativePath(sourceDir, resolvedPath);
+            def.SourceFileName = relativePath;
+            def.Load(); // Правило 2: загружаем определение после смены пути
         }
 
         tr.Commit();
