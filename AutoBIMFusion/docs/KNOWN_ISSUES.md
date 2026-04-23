@@ -29,7 +29,7 @@
 
 ---
 
-### KI-2. `WblockCloneObjects` с `DuplicateRecordCloning.Replace` мутирует целевой документ
+### KI-2. `WblockCloneObjects` с `DuplicateRecordCloning.Replace` мутирует целевой документ ??? РЕКОМЕНДУЕТСЯ ДАЖЕ
 
 **Где:** `BlockInserter.cs#L64`
 
