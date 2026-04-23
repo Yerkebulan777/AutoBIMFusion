@@ -1,0 +1,11 @@
+<Solution>
+    <Configurations>
+        <BuildType Name="DebugA25" />
+        <BuildType Name="DebugA26" />
+        <BuildType Name="DebugA27" />
+        <BuildType Name="ReleaseA25" />
+        <BuildType Name="ReleaseA26" />
+        <BuildType Name="ReleaseA27" />
+    </Configurations>
+    <Project Path="AutoBIMFusion/AutoBIMFusion.csproj" />
+</Solution>

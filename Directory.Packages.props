@@ -1,0 +1,15 @@
+<Project>
+
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+        <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageVersion Include="AutoCAD.NET" Version="$(AcadPackageVersion).*" Condition="'$(AcadPackageVersion)' != ''" />
+        <PackageVersion Include="AutoCAD.NET.Interop" Version="$(AcadInteropPackageVersion).*" Condition="'$(AcadInteropPackageVersion)' != ''" />
+        <PackageVersion Include="Serilog" Version="4.0.0" />
+        <PackageVersion Include="Serilog.Sinks.File" Version="6.0.0" />
+    </ItemGroup>
+
+</Project>

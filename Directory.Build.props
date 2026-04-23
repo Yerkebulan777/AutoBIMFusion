@@ -1,0 +1,32 @@
+<Project>
+
+    <PropertyGroup>
+        <Configurations>DebugA25;DebugA26;DebugA27;ReleaseA25;ReleaseA26;ReleaseA27</Configurations>
+        <TargetFramework>net8.0-windows8.0</TargetFramework>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' == 'DebugA25' Or '$(Configuration)' == 'ReleaseA25'">
+        <AcadVersion>2025</AcadVersion>
+        <AcadPackageVersion>25.0</AcadPackageVersion>
+        <AcadInteropPackageVersion>2025.0</AcadInteropPackageVersion>
+        <AutoCADSeries>R25.0</AutoCADSeries>
+        <DefineConstants>$(DefineConstants);ACAD2025</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' == 'DebugA26' Or '$(Configuration)' == 'ReleaseA26'">
+        <AcadVersion>2026</AcadVersion>
+        <AcadPackageVersion>25.1</AcadPackageVersion>
+        <AcadInteropPackageVersion>2026.0</AcadInteropPackageVersion>
+        <AutoCADSeries>R25.1</AutoCADSeries>
+        <DefineConstants>$(DefineConstants);ACAD2026</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' == 'DebugA27' Or '$(Configuration)' == 'ReleaseA27'">
+        <AcadVersion>2027</AcadVersion>
+        <AcadPackageVersion>26.0</AcadPackageVersion>
+        <AcadInteropPackageVersion>2026.0</AcadInteropPackageVersion>
+        <AutoCADSeries>R26.0</AutoCADSeries>
+        <DefineConstants>$(DefineConstants);ACAD2027</DefineConstants>
+    </PropertyGroup>
+
+</Project>

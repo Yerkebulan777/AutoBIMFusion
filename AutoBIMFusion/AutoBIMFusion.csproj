@@ -1,0 +1,101 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <StartAction>Program</StartAction>
+        <StartProgram>C:\Program Files\Autodesk\AutoCAD $(AcadVersion)\acad.exe</StartProgram>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PlatformTarget>x64</PlatformTarget>
+        <AssemblyTitle>AutoBIMFusion</AssemblyTitle>
+        <Description>Плагин для пакетного объединения DWG-файлов в AutoCAD 2025-2027</Description>
+        <Company>AutoBIMFusion</Company>
+        <Authors>Yerkebulan777</Authors>
+        <Product>AutoBIMFusion</Product>
+        <RepositoryUrl>https://github.com/Yerkebulan777/AutoBIMFusion</RepositoryUrl>
+        <Version>1.0.0</Version>
+        <FileVersion>1.0.0.0</FileVersion>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <InformationalVersion>1.0.0</InformationalVersion>
+        <NoWarn>$(NoWarn);CA1303</NoWarn>
+        <BundleName>$(AssemblyName).bundle</BundleName>
+        <AutoCADProductCode>{4F3E42D4-4D2F-4A2E-8A2A-BB771A0D06AF}</AutoCADProductCode>
+        <AutoCADPackageName>$(AssemblyName) $(AcadVersion)</AutoCADPackageName>
+        <AutoCADCompanyName>$(AssemblyName)</AutoCADCompanyName>
+        <AutoCADAppDescription>Плагин для AutoCAD $(AcadVersion)</AutoCADAppDescription>
+        <AutoCADUserPluginsDir>$(APPDATA)\Autodesk\ApplicationPlugins\</AutoCADUserPluginsDir>
+        <AutoCADAllUsersPluginsDir>$(ProgramData)\Autodesk\ApplicationPlugins\</AutoCADAllUsersPluginsDir>
+        <DeployForAllUsers>false</DeployForAllUsers>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="Resources\*.png">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <TargetPath>Resources\%(Filename)%(Extension)</TargetPath>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Autodesk.AutoCAD.ApplicationServices.Core" />
+        <Using Include="Autodesk.AutoCAD.DatabaseServices" />
+        <Using Include="Autodesk.AutoCAD.EditorInput" />
+        <Using Include="Autodesk.AutoCAD.Geometry" />
+        <Using Include="Autodesk.AutoCAD.Runtime" />
+        <Using Include="System.Math">
+            <Static>True</Static>
+        </Using>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AutoCAD.NET" />
+        <PackageReference Include="AutoCAD.NET.Interop" />
+        <PackageReference Include="Serilog.Sinks.File" />
+        <PackageReference Include="Serilog" />
+    </ItemGroup>
+
+
+    <Target Name="CreateAutoCADBundle" AfterTargets="Build">
+        <PropertyGroup>
+            <GeneratedPackageContentsPath>$(IntermediateOutputPath)PackageContents.xml</GeneratedPackageContentsPath>
+            <BundleOutputDir>$(TargetDir)$(BundleName)</BundleOutputDir>
+            <BundleOutputContentsDir>$(BundleOutputDir)\Contents</BundleOutputContentsDir>
+            <AutoCADDeployRootDir Condition="'$(DeployForAllUsers)' == 'true'">$(AutoCADAllUsersPluginsDir)</AutoCADDeployRootDir>
+            <AutoCADDeployRootDir Condition="'$(DeployForAllUsers)' != 'true'">$(AutoCADUserPluginsDir)</AutoCADDeployRootDir>
+            <DeployBundleDir>$(AutoCADDeployRootDir)$(BundleName)</DeployBundleDir>
+            <DeployBundleContentsDir>$(DeployBundleDir)\Contents</DeployBundleContentsDir>
+        </PropertyGroup>
+
+        <ItemGroup>
+            <PackageContentsLines Include="&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;" />
+            <PackageContentsLines Include="&lt;ApplicationPackage SchemaVersion=&quot;1.0&quot; AppVersion=&quot;$(Version)&quot; ProductCode=&quot;$(AutoCADProductCode)&quot; Name=&quot;$(AutoCADPackageName)&quot;&gt;" />
+            <PackageContentsLines Include="  &lt;CompanyDetails Name=&quot;$(AutoCADCompanyName)&quot; /&gt;" />
+            <PackageContentsLines Include="  &lt;Components&gt;" />
+            <PackageContentsLines Include="    &lt;RuntimeRequirements OS=&quot;Win64&quot; Platform=&quot;AutoCAD&quot; SeriesMin=&quot;$(AutoCADSeries)&quot; SeriesMax=&quot;$(AutoCADSeries)&quot; /&gt;" />
+            <PackageContentsLines Include="    &lt;ComponentEntry AppName=&quot;$(AssemblyName)&quot; ModuleName=&quot;./Contents/$(AssemblyName).dll&quot; AppDescription=&quot;$(AutoCADAppDescription)&quot; LoadOnAutoCADStartup=&quot;true&quot; /&gt;" />
+            <PackageContentsLines Include="  &lt;/Components&gt;" />
+            <PackageContentsLines Include="&lt;/ApplicationPackage&gt;" />
+            <ResourceIcons Include="Resources\*.png" />
+        </ItemGroup>
+
+        <MakeDir Directories="$(BundleOutputContentsDir);$(DeployBundleContentsDir);$(BundleOutputContentsDir)\Resources;$(DeployBundleContentsDir)\Resources" />
+
+        <WriteLinesToFile File="$(GeneratedPackageContentsPath)" Lines="@(PackageContentsLines)" Overwrite="true" Encoding="utf-8" />
+
+        <Copy SourceFiles="$(GeneratedPackageContentsPath)" DestinationFiles="$(BundleOutputDir)\PackageContents.xml" />
+        <Copy SourceFiles="$(GeneratedPackageContentsPath)" DestinationFiles="$(DeployBundleDir)\PackageContents.xml" />
+
+        <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BundleOutputContentsDir)" />
+        <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DeployBundleContentsDir)" />
+        <Copy SourceFiles="@(ReferenceCopyLocalPaths)" DestinationFolder="$(BundleOutputContentsDir)" SkipUnchangedFiles="true" />
+        <Copy SourceFiles="@(ReferenceCopyLocalPaths)" DestinationFolder="$(DeployBundleContentsDir)" SkipUnchangedFiles="true" />
+        <Copy SourceFiles="@(ResourceIcons)" DestinationFolder="$(BundleOutputContentsDir)\Resources" SkipUnchangedFiles="true" Condition="'@(ResourceIcons)' != ''" />
+        <Copy SourceFiles="@(ResourceIcons)" DestinationFolder="$(DeployBundleContentsDir)\Resources" SkipUnchangedFiles="true" Condition="'@(ResourceIcons)' != ''" />
+
+        <Message Importance="high" Text="AutoCAD bundle created: $(BundleOutputDir)" />
+        <Message Importance="high" Text="AutoCAD autoload bundle deployed: $(DeployBundleDir)" />
+    </Target>
+
+</Project>
