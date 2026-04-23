@@ -72,11 +72,13 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
                     _log.Info($"Очищено за рамкой: {erased}");
                 }
 
+                // Обновление RasterImageDef должно выполняться в command context,
+                // иначе возможен eLockViolation при открытии объектов на запись.
+                NormalizeRasterImagePaths(sourceDoc.Database, sourceFilePath);
+
                 AcadApp.SetSystemVariable("TILEMODE", 1);
                 await sourceDoc.Editor.CommandAsync("._REGEN");
             }, null);
-
-            NormalizeRasterImagePaths(sourceDoc.Database, sourceFilePath);
 
             using (new AcadWarningSuppressScope())
             {
