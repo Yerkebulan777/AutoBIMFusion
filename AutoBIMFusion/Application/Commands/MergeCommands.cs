@@ -80,6 +80,7 @@ public sealed class MergeCommands
 
                 await MergeFiles(dwgFiles, merger, doc.Database, stats, log);
 
+                RasterImagePathFixer.CopyImagesToTargetFolder(doc.Database, savePath, log);
                 SaveMerged(doc.Database, savePath, log);
 
                 sw.Stop();

@@ -2,8 +2,6 @@ using AutoBIMFusion.Application.AcadSupport;
 using AutoBIMFusion.Application.Utils;
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
-using System.Windows.Forms;
-
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Application.Merge.Layouts;
@@ -76,9 +74,9 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
 
                 AcadApp.SetSystemVariable("TILEMODE", 1);
                 await sourceDoc.Editor.CommandAsync("._REGEN");
-
-                await EmbedRasterImagesAsync(sourceDoc);
             }, null);
+
+            NormalizeRasterImagePaths(sourceDoc.Database, sourceFilePath);
 
             using (new AcadWarningSuppressScope())
             {
@@ -241,280 +239,41 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         return Path.Combine(Path.GetTempPath(), $"{name}-{Guid.NewGuid()}.dwg");
     }
 
-    private async Task EmbedRasterImagesAsync(Document doc)
+    private static void NormalizeRasterImagePaths(Database db, string sourceFilePath)
     {
-        Database db = doc.Database;
-        List<(ObjectId id, string path, Extents3d bounds)> imagesToConvert = [];
-
-        using (Transaction tr = db.TransactionManager.StartTransaction())
-        {
-            ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
-            BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
-
-            foreach (ObjectId id in ms)
-            {
-                if (id.ObjectClass.DxfName != "IMAGE")
-                    continue;
-
-                if (tr.GetObject(id, OpenMode.ForRead) is not RasterImage ri || ri.ImageDefId.IsNull)
-                    continue;
-
-                if (tr.GetObject(ri.ImageDefId, OpenMode.ForRead) is not RasterImageDef def)
-                    continue;
-
-                Extents3d? bounds = ri.Bounds;
-                string originalPath = def.SourceFileName;
-                string? path = ResolveRasterPath(doc, originalPath);
-
-                if (!bounds.HasValue)
-                {
-                    _log.Warn($"RasterImage Handle={id.Handle}: Bounds=null, path={System.IO.Path.GetFileName(path ?? originalPath)}");
-                    continue;
-                }
-
-                if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path))
-                {
-                    _log.Warn($"RasterImage Handle={id.Handle}: файл не найден: {originalPath}");
-                    continue;
-                }
-
-                imagesToConvert.Add((id, path, bounds.Value));
-            }
-
-            _log.Info($"EmbedRasterImages: toConvert={imagesToConvert.Count}");
-            tr.Commit();
-        }
-
-        if (imagesToConvert.Count == 0)
+        string? sourceDir = Path.GetDirectoryName(sourceFilePath);
+        if (string.IsNullOrEmpty(sourceDir))
             return;
 
-        LayoutManager.Current.CurrentLayout = "Model";
-        AcadApp.SetSystemVariable("TILEMODE", 1);
-
-        foreach ((ObjectId id, string path, Extents3d bounds) in imagesToConvert)
-        {
-            System.IO.FileStream? clipboardFs = null;
-            System.Drawing.Image? clipboardImg = null;
-
-            try
-            {
-                long maxHandleBefore = GetMaxHandleInModelSpace(db);
-                _log.Info($"OLE вставка: до вставки max Handle = {maxHandleBefore}, точка {bounds.MinPoint}, файл {System.IO.Path.GetFileName(path)}");
-
-                bool clipboardOk = false;
-                for (int attempt = 0; attempt < 3; attempt++)
-                {
-                    try
-                    {
-                        clipboardFs = new System.IO.FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read);
-                        clipboardImg = System.Drawing.Image.FromStream(clipboardFs);
-                        DataObject dataObj = new(System.Windows.Forms.DataFormats.Bitmap, clipboardImg);
-                        System.Windows.Forms.Clipboard.SetDataObject(dataObj, true, 10, 200);
-                        clipboardOk = true;
-                        break;
-                    }
-                    catch (System.Exception ex)
-                    {
-                        _log.Warn($"Clipboard попытка {attempt + 1} неудачна для {path}: {ex.Message}");
-                        clipboardImg?.Dispose();
-                        clipboardFs?.Dispose();
-                        clipboardImg = null;
-                        clipboardFs = null;
-                        System.Threading.Thread.Sleep(100);
-                    }
-                }
-
-                if (!clipboardOk)
-                {
-                    _log.Warn($"Не удалось поместить изображение в Clipboard: {path}");
-                    continue;
-                }
-
-                await doc.Editor.CommandAsync("._PASTECLIP", bounds.MinPoint);
-
-                ObjectId newOleId = FindNewOle2Frame(db, maxHandleBefore);
-
-                if (newOleId.IsNull)
-                {
-                    _log.Warn($"PASTECLIP не создал новый OLE2FRAME для {path}. Проверьте OLEQUALITY и Clipboard.");
-                    continue;
-                }
-
-                _log.Info($"Найден новый OLE2FRAME: Handle={newOleId.Handle}, Id={newOleId}");
-
-                using Transaction tr = db.TransactionManager.StartTransaction();
-                if (tr.GetObject(newOleId, OpenMode.ForWrite) is Ole2Frame ole)
-                {
-                    double targetWidth = bounds.MaxPoint.X - bounds.MinPoint.X;
-                    double targetHeight = bounds.MaxPoint.Y - bounds.MinPoint.Y;
-
-                    if (clipboardImg is { Width: > 0, Height: > 0 } && targetWidth > 0 && targetHeight > 0)
-                    {
-                        (targetWidth, targetHeight) = FitSizePreservingAspect(
-                            targetWidth,
-                            targetHeight,
-                            clipboardImg.Width,
-                            clipboardImg.Height);
-
-                        _log.Info(
-                            $"OLE aspect fit: target={targetWidth:F4}x{targetHeight:F4}, " +
-                            $"bitmap={clipboardImg.Width}x{clipboardImg.Height}");
-                    }
-
-                    Rectangle3d newPos = BuildTargetRectangle(bounds, ole.Position3d, targetWidth, targetHeight);
-                    ole.Position3d = newPos;
-
-                    _log.Info(
-                        $"OLE Position3d установлен: rect=[({bounds.MinPoint.X:F4},{bounds.MinPoint.Y:F4}) -> " +
-                        $"({(bounds.MinPoint.X + targetWidth):F4},{(bounds.MinPoint.Y + targetHeight):F4})]");
-
-                    if (tr.GetObject(id, OpenMode.ForWrite) is RasterImage originalImg)
-                    {
-                        originalImg.Erase();
-                        _log.Info($"Удалён исходный RasterImage: {id.Handle}");
-                    }
-
-                    tr.Commit();
-                }
-                else
-                {
-                    _log.Warn($"Найденный объект не является Ole2Frame: тип={newOleId.ObjectClass.DxfName}");
-                }
-            }
-            catch (System.Exception ex)
-            {
-                _log.Warn(ex, $"Ошибка при встраивании OLE: {path}");
-            }
-            finally
-            {
-                clipboardImg?.Dispose();
-                clipboardFs?.Dispose();
-            }
-        }
-
-        try { System.Windows.Forms.Clipboard.Clear(); } catch { }
-    }
-
-    private long GetMaxHandleInModelSpace(Database db)
-    {
-        long maxHandle = 0;
         using Transaction tr = db.TransactionManager.StartTransaction();
-        ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
-        BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
-        foreach (ObjectId id in ms)
+        ObjectId dictId = RasterImageDef.GetImageDictionary(db);
+        if (dictId.IsNull)
         {
-            if (id.Handle.Value > maxHandle)
+            tr.Commit();
+            return;
+        }
+
+        DBDictionary dict = (DBDictionary)tr.GetObject(dictId, OpenMode.ForRead);
+        foreach (DBDictionaryEntry entry in dict)
+        {
+            if (tr.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def)
+                continue;
+
+            string path = def.SourceFileName;
+            if (string.IsNullOrWhiteSpace(path))
+                continue;
+
+            if (Path.IsPathRooted(path) && File.Exists(path))
+                continue;
+
+            string resolved = Path.GetFullPath(Path.Combine(sourceDir, path));
+            if (File.Exists(resolved))
             {
-                maxHandle = id.Handle.Value;
+                def.SourceFileName = resolved;
             }
         }
+
         tr.Commit();
-        return maxHandle;
-    }
-
-    private ObjectId FindNewOle2Frame(Database db, long minHandleValue)
-    {
-        using Transaction tr = db.TransactionManager.StartTransaction();
-        ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
-        BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
-        ObjectId result = ObjectId.Null;
-        foreach (ObjectId id in ms)
-        {
-            if (id.Handle.Value > minHandleValue)
-            {
-                string dxfName = id.ObjectClass.DxfName;
-                if (dxfName == "OLE2FRAME")
-                {
-                    result = id;
-                }
-                else if (result.IsNull)
-                {
-                    _log.Info($"Новый объект Handle={id.Handle.Value}, тип={dxfName} (ожидался OLE2FRAME)");
-                }
-            }
-        }
-        tr.Commit();
-        return result;
-    }
-
-    private static (double width, double height) FitSizePreservingAspect(
-        double containerWidth,
-        double containerHeight,
-        double imageWidth,
-        double imageHeight)
-    {
-        if (containerWidth <= 0 || containerHeight <= 0 || imageWidth <= 0 || imageHeight <= 0)
-        {
-            return (containerWidth, containerHeight);
-        }
-
-        double containerAspect = containerWidth / containerHeight;
-        double imageAspect = imageWidth / imageHeight;
-
-        if (imageAspect >= containerAspect)
-        {
-            return (containerWidth, containerWidth / imageAspect);
-        }
-
-        return (containerHeight * imageAspect, containerHeight);
-    }
-
-    private static Rectangle3d BuildTargetRectangle(Extents3d bounds, Rectangle3d source, double width, double height)
-    {
-        double targetWidth = width > 0 ? width : bounds.MaxPoint.X - bounds.MinPoint.X;
-        double targetHeight = height > 0 ? height : bounds.MaxPoint.Y - bounds.MinPoint.Y;
-
-        Point3d lowerLeft = new(bounds.MinPoint.X, bounds.MinPoint.Y, source.LowerLeft.Z);
-        Point3d upperLeft = new(bounds.MinPoint.X, bounds.MinPoint.Y + targetHeight, source.UpperLeft.Z);
-        Point3d lowerRight = new(bounds.MinPoint.X + targetWidth, bounds.MinPoint.Y, source.LowerRight.Z);
-        Point3d upperRight = new(bounds.MinPoint.X + targetWidth, bounds.MinPoint.Y + targetHeight, source.UpperRight.Z);
-
-        return new Rectangle3d(lowerLeft, upperLeft, lowerRight, upperRight);
-    }
-
-    private string? ResolveRasterPath(Document doc, string rawPath)
-    {
-        if (string.IsNullOrWhiteSpace(rawPath))
-        {
-            return null;
-        }
-
-        string? docDir = TryGetDirectory(doc.Name);
-        if (string.IsNullOrEmpty(docDir))
-        {
-            return null;
-        }
-
-        if (System.IO.Path.IsPathRooted(rawPath) && System.IO.File.Exists(rawPath))
-        {
-            return System.IO.Path.GetFullPath(rawPath);
-        }
-
-        string combined = System.IO.Path.GetFullPath(System.IO.Path.Combine(docDir, rawPath));
-        if (System.IO.File.Exists(combined))
-        {
-            return combined;
-        }
-
-        string fileNameOnly = System.IO.Path.GetFileName(rawPath);
-        string inSameFolder = System.IO.Path.Combine(docDir, fileNameOnly);
-        return System.IO.File.Exists(inSameFolder) ? inSameFolder : null;
-    }
-
-    private static string? TryGetDirectory(string filePath)
-    {
-        if (string.IsNullOrWhiteSpace(filePath))
-        {
-            return null;
-        }
-
-        try
-        {
-            return System.IO.Path.GetDirectoryName(filePath);
-        }
-        catch
-        {
-            return null;
-        }
     }
 }
+
