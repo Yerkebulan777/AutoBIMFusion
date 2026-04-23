@@ -1,6 +1,4 @@
 using AutoBIMFusion.Infrastructure.Logging;
-using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.DatabaseServices;
 
 namespace AutoBIMFusion.Application.Merge;
 
@@ -36,7 +34,9 @@ internal static class RasterImagePathFixer
         foreach (DBDictionaryEntry entry in dict)
         {
             if (tr.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def)
+            {
                 continue;
+            }
 
             string? path = def.SourceFileName;
             if (string.IsNullOrWhiteSpace(path))
@@ -72,7 +72,7 @@ internal static class RasterImagePathFixer
             try
             {
                 File.Copy(resolvedPath, uniqueDestPath, overwrite: true);
-                copiedFiles.Add(uniqueDestPath);
+                _ = copiedFiles.Add(uniqueDestPath);
                 def.SourceFileName = uniqueFileName; // относительный путь к папке DWG
                 def.Load(); // Правило 2: загружаем определение после смены пути
                 fixedCount++;

@@ -2,7 +2,6 @@ using AutoBIMFusion.Application.AcadSupport;
 using AutoBIMFusion.Application.Utils;
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.DatabaseServices;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Application.Merge.Layouts;
@@ -244,7 +243,9 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
     {
         string? sourceDir = Path.GetDirectoryName(sourceFilePath);
         if (string.IsNullOrEmpty(sourceDir))
+        {
             return;
+        }
 
         using Transaction tr = db.TransactionManager.StartTransaction();
         ObjectId dictId = RasterImageDef.GetImageDictionary(db);
@@ -258,11 +259,15 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         foreach (DBDictionaryEntry entry in dict)
         {
             if (tr.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def)
+            {
                 continue;
+            }
 
             string path = def.SourceFileName;
             if (string.IsNullOrWhiteSpace(path))
+            {
                 continue;
+            }
 
             // Правило 1: используем FindFile для стабильного разрешения путей
             string resolvedPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.EmbeddedImageFile);

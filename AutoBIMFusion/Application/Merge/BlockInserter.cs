@@ -28,7 +28,7 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
             using Database sourceDb = new(false, true);
             sourceDb.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
 
-            ObjectIdCollection sourceIds = new();
+            ObjectIdCollection sourceIds = [];
             ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
 
             using (Transaction tr = sourceDb.TransactionManager.StartTransaction())
@@ -53,7 +53,7 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
             }
 
             ObjectId targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
-            IdMapping map = new();
+            IdMapping map = [];
             sourceDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Replace, false);
 
             Extents3d? worldBounds = null;
