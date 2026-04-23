@@ -29,8 +29,8 @@
 | :--- | :--- | :--- |
 | `Application/AutoBIMFusionExtension.cs` | Инициализация плагина и Ribbon | `AutoBIMFusionExtension.Initialize`, `OnIdle`, `RibbonBuilder.CreateTab` |
 | `Application/Commands` | AutoCAD-команды | `MergeCommands` |
-| `Application/Merge` | Оркестрация merge и вставки | `DwgMerger`, `BlockInserter`, `RasterImagePathFixer`, `MergeResult`, `MergeStatistics` |
-| `Application/Merge/Layouts` | Экспорт листа с учетом viewport | `ViewportLayoutExporter`, `ViewportCollector`, `ViewportTransformer`, `ModelSpaceTrimmer`, `LayoutViewportInfo` |
+| `Application/Merge` | Оркестрация merge и вставки | `DwgMerger` (статика), `BlockInserter`, `RasterImagePathFixer`, `MergeResult`, `MergeStatistics` |
+| `Application/Merge/Layouts` | Экспорт листа с учетом viewport | `ViewportLayoutExporter` (статика), `ViewportCollector`, `ViewportTransformer`, `ModelSpaceTrimmer`, `LayoutViewportInfo` |
 | `Application/Utils` | Выбор папки, перечисление и валидация файлов | `FolderSelector`, `FileEnumerator`, `FileHelper`, `LayoutUtil` |
 | `Application/Ribbon` | UI-интеграция в ленту AutoCAD | `RibbonBuilder`, `ButtonCommandHandler`, `RibbonIconLoader` |
 | `Infrastructure/Logging` | Логирование в Editor и файл | `OperationLogger`, `LoggerFactory` |
@@ -45,12 +45,13 @@
    - получает список DWG через `FileEnumerator.GetFiles`.
 4. Внутри `doc.LockDocument()`:
    - вычисляется `savePath` (`<ParentFolder>\<SelectedFolder>.dwg`),
-   - по каждому файлу вызывается `DwgMerger.MergeSingleFile`.
+   - создается экземпляр `BlockInserter`.
+   - по каждому файлу вызывается статический `DwgMerger.MergeSingleFile`.
 5. `DwgMerger`:
    - валидирует файл (`FileHelper`),
-   - экспортирует первый layout в temp DWG (`ViewportLayoutExporter`),
+   - экспортирует первый layout в temp DWG через статический `ViewportLayoutExporter.ExportToTempAsync`,
    - читает границы temp DWG,
-   - вставляет нативные объекты в target DB (`BlockInserter.InsertNativeObjects`).
+   - вставляет нативные объекты в target DB через переданный `BlockInserter`.
 6. После цикла:
    - `RasterImagePathFixer.CopyImagesToTargetFolder` копирует и перепривязывает растр,
    - выполняется `SaveAs(..., AC1032)`,
@@ -70,8 +71,8 @@
 | Метод | Назначение |
 | :--- | :--- |
 | `MergeCommands.MergeDwgFolderCommand()` | Точка входа команды |
-| `DwgMerger.MergeSingleFile(string filePath, Database targetDb)` | Обработка одного DWG |
-| `ViewportLayoutExporter.ExportToTempAsync(string sourceFilePath, string fileName)` | Экспорт первого листа во временный DWG |
+| `DwgMerger.MergeSingleFile(string filePath, BlockInserter inserter, Database targetDb, OperationLogger log)` | Статическая обработка одного DWG |
+| `ViewportLayoutExporter.ExportToTempAsync(string sourceFilePath, string fileName, OperationLogger log)` | Статический экспорт первого листа во временный DWG |
 | `BlockInserter.InsertNativeObjects(Database targetDb, string sourceFilePath, string sourceName, Extents3d sourceBounds)` | Клонирование и смещение нативных объектов |
 | `RasterImagePathFixer.CopyImagesToTargetFolder(Database db, string targetFilePath, OperationLogger log)` | Копирование и нормализация путей растров |
 
@@ -194,4 +195,4 @@ dotnet build AutoBIMFusion.slnx -c ReleaseA25
 
 ## Актуальность
 
-Документ синхронизирован с текущим кодом на дату: **2026-04-23**.
+Документ синхронизирован с текущим кодом на дату: **2026-04-24**.

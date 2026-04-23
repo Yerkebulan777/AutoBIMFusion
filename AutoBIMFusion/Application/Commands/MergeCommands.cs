@@ -71,9 +71,9 @@ public sealed class MergeCommands
 
                 string savePath = BuildSavePath(folderPath);
 
-                DwgMerger merger = new(gapPercent, log);
+                BlockInserter inserter = new(gapPercent, log);
 
-                await MergeFiles(dwgFiles, merger, doc.Database, stats, log);
+                await MergeFiles(dwgFiles, inserter, doc.Database, stats, log);
 
                 RasterImagePathFixer.CopyImagesToTargetFolder(doc.Database, savePath, log);
                 SaveMerged(doc.Database, savePath, log);
@@ -91,7 +91,7 @@ public sealed class MergeCommands
         }
     }
 
-    private static async Task MergeFiles(string[] files, DwgMerger merger, Database db, MergeStatistics stats, OperationLogger log)
+    private static async Task MergeFiles(string[] files, BlockInserter inserter, Database db, MergeStatistics stats, OperationLogger log)
     {
         using ProgressMeter pm = new();
         pm.Start("Объединение файлов DWG...");
@@ -103,7 +103,7 @@ public sealed class MergeCommands
 
             stats.RecordTotal();
 
-            MergeResult result = await merger.MergeSingleFile(files[idx], db);
+            MergeResult result = await DwgMerger.MergeSingleFile(files[idx], inserter, db, log);
 
             log.Info($"Результат: {(result.Success ? "OK" : result.IsSkipped ? "SKIP" : "FAIL")} - {result.Message}");
 

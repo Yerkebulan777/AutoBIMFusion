@@ -14,7 +14,7 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 /// главный VP становится «линейкой» масштаба, вспомогательные (узлы) переносятся
 /// матрицей трансформации, paper-содержимое уходит в Model Space через главный VP.
 /// </summary>
-internal sealed class ViewportLayoutExporter(OperationLogger log)
+internal static class ViewportLayoutExporter
 {
     private const double MaxScaleMultiplier = 100.0;
 
@@ -27,9 +27,7 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
     /// </summary>
     private const double MaxReasonableOleDimension = 1e8;
 
-    private readonly OperationLogger _log = log;
-
-    public async Task<string> ExportToTempAsync(string sourceFilePath, string fileName)
+    public static async Task<string> ExportToTempAsync(string sourceFilePath, string fileName, OperationLogger log)
     {
         ArgumentNullException.ThrowIfNull(sourceFilePath);
 
@@ -38,8 +36,8 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
 
         if (!LayoutUtil.TryFindFirstLayout(sourceDoc.Database, out string layoutName))
         {
-            _log.Warn($"{fileName}: листы не найдены");
-            TryCloseDocument(sourceDoc, fileName);
+            log.Warn($"{fileName}: листы не найдены");
+            TryCloseDocument(sourceDoc, fileName, log);
             return string.Empty;
         }
 
@@ -68,25 +66,25 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
                 // оставались огромными, что приводило к огромным отступам при вставке и разбросу блоков.
                 List<LayoutViewportInfo> vps = ViewportCollector.Collect(sourceDoc.Database, layoutName);
 
-                _log.Info($"Найдено viewport'ов: {vps.Count}");
+                log.Info($"Найдено viewport'ов: {vps.Count}");
 
                 Extents3d? frameBounds = vps.Count switch
                 {
-                    0 => ProcessNoVp(sourceDoc.Database, layoutName),
-                    1 => ProcessSingleVp(sourceDoc.Database, layoutName, vps[0]),
-                    _ => ProcessMultiVp(sourceDoc.Database, layoutName, vps)
+                    0 => ProcessNoVp(sourceDoc.Database, layoutName, log),
+                    1 => ProcessSingleVp(sourceDoc.Database, layoutName, vps[0], log),
+                    _ => ProcessMultiVp(sourceDoc.Database, layoutName, vps, log)
                 };
 
                 if (frameBounds.HasValue)
                 {
-                    int erased = ModelSpaceTrimmer.TrimOutside(sourceDoc.Database, frameBounds.Value, _log);
-                    _log.Info($"Очищено за рамкой: {erased}");
+                    int erased = ModelSpaceTrimmer.TrimOutside(sourceDoc.Database, frameBounds.Value, log);
+                    log.Info($"Очищено за рамкой: {erased}");
                 }
 
                 AcadApp.SetSystemVariable("TILEMODE", 1);
                 await sourceDoc.Editor.CommandAsync("._REGEN");
 
-                await EmbedRasterImagesAsync(sourceDoc);
+                await EmbedRasterImagesAsync(sourceDoc, log);
             }, null);
 
             using (new AcadWarningSuppressScope())
@@ -94,30 +92,30 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
                 sourceDoc.Database.SaveAs(tempPath, DwgVersion.AC1032);
             }
 
-            _log.Info($"{fileName} экспортирован");
+            log.Info($"{fileName} экспортирован");
 
             return tempPath;
         }
         catch (System.Exception ex)
         {
-            _log.Warn(ex, $"{fileName}: ошибка экспорта {ex.Message}");
+            log.Warn(ex, $"{fileName}: ошибка экспорта {ex.Message}");
             throw new System.Exception($"\n{fileName}: Ошибка экспорта: {ex.Message}", ex);
         }
         finally
         {
-            TryCloseDocument(sourceDoc, fileName);
+            TryCloseDocument(sourceDoc, fileName, log);
         }
     }
 
-    private Extents3d? ProcessMultiVp(Database db, string layoutName, List<LayoutViewportInfo> vps)
+    private static Extents3d? ProcessMultiVp(Database db, string layoutName, List<LayoutViewportInfo> vps, OperationLogger log)
     {
-        _log.Info($"Multi-VP ветка: {vps.Count} viewport'ов");
+        log.Info($"Multi-VP ветка: {vps.Count} viewport'ов");
 
-        LayoutViewportInfo main = ClampMainVpScale(LayoutViewportInfo.PickMainViewport(vps));
+        LayoutViewportInfo main = ClampMainVpScale(LayoutViewportInfo.PickMainViewport(vps), log);
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
-        IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, _log);
+        IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
 
         foreach (LayoutViewportInfo aux in vps)
         {
@@ -126,50 +124,50 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
                 continue;
             }
 
-            Matrix3d m = ViewportTransformer.BuildMatrix(main, aux, _log);
-            ObjectIdCollection toClone = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, _log);
+            Matrix3d m = ViewportTransformer.BuildMatrix(main, aux, log);
+            ObjectIdCollection toClone = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, log);
 
             if (toClone.Count > 0)
             {
-                ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, m, _log, "model-window");
-                _log.Info($"Обработан aux-VP #{aux.Number}: {cloned.Count} объектов");
+                ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, m, log, "model-window");
+                log.Info($"Обработан aux-VP #{aux.Number}: {cloned.Count} объектов");
             }
             else
             {
-                _log.Info($"Обработан aux-VP #{aux.Number}: 0 объектов");
+                log.Info($"Обработан aux-VP #{aux.Number}: 0 объектов");
             }
         }
 
-        Extents3d? frameBounds = MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(main, _log));
+        Extents3d? frameBounds = MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(main, log), log);
 
-        _log.Info($"Всего обработано aux-VP: {vps.Count - 1}");
+        log.Info($"Всего обработано aux-VP: {vps.Count - 1}");
         return frameBounds;
     }
 
-    private Extents3d? ProcessSingleVp(Database db, string layoutName, LayoutViewportInfo main)
+    private static Extents3d? ProcessSingleVp(Database db, string layoutName, LayoutViewportInfo main, OperationLogger log)
     {
-        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(ClampMainVpScale(main), _log));
+        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(ClampMainVpScale(main, log), log), log);
     }
 
 
-    private LayoutViewportInfo ClampMainVpScale(LayoutViewportInfo vp)
+    private static LayoutViewportInfo ClampMainVpScale(LayoutViewportInfo vp, OperationLogger log)
     {
         double multiplier = 1.0 / vp.CustomScale;
 
         if (multiplier < MaxScaleMultiplier)
         {
-            _log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0} изменен на 1:{MaxScaleMultiplier:F0}");
+            log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0} изменен на 1:{MaxScaleMultiplier:F0}");
             return vp with { CustomScale = 1.0 / MaxScaleMultiplier };
         }
 
-        _log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0}");
+        log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0}");
 
         return vp;
     }
 
-    private Extents3d? ProcessNoVp(Database db, string layoutName)
+    private static Extents3d? ProcessNoVp(Database db, string layoutName, OperationLogger log)
     {
-        _log.Info($"No-VP ветка: viewport'ы не найдены, масштаб по умолчанию 1:{MaxScaleMultiplier:F0}");
+        log.Info($"No-VP ветка: viewport'ы не найдены, масштаб по умолчанию 1:{MaxScaleMultiplier:F0}");
 
         ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
 
@@ -178,7 +176,7 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
             return null;
         }
 
-        Extents3d? paperBounds = ModelSpaceTrimmer.ComputeBounds(db, paperIds, _log);
+        Extents3d? paperBounds = ModelSpaceTrimmer.ComputeBounds(db, paperIds, log);
 
         if (!paperBounds.HasValue)
         {
@@ -190,10 +188,10 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         Matrix3d scale = Matrix3d.Scaling(MaxScaleMultiplier, Point3d.Origin);
         Matrix3d matrix = scale * moveToOrigin;
 
-        return MovePaperToModelSpace(db, layoutName, matrix, "paper-no-vp");
+        return MovePaperToModelSpace(db, layoutName, matrix, log, "paper-no-vp");
     }
 
-    private Extents3d? MovePaperToModelSpace(Database db, string layoutName, Matrix3d matrix, string tag = "paper")
+    private static Extents3d? MovePaperToModelSpace(Database db, string layoutName, Matrix3d matrix, OperationLogger log, string tag = "paper")
     {
         ObjectId paperBtrId = LayoutUtil.GetLayoutBtrId(db, layoutName);
         ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
@@ -204,11 +202,11 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         }
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
-        ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, paperIds, paperBtrId, msId, matrix, _log, tag);
+        ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, paperIds, paperBtrId, msId, matrix, log, tag);
 
         EraseBlockContents(db, paperBtrId);
 
-        return ModelSpaceTrimmer.ComputeBounds(db, cloned, _log);
+        return ModelSpaceTrimmer.ComputeBounds(db, cloned, log);
     }
 
     private static void EraseBlockContents(Database db, ObjectId btrId)
@@ -232,7 +230,7 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         tr.Commit();
     }
 
-    private void TryCloseDocument(Document doc, string fileName)
+    private static void TryCloseDocument(Document doc, string fileName, OperationLogger log)
     {
         try
         {
@@ -240,7 +238,7 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         }
         catch (System.Exception ex)
         {
-            _log.Warn(ex, $"{fileName}: не удалось закрыть документ");
+            log.Warn(ex, $"{fileName}: не удалось закрыть документ");
         }
     }
 
@@ -250,10 +248,10 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         return Path.Combine(Path.GetTempPath(), $"{name}-{Guid.NewGuid()}.dwg");
     }
 
-    private async Task EmbedRasterImagesAsync(Document doc)
+    private static async Task EmbedRasterImagesAsync(Document doc, OperationLogger log)
     {
         Database db = doc.Database;
-        List<(ObjectId id, string path, Extents3d bounds)> imagesToConvert = CollectRasterImages(doc);
+        List<(ObjectId id, string path, Extents3d bounds)> imagesToConvert = CollectRasterImages(doc, log);
         if (imagesToConvert.Count == 0)
         {
             return;
@@ -264,7 +262,7 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
 
         foreach ((ObjectId id, string path, Extents3d bounds) in imagesToConvert)
         {
-            await EmbedSingleRasterAsync(doc, db, id, path, bounds);
+            await EmbedSingleRasterAsync(doc, db, id, path, bounds, log);
         }
 
         try
@@ -277,7 +275,7 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         }
     }
 
-    private List<(ObjectId id, string path, Extents3d bounds)> CollectRasterImages(Document doc)
+    private static List<(ObjectId id, string path, Extents3d bounds)> CollectRasterImages(Document doc, OperationLogger log)
     {
         Database db = doc.Database;
         List<(ObjectId id, string path, Extents3d bounds)> result = [];
@@ -315,7 +313,7 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
             if (!ri.Bounds.HasValue)
             {
                 nullBoundsCount++;
-                _log.Warn($"RasterImage Handle={id.Handle}: Bounds=null, path={Path.GetFileName(def.SourceFileName)}");
+                log.Warn($"RasterImage Handle={id.Handle}: Bounds=null, path={Path.GetFileName(def.SourceFileName)}");
                 continue;
             }
 
@@ -323,7 +321,7 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
             if (string.IsNullOrEmpty(resolvedPath) || !File.Exists(resolvedPath))
             {
                 fileNotFoundCount++;
-                _log.Warn($"RasterImage Handle={id.Handle}: файл не найден: {def.SourceFileName}");
+                log.Warn($"RasterImage Handle={id.Handle}: файл не найден: {def.SourceFileName}");
                 continue;
             }
 
@@ -332,66 +330,66 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
 
         tr.Commit();
 
-        _log.Info(
+        log.Info(
             $"EmbedRasterImages: total={totalImages}, nullDef={nullDefCount}, " +
             $"nullBounds={nullBoundsCount}, fileNotFound={fileNotFoundCount}, toConvert={result.Count}");
 
         return result;
     }
 
-    private async Task EmbedSingleRasterAsync(Document doc, Database db, ObjectId rasterId, string path, Extents3d targetBounds)
+    private static async Task EmbedSingleRasterAsync(Document doc, Database db, ObjectId rasterId, string path, Extents3d targetBounds, OperationLogger log)
     {
         try
         {
             long maxHandleBefore = GetMaxHandleInModelSpace(db);
-            _log.Info($"OLE вставка: до вставки max Handle = {maxHandleBefore}, точка {targetBounds.MinPoint}, файл {Path.GetFileName(path)}");
+            log.Info($"OLE вставка: до вставки max Handle = {maxHandleBefore}, точка {targetBounds.MinPoint}, файл {Path.GetFileName(path)}");
 
-            if (!TryCopyImageToClipboard(path))
+            if (!TryCopyImageToClipboard(path, log))
             {
-                _log.Warn($"Не удалось поместить изображение в Clipboard: {path}");
+                log.Warn($"Не удалось поместить изображение в Clipboard: {path}");
                 return;
             }
 
             await doc.Editor.CommandAsync("._PASTECLIP", targetBounds.MinPoint);
 
-            ObjectId oleId = FindNewOle2Frame(db, maxHandleBefore);
+            ObjectId oleId = FindNewOle2Frame(db, maxHandleBefore, log);
             if (oleId.IsNull)
             {
-                _log.Warn($"PASTECLIP не создал новый OLE2FRAME для {path}. Проверьте OLEQUALITY и Clipboard.");
+                log.Warn($"PASTECLIP не создал новый OLE2FRAME для {path}. Проверьте OLEQUALITY и Clipboard.");
                 return;
             }
 
-            _log.Info($"Найден новый OLE2FRAME: Handle={oleId.Handle}, Id={oleId}");
+            log.Info($"Найден новый OLE2FRAME: Handle={oleId.Handle}, Id={oleId}");
 
             using Transaction tr = db.TransactionManager.StartTransaction();
             if (tr.GetObject(oleId, OpenMode.ForWrite) is not Ole2Frame ole)
             {
-                _log.Warn($"Найденный объект не является Ole2Frame: тип={oleId.ObjectClass.DxfName}");
+                log.Warn($"Найденный объект не является Ole2Frame: тип={oleId.ObjectClass.DxfName}");
                 tr.Commit();
                 return;
             }
 
-            bool positionedByRectangle = ResizeOleToTarget(ole, targetBounds);
+            bool positionedByRectangle = ResizeOleToTarget(ole, targetBounds, log);
             if (!positionedByRectangle)
             {
-                AlignOleToTargetMinPoint(ole, targetBounds);
+                AlignOleToTargetMinPoint(ole, targetBounds, log);
             }
 
             if (tr.GetObject(rasterId, OpenMode.ForWrite) is RasterImage originalImage)
             {
                 originalImage.Erase();
-                _log.Info($"Удалён исходный RasterImage: {rasterId.Handle}");
+                log.Info($"Удалён исходный RasterImage: {rasterId.Handle}");
             }
 
             tr.Commit();
         }
         catch (System.Exception ex)
         {
-            _log.Warn(ex, $"Ошибка при встраивании OLE: {path}");
+            log.Warn(ex, $"Ошибка при встраивании OLE: {path}");
         }
     }
 
-    private bool TryCopyImageToClipboard(string path)
+    private static bool TryCopyImageToClipboard(string path, OperationLogger log)
     {
         for (int attempt = 1; attempt <= 3; attempt++)
         {
@@ -405,7 +403,7 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
             }
             catch (System.Exception ex)
             {
-                _log.Warn($"Clipboard попытка {attempt} неудачна для {path}: {ex.Message}");
+                log.Warn($"Clipboard попытка {attempt} неудачна для {path}: {ex.Message}");
                 Thread.Sleep(100);
             }
         }
@@ -413,7 +411,7 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         return false;
     }
 
-    private long GetMaxHandleInModelSpace(Database db)
+    private static long GetMaxHandleInModelSpace(Database db)
     {
         long maxHandle = 0;
 
@@ -430,7 +428,7 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         return maxHandle;
     }
 
-    private ObjectId FindNewOle2Frame(Database db, long minHandleValue)
+    private static ObjectId FindNewOle2Frame(Database db, long minHandleValue, OperationLogger log)
     {
         ObjectId newestOleId = ObjectId.Null;
         long newestOleHandle = minHandleValue;
@@ -461,7 +459,7 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
 
             if (!loggedUnexpectedType)
             {
-                _log.Info($"Новый объект Handle={handle}, тип={id.ObjectClass.DxfName} (ожидался OLE2FRAME)");
+                log.Info($"Новый объект Handle={handle}, тип={id.ObjectClass.DxfName} (ожидался OLE2FRAME)");
                 loggedUnexpectedType = true;
             }
         }
@@ -470,26 +468,26 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         return newestOleId;
     }
 
-    private bool ResizeOleToTarget(Ole2Frame ole, Extents3d targetBounds)
+    private static bool ResizeOleToTarget(Ole2Frame ole, Extents3d targetBounds, OperationLogger log)
     {
         double targetWidth = targetBounds.MaxPoint.X - targetBounds.MinPoint.X;
         double targetHeight = targetBounds.MaxPoint.Y - targetBounds.MinPoint.Y;
         if (targetWidth <= 0 || targetHeight <= 0)
         {
-            _log.Warn($"Целевой размер OLE некорректен: {targetWidth:F4} x {targetHeight:F4}");
+            log.Warn($"Целевой размер OLE некорректен: {targetWidth:F4} x {targetHeight:F4}");
             return false;
         }
 
         Extents3d? initialBounds = ole.Bounds;
         if (!initialBounds.HasValue)
         {
-            _log.Warn("OLE Bounds не определены до масштабирования. Пробуем Position3d fallback.");
-            return TryApplyPositionFallback(ole, targetBounds);
+            log.Warn("OLE Bounds не определены до масштабирования. Пробуем Position3d fallback.");
+            return TryApplyPositionFallback(ole, targetBounds, log);
         }
 
         double initialWidth = initialBounds.Value.MaxPoint.X - initialBounds.Value.MinPoint.X;
         double initialHeight = initialBounds.Value.MaxPoint.Y - initialBounds.Value.MinPoint.Y;
-        _log.Info($"OLE размер до масштабирования: {initialWidth:F4} x {initialHeight:F4}, целевой: {targetWidth:F4} x {targetHeight:F4}");
+        log.Info($"OLE размер до масштабирования: {initialWidth:F4} x {initialHeight:F4}, целевой: {targetWidth:F4} x {targetHeight:F4}");
 
         bool invalidBounds =
             initialWidth <= 0
@@ -499,10 +497,10 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
 
         if (invalidBounds)
         {
-            _log.Warn(
+            log.Warn(
                 $"OLE Bounds некорректны: {initialWidth:F4}x{initialHeight:F4}. " +
                 "Пропускаем WcsWidth/Height, используем Position3d.");
-            return TryApplyPositionFallback(ole, targetBounds);
+            return TryApplyPositionFallback(ole, targetBounds, log);
         }
 
         ApplyWcsSize(ole, targetWidth, targetHeight);
@@ -510,13 +508,13 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         Extents3d? resizedBounds = ole.Bounds;
         if (!resizedBounds.HasValue)
         {
-            _log.Warn("После WcsWidth/WcsHeight не удалось получить Bounds. Пробуем Position3d fallback.");
-            return TryApplyPositionFallback(ole, targetBounds);
+            log.Warn("После WcsWidth/WcsHeight не удалось получить Bounds. Пробуем Position3d fallback.");
+            return TryApplyPositionFallback(ole, targetBounds, log);
         }
 
         double resizedWidth = resizedBounds.Value.MaxPoint.X - resizedBounds.Value.MinPoint.X;
         double resizedHeight = resizedBounds.Value.MaxPoint.Y - resizedBounds.Value.MinPoint.Y;
-        _log.Info($"OLE размер после WcsWidth/Height: {resizedWidth:F4} x {resizedHeight:F4}");
+        log.Info($"OLE размер после WcsWidth/Height: {resizedWidth:F4} x {resizedHeight:F4}");
 
         bool resizedCorrectly = IsCloseToTarget(resizedWidth, targetWidth) && IsCloseToTarget(resizedHeight, targetHeight);
         if (resizedCorrectly)
@@ -524,10 +522,10 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
             return false;
         }
 
-        _log.Warn(
+        log.Warn(
             $"WcsWidth/WcsHeight не применились корректно: текущий={resizedWidth:F4}x{resizedHeight:F4}, " +
             $"целевой={targetWidth:F4}x{targetHeight:F4}. Пробуем Position3d fallback.");
-        return TryApplyPositionFallback(ole, targetBounds);
+        return TryApplyPositionFallback(ole, targetBounds, log);
     }
 
     private static void ApplyWcsSize(Ole2Frame ole, double targetWidth, double targetHeight)
@@ -539,7 +537,7 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         ole.LockAspect = originalLockAspect;
     }
 
-    private bool TryApplyPositionFallback(Ole2Frame ole, Extents3d targetBounds)
+    private static bool TryApplyPositionFallback(Ole2Frame ole, Extents3d targetBounds, OperationLogger log)
     {
         try
         {
@@ -551,24 +549,24 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
             {
                 double width = boundsAfterFallback.Value.MaxPoint.X - boundsAfterFallback.Value.MinPoint.X;
                 double height = boundsAfterFallback.Value.MaxPoint.Y - boundsAfterFallback.Value.MinPoint.Y;
-                _log.Info($"OLE размер после Position3d fallback: {width:F4} x {height:F4}");
+                log.Info($"OLE размер после Position3d fallback: {width:F4} x {height:F4}");
             }
 
             return true;
         }
         catch (System.Exception ex)
         {
-            _log.Warn(ex, "Position3d fallback не сработал.");
+            log.Warn(ex, "Position3d fallback не сработал.");
             return false;
         }
     }
 
-    private void AlignOleToTargetMinPoint(Ole2Frame ole, Extents3d targetBounds)
+    private static void AlignOleToTargetMinPoint(Ole2Frame ole, Extents3d targetBounds, OperationLogger log)
     {
         Extents3d? currentBounds = ole.Bounds;
         if (!currentBounds.HasValue)
         {
-            _log.Warn("Не удалось выровнять OLE: Bounds отсутствуют.");
+            log.Warn("Не удалось выровнять OLE: Bounds отсутствуют.");
             return;
         }
 
@@ -583,19 +581,19 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         Extents3d? movedBounds = ole.Bounds;
         if (!movedBounds.HasValue)
         {
-            _log.Warn("TransformBy выполнен, но Bounds OLE недоступны после сдвига.");
+            log.Warn("TransformBy выполнен, но Bounds OLE недоступны после сдвига.");
             return;
         }
 
         double movedDistance = (movedBounds.Value.MinPoint - currentBounds.Value.MinPoint).Length;
         if (movedDistance > 1e-6)
         {
-            _log.Info($"TransformBy сработал, смещение {movedDistance:F4}");
+            log.Info($"TransformBy сработал, смещение {movedDistance:F4}");
             return;
         }
 
-        _log.Warn("TransformBy(Displacement) не изменил OLE. Пробуем Position3d fallback.");
-        _ = TryApplyPositionFallback(ole, targetBounds);
+        log.Warn("TransformBy(Displacement) не изменил OLE. Пробуем Position3d fallback.");
+        _ = TryApplyPositionFallback(ole, targetBounds, log);
     }
 
     private static bool IsCloseToTarget(double actual, double target)
@@ -619,7 +617,7 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         return new Rectangle3d(lowerLeft, upperLeft, lowerRight, upperRight);
     }
 
-    private string? ResolveRasterPath(Document doc, string rawPath)
+    private static string? ResolveRasterPath(Document doc, string rawPath)
     {
         if (string.IsNullOrWhiteSpace(rawPath))
         {

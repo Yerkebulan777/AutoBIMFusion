@@ -8,18 +8,19 @@ namespace AutoBIMFusion.Application.Merge;
 /// Координирует слияние DWG-файлов: экспортирует первый Paper Space лист,
 /// вычисляет границы, вставляет как блок со смещением.
 /// </summary>
-internal sealed class DwgMerger(double gapPercent, OperationLogger log)
+internal static class DwgMerger
 {
-    private readonly OperationLogger _log = log;
-    private readonly ViewportLayoutExporter _exporter = new(log);
-    private readonly BlockInserter _blockInserter = new(gapPercent, log);
-
-    public async Task<MergeResult> MergeSingleFile(string filePath, Database targetDb)
+    public static async Task<MergeResult> MergeSingleFile(string filePath, BlockInserter inserter, Database targetDb, OperationLogger log)
     {
         string layoutName = Path.GetFileNameWithoutExtension(filePath);
         string fileName = Path.GetFileName(filePath);
 
-        if (!Validate(filePath, out string warn))
+        if (!FileHelper.TryValidateFile(filePath, FileShare.ReadWrite, out string warn))
+        {
+            return MergeResult.Warn(fileName, warn);
+        }
+
+        if (!FileHelper.TryValidateDwgStructure(filePath, out warn))
         {
             return MergeResult.Warn(fileName, warn);
         }
@@ -28,9 +29,9 @@ internal sealed class DwgMerger(double gapPercent, OperationLogger log)
 
         try
         {
-            _log.Info($"Обработка: {fileName}");
+            log.Info($"Обработка: {fileName}");
 
-            tempPath = await _exporter.ExportToTempAsync(filePath, fileName);
+            tempPath = await ViewportLayoutExporter.ExportToTempAsync(filePath, fileName, log);
 
             if (string.IsNullOrEmpty(tempPath))
             {
@@ -44,19 +45,19 @@ internal sealed class DwgMerger(double gapPercent, OperationLogger log)
                 return MergeResult.Warn(fileName, "Пустой файл");
             }
 
-            Extents3d? worldBounds = _blockInserter.InsertNativeObjects(targetDb, tempPath, layoutName, bounds.Value);
+            Extents3d? worldBounds = inserter.InsertNativeObjects(targetDb, tempPath, layoutName, bounds.Value);
 
             if (worldBounds is null)
             {
                 return MergeResult.Fail(fileName, "Не удалось вставить объекты");
             }
 
-            _log.Info($"Успешно вставлены нативные объекты '{layoutName}'");
+            log.Info($"Успешно вставлены нативные объекты '{layoutName}'");
             return MergeResult.Ok(fileName, layoutName);
         }
         catch (System.Exception ex)
         {
-            _log.Error(ex, fileName);
+            log.Error(ex, fileName);
             return MergeResult.Fail(fileName, ex.Message, "Ошибка обработки");
         }
         finally
@@ -69,26 +70,10 @@ internal sealed class DwgMerger(double gapPercent, OperationLogger log)
                 }
                 catch (System.Exception deleteEx)
                 {
-                    _log.Warn(deleteEx, $"Не удалось удалить временный файл: {tempPath}");
+                    log.Warn(deleteEx, $"Не удалось удалить временный файл: {tempPath}");
                 }
             }
         }
-    }
-
-    private static bool Validate(string filePath, out string warn)
-    {
-        if (!FileHelper.TryValidateFile(filePath, FileShare.ReadWrite, out warn))
-        {
-            return false;
-        }
-
-        if (!FileHelper.TryValidateDwgStructure(filePath, out warn))
-        {
-            return false;
-        }
-
-        warn = string.Empty;
-        return true;
     }
 
     private static Extents3d? ReadBounds(string tempPath)

@@ -25,8 +25,8 @@
 
 ## 2. Пошагово: обработка одного файла
 
-1. `DwgMerger.MergeSingleFile(...)` валидирует исходный файл (`FileHelper`).
-2. `ViewportLayoutExporter.ExportToTempAsync(...)`:
+1. `DwgMerger.MergeSingleFile(...)` (вызывается как статический метод) валидирует исходный файл (`FileHelper`).
+2. `ViewportLayoutExporter.ExportToTempAsync(...)` (вызывается как статический метод):
    - открывает DWG,
    - выбирает первый Paper Space layout,
    - в `ExecuteInCommandContextAsync` переносит лист в Model Space.
@@ -37,7 +37,7 @@
 4. После переноса выполняется `ModelSpaceTrimmer.TrimOutside(...)` по рамке листа.
 5. Растры на модели встраиваются как `OLE2FRAME` (через `PASTECLIP`) с контролем размеров.
 6. Временный DWG сохраняется.
-7. `BlockInserter.InsertNativeObjects(...)` клонирует нативные сущности в итоговый чертеж и смещает их по оси X.
+7. Экземпляр `BlockInserter` (созданный один раз в `MergeCommands`) клонирует нативные сущности в итоговый чертеж и смещает их по оси X.
 
 ## 3. Алгоритм вставки объектов (оптимизирован)
 
@@ -89,6 +89,7 @@
   - `TryCopyImageToClipboard`,
   - `ResizeOleToTarget`,
   - `AlignOleToTargetMinPoint`.
+- Классы `DwgMerger` и `ViewportLayoutExporter` переведены в разряд статических утилит, устранены лишние аллокации объектов-оберток. Вызовы стали прямыми и более прозрачными.
 
 Это уменьшило вложенность и упростило поддержку без изменения рабочего сценария.
 
