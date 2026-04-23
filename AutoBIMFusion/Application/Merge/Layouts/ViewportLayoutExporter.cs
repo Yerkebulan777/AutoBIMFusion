@@ -18,14 +18,6 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
 {
     private const double MaxScaleMultiplier = 100.0;
 
-    /// <summary>
-    /// Максимальный "разумный" линейный размер свежевставленного Ole2Frame (в единицах чертежа).
-    /// Если AutoCAD сразу после PASTECLIP сообщает Bounds больше этого значения — считаем их
-    /// некорректными и пропускаем путь WcsWidth/Height, сразу задавая геометрию через Position3d.
-    /// Диапазон выбран с запасом: реальные листы редко превышают ~10^7 единиц.
-    /// </summary>
-    private const double MaxReasonableOleDimension = 1e8;
-
     private readonly OperationLogger _log = log;
 
     public async Task<string> ExportToTempAsync(string sourceFilePath, string fileName)
@@ -259,31 +251,16 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
             ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
             BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
 
-            int totalImages = 0;
-            int nullDefCount = 0;
-            int nullBoundsCount = 0;
-            int fileNotFoundCount = 0;
-
             foreach (ObjectId id in ms)
             {
                 if (id.ObjectClass.DxfName != "IMAGE")
-                {
                     continue;
-                }
-
-                totalImages++;
 
                 if (tr.GetObject(id, OpenMode.ForRead) is not RasterImage ri || ri.ImageDefId.IsNull)
-                {
-                    nullDefCount++;
                     continue;
-                }
 
                 if (tr.GetObject(ri.ImageDefId, OpenMode.ForRead) is not RasterImageDef def)
-                {
-                    nullDefCount++;
                     continue;
-                }
 
                 Extents3d? bounds = ri.Bounds;
                 string originalPath = def.SourceFileName;
@@ -291,15 +268,12 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
 
                 if (!bounds.HasValue)
                 {
-                    nullBoundsCount++;
-                    string pathForLog = path ?? originalPath;
-                    _log.Warn($"RasterImage Handle={id.Handle}: Bounds=null, path={System.IO.Path.GetFileName(pathForLog)}");
+                    _log.Warn($"RasterImage Handle={id.Handle}: Bounds=null, path={System.IO.Path.GetFileName(path ?? originalPath)}");
                     continue;
                 }
 
                 if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path))
                 {
-                    fileNotFoundCount++;
                     _log.Warn($"RasterImage Handle={id.Handle}: файл не найден: {originalPath}");
                     continue;
                 }
@@ -307,14 +281,12 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
                 imagesToConvert.Add((id, path, bounds.Value));
             }
 
-            _log.Info($"EmbedRasterImages: total={totalImages}, nullDef={nullDefCount}, nullBounds={nullBoundsCount}, fileNotFound={fileNotFoundCount}, toConvert={imagesToConvert.Count}");
+            _log.Info($"EmbedRasterImages: toConvert={imagesToConvert.Count}");
             tr.Commit();
         }
 
         if (imagesToConvert.Count == 0)
-        {
             return;
-        }
 
         LayoutManager.Current.CurrentLayout = "Model";
         AcadApp.SetSystemVariable("TILEMODE", 1);
@@ -375,8 +347,6 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
                 {
                     double targetWidth = bounds.MaxPoint.X - bounds.MinPoint.X;
                     double targetHeight = bounds.MaxPoint.Y - bounds.MinPoint.Y;
-                    double containerWidth = targetWidth;
-                    double containerHeight = targetHeight;
 
                     if (clipboardImg is { Width: > 0, Height: > 0 } && targetWidth > 0 && targetHeight > 0)
                     {
@@ -384,159 +354,19 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
                             targetWidth,
                             targetHeight,
                             clipboardImg.Width,
-                            clipboardImg.Height
-                        );
+                            clipboardImg.Height);
 
                         _log.Info(
-                            $"OLE size with preserved aspect: container={containerWidth:F4}x{containerHeight:F4}, " +
-                            $"target={targetWidth:F4}x{targetHeight:F4}, " +
-                            $"bitmap={clipboardImg.Width}x{clipboardImg.Height}"
-                        );
+                            $"OLE aspect fit: target={targetWidth:F4}x{targetHeight:F4}, " +
+                            $"bitmap={clipboardImg.Width}x{clipboardImg.Height}");
                     }
 
-                    Extents3d? oleBounds = ole.Bounds;
-                    if (oleBounds.HasValue)
-                    {
-                        double currentWidth = oleBounds.Value.MaxPoint.X - oleBounds.Value.MinPoint.X;
-                        double currentHeight = oleBounds.Value.MaxPoint.Y - oleBounds.Value.MinPoint.Y;
+                    Rectangle3d newPos = BuildTargetRectangle(bounds, ole.Position3d, targetWidth, targetHeight);
+                    ole.Position3d = newPos;
 
-                        _log.Info($"OLE размер до масштабирования: {currentWidth:F4} x {currentHeight:F4}, целевой: {targetWidth:F4} x {targetHeight:F4}");
-
-                        if (currentWidth > 0 && currentHeight > 0)
-                        {
-                            bool boundsLookBogus =
-                                currentWidth > MaxReasonableOleDimension
-                                || currentHeight > MaxReasonableOleDimension;
-
-                            bool needsPositionResizeFallback;
-
-                            if (boundsLookBogus)
-                            {
-                                // Свежевставленный PASTECLIP'ом Ole2Frame иногда сообщает
-                                // абсурдные Bounds (миллиарды единиц). В этом случае WcsWidth/Height
-                                // не применяются, а любые вычисления на таких Bounds
-                                // (включая TransformBy(Displacement)) приводят к разрушению геометрии.
-                                // Идём сразу на детерминированный путь через Position3d.
-                                needsPositionResizeFallback = true;
-                                _log.Warn(
-                                    $"OLE Bounds выглядят некорректно: {currentWidth:F2}x{currentHeight:F2}. " +
-                                    $"Пропускаем WcsWidth/Height, идём сразу на Position3d."
-                                );
-                            }
-                            else
-                            {
-                                bool originalLockAspect = ole.LockAspect;
-                                ole.LockAspect = false;
-                                ole.WcsWidth = targetWidth;
-                                ole.WcsHeight = targetHeight;
-                                ole.LockAspect = originalLockAspect;
-
-                                needsPositionResizeFallback = false;
-                                Extents3d? afterBounds = ole.Bounds;
-                                if (afterBounds.HasValue)
-                                {
-                                    double afterWidth = afterBounds.Value.MaxPoint.X - afterBounds.Value.MinPoint.X;
-                                    double afterHeight = afterBounds.Value.MaxPoint.Y - afterBounds.Value.MinPoint.Y;
-                                    _log.Info($"OLE размер после WcsWidth/Height: {afterWidth:F4} x {afterHeight:F4}");
-
-                                    if (!IsCloseToTarget(afterWidth, targetWidth) || !IsCloseToTarget(afterHeight, targetHeight))
-                                    {
-                                        needsPositionResizeFallback = true;
-                                        _log.Warn(
-                                            $"WcsWidth/WcsHeight не применились корректно: текущий={afterWidth:F4}x{afterHeight:F4}, " +
-                                            $"целевой={targetWidth:F4}x{targetHeight:F4}. Пробуем Position3d fallback."
-                                        );
-                                    }
-                                }
-                                else
-                                {
-                                    needsPositionResizeFallback = true;
-                                    _log.Warn("После WcsWidth/WcsHeight не удалось получить Bounds. Пробуем Position3d fallback.");
-                                }
-                            }
-
-                            bool positionFallbackApplied = false;
-                            if (needsPositionResizeFallback)
-                            {
-                                try
-                                {
-                                    Rectangle3d pos = ole.Position3d;
-                                    Rectangle3d newPos = BuildTargetRectangle(bounds, pos, targetWidth, targetHeight);
-                                    ole.Position3d = newPos;
-                                    positionFallbackApplied = true;
-                                    _log.Info(
-                                        $"Position3d fallback применён: rect=[({bounds.MinPoint.X:F4},{bounds.MinPoint.Y:F4}) -> " +
-                                        $"({(bounds.MinPoint.X + targetWidth):F4},{(bounds.MinPoint.Y + targetHeight):F4})]"
-                                    );
-
-                                    Extents3d? fallbackBounds = ole.Bounds;
-                                    if (fallbackBounds.HasValue)
-                                    {
-                                        double fbWidth = fallbackBounds.Value.MaxPoint.X - fallbackBounds.Value.MinPoint.X;
-                                        double fbHeight = fallbackBounds.Value.MaxPoint.Y - fallbackBounds.Value.MinPoint.Y;
-                                        _log.Info($"OLE размер после Position3d fallback: {fbWidth:F4} x {fbHeight:F4}");
-                                    }
-                                }
-                                catch (System.Exception resizeEx)
-                                {
-                                    _log.Warn(resizeEx, "Position3d fallback для изменения размера OLE не сработал.");
-                                }
-                            }
-
-                            // Коррекция позиции через TransformBy имеет смысл только если
-                            // WcsWidth/Height действительно сработали. При использовании Position3d fallback
-                            // прямоугольник уже выставлен по углам bounds.Min..Max — дополнительный сдвиг
-                            // не нужен и может сломать корректно заданную геометрию,
-                            // т.к. ole.Bounds сразу после изменения ещё может возвращать старое значение.
-                            if (!positionFallbackApplied)
-                            {
-                                Extents3d? finalBounds = ole.Bounds;
-                                if (finalBounds.HasValue)
-                                {
-                                    Point3d actualMin = finalBounds.Value.MinPoint;
-                                    Vector3d shift = bounds.MinPoint - actualMin;
-                                    if (shift.Length > 1e-6)
-                                    {
-                                        _log.Info($"Корректировка позиции OLE на {shift}");
-                                        ole.TransformBy(Matrix3d.Displacement(shift));
-
-                                        Extents3d? shiftedBounds = ole.Bounds;
-                                        if (shiftedBounds.HasValue)
-                                        {
-                                            double moved = (shiftedBounds.Value.MinPoint - actualMin).Length;
-                                            if (moved < 1e-6)
-                                            {
-                                                _log.Warn("TransformBy(Displacement) не сработал для Ole2Frame. Пробуем Position3d.");
-                                                try
-                                                {
-                                                    Rectangle3d pos = ole.Position3d;
-                                                    Rectangle3d newPos = new(
-                                                        pos.LowerLeft + shift,
-                                                        pos.UpperLeft + shift,
-                                                        pos.LowerRight + shift,
-                                                        pos.UpperRight + shift
-                                                    );
-                                                    ole.Position3d = newPos;
-                                                }
-                                                catch (System.Exception posEx)
-                                                {
-                                                    _log.Warn(posEx, "Position3d fallback тоже не сработал.");
-                                                }
-                                            }
-                                            else
-                                            {
-                                                _log.Info($"TransformBy сработал, смещение {moved:F4}");
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        _log.Warn($"OLE Bounds не определены для {newOleId.Handle}");
-                    }
+                    _log.Info(
+                        $"OLE Position3d установлен: rect=[({bounds.MinPoint.X:F4},{bounds.MinPoint.Y:F4}) -> " +
+                        $"({(bounds.MinPoint.X + targetWidth):F4},{(bounds.MinPoint.Y + targetHeight):F4})]");
 
                     if (tr.GetObject(id, OpenMode.ForWrite) is RasterImage originalImg)
                     {
@@ -605,17 +435,6 @@ internal sealed class ViewportLayoutExporter(OperationLogger log)
         }
         tr.Commit();
         return result;
-    }
-
-    private static bool IsCloseToTarget(double actual, double target)
-    {
-        if (target <= 0)
-        {
-            return false;
-        }
-
-        double tolerance = Math.Max(1e-3, target * 0.02);
-        return Math.Abs(actual - target) <= tolerance;
     }
 
     private static (double width, double height) FitSizePreservingAspect(
