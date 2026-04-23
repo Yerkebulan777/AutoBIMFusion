@@ -1,13 +1,7 @@
-using System.Text;
-
 namespace AutoBIMFusion.Application.Utils;
 
 internal static class LayoutUtil
 {
-    private const int MaxNameLength = 255;
-
-    private static readonly HashSet<char> InvalidNameChars = ['<', '>', '/', '\\', '"', ':', ';', '?', '*', '|', '=', ','];
-
     /// <summary>
     /// Находит первый Paper Space layout (с наименьшим TabOrder).
     /// ModelType=true — служебный псевдо-layout, пропускается.
@@ -90,46 +84,5 @@ internal static class LayoutUtil
 
         tr.Commit();
         return result;
-    }
-
-    /// <summary>
-    /// Убирает из имени символы, запрещённые AutoCAD, схлопывает пробелы, обрезает до 255 символов.
-    /// </summary>
-    internal static string SanitizeSymbolName(string name)
-    {
-        ArgumentNullException.ThrowIfNullOrWhiteSpace(name);
-
-        StringBuilder sb = new(name.Length);
-        bool lastWasSpace = false;
-
-        foreach (char ch in name.Trim())
-        {
-            if (InvalidNameChars.Contains(ch) || char.IsControl(ch))
-            {
-                continue;
-            }
-
-            if (char.IsWhiteSpace(ch))
-            {
-                if (sb.Length > 0 && !lastWasSpace)
-                {
-                    _ = sb.Append(' ');
-                }
-
-                lastWasSpace = true;
-                continue;
-            }
-
-            _ = sb.Append(ch);
-            lastWasSpace = false;
-        }
-
-        if (sb.Length > 0 && sb[^1] == ' ')
-        {
-            sb.Length--;
-        }
-
-        string result = sb.Length == 0 ? "Layout" : sb.ToString();
-        return result.Length <= MaxNameLength ? result : result[..MaxNameLength];
     }
 }

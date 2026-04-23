@@ -71,11 +71,6 @@ public sealed class MergeCommands
 
                 string savePath = BuildSavePath(folderPath);
 
-                if (Path.Exists(savePath))
-                {
-                    File.Delete(savePath);
-                }
-
                 DwgMerger merger = new(gapPercent, log);
 
                 await MergeFiles(dwgFiles, merger, doc.Database, stats, log);

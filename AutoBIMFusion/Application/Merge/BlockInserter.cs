@@ -12,6 +12,7 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
     private readonly double _gapPercent = gapPercent;
     private readonly OperationLogger _log = log;
     private double _rightMax;
+    private bool _hasPlacedObjects;
 
     /// <summary>
     /// Открывает временный DWG, клонирует все объекты из его Model Space
@@ -101,6 +102,7 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
             }
 
             _rightMax = worldBounds.Value.MaxPoint.X;
+            _hasPlacedObjects = true;
             _log.Info($"BlockInserter: {sourceName} — вставлено {clonedCount} нативных объектов");
             return worldBounds;
         }
@@ -113,11 +115,14 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
     private Point3d CalcInsertionPoint(Extents3d bounds)
     {
-        double width = bounds.MaxPoint.X - bounds.MinPoint.X;
-        double height = bounds.MaxPoint.Y - bounds.MinPoint.Y;
-        double gap = Math.Round(Math.Max(width, height) * _gapPercent, 0);
+        double width = Math.Max(0, bounds.MaxPoint.X - bounds.MinPoint.X);
+        double height = Math.Max(0, bounds.MaxPoint.Y - bounds.MinPoint.Y);
+        double maxDimension = Math.Max(width, height);
+        double gap = Math.Max(1.0, Math.Round(maxDimension * _gapPercent, 0));
 
-        double insertX = _rightMax > 0 ? _rightMax + gap - bounds.MinPoint.X : -bounds.MinPoint.X;
+        double insertX = _hasPlacedObjects
+            ? _rightMax + gap - bounds.MinPoint.X
+            : -bounds.MinPoint.X;
         Point3d insertPt = new(insertX, -bounds.MinPoint.Y, 0);
 
         _log.Debug($"Позиция вставки: X={insertPt.X:F2}, Y={insertPt.Y:F2}, gap={gap:F0}");
