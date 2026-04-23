@@ -68,7 +68,7 @@ internal static class ViewportLayoutExporter
 
                 log.Info($"Найдено viewport'ов: {vps.Count}");
 
-                Extents3d? frameBounds = vps.Count switch
+                (Extents3d? frameBounds, HashSet<ObjectId> paperClonedIds) = vps.Count switch
                 {
                     0 => ProcessNoVp(sourceDoc.Database, layoutName, log),
                     1 => ProcessSingleVp(sourceDoc.Database, layoutName, vps[0], log),
@@ -84,7 +84,7 @@ internal static class ViewportLayoutExporter
                 AcadApp.SetSystemVariable("TILEMODE", 1);
                 await sourceDoc.Editor.CommandAsync("._REGEN");
 
-                await EmbedRasterImagesAsync(sourceDoc, log);
+                await EmbedRasterImagesAsync(sourceDoc, paperClonedIds, log);
             }, null);
 
             using (new AcadWarningSuppressScope())
@@ -107,7 +107,7 @@ internal static class ViewportLayoutExporter
         }
     }
 
-    private static Extents3d? ProcessMultiVp(Database db, string layoutName, List<LayoutViewportInfo> vps, OperationLogger log)
+    private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessMultiVp(Database db, string layoutName, List<LayoutViewportInfo> vps, OperationLogger log)
     {
         log.Info($"Multi-VP ветка: {vps.Count} viewport'ов");
 
@@ -138,13 +138,13 @@ internal static class ViewportLayoutExporter
             }
         }
 
-        Extents3d? frameBounds = MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(main, log), log);
+        (Extents3d? frameBounds, HashSet<ObjectId> paperClonedIds) = MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(main, log), log);
 
         log.Info($"Всего обработано aux-VP: {vps.Count - 1}");
-        return frameBounds;
+        return (frameBounds, paperClonedIds);
     }
 
-    private static Extents3d? ProcessSingleVp(Database db, string layoutName, LayoutViewportInfo main, OperationLogger log)
+    private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessSingleVp(Database db, string layoutName, LayoutViewportInfo main, OperationLogger log)
     {
         return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(ClampMainVpScale(main, log), log), log);
     }
@@ -165,7 +165,7 @@ internal static class ViewportLayoutExporter
         return vp;
     }
 
-    private static Extents3d? ProcessNoVp(Database db, string layoutName, OperationLogger log)
+    private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessNoVp(Database db, string layoutName, OperationLogger log)
     {
         log.Info($"No-VP ветка: viewport'ы не найдены, масштаб по умолчанию 1:{MaxScaleMultiplier:F0}");
 
@@ -173,14 +173,14 @@ internal static class ViewportLayoutExporter
 
         if (paperIds.Count == 0)
         {
-            return null;
+            return (null, []);
         }
 
         Extents3d? paperBounds = ModelSpaceTrimmer.ComputeBounds(db, paperIds, log);
 
         if (!paperBounds.HasValue)
         {
-            return null;
+            return (null, []);
         }
 
         Point3d minPt = paperBounds.Value.MinPoint;
@@ -191,22 +191,28 @@ internal static class ViewportLayoutExporter
         return MovePaperToModelSpace(db, layoutName, matrix, log, "paper-no-vp");
     }
 
-    private static Extents3d? MovePaperToModelSpace(Database db, string layoutName, Matrix3d matrix, OperationLogger log, string tag = "paper")
+    private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) MovePaperToModelSpace(Database db, string layoutName, Matrix3d matrix, OperationLogger log, string tag = "paper")
     {
         ObjectId paperBtrId = LayoutUtil.GetLayoutBtrId(db, layoutName);
         ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
 
         if (paperIds.Count == 0)
         {
-            return null;
+            return (null, []);
         }
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
         ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, paperIds, paperBtrId, msId, matrix, log, tag);
 
+        HashSet<ObjectId> clonedSet = [];
+        foreach (ObjectId id in cloned)
+        {
+            clonedSet.Add(id);
+        }
+
         EraseBlockContents(db, paperBtrId);
 
-        return ModelSpaceTrimmer.ComputeBounds(db, cloned, log);
+        return (ModelSpaceTrimmer.ComputeBounds(db, cloned, log), clonedSet);
     }
 
     private static void EraseBlockContents(Database db, ObjectId btrId)
@@ -248,10 +254,10 @@ internal static class ViewportLayoutExporter
         return Path.Combine(Path.GetTempPath(), $"{name}-{Guid.NewGuid()}.dwg");
     }
 
-    private static async Task EmbedRasterImagesAsync(Document doc, OperationLogger log)
+    private static async Task EmbedRasterImagesAsync(Document doc, HashSet<ObjectId> paperClonedIds, OperationLogger log)
     {
         Database db = doc.Database;
-        List<(ObjectId id, string path, Extents3d bounds)> imagesToConvert = CollectRasterImages(doc, log);
+        List<(ObjectId id, string path, Extents3d bounds)> imagesToConvert = CollectRasterImages(doc, paperClonedIds, log);
         if (imagesToConvert.Count == 0)
         {
             return;
@@ -275,7 +281,7 @@ internal static class ViewportLayoutExporter
         }
     }
 
-    private static List<(ObjectId id, string path, Extents3d bounds)> CollectRasterImages(Document doc, OperationLogger log)
+    private static List<(ObjectId id, string path, Extents3d bounds)> CollectRasterImages(Document doc, HashSet<ObjectId> paperClonedIds, OperationLogger log)
     {
         Database db = doc.Database;
         List<(ObjectId id, string path, Extents3d bounds)> result = [];
@@ -284,6 +290,7 @@ internal static class ViewportLayoutExporter
         int nullDefCount = 0;
         int nullBoundsCount = 0;
         int fileNotFoundCount = 0;
+        int skippedFromPaperCount = 0;
 
         using Transaction tr = db.TransactionManager.StartTransaction();
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
@@ -297,6 +304,12 @@ internal static class ViewportLayoutExporter
             }
 
             totalImages++;
+
+            if (paperClonedIds.Contains(id))
+            {
+                skippedFromPaperCount++;
+                continue;
+            }
 
             if (tr.GetObject(id, OpenMode.ForRead) is not RasterImage ri || ri.ImageDefId.IsNull)
             {
@@ -331,8 +344,8 @@ internal static class ViewportLayoutExporter
         tr.Commit();
 
         log.Info(
-            $"EmbedRasterImages: total={totalImages}, nullDef={nullDefCount}, " +
-            $"nullBounds={nullBoundsCount}, fileNotFound={fileNotFoundCount}, toConvert={result.Count}");
+            $"EmbedRasterImages: total={totalImages}, skippedFromPaper={skippedFromPaperCount}, nullDef={nullDefCount}, " +
+            $"nullBounds={nullBoundsCount}, notFound={fileNotFoundCount}, readyToConvert={result.Count}");
 
         return result;
     }
