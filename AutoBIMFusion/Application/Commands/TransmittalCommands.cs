@@ -1,8 +1,9 @@
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Runtime;
-using Autodesk.AutoCAD.Transmittal;
+using System.Globalization;
 using System.IO.Compression;
+using System.Reflection;
 using System.Runtime.Versioning;
 
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
@@ -45,22 +46,25 @@ public sealed class TransmittalCommands
 
             log.Info("Сбор файлов eTransmit...");
 
-            TransmittalOperation tro = new();
-            TransmittalInfo ti = tro.getTransmittalInfoInterface();
-
-            ti.destinationRoot = tempFolder;
-            ti.preserveSubdirs = 0;
-            ti.includeXrefDwg = 1;
-            ti.includeImageFile = 1;
-            ti.includeFontFile = 1;
-            ti.includePlotFile = 1;
-            ti.includeDataLinkFile = 1;
-
-            TransmittalFile? transmittalFile;
-            AddFileReturnVal addResult = tro.addDrawingFile(dwgPath, out transmittalFile);
-            if (addResult != AddFileReturnVal.eFileAdded)
+            if (!TryCreateTransmittalOperation(out object? operation, out string reason))
             {
-                log.Warn($"Не удалось добавить чертеж в пакет eTransmit. Код: {addResult}");
+                log.Warn(reason);
+                return;
+            }
+
+            ArgumentNullException.ThrowIfNull(operation);
+            dynamic tro = operation;
+
+            dynamic ti = tro.getTransmittalInfoInterface();
+            ConfigureTransmittalInfo(ti, tempFolder, log);
+
+            object? transmittalFile;
+            object addResult = tro.addDrawingFile(dwgPath, out transmittalFile);
+            string addResultName = Convert.ToString(addResult, CultureInfo.InvariantCulture) ?? string.Empty;
+
+            if (!string.Equals(addResultName, "eFileAdded", StringComparison.OrdinalIgnoreCase))
+            {
+                log.Warn($"Не удалось добавить чертеж в пакет eTransmit. Код: {addResultName}");
                 return;
             }
 
@@ -78,6 +82,149 @@ public sealed class TransmittalCommands
         finally
         {
             TryDeleteTempFolder(tempFolder, log);
+        }
+    }
+
+    private static bool TryCreateTransmittalOperation(out object? operation, out string reason)
+    {
+        operation = null;
+        reason = string.Empty;
+
+        TryLoadAssemblyByName("AcETransmitMgd");
+        TryLoadAssemblyByName("Autodesk.AutoCAD.Transmittal");
+
+        string? acadDirectory = Path.GetDirectoryName(Environment.ProcessPath);
+        if (!string.IsNullOrWhiteSpace(acadDirectory))
+        {
+            TryLoadAssemblyByPath(Path.Combine(acadDirectory, "AcETransmitMgd.dll"));
+            TryLoadAssemblyByPath(Path.Combine(acadDirectory, "AcETransmit.dll"));
+        }
+
+        Type? transmittalOperationType = AppDomain.CurrentDomain
+            .GetAssemblies()
+            .SelectMany(SafeGetTypes)
+            .FirstOrDefault(type => string.Equals(type.Name, "TransmittalOperation", StringComparison.Ordinal));
+
+        if (transmittalOperationType is null)
+        {
+            reason = "eTransmit API недоступен в текущем окружении AutoCAD (не найден тип TransmittalOperation).";
+            return false;
+        }
+
+        object? instance = Activator.CreateInstance(transmittalOperationType);
+        if (instance is null)
+        {
+            reason = "Не удалось создать экземпляр eTransmit-операции.";
+            return false;
+        }
+
+        operation = instance;
+        return true;
+    }
+
+    private static void ConfigureTransmittalInfo(dynamic transmittalInfo, string tempFolder, OperationLogger log)
+    {
+        SetMemberValue(transmittalInfo, "destinationRoot", tempFolder, log, required: true);
+        SetMemberValue(transmittalInfo, "preserveSubdirs", 0, log);
+        SetMemberValue(transmittalInfo, "includeXrefDwg", 1, log);
+        SetMemberValue(transmittalInfo, "includeImageFile", 1, log);
+        SetMemberValue(transmittalInfo, "includeFontFile", 1, log);
+        SetMemberValue(transmittalInfo, "includePlotFile", 1, log);
+        SetMemberValue(transmittalInfo, "includeDataLinkFile", 1, log);
+    }
+
+    private static void SetMemberValue(object target, string memberName, object value, OperationLogger log, bool required = false)
+    {
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase;
+
+        Type targetType = target.GetType();
+
+        PropertyInfo? property = targetType.GetProperty(memberName, flags);
+        if (property is not null && property.CanWrite)
+        {
+            property.SetValue(target, ConvertMemberValue(value, property.PropertyType));
+            return;
+        }
+
+        FieldInfo? field = targetType.GetField(memberName, flags);
+        if (field is not null)
+        {
+            field.SetValue(target, ConvertMemberValue(value, field.FieldType));
+            return;
+        }
+
+        if (required)
+        {
+            throw new MissingMemberException(targetType.FullName, memberName);
+        }
+
+        log.Debug($"Параметр eTransmit недоступен и будет пропущен: {memberName}");
+    }
+
+    private static object? ConvertMemberValue(object value, Type targetType)
+    {
+        Type effectiveType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+
+        if (effectiveType == typeof(bool) && value is int intValue)
+        {
+            return intValue != 0;
+        }
+
+        if (effectiveType == typeof(int) && value is bool boolValue)
+        {
+            return boolValue ? 1 : 0;
+        }
+
+        if (effectiveType.IsEnum)
+        {
+            return Enum.ToObject(effectiveType, value);
+        }
+
+        return effectiveType == value.GetType()
+            ? value
+            : Convert.ChangeType(value, effectiveType, CultureInfo.InvariantCulture);
+    }
+
+    private static IEnumerable<Type> SafeGetTypes(Assembly assembly)
+    {
+        try
+        {
+            return assembly.GetTypes();
+        }
+        catch (ReflectionTypeLoadException ex)
+        {
+            return ex.Types.Where(type => type is not null)!;
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private static void TryLoadAssemblyByName(string assemblyName)
+    {
+        try
+        {
+            _ = Assembly.Load(assemblyName);
+        }
+        catch
+        {
+            // Ассембли может отсутствовать для некоторых AutoCAD сборок.
+        }
+    }
+
+    private static void TryLoadAssemblyByPath(string assemblyPath)
+    {
+        try
+        {
+            if (File.Exists(assemblyPath))
+            {
+                _ = Assembly.LoadFrom(assemblyPath);
+            }
+        }
+        catch
+        {
+            // Игнорируем: сборка может быть unmanaged или несовместимой для прямой загрузки.
         }
     }
 
@@ -117,3 +264,5 @@ public sealed class TransmittalCommands
         }
     }
 }
+
+
