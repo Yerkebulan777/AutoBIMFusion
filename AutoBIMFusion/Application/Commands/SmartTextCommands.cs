@@ -15,8 +15,8 @@ namespace AutoBIMFusion.Application.Commands;
 [SupportedOSPlatform("Windows")]
 public sealed class SmartTextCommands
 {
-    private const double WordSpacingFactor = 1.5;
-    private const double LineHeightFactor = 0.5;
+    private const double WordWidthFactor = 1.75; // Коэффициент допуска по ширине текста
+    private const double LineHeightFactor = 2.0; // Увеличено для объединения многострочных текстов
 
     [CommandMethod("SMART_MERGE_TEXT")]
     public void SmartMergeModelText()
@@ -53,26 +53,25 @@ public sealed class SmartTextCommands
 
                 foreach (List<TextElement> group in groups.Where(g => g.Count > 1))
                 {
-                    List<TextElement> sortedGroup = SortGroup(group);
-                    string combinedString = string.Join(" ", sortedGroup.Select(t => EscapeMTextContent(t.TextString)));
+                    var (combinedString, topLeftElement) = CombineGroupText(group);
 
                     MText mergedText = new()
                     {
                         Contents = combinedString,
-                        Location = sortedGroup[0].Position,
-                        Layer = sortedGroup[0].Layer,
-                        TextStyleId = sortedGroup[0].TextStyleId,
-                        TextHeight = sortedGroup[0].Height,
-                        Rotation = sortedGroup[0].Rotation,
-                        Normal = sortedGroup[0].Normal,
-                        Color = sortedGroup[0].Color,
+                        Location = topLeftElement.Position,
+                        Layer = topLeftElement.Layer,
+                        TextStyleId = topLeftElement.TextStyleId,
+                        TextHeight = topLeftElement.Height,
+                        Rotation = topLeftElement.Rotation,
+                        Normal = topLeftElement.Normal,
+                        Color = topLeftElement.Color,
                         Width = 0
                     };
 
                     _ = modelSpaceWrite.AppendEntity(mergedText);
                     tr.AddNewlyCreatedDBObject(mergedText, true);
 
-                    foreach (TextElement text in sortedGroup)
+                    foreach (TextElement text in group)
                     {
                         text.OriginalEntity.UpgradeOpen();
                         text.OriginalEntity.Erase();
@@ -166,14 +165,26 @@ public sealed class SmartTextCommands
         return result;
     }
 
+    /// <summary>
+    /// Алгоритм группировки текстов в логические абзацы (предложения).
+    /// 1. Первичный фильтр: объединяет тексты с одинаковым стилем и углом поворота.
+    /// 2. Геометрический поиск (O(N log N) благодаря сортировке):
+    ///    Тексты сортируются по перпендикуляру (условно координата Y относительно угла поворота).
+    ///    Для каждого текста ищутся соседи, которые удовлетворяют двум условиям (AreTextsClose):
+    ///    - Находятся по вертикали на одной строке или на соседних строках (допуск LineHeightFactor).
+    ///    - Находятся по горизонтали достаточно близко (допуск зависит от ширины текста, WordWidthFactor).
+    ///    - При этом высота текстов не должна различаться более чем на 15%.
+    /// </summary>
     private static List<List<TextElement>> SmartGroupText(List<TextElement> texts)
     {
         List<List<TextElement>> groups = [];
         HashSet<ObjectId> visited = [];
 
-        // Группируем тексты по стилю, высоте и углу поворота (первичные фильтры)
+        // Группируем тексты по стилю и углу поворота (первичные фильтры)
+        // Высоту больше не группируем жестко, а проверяем как относительный допуск при поиске соседей,
+        // чтобы тексты высотой 10 и 500 имели пропорциональный допуск на погрешность высоты.
         var preFilteredGroups = texts
-            .GroupBy(t => new { t.TextStyleId, Height = Math.Round(t.Height, 3), Rotation = Math.Round(t.Rotation, 3) })
+            .GroupBy(t => new { t.TextStyleId, Rotation = Math.Round(t.Rotation, 3) })
             .ToList();
 
         foreach (var preGroup in preFilteredGroups)
@@ -214,8 +225,7 @@ public sealed class SmartTextCommands
                     // Так как sortedCandidates отсортирован, мы можем искать в обе стороны от i
                     // Но проще и эффективнее в рамках этой очереди проверить ближайших соседей в списке.
 
-                    // Для простоты реализации и сохранения O(N log N) мы можем просто пройтись по соседям в sortedCandidates,
-                    // чья Perp координата близка к текущей.
+                    // Для простоты реализации мы проходим по соседям в sortedCandidates.
                     for (int j = 0; j < sortedCandidates.Count; j++)
                     {
                         var otherItem = sortedCandidates[j];
@@ -224,9 +234,16 @@ public sealed class SmartTextCommands
                             continue;
                         }
 
-                        // Если мы вышли за вертикальный порог, и учитывая сортировку,
-                        // можно было бы оптимизировать поиск, но даже простой проход по пре-фильтрованной группе
-                        // уже на порядки быстрее исходного O(N^2) на всем чертеже.
+                        // Допуск по высоте: разница высот не должна превышать 15%
+                        // Это решает проблему, когда большие тексты не объединялись из-за строгого округления до тысячных
+                        double minH = Math.Min(current.Height, otherItem.Text.Height);
+                        double maxH = Math.Max(current.Height, otherItem.Text.Height);
+                        if (minH / maxH < 0.85)
+                        {
+                            continue;
+                        }
+
+                        // Если мы вышли за вертикальный порог...
                         if (Math.Abs(curPerp - otherItem.Perp) > verticalThreshold)
                         {
                             continue;
@@ -252,20 +269,78 @@ public sealed class SmartTextCommands
     }
 
     /// <summary>
-    /// Сортирует группу текстов по направлению их строки с учётом угла поворота.
-    /// Для горизонтального текста — по X, для вертикального — по Y (убыв.), для произвольного угла — по проекции.
+    /// Группирует тексты по строкам и сортирует каждую строку слева направо.
+    /// Возвращает объединенный текст с разделителями строк \P и левый верхний элемент для позиционирования.
     /// </summary>
-    private static List<TextElement> SortGroup(List<TextElement> group)
+    private static (string CombinedString, TextElement TopLeftElement) CombineGroupText(List<TextElement> group)
     {
         double rotation = group[0].Rotation;
         double cosA = Math.Cos(rotation);
         double sinA = Math.Sin(rotation);
-
-        return group
-            .OrderBy(t => (t.Position.X * cosA) + (t.Position.Y * sinA))
+        
+        // Сортировка сверху вниз (Perp по убыванию)
+        var perpSorted = group
+            .OrderByDescending(t => (-t.Position.X * sinA) + (t.Position.Y * cosA))
             .ToList();
+
+        var lines = new List<List<TextElement>>();
+        var currentLine = new List<TextElement>();
+        
+        double currentLinePerp = (-perpSorted[0].Position.X * sinA) + (perpSorted[0].Position.Y * cosA);
+        double lineThreshold = perpSorted[0].Height * 0.5; // Порог для объединения текстов в одну строку
+        
+        foreach (var t in perpSorted)
+        {
+            double perp = (-t.Position.X * sinA) + (t.Position.Y * cosA);
+            if (Math.Abs(perp - currentLinePerp) <= lineThreshold)
+            {
+                currentLine.Add(t);
+            }
+            else
+            {
+                lines.Add(currentLine);
+                currentLine = new List<TextElement> { t };
+                currentLinePerp = perp;
+            }
+        }
+        if (currentLine.Count > 0)
+        {
+            lines.Add(currentLine);
+        }
+
+        var combinedLines = new List<string>();
+        TextElement? topLeftElement = null;
+
+        foreach (var line in lines)
+        {
+            // Сортировка слева направо (Parallel по возрастанию)
+            var sortedLine = line.OrderBy(t => (t.Position.X * cosA) + (t.Position.Y * sinA)).ToList();
+            
+            if (topLeftElement == null)
+            {
+                topLeftElement = sortedLine[0];
+            }
+            
+            combinedLines.Add(string.Join(" ", sortedLine.Select(t => EscapeMTextContent(t.TextString))));
+        }
+
+        return (string.Join("\\P", combinedLines), topLeftElement!);
     }
 
+    /// <summary>
+    /// Проверяет, можно ли объединить два текстовых элемента в один абзац (группу).
+    /// 
+    /// Логика проверок:
+    /// 1. Вертикальный зазор (dy): проекция на перпендикулярную ось (относительно угла текста)
+    ///    не должна превышать (максимальная высота * LineHeightFactor). Это позволяет объединять
+    ///    соседние строки многострочного текста.
+    /// 
+    /// 2. Горизонтальный зазор (gap): вычисляются чистые границы (Left, Right) обоих текстов
+    ///    на их параллельной оси (ось направления текста). Если тексты пересекаются, gap = 0.
+    ///    Если между ними есть просвет, gap будет равен физическому расстоянию между краями.
+    ///    Зазор не должен превышать (максимальная ширина текста * WordWidthFactor).
+    ///    Для защиты сверхкоротких слов (например "и", "в") минимальный допуск равен 2.5 высотам текста.
+    /// </summary>
     private static bool AreTextsClose(TextElement current, TextElement other)
     {
         double baseHeight = Math.Max(current.Height, other.Height);
@@ -288,9 +363,9 @@ public sealed class SmartTextCommands
             return false;
         }
 
-        // Расстояние по горизонтали (вдоль строки) с учётом оценочной ширины текста без чтения Bounds
-        (double currentLeft, double currentRight) = GetTextBoundsAlongAxis(current, cosA, sinA, curParallel);
-        (double otherLeft, double otherRight) = GetTextBoundsAlongAxis(other, cosA, sinA, othParallel);
+        // Расстояние по горизонтали (вдоль строки) с использованием реальных размеров объекта
+        (double currentLeft, double currentRight) = GetTextBoundsAlongAxis(current, cosA, sinA);
+        (double otherLeft, double otherRight) = GetTextBoundsAlongAxis(other, cosA, sinA);
 
         double gap = 0;
         if (currentRight < otherLeft)
@@ -302,21 +377,70 @@ public sealed class SmartTextCommands
             gap = currentLeft - otherRight;
         }
 
-        return gap <= baseHeight * WordSpacingFactor;
+        double currentWidth = Math.Abs(currentRight - currentLeft);
+        double otherWidth = Math.Abs(otherRight - otherLeft);
+        double baseWidth = Math.Max(currentWidth, otherWidth);
+
+        // Расчет допуска: 1.5 от максимальной ширины текста, как запрошено.
+        // Добавлен минимальный порог (baseHeight * 2.5), чтобы не сломать объединение коротких предлогов (например, "и", "в").
+        double tolerance = Math.Max(baseHeight * 2.5, baseWidth * WordWidthFactor);
+
+        return gap <= tolerance;
     }
 
-    private static (double Left, double Right) GetTextBoundsAlongAxis(TextElement text, double cosA, double sinA, double fallbackCenter)
+    private static (double Left, double Right) GetTextBoundsAlongAxis(TextElement text, double cosA, double sinA)
     {
-        double estimatedWidth = EstimateTextWidth(text);
-        double halfWidth = estimatedWidth * 0.5;
+        if (text.OriginalEntity is MText mText)
+        {
+            double parallelCenter = (mText.Location.X * cosA) + (mText.Location.Y * sinA);
+            double width = mText.ActualWidth;
+            
+            return mText.Attachment switch
+            {
+                AttachmentPoint.TopLeft or AttachmentPoint.MiddleLeft or AttachmentPoint.BottomLeft => 
+                    (parallelCenter, parallelCenter + width),
+                
+                AttachmentPoint.TopCenter or AttachmentPoint.MiddleCenter or AttachmentPoint.BottomCenter => 
+                    (parallelCenter - width * 0.5, parallelCenter + width * 0.5),
+                
+                AttachmentPoint.TopRight or AttachmentPoint.MiddleRight or AttachmentPoint.BottomRight => 
+                    (parallelCenter - width, parallelCenter),
+                
+                _ => (parallelCenter, parallelCenter + width)
+            };
+        }
+        else if (text.OriginalEntity is DBText dbText)
+        {
+            if (dbText.Bounds.HasValue)
+            {
+                var ext = dbText.Bounds.Value;
+                double minP = double.MaxValue;
+                double maxP = double.MinValue;
+                Point3d[] corners = [
+                    new Point3d(ext.MinPoint.X, ext.MinPoint.Y, 0),
+                    new Point3d(ext.MaxPoint.X, ext.MinPoint.Y, 0),
+                    new Point3d(ext.MaxPoint.X, ext.MaxPoint.Y, 0),
+                    new Point3d(ext.MinPoint.X, ext.MaxPoint.Y, 0)
+                ];
+                
+                foreach (Point3d pt in corners)
+                {
+                    double p = (pt.X * cosA) + (pt.Y * sinA);
+                    if (p < minP) minP = p;
+                    if (p > maxP) maxP = p;
+                }
+                return (minP, maxP);
+            }
+        }
 
-        return (fallbackCenter - halfWidth, fallbackCenter + halfWidth);
+        double parallel = (text.Position.X * cosA) + (text.Position.Y * sinA);
+        return (parallel, parallel + EstimateTextWidth(text));
     }
 
     private static double EstimateTextWidth(TextElement text)
     {
         int length = string.IsNullOrEmpty(text.TextString) ? 1 : text.TextString.Length;
-        return text.Height * length * 0.6;
+        return text.Height * length * 0.8; // Увеличен коэффициент с 0.6 до 0.8 для более щедрой оценки ширины
     }
 
     /// <summary>
@@ -334,7 +458,9 @@ public sealed class SmartTextCommands
         return text
             .Replace("\\", "\\\\")
             .Replace("{", "\\{")
-            .Replace("}", "\\}");
+            .Replace("}", "\\}")
+            .Replace("\n", "\\P")
+            .Replace("\r", "");
     }
 }
 
