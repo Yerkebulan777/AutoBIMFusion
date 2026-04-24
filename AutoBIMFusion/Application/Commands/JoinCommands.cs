@@ -39,14 +39,20 @@ public sealed class JoinCommands
                 foreach (ObjectId id in modelSpace)
                 {
                     if (id.ObjectClass.DxfName != "LINE")
+                    {
                         continue;
+                    }
 
                     if (tr.GetObject(id, OpenMode.ForRead) is not Line line)
+                    {
                         continue;
+                    }
 
                     double len = line.Length;
-                    if (len > MaxLineLength || len < Tol)
+                    if (len is > MaxLineLength or < Tol)
+                    {
                         continue;
+                    }
 
                     candidates.Add(new LineInfo(line));
                 }
@@ -58,7 +64,7 @@ public sealed class JoinCommands
                     return;
                 }
 
-                var groups = candidates
+                List<IGrouping<GroupKey, LineInfo>> groups = candidates
                     .GroupBy(c => c.Key)
                     .Where(g => g.Count() > 1)
                     .ToList();
@@ -75,12 +81,14 @@ public sealed class JoinCommands
                 int joinedGroups = 0;
                 int joinedLines = 0;
 
-                foreach (var group in groups)
+                foreach (IGrouping<GroupKey, LineInfo> group in groups)
                 {
                     List<Segment> merged = MergeGroup(group.ToList());
 
                     if (merged.Count >= group.Count())
+                    {
                         continue;
+                    }
 
                     LineInfo proto = group.First();
 
@@ -113,9 +121,13 @@ public sealed class JoinCommands
                 tr.Commit();
 
                 if (joinedGroups > 0)
+                {
                     log.Info($"Объединено групп: {joinedGroups}, исходных линий: {joinedLines}");
+                }
                 else
+                {
                     log.Info("Ни одна группа не была объединена (возможно, линии уже разделены оптимально).");
+                }
             }
 
             log.Info("Завершение команды JOIN_LINES.");
@@ -153,17 +165,19 @@ public sealed class JoinCommands
             if (p.Min <= curMax + Tol)
             {
                 if (p.Max > curMax)
+                {
                     curMax = p.Max;
+                }
             }
             else
             {
-                result.Add(new Segment(lines[0].Offset + dir * curMin, lines[0].Offset + dir * curMax));
+                result.Add(new Segment(lines[0].Offset + (dir * curMin), lines[0].Offset + (dir * curMax)));
                 curMin = p.Min;
                 curMax = p.Max;
             }
         }
 
-        result.Add(new Segment(lines[0].Offset + dir * curMin, lines[0].Offset + dir * curMax));
+        result.Add(new Segment(lines[0].Offset + (dir * curMin), lines[0].Offset + (dir * curMax)));
         return result;
     }
 
@@ -200,7 +214,7 @@ public sealed class JoinCommands
 
             Vector3d sv = new(Start.X, Start.Y, Start.Z);
             double proj = sv.DotProduct(Direction);
-            Offset = Start - Direction * proj;
+            Offset = Start - (Direction * proj);
 
             string dirKey = $"{Round(Direction.X, DirDecimals):F6};{Round(Direction.Y, DirDecimals):F6};{Round(Direction.Z, DirDecimals):F6}";
             string offKey = $"{Round(Offset.X, OffDecimals):F4};{Round(Offset.Y, OffDecimals):F4};{Round(Offset.Z, OffDecimals):F4}";

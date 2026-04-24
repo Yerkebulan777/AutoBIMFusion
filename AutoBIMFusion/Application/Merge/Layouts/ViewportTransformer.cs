@@ -138,13 +138,19 @@ internal static class ViewportTransformer
         foreach (ObjectId id in sourceIds)
         {
             if (id.IsErased)
+            {
                 skippedErased++;
+            }
             else
-                validIds.Add(id);
+            {
+                _ = validIds.Add(id);
+            }
         }
 
         if (skippedErased > 0)
+        {
             log.Warn($"DeepCloneAndTransform source={sourceName}: пропущено {skippedErased} стёртых объектов");
+        }
 
         if (validIds.Count == 0)
         {

@@ -1,11 +1,6 @@
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.Geometry;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Versioning;
 
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
@@ -15,7 +10,7 @@ namespace AutoBIMFusion.Application.Commands;
 [SupportedOSPlatform("Windows")]
 public sealed class SmartTextCommands
 {
-    private const double WordWidthFactor = 1.65; // Коэффициент допуска по ширине текста
+    private const double WordWidthFactor = 1.5; // Коэффициент допуска по ширине текста
     private const double LineHeightFactor = 2.0; // Увеличено для объединения многострочных текстов
 
     [CommandMethod("SMART_MERGE_TEXT")]
@@ -53,7 +48,7 @@ public sealed class SmartTextCommands
 
                 foreach (List<TextElement> group in groups.Where(g => g.Count > 1))
                 {
-                    var (combinedString, topLeftElement) = CombineGroupText(group);
+                    (string? combinedString, TextElement? topLeftElement) = CombineGroupText(group);
 
                     MText mergedText = new()
                     {
@@ -103,14 +98,16 @@ public sealed class SmartTextCommands
         {
             string dxfName = id.ObjectClass.DxfName;
 
-            if (dxfName != "TEXT" && dxfName != "MTEXT")
+            if (dxfName is not "TEXT" and not "MTEXT")
             {
                 otherCount++;
                 continue;
             }
 
-            Entity? ent = tr.GetObject(id, OpenMode.ForRead) as Entity;
-            if (ent is null) continue;
+            if (tr.GetObject(id, OpenMode.ForRead) is not Entity ent)
+            {
+                continue;
+            }
 
             if (ent is MText mText)
             {
@@ -121,7 +118,7 @@ public sealed class SmartTextCommands
                     mText.Erase();
                     continue;
                 }
-                
+
                 result.Add(new TextElement(
                     mText.ObjectId,
                     mText.Text,
@@ -276,19 +273,19 @@ public sealed class SmartTextCommands
         double rotation = group[0].Rotation;
         double cosA = Math.Cos(rotation);
         double sinA = Math.Sin(rotation);
-        
+
         // Сортировка сверху вниз (Perp по убыванию)
-        var perpSorted = group
+        List<TextElement> perpSorted = group
             .OrderByDescending(t => (-t.Position.X * sinA) + (t.Position.Y * cosA))
             .ToList();
 
-        var lines = new List<List<TextElement>>();
-        var currentLine = new List<TextElement>();
-        
+        List<List<TextElement>> lines = new();
+        List<TextElement> currentLine = new();
+
         double currentLinePerp = (-perpSorted[0].Position.X * sinA) + (perpSorted[0].Position.Y * cosA);
         double lineThreshold = perpSorted[0].Height * 0.5; // Порог для объединения текстов в одну строку
-        
-        foreach (var t in perpSorted)
+
+        foreach (TextElement? t in perpSorted)
         {
             double perp = (-t.Position.X * sinA) + (t.Position.Y * cosA);
             if (Math.Abs(perp - currentLinePerp) <= lineThreshold)
@@ -298,7 +295,7 @@ public sealed class SmartTextCommands
             else
             {
                 lines.Add(currentLine);
-                currentLine = new List<TextElement> { t };
+                currentLine = [t];
                 currentLinePerp = perp;
             }
         }
@@ -307,19 +304,19 @@ public sealed class SmartTextCommands
             lines.Add(currentLine);
         }
 
-        var combinedLines = new List<string>();
+        List<string> combinedLines = new();
         TextElement? topLeftElement = null;
 
-        foreach (var line in lines)
+        foreach (List<TextElement> line in lines)
         {
             // Сортировка слева направо (Parallel по возрастанию)
-            var sortedLine = line.OrderBy(t => (t.Position.X * cosA) + (t.Position.Y * sinA)).ToList();
-            
+            List<TextElement> sortedLine = line.OrderBy(t => (t.Position.X * cosA) + (t.Position.Y * sinA)).ToList();
+
             if (topLeftElement == null)
             {
                 topLeftElement = sortedLine[0];
             }
-            
+
             combinedLines.Add(string.Join(" ", sortedLine.Select(t => EscapeMTextContent(t.TextString))));
         }
 
@@ -348,9 +345,8 @@ public sealed class SmartTextCommands
         double rotation = current.Rotation;
         double cosA = Math.Cos(rotation);
         double sinA = Math.Sin(rotation);
-
-        double curParallel = (current.Position.X * cosA) + (current.Position.Y * sinA);
-        double othParallel = (other.Position.X * cosA) + (other.Position.Y * sinA);
+        _ = (current.Position.X * cosA) + (current.Position.Y * sinA);
+        _ = (other.Position.X * cosA) + (other.Position.Y * sinA);
 
         double curPerp = (-current.Position.X * sinA) + (current.Position.Y * cosA);
         double othPerp = (-other.Position.X * sinA) + (other.Position.Y * cosA);
@@ -393,18 +389,18 @@ public sealed class SmartTextCommands
         {
             double parallelCenter = (mText.Location.X * cosA) + (mText.Location.Y * sinA);
             double width = mText.ActualWidth;
-            
+
             return mText.Attachment switch
             {
-                AttachmentPoint.TopLeft or AttachmentPoint.MiddleLeft or AttachmentPoint.BottomLeft => 
+                AttachmentPoint.TopLeft or AttachmentPoint.MiddleLeft or AttachmentPoint.BottomLeft =>
                     (parallelCenter, parallelCenter + width),
-                
-                AttachmentPoint.TopCenter or AttachmentPoint.MiddleCenter or AttachmentPoint.BottomCenter => 
-                    (parallelCenter - width * 0.5, parallelCenter + width * 0.5),
-                
-                AttachmentPoint.TopRight or AttachmentPoint.MiddleRight or AttachmentPoint.BottomRight => 
+
+                AttachmentPoint.TopCenter or AttachmentPoint.MiddleCenter or AttachmentPoint.BottomCenter =>
+                    (parallelCenter - (width * 0.5), parallelCenter + (width * 0.5)),
+
+                AttachmentPoint.TopRight or AttachmentPoint.MiddleRight or AttachmentPoint.BottomRight =>
                     (parallelCenter - width, parallelCenter),
-                
+
                 _ => (parallelCenter, parallelCenter + width)
             };
         }
@@ -412,7 +408,7 @@ public sealed class SmartTextCommands
         {
             if (dbText.Bounds.HasValue)
             {
-                var ext = dbText.Bounds.Value;
+                Extents3d ext = dbText.Bounds.Value;
                 double minP = double.MaxValue;
                 double maxP = double.MinValue;
                 Point3d[] corners = [
@@ -421,12 +417,19 @@ public sealed class SmartTextCommands
                     new Point3d(ext.MaxPoint.X, ext.MaxPoint.Y, 0),
                     new Point3d(ext.MinPoint.X, ext.MaxPoint.Y, 0)
                 ];
-                
+
                 foreach (Point3d pt in corners)
                 {
                     double p = (pt.X * cosA) + (pt.Y * sinA);
-                    if (p < minP) minP = p;
-                    if (p > maxP) maxP = p;
+                    if (p < minP)
+                    {
+                        minP = p;
+                    }
+
+                    if (p > maxP)
+                    {
+                        maxP = p;
+                    }
                 }
                 return (minP, maxP);
             }

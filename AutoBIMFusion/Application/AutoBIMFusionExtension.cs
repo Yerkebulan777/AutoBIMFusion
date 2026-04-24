@@ -31,7 +31,7 @@ public sealed class AutoBIMFusionExtension : IExtensionApplication
             App.Idle -= OnIdle;
         }
     }
-    
+
 
 
 }
