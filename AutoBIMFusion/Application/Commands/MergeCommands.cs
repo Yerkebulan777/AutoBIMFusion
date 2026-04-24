@@ -1,12 +1,11 @@
 using AutoBIMFusion.Application.AcadSupport;
-using Autodesk.AutoCAD.ApplicationServices;
 using AutoBIMFusion.Application.Merge;
 using AutoBIMFusion.Application.Utils;
 using AutoBIMFusion.Infrastructure.Logging;
+using Autodesk.AutoCAD.ApplicationServices;
 using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Windows.Forms;
-
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Application.Commands;

@@ -182,7 +182,7 @@ public sealed class AdvancedTextCommands
         double sinA = Math.Sin(rotation);
 
         return group
-            .OrderBy(t => t.Position.X * cosA + t.Position.Y * sinA)
+            .OrderBy(t => (t.Position.X * cosA) + (t.Position.Y * sinA))
             .ToList();
     }
 
@@ -195,11 +195,11 @@ public sealed class AdvancedTextCommands
         double cosA = Math.Cos(rotation);
         double sinA = Math.Sin(rotation);
 
-        double curParallel = current.Position.X * cosA + current.Position.Y * sinA;
-        double othParallel = other.Position.X * cosA + other.Position.Y * sinA;
+        double curParallel = (current.Position.X * cosA) + (current.Position.Y * sinA);
+        double othParallel = (other.Position.X * cosA) + (other.Position.Y * sinA);
 
-        double curPerp = -current.Position.X * sinA + current.Position.Y * cosA;
-        double othPerp = -other.Position.X * sinA + other.Position.Y * cosA;
+        double curPerp = (-current.Position.X * sinA) + (current.Position.Y * cosA);
+        double othPerp = (-other.Position.X * sinA) + (other.Position.Y * cosA);
 
         // Расстояние по вертикали (перпендикуляр к строке) — должно быть в пределах одной строки
         double dy = Abs(curPerp - othPerp);
@@ -238,10 +238,10 @@ public sealed class AdvancedTextCommands
         double x0 = bounds.MinPoint.X, y0 = bounds.MinPoint.Y;
         double x1 = bounds.MaxPoint.X, y1 = bounds.MaxPoint.Y;
 
-        double p0 = x0 * cosA + y0 * sinA;
-        double p1 = x1 * cosA + y0 * sinA;
-        double p2 = x0 * cosA + y1 * sinA;
-        double p3 = x1 * cosA + y1 * sinA;
+        double p0 = (x0 * cosA) + (y0 * sinA);
+        double p1 = (x1 * cosA) + (y0 * sinA);
+        double p2 = (x0 * cosA) + (y1 * sinA);
+        double p3 = (x1 * cosA) + (y1 * sinA);
 
         double minP = Min(Min(p0, p1), Min(p2, p3));
         double maxP = Max(Max(p0, p1), Max(p2, p3));

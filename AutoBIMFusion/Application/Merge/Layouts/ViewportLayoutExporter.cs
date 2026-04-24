@@ -149,7 +149,7 @@ internal static class ViewportLayoutExporter
                 // Удаляем оригиналы aux VP, которых нет в главном VP.
                 // TrimOutside не справляется с этим: frameBounds охватывает весь лист в модельных
                 // координатах, и aux-объекты вне главного VP могут попасть в этот диапазон.
-                ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, main.ModelWindow, log);
+                _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, main.ModelWindow, log);
                 log.Info($"VP #{aux.Number}: обработано {cloned.Count} объектов");
             }
             else

@@ -1,5 +1,4 @@
 using AutoBIMFusion.Application.Ribbon;
-using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
 using System.Runtime.Versioning;
 

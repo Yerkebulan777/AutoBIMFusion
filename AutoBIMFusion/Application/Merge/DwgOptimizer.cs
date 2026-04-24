@@ -1,4 +1,3 @@
-using Autodesk.AutoCAD.DatabaseServices;
 using AutoBIMFusion.Infrastructure.Logging;
 
 namespace AutoBIMFusion.Application.Merge;
@@ -27,7 +26,9 @@ internal static class DwgOptimizer
         {
             int passCount = PurgePass(db, log);
             if (passCount == 0)
+            {
                 break;
+            }
 
             totalPurged += passCount;
             passes++;
@@ -45,79 +46,81 @@ internal static class DwgOptimizer
 
     private static int PurgePass(Database db, OperationLogger log)
     {
-        ObjectIdCollection candidates = new ObjectIdCollection();
+        ObjectIdCollection candidates = [];
 
-        using (Transaction tr = db.TransactionManager.StartTransaction())
+        using Transaction tr = db.TransactionManager.StartTransaction();
+        // Именованные таблицы
+        AddTableIds(tr, db.BlockTableId, candidates);
+        AddTableIds(tr, db.LayerTableId, candidates);
+        AddTableIds(tr, db.LinetypeTableId, candidates);
+        AddTableIds(tr, db.TextStyleTableId, candidates);
+        AddTableIds(tr, db.DimStyleTableId, candidates);
+        AddTableIds(tr, db.RegAppTableId, candidates);
+        AddTableIds(tr, db.UcsTableId, candidates);
+        AddTableIds(tr, db.ViewTableId, candidates);
+        AddTableIds(tr, db.ViewportTableId, candidates);
+
+        // Словари стилей и прочих именованных объектов
+        AddDictionaryIds(tr, db.MLeaderStyleDictionaryId, candidates);
+        AddDictionaryIds(tr, db.MaterialDictionaryId, candidates);
+        AddDictionaryIds(tr, db.TableStyleDictionaryId, candidates);
+        AddDictionaryIds(tr, db.PlotStyleNameDictionaryId, candidates);
+        AddDictionaryIds(tr, db.GroupDictionaryId, candidates);
+        AddDictionaryIds(tr, db.VisualStyleDictionaryId, candidates);
+
+        if (candidates.Count == 0)
         {
-            // Именованные таблицы
-            AddTableIds(tr, db.BlockTableId, candidates);
-            AddTableIds(tr, db.LayerTableId, candidates);
-            AddTableIds(tr, db.LinetypeTableId, candidates);
-            AddTableIds(tr, db.TextStyleTableId, candidates);
-            AddTableIds(tr, db.DimStyleTableId, candidates);
-            AddTableIds(tr, db.RegAppTableId, candidates);
-            AddTableIds(tr, db.UcsTableId, candidates);
-            AddTableIds(tr, db.ViewTableId, candidates);
-            AddTableIds(tr, db.ViewportTableId, candidates);
+            tr.Commit();
+            return 0;
+        }
 
-            // Словари стилей и прочих именованных объектов
-            AddDictionaryIds(tr, db.MLeaderStyleDictionaryId, candidates);
-            AddDictionaryIds(tr, db.MaterialDictionaryId, candidates);
-            AddDictionaryIds(tr, db.TableStyleDictionaryId, candidates);
-            AddDictionaryIds(tr, db.PlotStyleNameDictionaryId, candidates);
-            AddDictionaryIds(tr, db.GroupDictionaryId, candidates);
-            AddDictionaryIds(tr, db.VisualStyleDictionaryId, candidates);
+        try
+        {
+            db.Purge(candidates);
+        }
+        catch (System.Exception ex)
+        {
+            log.Warn(ex, "Ошибка при вызове Database.Purge");
+            tr.Commit();
+            return 0;
+        }
 
-            if (candidates.Count == 0)
+        if (candidates.Count == 0)
+        {
+            tr.Commit();
+            return 0;
+        }
+
+        int erased = 0;
+        foreach (ObjectId id in candidates)
+        {
+            if (id.IsNull || id.IsErased)
             {
-                tr.Commit();
-                return 0;
+                continue;
             }
 
             try
             {
-                db.Purge(candidates);
+                DBObject obj = tr.GetObject(id, OpenMode.ForWrite);
+                obj.Erase();
+                erased++;
             }
             catch (System.Exception ex)
             {
-                log.Warn(ex, "Ошибка при вызове Database.Purge");
-                tr.Commit();
-                return 0;
+                log.Warn($"Не удалось удалить объект {id.Handle}: {ex.Message}");
             }
-
-            if (candidates.Count == 0)
-            {
-                tr.Commit();
-                return 0;
-            }
-
-            int erased = 0;
-            foreach (ObjectId id in candidates)
-            {
-                if (id.IsNull || id.IsErased)
-                    continue;
-
-                try
-                {
-                    DBObject obj = tr.GetObject(id, OpenMode.ForWrite);
-                    obj.Erase();
-                    erased++;
-                }
-                catch (System.Exception ex)
-                {
-                    log.Warn($"Не удалось удалить объект {id.Handle}: {ex.Message}");
-                }
-            }
-
-            tr.Commit();
-            return erased;
         }
+
+        tr.Commit();
+        return erased;
     }
 
     private static void AddTableIds(Transaction tr, ObjectId tableId, ObjectIdCollection target)
     {
         if (tableId.IsNull)
+        {
             return;
+        }
 
         try
         {
@@ -125,7 +128,9 @@ internal static class DwgOptimizer
             foreach (ObjectId id in table)
             {
                 if (!id.IsNull && !id.IsErased)
-                    target.Add(id);
+                {
+                    _ = target.Add(id);
+                }
             }
         }
         catch
@@ -137,7 +142,9 @@ internal static class DwgOptimizer
     private static void AddDictionaryIds(Transaction tr, ObjectId dictId, ObjectIdCollection target)
     {
         if (dictId.IsNull)
+        {
             return;
+        }
 
         try
         {
@@ -146,7 +153,9 @@ internal static class DwgOptimizer
             {
                 ObjectId id = entry.Value;
                 if (!id.IsNull && !id.IsErased)
-                    target.Add(id);
+                {
+                    _ = target.Add(id);
+                }
             }
         }
         catch

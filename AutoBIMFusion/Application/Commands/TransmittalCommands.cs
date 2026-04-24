@@ -187,12 +187,9 @@ public sealed class TransmittalCommands
     {
         Type effectiveType = Nullable.GetUnderlyingType(targetType) ?? targetType;
 
-        if (effectiveType == typeof(bool) && value is int intValue)
-        {
-            return intValue != 0;
-        }
-
-        return effectiveType == typeof(int) && value is bool boolValue
+        return effectiveType == typeof(bool) && value is int intValue
+            ? intValue != 0
+            : effectiveType == typeof(int) && value is bool boolValue
             ? boolValue ? 1 : 0
             : effectiveType.IsEnum
             ? Enum.ToObject(effectiveType, value)
