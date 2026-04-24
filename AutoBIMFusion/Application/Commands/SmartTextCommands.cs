@@ -1,6 +1,8 @@
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.Geometry;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,22 +38,22 @@ public sealed class SmartTextCommands
                 BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
                 BlockTableRecord modelSpace = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForRead);
 
-                List<DBText> textsInModel = CollectDbText(modelSpace, tr, log);
+                List<TextElement> textsInModel = CollectTextElements(modelSpace, tr, log);
 
                 if (textsInModel.Count == 0)
                 {
-                    log.Info("Текст в Model Space не найден.");
+                    log.Info("Текст (TEXT или MTEXT) в Model Space не найден.");
                     tr.Commit();
                     return;
                 }
 
-                List<List<DBText>> groups = SmartGroupText(textsInModel);
+                List<List<TextElement>> groups = SmartGroupText(textsInModel);
 
                 BlockTableRecord modelSpaceWrite = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
 
-                foreach (List<DBText> group in groups.Where(g => g.Count > 1))
+                foreach (List<TextElement> group in groups.Where(g => g.Count > 1))
                 {
-                    List<DBText> sortedGroup = SortGroup(group);
+                    List<TextElement> sortedGroup = SortGroup(group);
                     string combinedString = string.Join(" ", sortedGroup.Select(t => EscapeMTextContent(t.TextString)));
 
                     MText mergedText = new()
@@ -70,10 +72,10 @@ public sealed class SmartTextCommands
                     _ = modelSpaceWrite.AppendEntity(mergedText);
                     tr.AddNewlyCreatedDBObject(mergedText, true);
 
-                    foreach (DBText text in sortedGroup)
+                    foreach (TextElement text in sortedGroup)
                     {
-                        text.UpgradeOpen();
-                        text.Erase();
+                        text.OriginalEntity.UpgradeOpen();
+                        text.OriginalEntity.Erase();
                     }
 
                     mergedGroupsCount++;
@@ -91,9 +93,9 @@ public sealed class SmartTextCommands
         }
     }
 
-    private static List<DBText> CollectDbText(BlockTableRecord modelSpace, Transaction tr, OperationLogger log)
+    private static List<TextElement> CollectTextElements(BlockTableRecord modelSpace, Transaction tr, OperationLogger log)
     {
-        List<DBText> result = [];
+        List<TextElement> result = [];
         int textCount = 0;
         int mtextCount = 0;
         int otherCount = 0;
@@ -102,30 +104,60 @@ public sealed class SmartTextCommands
         {
             string dxfName = id.ObjectClass.DxfName;
 
-            if (dxfName == "MTEXT")
-            {
-                mtextCount++;
-                continue;
-            }
-            if (dxfName != "TEXT")
+            if (dxfName != "TEXT" && dxfName != "MTEXT")
             {
                 otherCount++;
                 continue;
             }
 
-            textCount++;
+            Entity? ent = tr.GetObject(id, OpenMode.ForRead) as Entity;
+            if (ent is null) continue;
 
-            // Открываем на ForRead — UpgradeOpen() вызовем только перед Erase
-            if (tr.GetObject(id, OpenMode.ForRead) is DBText text)
+            if (ent is MText mText)
             {
-                if (string.IsNullOrWhiteSpace(text.TextString))
+                mtextCount++;
+                if (string.IsNullOrWhiteSpace(mText.Text))
                 {
-                    text.UpgradeOpen();
-                    text.Erase();
+                    mText.UpgradeOpen();
+                    mText.Erase();
+                    continue;
+                }
+                
+                result.Add(new TextElement(
+                    mText.ObjectId,
+                    mText.Text,
+                    mText.Location,
+                    mText.TextStyleId,
+                    mText.TextHeight,
+                    mText.Rotation,
+                    mText.Normal,
+                    mText.Layer,
+                    mText.Color,
+                    mText
+                ));
+            }
+            else if (ent is DBText dbText)
+            {
+                textCount++;
+                if (string.IsNullOrWhiteSpace(dbText.TextString))
+                {
+                    dbText.UpgradeOpen();
+                    dbText.Erase();
                     continue;
                 }
 
-                result.Add(text);
+                result.Add(new TextElement(
+                    dbText.ObjectId,
+                    dbText.TextString,
+                    dbText.Position,
+                    dbText.TextStyleId,
+                    dbText.Height,
+                    dbText.Rotation,
+                    dbText.Normal,
+                    dbText.Layer,
+                    dbText.Color,
+                    dbText
+                ));
             }
         }
 
@@ -134,9 +166,9 @@ public sealed class SmartTextCommands
         return result;
     }
 
-    private static List<List<DBText>> SmartGroupText(List<DBText> texts)
+    private static List<List<TextElement>> SmartGroupText(List<TextElement> texts)
     {
-        List<List<DBText>> groups = [];
+        List<List<TextElement>> groups = [];
         HashSet<ObjectId> visited = [];
 
         // Группируем тексты по стилю, высоте и углу поворота (первичные фильтры)
@@ -146,7 +178,7 @@ public sealed class SmartTextCommands
 
         foreach (var preGroup in preFilteredGroups)
         {
-            List<DBText> candidates = preGroup.ToList();
+            List<TextElement> candidates = preGroup.ToList();
             double rotation = preGroup.Key.Rotation;
             double cosA = Math.Cos(rotation);
             double sinA = Math.Sin(rotation);
@@ -166,13 +198,13 @@ public sealed class SmartTextCommands
                     continue;
                 }
 
-                List<DBText> currentGroup = [];
-                Queue<DBText> queue = new();
+                List<TextElement> currentGroup = [];
+                Queue<TextElement> queue = new();
                 queue.Enqueue(startItem.Text);
 
                 while (queue.Count > 0)
                 {
-                    DBText current = queue.Dequeue();
+                    TextElement current = queue.Dequeue();
                     currentGroup.Add(current);
 
                     double curPerp = (-current.Position.X * sinA) + (current.Position.Y * cosA);
@@ -223,7 +255,7 @@ public sealed class SmartTextCommands
     /// Сортирует группу текстов по направлению их строки с учётом угла поворота.
     /// Для горизонтального текста — по X, для вертикального — по Y (убыв.), для произвольного угла — по проекции.
     /// </summary>
-    private static List<DBText> SortGroup(List<DBText> group)
+    private static List<TextElement> SortGroup(List<TextElement> group)
     {
         double rotation = group[0].Rotation;
         double cosA = Math.Cos(rotation);
@@ -234,7 +266,7 @@ public sealed class SmartTextCommands
             .ToList();
     }
 
-    private static bool AreTextsClose(DBText current, DBText other)
+    private static bool AreTextsClose(TextElement current, TextElement other)
     {
         double baseHeight = Math.Max(current.Height, other.Height);
 
@@ -273,7 +305,7 @@ public sealed class SmartTextCommands
         return gap <= baseHeight * WordSpacingFactor;
     }
 
-    private static (double Left, double Right) GetTextBoundsAlongAxis(DBText text, double cosA, double sinA, double fallbackCenter)
+    private static (double Left, double Right) GetTextBoundsAlongAxis(TextElement text, double cosA, double sinA, double fallbackCenter)
     {
         double estimatedWidth = EstimateTextWidth(text);
         double halfWidth = estimatedWidth * 0.5;
@@ -281,7 +313,7 @@ public sealed class SmartTextCommands
         return (fallbackCenter - halfWidth, fallbackCenter + halfWidth);
     }
 
-    private static double EstimateTextWidth(DBText text)
+    private static double EstimateTextWidth(TextElement text)
     {
         int length = string.IsNullOrEmpty(text.TextString) ? 1 : text.TextString.Length;
         return text.Height * length * 0.6;
@@ -305,3 +337,16 @@ public sealed class SmartTextCommands
             .Replace("}", "\\}");
     }
 }
+
+public sealed record TextElement(
+    ObjectId ObjectId,
+    string TextString,
+    Point3d Position,
+    ObjectId TextStyleId,
+    double Height,
+    double Rotation,
+    Vector3d Normal,
+    string Layer,
+    Color Color,
+    Entity OriginalEntity
+);
