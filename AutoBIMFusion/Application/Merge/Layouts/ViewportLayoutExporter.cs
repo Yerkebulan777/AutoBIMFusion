@@ -163,9 +163,18 @@ internal static class ViewportLayoutExporter
         return (frameBounds, paperClonedIds);
     }
 
-    private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessSingleVp(Database db, string layoutName, LayoutViewportInfo main, OperationLogger log)
+    private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessSingleVp(Database db, string layoutName, LayoutViewportInfo vp, OperationLogger log)
     {
-        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(ClampMainVpScale(main, log), log), log);
+        LayoutViewportInfo clamped = ClampMainVpScale(vp, log);
+
+        double clampRatio = vp.CustomScale / clamped.CustomScale;
+        if (clampRatio > 1.0 + 1e-9)
+        {
+            Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, clamped.ViewCenter);
+            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
+        }
+
+        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(clamped, log), log);
     }
 
 

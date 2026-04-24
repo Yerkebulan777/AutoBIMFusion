@@ -66,6 +66,27 @@ internal static class ViewportTransformer
         return result;
     }
 
+    internal static void ScaleModelSpaceObjects(Database db, Matrix3d matrix, double ratio, OperationLogger log)
+    {
+        int scaled = 0;
+        ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
+
+        using Transaction tr = db.TransactionManager.StartTransaction();
+        BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
+
+        foreach (ObjectId id in ms)
+        {
+            if (tr.GetObject(id, OpenMode.ForWrite) is Entity ent && ent is not Viewport)
+            {
+                ent.TransformBy(matrix);
+                scaled++;
+            }
+        }
+
+        tr.Commit();
+        log.Debug($"ScaleModelSpaceObjects: ratio={ratio:F4}, scaled={scaled}");
+    }
+
     internal static IReadOnlyList<ModelEntitySnapshot> CollectModelEntitiesWithExtents(Database db, ObjectId msId, OperationLogger log)
     {
         List<ModelEntitySnapshot> result = [];
