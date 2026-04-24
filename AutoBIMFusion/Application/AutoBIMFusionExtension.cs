@@ -23,13 +23,9 @@ public sealed class AutoBIMFusionExtension : IExtensionApplication
     private void OnIdle(object? sender, EventArgs e)
     {
         Document? doc = App.DocumentManager.MdiActiveDocument;
-
-        if (doc != null)
-        {
-            OperationLogger logger = new(doc.Editor);
-            logger.Info("AutoBIMFusion загружен.");
-        }
-
+        ArgumentNullException.ThrowIfNull(doc, nameof(doc));
+        OperationLogger logger = new(doc.Editor);
+        logger.Info("AutoBIMFusion загружен.");
         RibbonBuilder.CreateTab();
 
         App.Idle -= OnIdle;
