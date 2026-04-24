@@ -4,8 +4,9 @@ using AutoBIMFusion.Infrastructure.Logging;
 namespace AutoBIMFusion.Application.Merge;
 
 /// <summary>
-/// Вставляет содержимое временных DWG как нативные объекты в Model Space целевого чертежа,
-/// располагая их вдоль оси X с заданным зазором.
+/// Вставляет содержимое временных DWG в целевой чертёж в виде блоков (BlockReference),
+/// располагая их вдоль оси X с заданным зазором. Использует DuplicateRecordCloning.Ignore
+/// для предотвращения перезаписи стилей и слоёв.
 /// </summary>
 internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 {
@@ -16,8 +17,9 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
     /// <summary>
     /// Открывает временный DWG, клонирует все объекты из его Model Space
-    /// в целевой чертёж как нативные сущности с учётом смещения.
-    /// Возвращает мировые границы вставленных объектов или null при ошибке.
+    /// в новый BlockTableRecord целевого чертежа и вставляет единственный
+    /// BlockReference в Model Space с учётом смещения.
+    /// Возвращает мировые границы вставленного блока или null при ошибке.
     /// </summary>
     public Extents3d? InsertNativeObjects(Database targetDb, string sourceFilePath, string sourceName, Extents3d sourceBounds)
     {
@@ -54,14 +56,25 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
             }
 
             ObjectId targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
-            IdMapping map = [];
-            sourceDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Replace, false);
-
+            string blockName;
             Extents3d? worldBounds = null;
-            int clonedCount = 0;
 
             using (Transaction tr = targetDb.TransactionManager.StartTransaction())
             {
+                BlockTable bt = (BlockTable)tr.GetObject(targetDb.BlockTableId, OpenMode.ForWrite);
+                blockName = GetUniqueBlockName(bt, sourceName);
+
+                BlockTableRecord btr = new BlockTableRecord
+                {
+                    Name = blockName
+                };
+                bt.Add(btr);
+                tr.AddNewlyCreatedDBObject(btr, true);
+
+                IdMapping map = [];
+                sourceDb.WblockCloneObjects(sourceIds, btr.ObjectId, map, DuplicateRecordCloning.Ignore, false);
+
+                int clonedCount = 0;
                 foreach (IdPair pair in map)
                 {
                     if (!pair.IsCloned || !pair.IsPrimary)
@@ -69,41 +82,40 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
                         continue;
                     }
 
-                    if (tr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
+                    if (tr.GetObject(pair.Value, OpenMode.ForWrite) is Entity)
                     {
-                        ent.TransformBy(displacement);
                         clonedCount++;
-
-                        Extents3d? ext = GeometryUtils.TryGetExtents(ent);
-                        if (ext.HasValue)
-                        {
-                            worldBounds = worldBounds.HasValue
-                                ? GeometryUtils.Union(worldBounds.Value, ext.Value)
-                                : ext.Value;
-                        }
                     }
+                }
+
+                if (clonedCount == 0)
+                {
+                    _log.Warn($"BlockInserter: {sourceName} — не удалось клонировать объекты");
+                    tr.Commit();
+                    return null;
+                }
+
+                BlockReference br = new BlockReference(Point3d.Origin, btr.ObjectId);
+                br.TransformBy(displacement);
+
+                BlockTableRecord ms = (BlockTableRecord)tr.GetObject(targetMsId, OpenMode.ForWrite);
+                ms.AppendEntity(br);
+                tr.AddNewlyCreatedDBObject(br, true);
+
+                worldBounds = GeometryUtils.TryGetExtents(br);
+                if (!worldBounds.HasValue)
+                {
+                    Point3d min = new(insertPt.X + sourceBounds.MinPoint.X, insertPt.Y + sourceBounds.MinPoint.Y, 0);
+                    Point3d max = new(insertPt.X + sourceBounds.MaxPoint.X, insertPt.Y + sourceBounds.MaxPoint.Y, 0);
+                    worldBounds = new Extents3d(min, max);
                 }
 
                 tr.Commit();
             }
 
-            if (clonedCount == 0)
-            {
-                _log.Warn($"BlockInserter: {sourceName} — не удалось клонировать объекты");
-                return null;
-            }
-
-            if (!worldBounds.HasValue)
-            {
-                worldBounds = new Extents3d(
-                    new Point3d(insertPt.X + sourceBounds.MinPoint.X, insertPt.Y + sourceBounds.MinPoint.Y, 0),
-                    new Point3d(insertPt.X + sourceBounds.MaxPoint.X, insertPt.Y + sourceBounds.MaxPoint.Y, 0)
-                );
-            }
-
             _rightMax = worldBounds.Value.MaxPoint.X;
             _hasPlacedObjects = true;
-            _log.Info($"BlockInserter: {sourceName} — вставлено {clonedCount} нативных объектов");
+            _log.Info($"BlockInserter: {sourceName} — вставлено блоком '{blockName}' ({sourceIds.Count} объектов)");
             return worldBounds;
         }
         catch (System.Exception ex)
@@ -127,5 +139,40 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
         _log.Debug($"Позиция вставки: X={insertPt.X:F2}, Y={insertPt.Y:F2}, gap={gap:F0}");
         return insertPt;
+    }
+
+    private static string GetUniqueBlockName(BlockTable bt, string sourceName)
+    {
+        string safeName = SanitizeBlockName(sourceName);
+        string baseName = $"Merge_{safeName}";
+        string name = baseName;
+        int counter = 1;
+
+        while (bt.Has(name))
+        {
+            name = $"{baseName}_{counter}";
+            counter++;
+        }
+
+        return name;
+    }
+
+    private static string SanitizeBlockName(string name)
+    {
+        char[] invalid = ['\\', '/', ':', '*', '?', '"', '<', '>', '|', ';', '`'];
+        string result = name.Trim();
+
+        foreach (char c in invalid)
+        {
+            result = result.Replace(c, '_');
+        }
+
+        const int maxLength = 250;
+        if (result.Length > maxLength)
+        {
+            result = result[..maxLength];
+        }
+
+        return result;
     }
 }

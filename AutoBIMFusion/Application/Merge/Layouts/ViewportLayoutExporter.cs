@@ -27,6 +27,12 @@ internal static class ViewportLayoutExporter
     /// </summary>
     private const double MaxReasonableOleDimension = 1e8;
 
+    /// <summary>
+    /// Максимальный размер файла изображения для конвертации в OLE (5 МБ).
+    /// Большие файлы оставляются как RasterImage во избежание зависаний Clipboard.
+    /// </summary>
+    private const long MaxOleFileSizeBytes = 5L * 1024 * 1024;
+
     public static async Task<string> ExportToTempAsync(string sourceFilePath, string fileName, OperationLogger log)
     {
         ArgumentNullException.ThrowIfNull(sourceFilePath);
@@ -291,6 +297,7 @@ internal static class ViewportLayoutExporter
         int nullBoundsCount = 0;
         int fileNotFoundCount = 0;
         int skippedFromPaperCount = 0;
+        int tooLargeCount = 0;
 
         using Transaction tr = db.TransactionManager.StartTransaction();
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
@@ -338,6 +345,14 @@ internal static class ViewportLayoutExporter
                 continue;
             }
 
+            long fileSize = new FileInfo(resolvedPath).Length;
+            if (fileSize > MaxOleFileSizeBytes)
+            {
+                tooLargeCount++;
+                log.Info($"RasterImage Handle={id.Handle}: файл {Path.GetFileName(resolvedPath)} слишком большой ({fileSize / (1024.0 * 1024.0):F1} МБ > 5 МБ), пропускаем OLE-конвертацию");
+                continue;
+            }
+
             result.Add((id, resolvedPath, ri.Bounds.Value));
         }
 
@@ -345,7 +360,7 @@ internal static class ViewportLayoutExporter
 
         log.Info(
             $"EmbedRasterImages: total={totalImages}, skippedFromPaper={skippedFromPaperCount}, nullDef={nullDefCount}, " +
-            $"nullBounds={nullBoundsCount}, notFound={fileNotFoundCount}, readyToConvert={result.Count}");
+            $"nullBounds={nullBoundsCount}, notFound={fileNotFoundCount}, tooLarge={tooLargeCount}, readyToConvert={result.Count}");
 
         return result;
     }

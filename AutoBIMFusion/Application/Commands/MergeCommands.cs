@@ -76,6 +76,7 @@ public sealed class MergeCommands
                 await MergeFiles(dwgFiles, inserter, doc.Database, stats, log);
 
                 RasterImagePathFixer.CopyImagesToTargetFolder(doc.Database, savePath, log);
+                DwgOptimizer.Optimize(doc.Database, log);
                 SaveMerged(doc.Database, savePath, log);
 
                 sw.Stop();

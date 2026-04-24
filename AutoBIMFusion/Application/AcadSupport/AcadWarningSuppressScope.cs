@@ -14,9 +14,13 @@ internal sealed class AcadWarningSuppressScope : IDisposable
     private readonly ManagedSystemVariable _proxyNotice = new("PROXYNOTICE", 0);
     private readonly ManagedSystemVariable _layerEval = new("LAYEREVAL", 0);
     private readonly ManagedSystemVariable _layerNotify = new("LAYERNOTIFY", 0);
+    private readonly ManagedSystemVariable _layoutRegenCtl = new("LAYOUTREGENCTL", 0);
+    private readonly ManagedSystemVariable _vtEnable = new("VTENABLE", 0);
 
     public void Dispose()
     {
+        _vtEnable.Dispose();
+        _layoutRegenCtl.Dispose();
         _layerNotify.Dispose();
         _layerEval.Dispose();
         _proxyNotice.Dispose();
