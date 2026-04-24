@@ -13,6 +13,16 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 /// Заменяет EXPORTLAYOUT для случаев, когда на листе присутствуют видовые экраны:
 /// главный VP становится «линейкой» масштаба, вспомогательные (узлы) переносятся
 /// матрицей трансформации, paper-содержимое уходит в Model Space через главный VP.
+///
+/// Алгоритм (мульти-VP):
+/// 1. Главный VP выбирается по максимальному CoverageScore.
+/// 2. Для каждого aux VP: объекты в его model-window клонируются и трансформируются
+///    матрицей AuxModel→MainModel, затем оригиналы, не входящие в окно главного VP,
+///    удаляются (EraseEntitiesOutsideMainWindow). Без этого шага такие оригиналы
+///    остаются в базе, потому что frameBounds охватывает весь лист и TrimOutside
+///    их не захватывает.
+/// 3. Paper-содержимое (рамка, штамп) переносится в Model Space через главный VP.
+/// 4. TrimOutside удаляет всё за пределами frameBounds как вторичная защита.
 /// </summary>
 internal static class ViewportLayoutExporter
 {
@@ -136,6 +146,10 @@ internal static class ViewportLayoutExporter
             if (toClone.Count > 0)
             {
                 ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, m, log, "model-window");
+                // Удаляем оригиналы aux VP, которых нет в главном VP.
+                // TrimOutside не справляется с этим: frameBounds охватывает весь лист в модельных
+                // координатах, и aux-объекты вне главного VP могут попасть в этот диапазон.
+                ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, main.ModelWindow, log);
                 log.Info($"VP #{aux.Number}: обработано {cloned.Count} объектов");
             }
             else

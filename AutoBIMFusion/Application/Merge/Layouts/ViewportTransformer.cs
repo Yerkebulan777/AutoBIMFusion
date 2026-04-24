@@ -170,4 +170,52 @@ internal static class ViewportTransformer
             $"outsideWindow={outsideWindow}, window={GeometryUtils.FormatExtents(window)}");
         return result;
     }
+
+    /// <summary>
+    /// Удаляет из модели оригинальные объекты вспомогательного VP, которые НЕ входят в окно
+    /// главного VP. Вызывается после DeepCloneAndTransform для каждого aux VP.
+    ///
+    /// Логика: если объект виден в главном VP — оставляем (нужен для его плоского представления).
+    /// Если объект только в aux VP — удаляем, так как его клон уже создан на правильной позиции.
+    ///
+    /// Без этого шага объекты aux VP, чьи модельные координаты попадают в пределы листа
+    /// (frameBounds), не удаляются TrimOutside и остаются как «мусор» в результирующем файле.
+    /// </summary>
+    internal static int EraseEntitiesOutsideMainWindow(
+        Database db,
+        ObjectIdCollection auxEntities,
+        IReadOnlyList<ModelEntitySnapshot> modelSnapshots,
+        Extents3d mainWindow,
+        OperationLogger log)
+    {
+        HashSet<ObjectId> inMain = [];
+        foreach (ModelEntitySnapshot s in modelSnapshots)
+        {
+            if (GeometryUtils.AabbIntersect(mainWindow, s.Extents))
+            {
+                _ = inMain.Add(s.Id);
+            }
+        }
+
+        int erased = 0;
+        using Transaction tr = db.TransactionManager.StartTransaction();
+
+        foreach (ObjectId id in auxEntities)
+        {
+            if (inMain.Contains(id))
+            {
+                continue;
+            }
+
+            if (tr.GetObject(id, OpenMode.ForWrite) is Entity e && !e.IsErased)
+            {
+                e.Erase();
+                erased++;
+            }
+        }
+
+        tr.Commit();
+        log.Info($"EraseEntitiesOutsideMainWindow: erased={erased} of {auxEntities.Count}, inMain={inMain.Count}");
+        return erased;
+    }
 }

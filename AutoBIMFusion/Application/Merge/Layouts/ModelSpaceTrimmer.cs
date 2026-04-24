@@ -56,8 +56,13 @@ internal static class ModelSpaceTrimmer
     }
 
     /// <summary>
-    /// Удаляет из Model Space все сущности, чей bbox полностью вне frameBounds.
+    /// Вторичная защита: удаляет из Model Space все сущности, чей bbox не пересекает frameBounds.
     /// Сущности без валидных extents (например, пустые блоки) пропускаются.
+    ///
+    /// Замечание: этот метод НЕ является основным механизмом очистки объектов вспомогательных VP.
+    /// Объекты aux VP, чьи модельные координаты попадают в диапазон frameBounds (охватывающий
+    /// весь лист), не будут удалены здесь. Основная очистка выполняется в
+    /// ViewportTransformer.EraseEntitiesOutsideMainWindow непосредственно после клонирования.
     /// </summary>
     internal static int TrimOutside(Database db, Extents3d frameBounds, OperationLogger log)
     {
