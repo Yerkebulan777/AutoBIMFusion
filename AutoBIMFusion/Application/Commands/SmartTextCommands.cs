@@ -15,7 +15,7 @@ namespace AutoBIMFusion.Application.Commands;
 [SupportedOSPlatform("Windows")]
 public sealed class SmartTextCommands
 {
-    private const double WordWidthFactor = 1.75; // Коэффициент допуска по ширине текста
+    private const double WordWidthFactor = 1.65; // Коэффициент допуска по ширине текста
     private const double LineHeightFactor = 2.0; // Увеличено для объединения многострочных текстов
 
     [CommandMethod("SMART_MERGE_TEXT")]
@@ -234,11 +234,10 @@ public sealed class SmartTextCommands
                             continue;
                         }
 
-                        // Допуск по высоте: разница высот не должна превышать 15%
-                        // Это решает проблему, когда большие тексты не объединялись из-за строгого округления до тысячных
+                        // Тексты должны быть близкого размера (допускаем 10% разницы, как запрошено)
                         double minH = Math.Min(current.Height, otherItem.Text.Height);
                         double maxH = Math.Max(current.Height, otherItem.Text.Height);
-                        if (minH / maxH < 0.85)
+                        if (minH / maxH < 0.90)
                         {
                             continue;
                         }
