@@ -207,7 +207,7 @@ internal static class ViewportLayoutExporter
         HashSet<ObjectId> clonedSet = [];
         foreach (ObjectId id in cloned)
         {
-            clonedSet.Add(id);
+            _ = clonedSet.Add(id);
         }
 
         EraseBlockContents(db, paperBtrId);

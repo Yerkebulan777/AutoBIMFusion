@@ -1,6 +1,5 @@
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.Runtime;
 using System.Globalization;
 using System.IO.Compression;
 using System.Reflection;
@@ -58,8 +57,7 @@ public sealed class TransmittalCommands
             dynamic ti = tro.getTransmittalInfoInterface();
             ConfigureTransmittalInfo(ti, tempFolder, log);
 
-            object? transmittalFile;
-            object addResult = tro.addDrawingFile(dwgPath, out transmittalFile);
+            object addResult = tro.addDrawingFile(dwgPath, out object? transmittalFile);
             string addResultName = Convert.ToString(addResult, CultureInfo.InvariantCulture) ?? string.Empty;
 
             if (!string.Equals(addResultName, "eFileAdded", StringComparison.OrdinalIgnoreCase))
@@ -170,17 +168,11 @@ public sealed class TransmittalCommands
             return intValue != 0;
         }
 
-        if (effectiveType == typeof(int) && value is bool boolValue)
-        {
-            return boolValue ? 1 : 0;
-        }
-
-        if (effectiveType.IsEnum)
-        {
-            return Enum.ToObject(effectiveType, value);
-        }
-
-        return effectiveType == value.GetType()
+        return effectiveType == typeof(int) && value is bool boolValue
+            ? boolValue ? 1 : 0
+            : effectiveType.IsEnum
+            ? Enum.ToObject(effectiveType, value)
+            : effectiveType == value.GetType()
             ? value
             : Convert.ChangeType(value, effectiveType, CultureInfo.InvariantCulture);
     }
@@ -230,14 +222,14 @@ public sealed class TransmittalCommands
 
     private static void PrepareOutputFolders(string destinationRoot, string tempFolder, string zipFilePath)
     {
-        Directory.CreateDirectory(destinationRoot);
+        _ = Directory.CreateDirectory(destinationRoot);
 
         if (Directory.Exists(tempFolder))
         {
             Directory.Delete(tempFolder, true);
         }
 
-        Directory.CreateDirectory(tempFolder);
+        _ = Directory.CreateDirectory(tempFolder);
 
         if (File.Exists(zipFilePath))
         {

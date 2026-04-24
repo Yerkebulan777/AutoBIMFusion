@@ -9,9 +9,7 @@ namespace AutoBIMFusion.Application.Commands;
 [SupportedOSPlatform("Windows")]
 public sealed class AdvancedTextCommands
 {
-    // Максимальный пробел между фрагментами: высота текста * коэффициент.
     private const double WordSpacingFactor = 1.5;
-    // Допустимое вертикальное смещение для объединения в одну строку.
     private const double LineHeightFactor = 0.5;
     private const double HeightTolerance = 0.001;
 
@@ -59,7 +57,7 @@ public sealed class AdvancedTextCommands
                     Color = sortedGroup[0].Color
                 };
 
-                modelSpace.AppendEntity(mergedText);
+                _ = modelSpace.AppendEntity(mergedText);
                 tr.AddNewlyCreatedDBObject(mergedText, true);
 
                 foreach (DBText text in sortedGroup)
@@ -142,7 +140,7 @@ public sealed class AdvancedTextCommands
                         continue;
                     }
 
-                    visited.Add(other.ObjectId);
+                    _ = visited.Add(other.ObjectId);
                     queue.Enqueue(other);
                 }
             }

@@ -1,5 +1,6 @@
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.GraphicsInterface;
 using System.Runtime.Versioning;
 
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
@@ -98,7 +99,7 @@ public sealed class TextStyleCommands
 
     private static TextStyleSignature BuildSignature(TextStyleTableRecord styleRecord)
     {
-        var font = styleRecord.Font;
+        FontDescriptor font = styleRecord.Font;
 
         return new TextStyleSignature(
             styleRecord.FileName ?? string.Empty,
@@ -118,12 +119,9 @@ public sealed class TextStyleCommands
     private static ObjectId ChooseMasterStyle(List<TextStyleData> group, ObjectId currentStyleId)
     {
         TextStyleData? current = group.FirstOrDefault(item => item.StyleId == currentStyleId);
-        if (current is not null)
-        {
-            return current.StyleId;
-        }
-
-        return group
+        return current is not null
+            ? current.StyleId
+            : group
             .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
             .First()
             .StyleId;
