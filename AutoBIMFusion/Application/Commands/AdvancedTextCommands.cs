@@ -101,6 +101,13 @@ public sealed class AdvancedTextCommands
             // Открываем на ForRead — UpgradeOpen() вызовем только перед Erase
             if (tr.GetObject(id, OpenMode.ForRead) is DBText text)
             {
+                if (string.IsNullOrWhiteSpace(text.TextString))
+                {
+                    text.UpgradeOpen();
+                    text.Erase();
+                    continue;
+                }
+
                 result.Add(text);
             }
         }
