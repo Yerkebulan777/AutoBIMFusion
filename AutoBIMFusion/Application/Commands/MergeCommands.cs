@@ -16,9 +16,9 @@ public sealed class MergeCommands
     private readonly SemaphoreSlim _mergeGate = new(1, 1);
 
     [CommandMethod("MERGEDWG", CommandFlags.Session)]
-    public void MergeDwgFolderCommand()
+    public async void MergeDwgFolderCommand()
     {
-        _ = MergeDwgFolderCommandAsync();
+        await MergeDwgFolderCommandAsync();
     }
 
     private async Task MergeDwgFolderCommandAsync()
@@ -72,59 +72,64 @@ public sealed class MergeCommands
             string savePath = BuildSavePath(folderPath);
             BlockInserter inserter = new(gapPercent, log);
 
+            await MergeFiles(dwgFiles, inserter, doc, stats, log);
+
             using (doc.LockDocument())
             {
-                await MergeFiles(dwgFiles, inserter, doc.Database, stats, log);
-
                 RasterImagePathFixer.CopyImagesToTargetFolder(doc.Database, savePath, log);
                 DwgOptimizer.Optimize(doc.Database, log);
                 SaveMerged(doc.Database, savePath, log);
 
-                sw.Stop();
-                log.Prefix = string.Empty;
-                log.Info($"Завершено: {stats}");
-
                 doc.SendStringToExecute("._REGENALL ", true, false, false);
                 doc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
-
-                ShowSummary(stats, sw.Elapsed, savePath);
             }
+
+            sw.Stop();
+            log.Prefix = string.Empty;
+            log.Info($"Завершено: {stats}");
+
+            ShowSummary(stats, sw.Elapsed, savePath);
         }
     }
 
-    private static async Task MergeFiles(string[] files, BlockInserter inserter, Database db, MergeStatistics stats, OperationLogger log)
+    private static async Task MergeFiles(string[] files, BlockInserter inserter, Document doc, MergeStatistics stats, OperationLogger log)
     {
         using ProgressMeter pm = new();
         pm.Start("Объединение файлов DWG...");
         pm.SetLimit(files.Length);
 
-        for (int idx = 0; idx < files.Length; idx++)
+        try
         {
-            log.Prefix = $"[{idx + 1}/{files.Length}]";
-
-            stats.RecordTotal();
-
-            MergeResult result = await DwgMerger.MergeSingleFile(files[idx], inserter, db, log);
-
-            log.Info($"[{(result.Success ? "OK" : result.IsSkipped ? "SKIP" : "FAIL")}] {result.Message}");
-
-            if (result.Success)
+            for (int idx = 0; idx < files.Length; idx++)
             {
-                stats.RecordSuccess();
-            }
-            else if (result.IsSkipped)
-            {
-                stats.RecordSkipped();
-            }
-            else
-            {
-                stats.RecordFailed();
-            }
+                log.Prefix = $"[{idx + 1}/{files.Length}]";
 
-            pm.MeterProgress();
+                stats.RecordTotal();
+
+                MergeResult result = await DwgMerger.MergeSingleFile(files[idx], inserter, doc, log);
+
+                log.Info($"[{(result.Success ? "OK" : result.IsSkipped ? "SKIP" : "FAIL")}] {result.Message}");
+
+                if (result.Success)
+                {
+                    stats.RecordSuccess();
+                }
+                else if (result.IsSkipped)
+                {
+                    stats.RecordSkipped();
+                }
+                else
+                {
+                    stats.RecordFailed();
+                }
+
+                pm.MeterProgress();
+            }
         }
-
-        pm.Stop();
+        finally
+        {
+            pm.Stop();
+        }
     }
 
     private static string BuildSavePath(string rootPath)

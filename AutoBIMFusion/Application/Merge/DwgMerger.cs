@@ -1,6 +1,7 @@
 using AutoBIMFusion.Application.Merge.Layouts;
 using AutoBIMFusion.Application.Utils;
 using AutoBIMFusion.Infrastructure.Logging;
+using Autodesk.AutoCAD.ApplicationServices;
 
 namespace AutoBIMFusion.Application.Merge;
 
@@ -10,7 +11,7 @@ namespace AutoBIMFusion.Application.Merge;
 /// </summary>
 internal static class DwgMerger
 {
-    public static async Task<MergeResult> MergeSingleFile(string filePath, BlockInserter inserter, Database targetDb, OperationLogger log)
+    public static async Task<MergeResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc, OperationLogger log)
     {
         string layoutName = Path.GetFileNameWithoutExtension(filePath);
         string fileName = Path.GetFileName(filePath);
@@ -45,7 +46,11 @@ internal static class DwgMerger
                 return MergeResult.Warn(fileName, "Пустой файл");
             }
 
-            Extents3d? worldBounds = inserter.InsertNativeObjects(targetDb, tempPath, layoutName, bounds.Value);
+            Extents3d? worldBounds;
+            using (targetDoc.LockDocument())
+            {
+                worldBounds = inserter.InsertNativeObjects(targetDoc.Database, tempPath, layoutName, bounds.Value);
+            }
 
             if (worldBounds is null)
             {
