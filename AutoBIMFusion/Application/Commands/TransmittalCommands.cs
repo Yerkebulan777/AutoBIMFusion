@@ -23,10 +23,12 @@ public sealed class TransmittalCommands
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
         OperationLogger log = new(doc.Editor);
+        log.Info("Запуск команды CreateETransmitZip...");
 
         if (!doc.IsNamedDrawing || string.IsNullOrWhiteSpace(doc.Name))
         {
             log.Warn("Сначала сохраните текущий чертеж на диск, затем повторите команду CreateETransmitZip.");
+            log.Info("Завершение команды CreateETransmitZip.");
             return;
         }
 
@@ -80,6 +82,7 @@ public sealed class TransmittalCommands
         finally
         {
             TryDeleteTempFolder(tempFolder, log);
+            log.Info("Завершение команды CreateETransmitZip.");
         }
     }
 

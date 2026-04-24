@@ -21,6 +21,7 @@ public sealed class AdvancedTextCommands
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
         OperationLogger log = new(doc.Editor);
+        log.Info("Запуск команды SMART_MERGE_TEXT...");
         Database db = doc.Database;
         int mergedGroupsCount = 0;
 
@@ -39,6 +40,7 @@ public sealed class AdvancedTextCommands
                 {
                     log.Info("Текст в Model Space не найден.");
                     tr.Commit();
+                    log.Info("Завершение команды SMART_MERGE_TEXT.");
                     return;
                 }
 
@@ -79,6 +81,8 @@ public sealed class AdvancedTextCommands
                 tr.Commit();
                 log.Info($"SMART_MERGE_TEXT: собрано групп текста: {mergedGroupsCount}");
             }
+
+            log.Info("Завершение команды SMART_MERGE_TEXT.");
         }
         catch (System.Exception ex)
         {

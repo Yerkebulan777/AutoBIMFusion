@@ -19,6 +19,7 @@ public sealed class TextStyleCommands
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
         OperationLogger log = new(doc.Editor);
+        log.Info("Запуск команды MergeTextStyles...");
         Database db = doc.Database;
 
         int updatedObjects = 0;
@@ -42,6 +43,7 @@ public sealed class TextStyleCommands
                 if (duplicateGroups.Count == 0)
                 {
                     log.Info("MergeTextStyles: дубликаты текстовых стилей не найдены.");
+                    log.Info("Завершение команды MergeTextStyles.");
                     return;
                 }
 
@@ -68,6 +70,8 @@ public sealed class TextStyleCommands
                 tr.Commit();
                 log.Info($"MergeTextStyles: групп дубликатов {duplicateGroups.Count}, обновлено объектов {updatedObjects}, удалено стилей {deletedStyles}.");
             }
+
+            log.Info("Завершение команды MergeTextStyles.");
         }
         catch (System.Exception ex)
         {

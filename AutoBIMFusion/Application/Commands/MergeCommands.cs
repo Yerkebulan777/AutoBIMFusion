@@ -28,10 +28,12 @@ public sealed class MergeCommands
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
         OperationLogger log = new(doc.Editor);
+        log.Info("Запуск команды MERGEDWG...");
 
         if (!await _mergeGate.WaitAsync(0))
         {
             log.Warn("MERGEDWG: операция уже запущена.");
+            log.Info("Завершение команды MERGEDWG.");
             return;
         }
 
@@ -46,6 +48,7 @@ public sealed class MergeCommands
         finally
         {
             _ = _mergeGate.Release();
+            log.Info("Завершение команды MERGEDWG.");
         }
     }
 
