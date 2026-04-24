@@ -11,8 +11,6 @@ public sealed class AdvancedTextCommands
 {
     private const double WordSpacingFactor = 1.5;
     private const double LineHeightFactor = 0.5;
-    private const double HeightTolerance = 0.001;
-    private const double RotationTolerance = 0.001;
 
     [CommandMethod("SMART_MERGE_TEXT")]
     public void SmartMergeModelText()
