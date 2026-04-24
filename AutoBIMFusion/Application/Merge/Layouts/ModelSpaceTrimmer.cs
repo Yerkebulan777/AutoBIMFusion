@@ -130,18 +130,21 @@ internal static class ModelSpaceTrimmer
     {
         Point3d? p = ent switch
         {
-            DBText t => t.Position,
             MText m => m.Location,
+            DBText t => t.Position,
             BlockReference br => br.Position,
-            DBPoint pt => pt.Position,
+            DBPoint dbPoint => dbPoint.Position,
             _ => null
         };
 
-        if (!p.HasValue) return false;
+        if (!p.HasValue)
+        {
+            return false;
+        }
 
-        Point3d pt = p.Value;
-        return pt.X >= bounds.MinPoint.X && pt.X <= bounds.MaxPoint.X &&
-               pt.Y >= bounds.MinPoint.Y && pt.Y <= bounds.MaxPoint.Y;
+        Point3d point = p.Value;
+        return point.X >= bounds.MinPoint.X && point.X <= bounds.MaxPoint.X &&
+               point.Y >= bounds.MinPoint.Y && point.Y <= bounds.MaxPoint.Y;
     }
 
 }

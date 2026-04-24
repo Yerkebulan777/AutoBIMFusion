@@ -2,8 +2,6 @@ using AutoBIMFusion.Application.AcadSupport;
 using AutoBIMFusion.Application.Utils;
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
-using System.Linq;
-using System.Drawing;
 using System.Windows.Forms;
 
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
@@ -89,7 +87,7 @@ internal static class ViewportLayoutExporter
 
             // Проверяем на наличие растров для внедрения.
             // Используем Handles, так как при открытии документа ObjectIds изменятся.
-            paperClonedHandles = new HashSet<long>(paperClonedIds.Select(id => id.Handle.Value));
+            paperClonedHandles = [.. paperClonedIds.Select(id => id.Handle.Value)];
             needsOle = CheckIfNeedsOle(db, paperClonedHandles, sourceDir, log);
         }
 
