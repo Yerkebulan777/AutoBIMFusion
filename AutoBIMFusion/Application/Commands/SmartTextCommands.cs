@@ -1,5 +1,9 @@
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.DatabaseServices;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Versioning;
 
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
@@ -32,7 +36,7 @@ public sealed class SmartTextCommands
                 BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
                 BlockTableRecord modelSpace = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForRead);
 
-                List<DBText> textsInModel = CollectDbText(modelSpace, tr);
+                List<DBText> textsInModel = CollectDbText(modelSpace, tr, log);
 
                 if (textsInModel.Count == 0)
                 {
@@ -87,16 +91,29 @@ public sealed class SmartTextCommands
         }
     }
 
-    private static List<DBText> CollectDbText(BlockTableRecord modelSpace, Transaction tr)
+    private static List<DBText> CollectDbText(BlockTableRecord modelSpace, Transaction tr, OperationLogger log)
     {
         List<DBText> result = [];
+        int textCount = 0;
+        int mtextCount = 0;
+        int otherCount = 0;
 
         foreach (ObjectId id in modelSpace)
         {
-            if (id.ObjectClass.DxfName != "TEXT")
+            string dxfName = id.ObjectClass.DxfName;
+
+            if (dxfName == "MTEXT")
             {
+                mtextCount++;
                 continue;
             }
+            if (dxfName != "TEXT")
+            {
+                otherCount++;
+                continue;
+            }
+
+            textCount++;
 
             // Открываем на ForRead — UpgradeOpen() вызовем только перед Erase
             if (tr.GetObject(id, OpenMode.ForRead) is DBText text)
@@ -111,6 +128,8 @@ public sealed class SmartTextCommands
                 result.Add(text);
             }
         }
+
+        log.Info($"Диагностика Model Space: найдено однострочных TEXT: {textCount}, многострочных MTEXT: {mtextCount}, других объектов: {otherCount}");
 
         return result;
     }
@@ -217,7 +236,7 @@ public sealed class SmartTextCommands
 
     private static bool AreTextsClose(DBText current, DBText other)
     {
-        double baseHeight = Max(current.Height, other.Height);
+        double baseHeight = Math.Max(current.Height, other.Height);
 
         // Проецируем позиции на направление текстовой строки и перпендикуляр к ней
         double rotation = current.Rotation;
@@ -231,7 +250,7 @@ public sealed class SmartTextCommands
         double othPerp = (-other.Position.X * sinA) + (other.Position.Y * cosA);
 
         // Расстояние по вертикали (перпендикуляр к строке) — должно быть в пределах одной строки
-        double dy = Abs(curPerp - othPerp);
+        double dy = Math.Abs(curPerp - othPerp);
         if (dy > baseHeight * LineHeightFactor)
         {
             return false;

@@ -1,5 +1,6 @@
 using AutoBIMFusion.Application.Ribbon;
 using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.Windows;
 using System.Runtime.Versioning;
 
 using App = Autodesk.AutoCAD.ApplicationServices.Core.Application;
@@ -22,13 +23,15 @@ public sealed class AutoBIMFusionExtension : IExtensionApplication
     private void OnIdle(object? sender, EventArgs e)
     {
         Document? doc = App.DocumentManager.MdiActiveDocument;
-        ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
-        RibbonBuilder.CreateTab();
+        if (doc != null && ComponentManager.Ribbon != null)
+        {
+            RibbonBuilder.CreateTab();
 
-        App.Idle -= OnIdle;
+            App.Idle -= OnIdle;
+        }
     }
-
+    
 
 
 }
