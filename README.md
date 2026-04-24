@@ -8,6 +8,7 @@
 
 - **Пакетное объединение DWG:** Обработка всех файлов из выбранной папки и её подпапок в один чертёж одной командой.
 - **Умное объединение `TEXT` в `MText`:** Команда `SMART_MERGE_TEXT` собирает близко расположенные фрагменты в связный многострочный текст.
+- **Объединение дубликатов текстовых стилей:** Команда `MergeTextStyles` находит идентичные стили, переназначает объекты на мастер-стиль и удаляет дубликаты.
 - **Пакет eTransmit в ZIP:** Команда `CreateETransmitZip` собирает зависимости текущего чертежа (Xref, шрифты, изображения, plot/data links) и формирует ZIP-архив.
 - **Экспорт первого Layout:** Из каждого исходного файла экспортируется первый Paper Space лист через viewport-aware стратегию (2+ VP — матрица трансформации, 1 VP — клонирование через главный viewport, 0 VP — масштабирование ×100).
 - **Автоматическое размещение:** Содержимое файлов вставляется как блоки вдоль оси X с отступом 10% от размера объекта (настраивается).
@@ -67,6 +68,7 @@
 | :--- | :--- |
 | `MERGEDWG` | **Merge DWG Files**: Объединяет все DWG-файлы из выбранной папки в один чертёж. |
 | `SMART_MERGE_TEXT` | Объединяет соседние `TEXT` (по стилю, высоте и геометрической близости) в единый `MText` в Model Space. |
+| `MergeTextStyles` | Находит и сливает дубликаты текстовых стилей (`TextStyle`), обновляя `DBText`, `MText`, `AttributeDefinition`, `AttributeReference`. |
 | `CreateETransmitZip` | Собирает пакет зависимостей текущего DWG через eTransmit и сохраняет ZIP в папку `ETransmitOutput` рядом с чертежом. |
 
 ---
@@ -75,7 +77,7 @@
 
 | Модуль | Назначение |
 | :--- | :--- |
-| **Application/Commands** | Точки входа — команды AutoCAD (`MERGEDWG`, `SMART_MERGE_TEXT`, `CreateETransmitZip`). |
+| **Application/Commands** | Точки входа — команды AutoCAD (`MERGEDWG`, `SMART_MERGE_TEXT`, `MergeTextStyles`, `CreateETransmitZip`). |
 | **Application/Merge** | Ядро объединения: `DwgMerger`, `BlockInserter`. Сохранение вынесено в `MergeCommands`. |
 | **Application/Merge/Layouts** | Обработка viewport'ов: `ViewportLayoutExporter`, `ViewportTransformer`, `ModelSpaceTrimmer`, `ViewportCollector`. Выбор главного VP вынесен в `LayoutViewportInfo`. |
 | **Application/Merge** | Модели данных: `MergeResult`, `MergeStatistics`. |

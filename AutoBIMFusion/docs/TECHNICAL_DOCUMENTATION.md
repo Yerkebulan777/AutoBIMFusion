@@ -17,7 +17,7 @@
 `AutoBIMFusion` — AutoCAD-плагин для пакетного объединения DWG-файлов в один итоговый чертёж.
 
 - Тип приложения: .NET plugin (`IExtensionApplication`) для AutoCAD.
-- Основные сценарии: команды `MERGEDWG`, `SMART_MERGE_TEXT` и `CreateETransmitZip`.
+- Основные сценарии: команды `MERGEDWG`, `SMART_MERGE_TEXT`, `MergeTextStyles` и `CreateETransmitZip`.
 - Платформа: `net8.0-windows8.0`, x64.
 - Поддерживаемые версии AutoCAD: 2025 / 2026 / 2027 (через отдельные build-конфигурации).
 
@@ -28,7 +28,7 @@
 | Модуль | Назначение | Ключевые элементы |
 | :--- | :--- | :--- |
 | `Application/AutoBIMFusionExtension.cs` | Инициализация плагина и Ribbon | `AutoBIMFusionExtension.Initialize`, `OnIdle`, `RibbonBuilder.CreateTab` |
-| `Application/Commands` | AutoCAD-команды | `MergeCommands`, `AdvancedTextCommands`, `TransmittalCommands` |
+| `Application/Commands` | AutoCAD-команды | `MergeCommands`, `AdvancedTextCommands`, `TextStyleCommands`, `TransmittalCommands` |
 | `Application/Merge` | Оркестрация merge и вставки | `DwgMerger` (статика), `BlockInserter`, `RasterImagePathFixer`, `MergeResult`, `MergeStatistics` |
 | `Application/Merge/Layouts` | Экспорт листа с учетом viewport | `ViewportLayoutExporter` (статика), `ViewportCollector`, `ViewportTransformer`, `ModelSpaceTrimmer`, `LayoutViewportInfo` |
 | `Application/Utils` | Выбор папки, перечисление и валидация файлов | `FolderSelector`, `FileEnumerator`, `FileHelper`, `LayoutUtil` |
@@ -60,6 +60,8 @@
 
 Отдельная команда `SMART_MERGE_TEXT` работает локально в текущем чертеже: собирает `DBText` из Model Space, группирует по стилю/высоте и геометрической близости, затем заменяет группы на `MText`.
 
+Команда `MergeTextStyles` нормализует таблицу текстовых стилей: группирует идентичные `TextStyleTableRecord`, переназначает ссылки в `DBText`, `MText`, `AttributeDefinition`, `AttributeReference` и удаляет дубликаты.
+
 Команда `CreateETransmitZip` формирует eTransmit-пакет текущего сохраненного DWG и архивирует собранные зависимости в ZIP-файл в папке `ETransmitOutput` рядом с чертежом.
 
 ## 3. Команды и внутренний API
@@ -70,6 +72,7 @@
 | :--- | :--- | :--- |
 | `MERGEDWG` | Без аргументов, выбор папки через диалог | Создание итогового DWG в родительской директории выбранной папки |
 | `SMART_MERGE_TEXT` | Без аргументов | Объединение цепочек `TEXT` в `MText` в Model Space |
+| `MergeTextStyles` | Без аргументов | Слияние дубликатов текстовых стилей и переназначение ссылок на мастер-стиль |
 | `CreateETransmitZip` | Без аргументов | Формирование eTransmit-пакета и ZIP-архива зависимостей текущего DWG |
 
 ### 3.2 Внутренние ключевые методы
@@ -78,6 +81,7 @@
 | :--- | :--- |
 | `MergeCommands.MergeDwgFolderCommand()` | Точка входа команды |
 | `AdvancedTextCommands.SmartMergeModelText()` | Точка входа команды умного объединения `TEXT` |
+| `TextStyleCommands.MergeTextStyles()` | Точка входа команды слияния дубликатов текстовых стилей |
 | `TransmittalCommands.CreateETransmitZip()` | Точка входа команды упаковки eTransmit в ZIP |
 | `DwgMerger.MergeSingleFile(string filePath, BlockInserter inserter, Database targetDb, OperationLogger log)` | Статическая обработка одного DWG |
 | `ViewportLayoutExporter.ExportToTempAsync(string sourceFilePath, string fileName, OperationLogger log)` | Статический экспорт первого листа во временный DWG |
@@ -174,7 +178,7 @@ dotnet build AutoBIMFusion.slnx -c ReleaseA25
 ### 8.1 Обработка ошибок
 
 - Ошибки файла инкапсулируются в `MergeResult`.
-- Критические исключения в командах перехватываются в `MergeCommands`, `AdvancedTextCommands` и `TransmittalCommands`.
+- Критические исключения в командах перехватываются в `MergeCommands`, `AdvancedTextCommands`, `TextStyleCommands` и `TransmittalCommands`.
 - Временные файлы чистятся в `finally` (`DwgMerger`).
 - Для операций сохранения применяется `AcadWarningSuppressScope`.
 
