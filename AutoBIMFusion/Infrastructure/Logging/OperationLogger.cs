@@ -1,4 +1,4 @@
-
+using AutoBIMFusion.Application.Utils;
 using Serilog.Core;
 using Serilog.Events;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
@@ -40,7 +40,7 @@ internal sealed class OperationLogger(Editor ed)
     private void Log(LogEventLevel level, string message, System.Exception? ex = null)
     {
         string full = Prefix.Length > 0 ? $"{Prefix} {message}" : message;
-        string editorMsg = ex == null ? full : $"{full} ({ex.GetType().Name}: {Short(ex.Message, "Ошибка", 200)})";
+        string editorMsg = ex == null ? full : $"{full} ({ex.GetType().Name}: {StringUtils.Truncate(ex.Message, "Ошибка", 200)})";
 
         if (EchoToEditor && level != LogEventLevel.Debug)
         {
@@ -79,25 +79,5 @@ internal sealed class OperationLogger(Editor ed)
         {
             _fileLogger.Debug(ex, "Не удалось вывести сообщение в командную строку AutoCAD");
         }
-    }
-
-    private static string Short(string? message, string fallback, int maxLength)
-    {
-        if (string.IsNullOrWhiteSpace(message))
-        {
-            return fallback;
-        }
-
-        ReadOnlySpan<char> span = message.AsSpan().Trim();
-        int lineBreakIdx = span.IndexOfAny('\r', '\n');
-        if (lineBreakIdx >= 0)
-        {
-            span = span[..lineBreakIdx].TrimEnd();
-            if (span.Length == 0)
-            {
-                return fallback;
-            }
-        }
-        return span.Length <= maxLength ? span.ToString() : span[..maxLength].ToString();
     }
 }

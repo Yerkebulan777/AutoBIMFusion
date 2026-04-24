@@ -163,6 +163,9 @@ internal static class ViewportLayoutExporter
         return (frameBounds, paperClonedIds);
     }
 
+    /// <summary>
+    /// Один VP: зажимает масштаб, масштабирует Model Space если нужно, переносит Paper в Model Space.
+    /// </summary>
     private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessSingleVp(Database db, string layoutName, LayoutViewportInfo vp, OperationLogger log)
     {
         LayoutViewportInfo clamped = ClampMainVpScale(vp, log);
@@ -184,15 +187,18 @@ internal static class ViewportLayoutExporter
 
         if (multiplier < MaxScaleMultiplier)
         {
-            log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0} -> 1:{MaxScaleMultiplier:F0}");
+            // Масштаб крупнее 1:100 — зажимаем, чтобы не получить слишком большой Model Space после экспорта.
+            log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0} зажат до 1:{MaxScaleMultiplier:F0}");
             return vp with { CustomScale = 1.0 / MaxScaleMultiplier };
         }
 
-        log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0}");
-
+        log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0} (без зажима)");
         return vp;
     }
 
+    /// <summary>
+    /// Нет VP: масштабирует и переносит Paper-содержимое в Model Space с масштабом 1:MaxScaleMultiplier.
+    /// </summary>
     private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessNoVp(Database db, string layoutName, OperationLogger log)
     {
         log.Info($"VP: нет видовых экранов, масштаб 1:{MaxScaleMultiplier:F0}");

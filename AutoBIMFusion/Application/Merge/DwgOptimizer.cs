@@ -49,24 +49,23 @@ internal static class DwgOptimizer
         ObjectIdCollection candidates = [];
 
         using Transaction tr = db.TransactionManager.StartTransaction();
-        // Именованные таблицы
-        AddTableIds(tr, db.BlockTableId, candidates);
-        AddTableIds(tr, db.LayerTableId, candidates);
-        AddTableIds(tr, db.LinetypeTableId, candidates);
-        AddTableIds(tr, db.TextStyleTableId, candidates);
-        AddTableIds(tr, db.DimStyleTableId, candidates);
-        AddTableIds(tr, db.RegAppTableId, candidates);
-        AddTableIds(tr, db.UcsTableId, candidates);
-        AddTableIds(tr, db.ViewTableId, candidates);
-        AddTableIds(tr, db.ViewportTableId, candidates);
 
-        // Словари стилей и прочих именованных объектов
-        AddDictionaryIds(tr, db.MLeaderStyleDictionaryId, candidates);
-        AddDictionaryIds(tr, db.MaterialDictionaryId, candidates);
-        AddDictionaryIds(tr, db.TableStyleDictionaryId, candidates);
-        AddDictionaryIds(tr, db.PlotStyleNameDictionaryId, candidates);
-        AddDictionaryIds(tr, db.GroupDictionaryId, candidates);
-        AddDictionaryIds(tr, db.VisualStyleDictionaryId, candidates);
+        AddTableIds(tr, db.BlockTableId, candidates, log);
+        AddTableIds(tr, db.LayerTableId, candidates, log);
+        AddTableIds(tr, db.LinetypeTableId, candidates, log);
+        AddTableIds(tr, db.TextStyleTableId, candidates, log);
+        AddTableIds(tr, db.DimStyleTableId, candidates, log);
+        AddTableIds(tr, db.RegAppTableId, candidates, log);
+        AddTableIds(tr, db.UcsTableId, candidates, log);
+        AddTableIds(tr, db.ViewTableId, candidates, log);
+        AddTableIds(tr, db.ViewportTableId, candidates, log);
+
+        AddDictionaryIds(tr, db.MLeaderStyleDictionaryId, candidates, log);
+        AddDictionaryIds(tr, db.MaterialDictionaryId, candidates, log);
+        AddDictionaryIds(tr, db.TableStyleDictionaryId, candidates, log);
+        AddDictionaryIds(tr, db.PlotStyleNameDictionaryId, candidates, log);
+        AddDictionaryIds(tr, db.GroupDictionaryId, candidates, log);
+        AddDictionaryIds(tr, db.VisualStyleDictionaryId, candidates, log);
 
         if (candidates.Count == 0)
         {
@@ -115,7 +114,7 @@ internal static class DwgOptimizer
         return erased;
     }
 
-    private static void AddTableIds(Transaction tr, ObjectId tableId, ObjectIdCollection target)
+    private static void AddTableIds(Transaction tr, ObjectId tableId, ObjectIdCollection target, OperationLogger log)
     {
         if (tableId.IsNull)
         {
@@ -133,13 +132,13 @@ internal static class DwgOptimizer
                 }
             }
         }
-        catch
+        catch (System.Exception ex)
         {
-            // Таблица недоступна — пропускаем
+            log.Debug($"Purge: таблица {tableId.Handle} недоступна — {ex.Message}");
         }
     }
 
-    private static void AddDictionaryIds(Transaction tr, ObjectId dictId, ObjectIdCollection target)
+    private static void AddDictionaryIds(Transaction tr, ObjectId dictId, ObjectIdCollection target, OperationLogger log)
     {
         if (dictId.IsNull)
         {
@@ -158,9 +157,9 @@ internal static class DwgOptimizer
                 }
             }
         }
-        catch
+        catch (System.Exception ex)
         {
-            // Словарь недоступен — пропускаем
+            log.Debug($"Purge: словарь {dictId.Handle} недоступен — {ex.Message}");
         }
     }
 }

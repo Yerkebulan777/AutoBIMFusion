@@ -13,8 +13,6 @@ namespace AutoBIMFusion.Application.Merge;
 /// </summary>
 internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 {
-    private readonly double _gapPercent = gapPercent;
-    private readonly OperationLogger _log = log;
     private double _rightMax;
     private bool _hasPlacedObjects;
 
@@ -30,7 +28,6 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
         try
         {
-
             ObjectIdCollection sourceIds = [];
 
             using Database sourceDb = new(false, true);
@@ -56,7 +53,7 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
             if (sourceIds.Count == 0)
             {
-                _log.Warn($"{sourceName}: пустой Model Space");
+                log.Warn($"{sourceName}: пустой Model Space");
                 return null;
             }
 
@@ -96,7 +93,7 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
             if (clonedCount == 0)
             {
-                _log.Warn($"{sourceName}: не удалось клонировать объекты");
+                log.Warn($"{sourceName}: не удалось клонировать объекты");
                 return null;
             }
 
@@ -110,12 +107,12 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
             _rightMax = worldBounds.Value.MaxPoint.X;
             _hasPlacedObjects = true;
-            _log.Info($"{sourceName}: вставлено {clonedCount} нативных объектов");
+            log.Info($"{sourceName}: вставлено {clonedCount} нативных объектов");
             return worldBounds;
         }
         catch (System.Exception ex)
         {
-            _log.Error(ex, $"Ошибка вставки: {sourceName}");
+            log.Error(ex, $"Ошибка вставки: {sourceName}");
             return null;
         }
     }
@@ -125,14 +122,14 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
         double width = Math.Max(0, bounds.MaxPoint.X - bounds.MinPoint.X);
         double height = Math.Max(0, bounds.MaxPoint.Y - bounds.MinPoint.Y);
         double maxDimension = Math.Max(width, height);
-        double gap = Math.Max(1.0, Math.Round(maxDimension * _gapPercent, 0));
+        double gap = Math.Max(1.0, Math.Round(maxDimension * gapPercent, 0));
 
         double insertX = _hasPlacedObjects
             ? _rightMax + gap - bounds.MinPoint.X
             : -bounds.MinPoint.X;
         Point3d insertPt = new(insertX, -bounds.MinPoint.Y, 0);
 
-        _log.Debug($"Позиция вставки: X={insertPt.X:F2}, Y={insertPt.Y:F2}, gap={gap:F0}");
+        log.Debug($"Позиция вставки: X={insertPt.X:F2}, Y={insertPt.Y:F2}, gap={gap:F0}");
         return insertPt;
     }
 }
