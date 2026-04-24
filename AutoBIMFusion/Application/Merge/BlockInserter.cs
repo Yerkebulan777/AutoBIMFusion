@@ -30,10 +30,13 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
         try
         {
-            using Database sourceDb = new(false, true);
-            sourceDb.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
 
             ObjectIdCollection sourceIds = [];
+
+            using Database sourceDb = new(false, true);
+
+            sourceDb.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
+
             ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
 
             using (Transaction tr = sourceDb.TransactionManager.StartTransaction())

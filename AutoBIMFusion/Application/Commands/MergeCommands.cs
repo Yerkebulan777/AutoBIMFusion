@@ -1,13 +1,13 @@
 using AutoBIMFusion.Application.AcadSupport;
+using Autodesk.AutoCAD.ApplicationServices;
 using AutoBIMFusion.Application.Merge;
 using AutoBIMFusion.Application.Utils;
 using AutoBIMFusion.Infrastructure.Logging;
-using Autodesk.AutoCAD.ApplicationServices;
 using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Windows.Forms;
 
-using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
+using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Application.Commands;
 
@@ -63,16 +63,15 @@ public sealed class MergeCommands
                 return;
             }
 
+            const double gapPercent = 0.1;
+            MergeStatistics stats = new();
+            Stopwatch sw = Stopwatch.StartNew();
+
+            string savePath = BuildSavePath(folderPath);
+            BlockInserter inserter = new(gapPercent, log);
+
             using (doc.LockDocument())
             {
-                const double gapPercent = 0.1;
-                MergeStatistics stats = new();
-                Stopwatch sw = Stopwatch.StartNew();
-
-                string savePath = BuildSavePath(folderPath);
-
-                BlockInserter inserter = new(gapPercent, log);
-
                 await MergeFiles(dwgFiles, inserter, doc.Database, stats, log);
 
                 RasterImagePathFixer.CopyImagesToTargetFolder(doc.Database, savePath, log);
@@ -83,7 +82,6 @@ public sealed class MergeCommands
                 log.Prefix = string.Empty;
                 log.Info($"Завершено: {stats}");
 
-                // Обновляем чертёж и вид после сохранения
                 doc.SendStringToExecute("._REGENALL ", true, false, false);
                 doc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
 
