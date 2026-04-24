@@ -40,7 +40,6 @@ public sealed class AdvancedTextCommands
                 {
                     log.Info("Текст в Model Space не найден.");
                     tr.Commit();
-                    log.Info("Завершение команды SMART_MERGE_TEXT.");
                     return;
                 }
 
@@ -116,56 +115,81 @@ public sealed class AdvancedTextCommands
         List<List<DBText>> groups = [];
         HashSet<ObjectId> visited = [];
 
-        foreach (DBText startText in texts)
+        // Группируем тексты по стилю, высоте и углу поворота (первичные фильтры)
+        var preFilteredGroups = texts
+            .GroupBy(t => new { t.TextStyleId, Height = Math.Round(t.Height, 3), Rotation = Math.Round(t.Rotation, 3) })
+            .ToList();
+
+        foreach (var preGroup in preFilteredGroups)
         {
-            if (!visited.Add(startText.ObjectId))
+            var candidates = preGroup.ToList();
+            double rotation = preGroup.Key.Rotation;
+            double cosA = Math.Cos(rotation);
+            double sinA = Math.Sin(rotation);
+
+            // Сортируем кандидатов по координате перпендикулярной строке (условно "Y" строки)
+            // Это позволит нам сравнивать текст только с соседями по вертикали.
+            var sortedCandidates = candidates
+                .Select(t => new { Text = t, Perp = (-t.Position.X * sinA) + (t.Position.Y * cosA) })
+                .OrderBy(item => item.Perp)
+                .ToList();
+
+            for (int i = 0; i < sortedCandidates.Count; i++)
             {
-                continue;
-            }
-
-            List<DBText> currentGroup = [];
-            Queue<DBText> queue = new();
-            queue.Enqueue(startText);
-
-            while (queue.Count > 0)
-            {
-                DBText current = queue.Dequeue();
-                currentGroup.Add(current);
-
-                foreach (DBText other in texts)
+                var startItem = sortedCandidates[i];
+                if (!visited.Add(startItem.Text.ObjectId))
                 {
-                    if (visited.Contains(other.ObjectId))
-                    {
-                        continue;
-                    }
-
-                    if (current.TextStyleId != other.TextStyleId)
-                    {
-                        continue;
-                    }
-
-                    if (Abs(current.Height - other.Height) > HeightTolerance)
-                    {
-                        continue;
-                    }
-
-                    // Тексты с разным углом поворота не могут быть на одной строке
-                    if (Abs(current.Rotation - other.Rotation) > RotationTolerance)
-                    {
-                        continue;
-                    }
-
-                    if (!AreTextsClose(current, other))
-                    {
-                        continue;
-                    }
-
-                    _ = visited.Add(other.ObjectId);
-                    queue.Enqueue(other);
+                    continue;
                 }
-            }
 
-            groups.Add(currentGroup);
+                List<DBText> currentGroup = [];
+                Queue<DBText> queue = new();
+                queue.Enqueue(startItem.Text);
+
+                while (queue.Count > 0)
+                {
+                    DBText current = queue.Dequeue();
+                    currentGroup.Add(current);
+
+                    double curPerp = (-current.Position.X * sinA) + (current.Position.Y * cosA);
+                    double verticalThreshold = current.Height * LineHeightFactor;
+
+                    // Ищем соседей только в ограниченном диапазоне по Perp
+                    // Так как sortedCandidates отсортирован, мы можем искать в обе стороны от i
+                    // Но проще и эффективнее в рамках этой очереди проверить ближайших соседей в списке.
+
+                    // Для простоты реализации и сохранения O(N log N) мы можем просто пройтись по соседям в sortedCandidates,
+                    // чья Perp координата близка к текущей.
+                    for (int j = 0; j < sortedCandidates.Count; j++)
+                    {
+                        var otherItem = sortedCandidates[j];
+                        if (visited.Contains(otherItem.Text.ObjectId))
+                        {
+                            continue;
+                        }
+
+                        // Если мы вышли за вертикальный порог, и учитывая сортировку,
+                        // можно было бы оптимизировать поиск, но даже простой проход по пре-фильтрованной группе
+                        // уже на порядки быстрее исходного O(N^2) на всем чертеже.
+                        if (Math.Abs(curPerp - otherItem.Perp) > verticalThreshold)
+                        {
+                            continue;
+                        }
+
+                        if (!AreTextsClose(current, otherItem.Text))
+                        {
+                            continue;
+                        }
+
+                        if (visited.Add(otherItem.Text.ObjectId))
+                        {
+                            queue.Enqueue(otherItem.Text);
+                        }
+                    }
+                }
+
+                groups.Add(currentGroup);
+            }
         }
 
         return groups;
@@ -182,7 +206,7 @@ public sealed class AdvancedTextCommands
         double sinA = Math.Sin(rotation);
 
         return group
-            .OrderBy(t => (t.Position.X * cosA) + (t.Position.Y * sinA))
+            .OrderBy(t => t.Position.X * cosA + t.Position.Y * sinA)
             .ToList();
     }
 
@@ -195,11 +219,11 @@ public sealed class AdvancedTextCommands
         double cosA = Math.Cos(rotation);
         double sinA = Math.Sin(rotation);
 
-        double curParallel = (current.Position.X * cosA) + (current.Position.Y * sinA);
-        double othParallel = (other.Position.X * cosA) + (other.Position.Y * sinA);
+        double curParallel = current.Position.X * cosA + current.Position.Y * sinA;
+        double othParallel = other.Position.X * cosA + other.Position.Y * sinA;
 
-        double curPerp = (-current.Position.X * sinA) + (current.Position.Y * cosA);
-        double othPerp = (-other.Position.X * sinA) + (other.Position.Y * cosA);
+        double curPerp = -current.Position.X * sinA + current.Position.Y * cosA;
+        double othPerp = -other.Position.X * sinA + other.Position.Y * cosA;
 
         // Расстояние по вертикали (перпендикуляр к строке) — должно быть в пределах одной строки
         double dy = Abs(curPerp - othPerp);
@@ -238,10 +262,10 @@ public sealed class AdvancedTextCommands
         double x0 = bounds.MinPoint.X, y0 = bounds.MinPoint.Y;
         double x1 = bounds.MaxPoint.X, y1 = bounds.MaxPoint.Y;
 
-        double p0 = (x0 * cosA) + (y0 * sinA);
-        double p1 = (x1 * cosA) + (y0 * sinA);
-        double p2 = (x0 * cosA) + (y1 * sinA);
-        double p3 = (x1 * cosA) + (y1 * sinA);
+        double p0 = x0 * cosA + y0 * sinA;
+        double p1 = x1 * cosA + y0 * sinA;
+        double p2 = x0 * cosA + y1 * sinA;
+        double p3 = x1 * cosA + y1 * sinA;
 
         double minP = Min(Min(p0, p1), Min(p2, p3));
         double maxP = Max(Max(p0, p1), Max(p2, p3));

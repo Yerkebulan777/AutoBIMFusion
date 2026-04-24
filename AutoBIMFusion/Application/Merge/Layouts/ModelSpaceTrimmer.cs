@@ -74,6 +74,10 @@ internal static class ModelSpaceTrimmer
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
         using Transaction tr = db.TransactionManager.StartTransaction();
+
+        // Гарантируем актуальность границ всей БД перед началом фильтрации
+        db.UpdateExt(true);
+
         BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
 
         foreach (ObjectId id in ms)
@@ -82,6 +86,15 @@ internal static class ModelSpaceTrimmer
 
             if (tr.GetObject(id, OpenMode.ForRead) is not Entity ent)
             {
+                continue;
+            }
+
+            // Оптимизация: для простых точечных объектов (Text, Point, BlockReference)
+            // проверяем их базовую точку. Если она ВНУТРИ frameBounds, то объект точно пересекается/внутри,
+            // и мы можем пропустить дорогой вызов GeometricExtents.
+            if (IsPointInsideBounds(ent, frameBounds))
+            {
+                inside++;
                 continue;
             }
 
@@ -111,6 +124,24 @@ internal static class ModelSpaceTrimmer
             $"ModelSpaceTrimmer.TrimOutside frame={GeometryUtils.FormatExtents(frameBounds)}, total={total}, inside={inside}, " +
             $"outside={outside}, skippedNoExtents={skippedNoExtents}, erased={erased}");
         return erased;
+    }
+
+    private static bool IsPointInsideBounds(Entity ent, Extents3d bounds)
+    {
+        Point3d? p = ent switch
+        {
+            DBText t => t.Position,
+            MText m => m.Location,
+            BlockReference br => br.Position,
+            DBPoint pt => pt.Position,
+            _ => null
+        };
+
+        if (!p.HasValue) return false;
+
+        Point3d pt = p.Value;
+        return pt.X >= bounds.MinPoint.X && pt.X <= bounds.MaxPoint.X &&
+               pt.Y >= bounds.MinPoint.Y && pt.Y <= bounds.MaxPoint.Y;
     }
 
 }

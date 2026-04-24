@@ -59,13 +59,14 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
             ObjectId targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
             IdMapping map = [];
-            sourceDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Ignore, false);
-
             Extents3d? worldBounds = null;
             int clonedCount = 0;
 
             using (Transaction tr = targetDb.TransactionManager.StartTransaction())
             {
+                // Клонируем объекты из временной базы в целевую
+                targetDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Ignore, false);
+
                 foreach (IdPair pair in map)
                 {
                     if (!pair.IsCloned || !pair.IsPrimary)

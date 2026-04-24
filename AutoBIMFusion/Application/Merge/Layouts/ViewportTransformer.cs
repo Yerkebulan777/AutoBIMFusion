@@ -134,13 +134,12 @@ internal static class ViewportTransformer
         IReadOnlyList<ObjectId> sourceOrder = DrawOrderPreserver.Capture(db, sourceOwnerId, sourceIds, log);
 
         IdMapping map = [];
-        db.DeepCloneObjects(sourceIds, ownerId, map, false);
-
         ObjectIdCollection cloned = [];
         int mappedPrimary = 0;
 
         using (Transaction tr = db.TransactionManager.StartTransaction())
         {
+            db.DeepCloneObjects(sourceIds, ownerId, map, false);
             foreach (IdPair pair in map)
             {
                 if (!pair.IsCloned || !pair.IsPrimary)
