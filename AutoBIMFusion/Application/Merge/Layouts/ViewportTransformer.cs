@@ -133,13 +133,32 @@ internal static class ViewportTransformer
     {
         IReadOnlyList<ObjectId> sourceOrder = DrawOrderPreserver.Capture(db, sourceOwnerId, sourceIds, log);
 
+        ObjectIdCollection validIds = [];
+        int skippedErased = 0;
+        foreach (ObjectId id in sourceIds)
+        {
+            if (id.IsErased)
+                skippedErased++;
+            else
+                validIds.Add(id);
+        }
+
+        if (skippedErased > 0)
+            log.Warn($"DeepCloneAndTransform source={sourceName}: пропущено {skippedErased} стёртых объектов");
+
+        if (validIds.Count == 0)
+        {
+            log.Debug($"DeepCloneAndTransform source={sourceName}: все объекты стёрты, клонирование пропущено");
+            return [];
+        }
+
         IdMapping map = [];
         ObjectIdCollection cloned = [];
         int mappedPrimary = 0;
 
         using (Transaction tr = db.TransactionManager.StartTransaction())
         {
-            db.DeepCloneObjects(sourceIds, ownerId, map, false);
+            db.DeepCloneObjects(validIds, ownerId, map, false);
             foreach (IdPair pair in map)
             {
                 if (!pair.IsCloned || !pair.IsPrimary)
