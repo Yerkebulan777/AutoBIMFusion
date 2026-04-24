@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Purpose
 
-Agentic skill set for scaffolding and developing AutoCAD .NET plugins targeting **AutoCAD 2027** products (.NET 10, x64). Civil 3D and Plant 3D are vertical toolsets built on top of the AutoCAD base platform — all share the AutoCAD base APIs and assembly loading model.
+Agentic skill set for scaffolding and developing AutoCAD .NET plugins targeting **AutoCAD 2025-2027** products (.NET 8, x64). Civil 3D and Plant 3D are vertical toolsets built on top of the AutoCAD base platform — all share the AutoCAD base APIs and assembly loading model.
 
 ## Target Stack
 
 | Item | Value |
 |------|-------|
-| Target Framework | `net10.0-windows` |
+| Target Framework | `net8.0-windows` |
 | Platform | `win-x64` |
 | AutoCAD base NuGet | `AutoCAD.NET 26.0.0` (desktop) / `AutoCAD.NET.Core 26.0.0` (DA/headless) |
 | Civil 3D NuGet | `Civil3D.NET 13.9.628` |
@@ -79,10 +79,10 @@ If a required tool is missing, prompt the user to install it before proceeding. 
 
 ## Universal Rules for All Plugins
 
-- Framework: `net10.0-windows`, platform `win-x64`, `<Nullable>enable</Nullable>`
+- Framework: `net8.0-windows`, platform `win-x64`, `<Nullable>enable</Nullable>`
 - **Never copy host DLLs to output.** AutoCAD/Civil/Plant assemblies: `ExcludeAssets="runtime"` (NuGet) or `<Private>false</Private>` (direct refs)
 - Entry points auto-registered via `[assembly: ExtensionApplication]` and `[assembly: CommandClass]` — no manual registration
-- Load in AutoCAD: `NETLOAD` → `bin\Debug\net10.0-windows\<Plugin>.dll`
+- Load in AutoCAD: `NETLOAD` → `bin\Debug\net8.0-windows\<Plugin>.dll`
 - Design Automation (headless): use `AutoCAD.NET.Core` only — no WPF/WinForms references
 - All toolset API calls must be on the **main AutoCAD thread** — not thread-safe
 - `DocumentLock` required for any write operation: `using (doc.LockDocument()) { ... }`

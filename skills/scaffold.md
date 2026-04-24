@@ -37,7 +37,7 @@ Create `<ProjectName>/<ProjectName>.csproj`:
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <Nullable>enable</Nullable>
     <RootNamespace>$(MSBuildProjectName)</RootNamespace>
@@ -117,13 +117,13 @@ public class App : IExtensionApplication
 
 ## Step 2 — Update framework (if template generated older target)
 
-If the scaffolded `.csproj` shows `net8.0-windows` or `net6.0-windows`, update it:
+If the scaffolded `.csproj` shows `net6.0-windows`, update it:
 
 ```bash
 # In the .csproj, replace:
-# <TargetFramework>net8.0-windows</TargetFramework>
+# <TargetFramework>net6.0-windows</TargetFramework>
 # with:
-# <TargetFramework>net10.0-windows</TargetFramework>
+# <TargetFramework>net8.0-windows</TargetFramework>
 ```
 
 ---
@@ -207,6 +207,6 @@ Create `Properties/launchSettings.json`. Replace `<ACAD_HOME>` with the AutoCAD 
 dotnet build -c Debug
 ```
 
-In AutoCAD: `NETLOAD` → `bin\Debug\net10.0-windows\<ProjectName>.dll`
+In AutoCAD: `NETLOAD` → `bin\Debug\net8.0-windows\<ProjectName>.dll`
 
 Run your command (template default: `HELLOWORLD`).

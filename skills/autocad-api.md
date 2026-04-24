@@ -13,7 +13,7 @@ Base AutoCAD .NET patterns (transactions, commands, entities, selection, prompts
 ## Version-Specific Facts (2027)
 
 - NuGet package: `AutoCAD.NET 26.0.0` (desktop), `AutoCAD.NET.Core 26.0.0` (Design Automation / headless)
-- Target framework: `net10.0-windows`, platform `win-x64`
+- Target framework: `net8.0-windows`, platform `win-x64`
 - AutoCAD internal version: 26.x
 - All packages: `ExcludeAssets="runtime"` — AutoCAD loads assemblies from its install directory
 

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
         <StartAction>Program</StartAction>
         <StartProgram>C:\Program Files\Autodesk\AutoCAD $(AcadVersion)\acad.exe</StartProgram>
         <ImplicitUsings>enable</ImplicitUsings>
