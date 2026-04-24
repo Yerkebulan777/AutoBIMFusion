@@ -72,7 +72,7 @@ internal static class ViewportLayoutExporter
                 // оставались огромными, что приводило к огромным отступам при вставке и разбросу блоков.
                 List<LayoutViewportInfo> vps = ViewportCollector.Collect(sourceDoc.Database, layoutName);
 
-                log.Info($"Найдено viewport'ов: {vps.Count}");
+                log.Info($"VP: найдено {vps.Count}");
 
                 (Extents3d? frameBounds, HashSet<ObjectId> paperClonedIds) = vps.Count switch
                 {
@@ -84,7 +84,7 @@ internal static class ViewportLayoutExporter
                 if (frameBounds.HasValue)
                 {
                     int erased = ModelSpaceTrimmer.TrimOutside(sourceDoc.Database, frameBounds.Value, log);
-                    log.Info($"Очищено за рамкой: {erased}");
+                    log.Info($"VP: очищено {erased} объектов");
                 }
 
                 AcadApp.SetSystemVariable("TILEMODE", 1);
@@ -98,13 +98,13 @@ internal static class ViewportLayoutExporter
                 sourceDoc.Database.SaveAs(tempPath, DwgVersion.AC1032);
             }
 
-            log.Info($"{fileName} экспортирован");
+            log.Info($"VP: экспорт завершен ({fileName})");
 
             return tempPath;
         }
         catch (System.Exception ex)
         {
-            log.Warn(ex, $"{fileName}: ошибка экспорта {ex.Message}");
+            log.Warn(ex, $"VP: ошибка экспорта {fileName}");
             throw new System.Exception($"\n{fileName}: Ошибка экспорта: {ex.Message}", ex);
         }
         finally
@@ -115,7 +115,7 @@ internal static class ViewportLayoutExporter
 
     private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessMultiVp(Database db, string layoutName, List<LayoutViewportInfo> vps, OperationLogger log)
     {
-        log.Info($"Multi-VP ветка: {vps.Count} viewport'ов");
+        log.Info($"VP: мульти-режим ({vps.Count} шт)");
 
         LayoutViewportInfo main = ClampMainVpScale(LayoutViewportInfo.PickMainViewport(vps), log);
 
@@ -136,17 +136,16 @@ internal static class ViewportLayoutExporter
             if (toClone.Count > 0)
             {
                 ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, m, log, "model-window");
-                log.Info($"Обработан aux-VP #{aux.Number}: {cloned.Count} объектов");
+                log.Info($"VP #{aux.Number}: обработано {cloned.Count} объектов");
             }
             else
             {
-                log.Info($"Обработан aux-VP #{aux.Number}: 0 объектов");
+                log.Info($"VP #{aux.Number}: 0 объектов");
             }
         }
 
         (Extents3d? frameBounds, HashSet<ObjectId> paperClonedIds) = MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(main, log), log);
 
-        log.Info($"Всего обработано aux-VP: {vps.Count - 1}");
         return (frameBounds, paperClonedIds);
     }
 
@@ -162,7 +161,7 @@ internal static class ViewportLayoutExporter
 
         if (multiplier < MaxScaleMultiplier)
         {
-            log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0} изменен на 1:{MaxScaleMultiplier:F0}");
+            log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0} -> 1:{MaxScaleMultiplier:F0}");
             return vp with { CustomScale = 1.0 / MaxScaleMultiplier };
         }
 
@@ -173,7 +172,7 @@ internal static class ViewportLayoutExporter
 
     private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessNoVp(Database db, string layoutName, OperationLogger log)
     {
-        log.Info($"No-VP ветка: viewport'ы не найдены, масштаб по умолчанию 1:{MaxScaleMultiplier:F0}");
+        log.Info($"VP: нет видовых экранов, масштаб 1:{MaxScaleMultiplier:F0}");
 
         ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
 

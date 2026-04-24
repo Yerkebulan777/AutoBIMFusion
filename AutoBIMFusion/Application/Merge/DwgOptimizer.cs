@@ -18,7 +18,7 @@ internal static class DwgOptimizer
 
     public static void Optimize(Database db, OperationLogger log)
     {
-        log.Info("Начало оптимизации результирующего файла...");
+        log.Info("Очистка (Purge)...");
 
         int totalPurged = 0;
         int passes = 0;
@@ -35,14 +35,12 @@ internal static class DwgOptimizer
 
         if (totalPurged > 0)
         {
-            log.Info($"Оптимизация: удалено {totalPurged} неиспользуемых объектов ({passes} проходов).");
+            log.Info($"Очищено: {totalPurged} объектов (проходов: {passes})");
         }
         else
         {
-            log.Info("Оптимизация: неиспользуемых объектов не обнаружено.");
+            log.Info("Очистка: неиспользуемых объектов нет");
         }
-
-        log.Info("Оптимизация завершена.");
     }
 
     private static int PurgePass(Database db, OperationLogger log)

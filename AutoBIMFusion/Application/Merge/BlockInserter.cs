@@ -51,7 +51,7 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
             if (sourceIds.Count == 0)
             {
-                _log.Warn($"BlockInserter: {sourceName} — Model Space пуст");
+                _log.Warn($"Блок {sourceName}: пустой Model Space");
                 return null;
             }
 
@@ -90,7 +90,7 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
                 if (clonedCount == 0)
                 {
-                    _log.Warn($"BlockInserter: {sourceName} — не удалось клонировать объекты");
+                    _log.Warn($"Блок {sourceName}: ошибка клонирования");
                     tr.Commit();
                     return null;
                 }
@@ -115,12 +115,12 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
             _rightMax = worldBounds.Value.MaxPoint.X;
             _hasPlacedObjects = true;
-            _log.Info($"BlockInserter: {sourceName} — вставлено блоком '{blockName}' ({sourceIds.Count} объектов)");
+            _log.Info($"Блок '{blockName}' добавлен ({sourceIds.Count} объектов)");
             return worldBounds;
         }
         catch (System.Exception ex)
         {
-            _log.Error(ex, $"BlockInserter: {sourceName}");
+            _log.Error(ex, $"Ошибка вставки: {sourceName}");
             return null;
         }
     }

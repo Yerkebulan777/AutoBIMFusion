@@ -29,7 +29,7 @@ internal static class DwgMerger
 
         try
         {
-            log.Info($"Обработка: {fileName}");
+            log.Info($"Файл: {fileName}");
 
             tempPath = await ViewportLayoutExporter.ExportToTempAsync(filePath, fileName, log);
 
@@ -52,12 +52,12 @@ internal static class DwgMerger
                 return MergeResult.Fail(fileName, "Не удалось вставить объекты");
             }
 
-            log.Info($"Успешно вставлены нативные объекты '{layoutName}'");
+            log.Info($"Вставлен лист '{layoutName}'");
             return MergeResult.Ok(fileName, layoutName);
         }
         catch (System.Exception ex)
         {
-            log.Error(ex, fileName);
+            log.Error(ex, $"Ошибка: {fileName}");
             return MergeResult.Fail(fileName, ex.Message, "Ошибка обработки");
         }
         finally
@@ -70,7 +70,7 @@ internal static class DwgMerger
                 }
                 catch (System.Exception deleteEx)
                 {
-                    log.Warn(deleteEx, $"Не удалось удалить временный файл: {tempPath}");
+                    log.Warn(deleteEx, $"Сбой удаления temp-файла: {tempPath}");
                 }
             }
         }

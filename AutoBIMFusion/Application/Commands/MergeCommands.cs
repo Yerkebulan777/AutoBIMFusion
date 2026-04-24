@@ -31,7 +31,7 @@ public sealed class MergeCommands
 
         if (!await _mergeGate.WaitAsync(0))
         {
-            log.Warn("Операция MERGEDWG уже выполняется.");
+            log.Warn("MERGEDWG: операция уже запущена.");
             return;
         }
 
@@ -41,7 +41,7 @@ public sealed class MergeCommands
         }
         catch (System.Exception ex)
         {
-            log.Error(ex, "Ошибка выполнения команды");
+            log.Error(ex, "Ошибка выполнения MERGEDWG");
         }
         finally
         {
@@ -53,12 +53,12 @@ public sealed class MergeCommands
     {
         if (FolderSelector.TrySelectFolder(out string? folderPath))
         {
-            log.Info($"Выбрана папка: {folderPath}");
+            log.Info($"Исходная папка: {folderPath}");
             string[] dwgFiles = FileEnumerator.GetFiles(folderPath, log: log);
 
             if (dwgFiles.Length == 0)
             {
-                log.Warn("В выбранной папке и подпапках нет DWG файлов.");
+                log.Warn("DWG файлы не найдены.");
                 _ = MessageBox.Show("DWG-файлов нет!", "MERGEDWG", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -81,7 +81,7 @@ public sealed class MergeCommands
 
                 sw.Stop();
                 log.Prefix = string.Empty;
-                log.Info($"Готово: {stats}");
+                log.Info($"Завершено: {stats}");
 
                 // Обновляем чертёж и вид после сохранения
                 doc.SendStringToExecute("._REGENALL ", true, false, false);
@@ -106,7 +106,7 @@ public sealed class MergeCommands
 
             MergeResult result = await DwgMerger.MergeSingleFile(files[idx], inserter, db, log);
 
-            log.Info($"Результат: {(result.Success ? "OK" : result.IsSkipped ? "SKIP" : "FAIL")} - {result.Message}");
+            log.Info($"[{(result.Success ? "OK" : result.IsSkipped ? "SKIP" : "FAIL")}] {result.Message}");
 
             if (result.Success)
             {
@@ -156,11 +156,11 @@ public sealed class MergeCommands
                 db.SaveAs(savePath, DwgVersion.AC1032);
             }
 
-            log.Info($"Файл сохранен: {savePath}");
+            log.Info($"Сохранено: {savePath}");
         }
         catch (System.Exception ex)
         {
-            log.Error(ex, $"Ошибка сохранения результата: {savePath}");
+            log.Error(ex, $"Сбой сохранения: {savePath}");
             throw;
         }
     }
