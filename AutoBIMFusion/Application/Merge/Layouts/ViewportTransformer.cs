@@ -246,6 +246,11 @@ internal static class ViewportTransformer
                 continue;
             }
 
+            if (id.IsErased)
+            {
+                continue;
+            }
+
             if (tr.GetObject(id, OpenMode.ForWrite) is Entity e && !e.IsErased)
             {
                 e.Erase();

@@ -47,7 +47,7 @@ internal static class RasterImagePathFixer
                     continue;
                 }
 
-                if (!TryResolveImagePath(db, path, out string resolvedPath, out System.Exception? resolveError))
+                if (!TryResolveImagePath(db, path, targetDir, out string resolvedPath, out System.Exception? resolveError))
                 {
                     if (resolveError is not null)
                     {
@@ -98,17 +98,57 @@ internal static class RasterImagePathFixer
         }
     }
 
-    private static bool TryResolveImagePath(Database db, string path, out string resolvedPath, out System.Exception? resolveError)
+    private static bool TryResolveImagePath(
+        Database db, string path, string? searchDir,
+        out string resolvedPath, out System.Exception? resolveError)
     {
         resolvedPath = string.Empty;
         resolveError = null;
 
+        // 1. Абсолютный путь на текущей машине
         if (Path.IsPathRooted(path) && File.Exists(path))
         {
             resolvedPath = path;
             return true;
         }
 
+        // 2. Подстановка текущего пользователя (cross-machine C:\Users\OtherUser\...)
+        if (Path.IsPathRooted(path))
+        {
+            string userProfileParent = Path.GetDirectoryName(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) ?? string.Empty;
+            if (!string.IsNullOrEmpty(userProfileParent) &&
+                path.StartsWith(userProfileParent, StringComparison.OrdinalIgnoreCase))
+            {
+                string afterUsersDir = path[(userProfileParent.Length + 1)..];
+                int slashIdx = afterUsersDir.IndexOf(Path.DirectorySeparatorChar);
+                if (slashIdx > 0)
+                {
+                    string relativePart = afterUsersDir[(slashIdx + 1)..];
+                    string candidate = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                        relativePart);
+                    if (File.Exists(candidate))
+                    {
+                        resolvedPath = candidate;
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // 3. Только имя файла в папке целевого DWG
+        if (!string.IsNullOrEmpty(searchDir))
+        {
+            string candidate = Path.Combine(searchDir, Path.GetFileName(path));
+            if (File.Exists(candidate))
+            {
+                resolvedPath = candidate;
+                return true;
+            }
+        }
+
+        // 4. AutoCAD FindFile
         try
         {
             string foundPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.EmbeddedImageFile);
