@@ -7,7 +7,7 @@ using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 namespace AutoBIMFusion.Application.Commands;
 
 [SupportedOSPlatform("Windows")]
-public sealed class AdvancedTextCommands
+public sealed class SmartTextCommands
 {
     private const double WordSpacingFactor = 1.5;
     private const double LineHeightFactor = 0.5;
@@ -237,7 +237,7 @@ public sealed class AdvancedTextCommands
             return false;
         }
 
-        // Расстояние по горизонтали (вдоль строки) с учётом реальной ширины текстовых объектов
+        // Расстояние по горизонтали (вдоль строки) с учётом оценочной ширины текста без чтения Bounds
         (double currentLeft, double currentRight) = GetTextBoundsAlongAxis(current, cosA, sinA, curParallel);
         (double otherLeft, double otherRight) = GetTextBoundsAlongAxis(other, cosA, sinA, othParallel);
 
@@ -256,26 +256,16 @@ public sealed class AdvancedTextCommands
 
     private static (double Left, double Right) GetTextBoundsAlongAxis(DBText text, double cosA, double sinA, double fallbackCenter)
     {
-        if (!text.Bounds.HasValue)
-        {
-            return (fallbackCenter, fallbackCenter);
-        }
+        double estimatedWidth = EstimateTextWidth(text);
+        double halfWidth = estimatedWidth * 0.5;
 
-        Extents3d bounds = text.Bounds.Value;
+        return (fallbackCenter - halfWidth, fallbackCenter + halfWidth);
+    }
 
-        // Проецируем все 4 угла bounding box на ось направления текста
-        double x0 = bounds.MinPoint.X, y0 = bounds.MinPoint.Y;
-        double x1 = bounds.MaxPoint.X, y1 = bounds.MaxPoint.Y;
-
-        double p0 = (x0 * cosA) + (y0 * sinA);
-        double p1 = (x1 * cosA) + (y0 * sinA);
-        double p2 = (x0 * cosA) + (y1 * sinA);
-        double p3 = (x1 * cosA) + (y1 * sinA);
-
-        double minP = Min(Min(p0, p1), Min(p2, p3));
-        double maxP = Max(Max(p0, p1), Max(p2, p3));
-
-        return (minP, maxP);
+    private static double EstimateTextWidth(DBText text)
+    {
+        int length = string.IsNullOrEmpty(text.TextString) ? 1 : text.TextString.Length;
+        return text.Height * length * 0.6;
     }
 
     /// <summary>
