@@ -1,5 +1,4 @@
 using AutoBIMFusion.Application.Ribbon;
-using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
 using System.Runtime.Versioning;
 
@@ -24,12 +23,12 @@ public sealed class AutoBIMFusionExtension : IExtensionApplication
     {
         Document? doc = App.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
-        OperationLogger logger = new(doc.Editor);
-        logger.Info("AutoBIMFusion загружен.");
+
         RibbonBuilder.CreateTab();
 
         App.Idle -= OnIdle;
     }
 
-}
 
+
+}

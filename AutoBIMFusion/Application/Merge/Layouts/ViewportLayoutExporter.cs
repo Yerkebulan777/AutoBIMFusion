@@ -13,6 +13,19 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 /// Заменяет EXPORTLAYOUT для случаев, когда на листе присутствуют видовые экраны:
 /// главный VP становится «линейкой» масштаба, вспомогательные (узлы) переносятся
 /// матрицей трансформации, paper-содержимое уходит в Model Space через главный VP.
+///
+/// Алгоритм (мульти-VP):
+/// 1. Главный VP выбирается по максимальному CoverageScore.
+/// 2. Для каждого aux VP: объекты в его model-window клонируются и трансформируются
+///    матрицей AuxModel→MainModel, затем оригиналы, не входящие в окно главного VP,
+///    удаляются (EraseEntitiesOutsideMainWindow). Без этого шага такие оригиналы
+///    остаются в базе, потому что frameBounds охватывает весь лист и TrimOutside
+///    их не захватывает.
+/// 3. При зажиме масштаба main VP (например, 1:1 -> 1:100) все model-объекты
+///    масштабируются общим коэффициентом clampRatio, чтобы соответствовать
+///    масштабу переносимого paper-содержимого.
+/// 4. Paper-содержимое (рамка, штамп) переносится в Model Space через главный VP.
+/// 5. TrimOutside удаляет всё за пределами frameBounds как вторичная защита.
 /// </summary>
 internal static class ViewportLayoutExporter
 {
@@ -27,91 +40,133 @@ internal static class ViewportLayoutExporter
     /// </summary>
     private const double MaxReasonableOleDimension = 1e8;
 
+    /// <summary>
+    /// Максимальный размер файла изображения для конвертации в OLE (5 МБ).
+    /// Большие файлы оставляются как RasterImage во избежание зависаний Clipboard.
+    /// </summary>
+    private const long MaxOleFileSizeBytes = 5L * 1024 * 1024;
+
     public static async Task<string> ExportToTempAsync(string sourceFilePath, string fileName, OperationLogger log)
     {
         ArgumentNullException.ThrowIfNull(sourceFilePath);
 
-        DocumentCollection docs = AcadApp.DocumentManager;
-        Document sourceDoc = docs.Open(sourceFilePath);
+        string tempPath = BuildTempPath(fileName);
+        string sourceDir = Path.GetDirectoryName(sourceFilePath) ?? string.Empty;
 
-        if (!LayoutUtil.TryFindFirstLayout(sourceDoc.Database, out string layoutName))
+        HashSet<long> paperClonedHandles;
+        bool needsOle;
+
+        using (Database db = new(false, true))
         {
-            log.Warn($"{fileName}: листы не найдены");
-            TryCloseDocument(sourceDoc, fileName, log);
-            return string.Empty;
+            db.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
+
+            if (!LayoutUtil.TryFindFirstLayout(db, out string layoutName))
+            {
+                log.Warn($"{fileName}: листы не найдены");
+                return string.Empty;
+            }
+
+            // Вся логика работы с БД теперь в Side-Database.
+            List<LayoutViewportInfo> vps = ViewportCollector.Collect(db, layoutName);
+            log.Info($"VP: найдено {vps.Count}");
+
+            (Extents3d? frameBounds, HashSet<ObjectId> paperClonedIds) = vps.Count switch
+            {
+                0 => ProcessNoVp(db, layoutName, log),
+                1 => ProcessSingleVp(db, layoutName, vps[0], log),
+                _ => ProcessMultiVp(db, layoutName, vps, log)
+            };
+
+            if (frameBounds.HasValue)
+            {
+                int erased = ModelSpaceTrimmer.TrimOutside(db, frameBounds.Value, log);
+                log.Info($"VP: очищено {erased} объектов");
+            }
+
+            using (new AcadWarningSuppressScope())
+            {
+                db.SaveAs(tempPath, DwgVersion.AC1032);
+            }
+
+            // Проверяем на наличие растров для внедрения.
+            // Используем Handles, так как при открытии документа ObjectIds изменятся.
+            paperClonedHandles = [.. paperClonedIds.Select(id => id.Handle.Value)];
+            needsOle = CheckIfNeedsOle(db, paperClonedHandles, sourceDir, log);
         }
 
-        string tempPath = BuildTempPath(fileName);
-
-        if (File.Exists(tempPath))
+        if (needsOle)
         {
-            File.Delete(tempPath);
+            await RunOleEmbeddingAsync(tempPath, paperClonedHandles, sourceDir, log);
+        }
+
+        log.Info($"VP: экспорт завершен ({fileName})");
+        return tempPath;
+    }
+
+    private static bool CheckIfNeedsOle(Database db, HashSet<long> paperClonedHandles, string sourceDir, OperationLogger log)
+    {
+        // Нам не нужны полные данные, только факт наличия хотя бы одного подходящего изображения
+        return CollectRasterImages(db, paperClonedHandles, sourceDir, log).Count > 0;
+    }
+
+    private static async Task RunOleEmbeddingAsync(string tempPath, HashSet<long> paperClonedHandles, string sourceDir, OperationLogger log)
+    {
+        DocumentCollection docs = AcadApp.DocumentManager;
+        Document? tempDoc = docs.Open(tempPath);
+
+        if (tempDoc is null)
+        {
+            log.Warn($"Не удалось открыть временный файл для OLE-встраивания: {tempPath}");
+            return;
         }
 
         try
         {
-            docs.MdiActiveDocument = sourceDoc;
+            docs.MdiActiveDocument = tempDoc;
 
             await docs.ExecuteInCommandContextAsync(async _ =>
             {
-                using LayoutEditScope scope = new();
+                Database db = tempDoc.Database;
+                List<(ObjectId id, string path, Extents3d bounds)> imagesToConvert = CollectRasterImages(db, paperClonedHandles, sourceDir, log);
 
-                LayoutManager.Current.CurrentLayout = layoutName;
-
-                // ВАЖНО: Вся логика работы с БД, переключения Layout и вычисления Extents3d
-                // должна выполняться строго ВНУТРИ асинхронного делегата ExecuteInCommandContextAsync.
-                // Ранее (в ветке master) Task формировался до входа в контекст, из-за чего AutoCAD
-                // мог проигнорировать смену листов, frameBounds становился null, и не происходила
-                // очистка мусора за рамкой (ModelSpaceTrimmer). Из-за этого габариты чертежа
-                // оставались огромными, что приводило к огромным отступам при вставке и разбросу блоков.
-                List<LayoutViewportInfo> vps = ViewportCollector.Collect(sourceDoc.Database, layoutName);
-
-                log.Info($"Найдено viewport'ов: {vps.Count}");
-
-                (Extents3d? frameBounds, HashSet<ObjectId> paperClonedIds) = vps.Count switch
+                if (imagesToConvert.Count == 0)
                 {
-                    0 => ProcessNoVp(sourceDoc.Database, layoutName, log),
-                    1 => ProcessSingleVp(sourceDoc.Database, layoutName, vps[0], log),
-                    _ => ProcessMultiVp(sourceDoc.Database, layoutName, vps, log)
-                };
-
-                if (frameBounds.HasValue)
-                {
-                    int erased = ModelSpaceTrimmer.TrimOutside(sourceDoc.Database, frameBounds.Value, log);
-                    log.Info($"Очищено за рамкой: {erased}");
+                    return;
                 }
 
                 AcadApp.SetSystemVariable("TILEMODE", 1);
-                await sourceDoc.Editor.CommandAsync("._REGEN");
+                await tempDoc.Editor.CommandAsync("._REGEN");
 
-                await EmbedRasterImagesAsync(sourceDoc, paperClonedIds, log);
+                foreach ((ObjectId id, string path, Extents3d bounds) in imagesToConvert)
+                {
+                    await EmbedSingleRasterAsync(tempDoc, db, id, path, bounds, log);
+                }
+
+                try { Clipboard.Clear(); } catch { }
             }, null);
 
             using (new AcadWarningSuppressScope())
             {
-                sourceDoc.Database.SaveAs(tempPath, DwgVersion.AC1032);
+                tempDoc.Database.SaveAs(tempPath, DwgVersion.AC1032);
             }
-
-            log.Info($"{fileName} экспортирован");
-
-            return tempPath;
         }
         catch (System.Exception ex)
         {
-            log.Warn(ex, $"{fileName}: ошибка экспорта {ex.Message}");
-            throw new System.Exception($"\n{fileName}: Ошибка экспорта: {ex.Message}", ex);
+            log.Error(ex, "Ошибка при OLE-встраивании во временный файл");
         }
         finally
         {
-            TryCloseDocument(sourceDoc, fileName, log);
+            tempDoc.CloseAndDiscard();
         }
     }
 
     private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessMultiVp(Database db, string layoutName, List<LayoutViewportInfo> vps, OperationLogger log)
     {
-        log.Info($"Multi-VP ветка: {vps.Count} viewport'ов");
+        log.Info($"VP: мульти-режим ({vps.Count} шт)");
 
-        LayoutViewportInfo main = ClampMainVpScale(LayoutViewportInfo.PickMainViewport(vps), log);
+        LayoutViewportInfo mainOriginal = LayoutViewportInfo.PickMainViewport(vps);
+        LayoutViewportInfo mainClamped = ClampMainVpScale(mainOriginal, log);
+        double clampRatio = mainOriginal.CustomScale / mainClamped.CustomScale;
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
@@ -119,34 +174,52 @@ internal static class ViewportLayoutExporter
 
         foreach (LayoutViewportInfo aux in vps)
         {
-            if (aux.VpId == main.VpId)
+            if (aux.VpId == mainOriginal.VpId)
             {
                 continue;
             }
 
-            Matrix3d m = ViewportTransformer.BuildMatrix(main, aux, log);
+            Matrix3d m = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
             ObjectIdCollection toClone = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, log);
 
             if (toClone.Count > 0)
             {
                 ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, m, log, "model-window");
-                log.Info($"Обработан aux-VP #{aux.Number}: {cloned.Count} объектов");
+                // Удаляем оригиналы aux VP, которых нет в главном VP.
+                _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow, log);
+                log.Info($"VP #{aux.Number}: обработано {cloned.Count} объектов");
             }
             else
             {
-                log.Info($"Обработан aux-VP #{aux.Number}: 0 объектов");
+                log.Info($"VP #{aux.Number}: 0 объектов");
             }
         }
 
-        (Extents3d? frameBounds, HashSet<ObjectId> paperClonedIds) = MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(main, log), log);
+        if (clampRatio > 1.0 + 1e-9)
+        {
+            // При зажиме 1:1 -> 1:100 модель должна масштабироваться так же, как paper-объекты.
+            Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, mainOriginal.ViewCenter);
+            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
+        }
 
-        log.Info($"Всего обработано aux-VP: {vps.Count - 1}");
-        return (frameBounds, paperClonedIds);
+        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainClamped, log), log);
     }
 
-    private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessSingleVp(Database db, string layoutName, LayoutViewportInfo main, OperationLogger log)
+    /// <summary>
+    /// Один VP: зажимает масштаб, масштабирует Model Space если нужно, переносит Paper в Model Space.
+    /// </summary>
+    private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessSingleVp(Database db, string layoutName, LayoutViewportInfo vp, OperationLogger log)
     {
-        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(ClampMainVpScale(main, log), log), log);
+        LayoutViewportInfo clamped = ClampMainVpScale(vp, log);
+
+        double clampRatio = vp.CustomScale / clamped.CustomScale;
+        if (clampRatio > 1.0 + 1e-9)
+        {
+            Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, clamped.ViewCenter);
+            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
+        }
+
+        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(clamped, log), log);
     }
 
 
@@ -156,18 +229,21 @@ internal static class ViewportLayoutExporter
 
         if (multiplier < MaxScaleMultiplier)
         {
-            log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0} изменен на 1:{MaxScaleMultiplier:F0}");
+            // Масштаб крупнее 1:100 — зажимаем, чтобы не получить слишком большой Model Space после экспорта.
+            log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0} зажат до 1:{MaxScaleMultiplier:F0}");
             return vp with { CustomScale = 1.0 / MaxScaleMultiplier };
         }
 
-        log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0}");
-
+        log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0} (без зажима)");
         return vp;
     }
 
+    /// <summary>
+    /// Нет VP: масштабирует и переносит Paper-содержимое в Model Space с масштабом 1:MaxScaleMultiplier.
+    /// </summary>
     private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessNoVp(Database db, string layoutName, OperationLogger log)
     {
-        log.Info($"No-VP ветка: viewport'ы не найдены, масштаб по умолчанию 1:{MaxScaleMultiplier:F0}");
+        log.Info($"VP: нет видовых экранов, масштаб 1:{MaxScaleMultiplier:F0}");
 
         ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
 
@@ -236,54 +312,14 @@ internal static class ViewportLayoutExporter
         tr.Commit();
     }
 
-    private static void TryCloseDocument(Document doc, string fileName, OperationLogger log)
-    {
-        try
-        {
-            doc.CloseAndDiscard();
-        }
-        catch (System.Exception ex)
-        {
-            log.Warn(ex, $"{fileName}: не удалось закрыть документ");
-        }
-    }
-
     private static string BuildTempPath(string fileName)
     {
         string name = Path.GetFileNameWithoutExtension(fileName);
         return Path.Combine(Path.GetTempPath(), $"{name}-{Guid.NewGuid()}.dwg");
     }
 
-    private static async Task EmbedRasterImagesAsync(Document doc, HashSet<ObjectId> paperClonedIds, OperationLogger log)
+    private static List<(ObjectId id, string path, Extents3d bounds)> CollectRasterImages(Database db, HashSet<long> paperClonedHandles, string sourceDir, OperationLogger log)
     {
-        Database db = doc.Database;
-        List<(ObjectId id, string path, Extents3d bounds)> imagesToConvert = CollectRasterImages(doc, paperClonedIds, log);
-        if (imagesToConvert.Count == 0)
-        {
-            return;
-        }
-
-        LayoutManager.Current.CurrentLayout = "Model";
-        AcadApp.SetSystemVariable("TILEMODE", 1);
-
-        foreach ((ObjectId id, string path, Extents3d bounds) in imagesToConvert)
-        {
-            await EmbedSingleRasterAsync(doc, db, id, path, bounds, log);
-        }
-
-        try
-        {
-            Clipboard.Clear();
-        }
-        catch
-        {
-            // Clipboard может быть занят внешним процессом.
-        }
-    }
-
-    private static List<(ObjectId id, string path, Extents3d bounds)> CollectRasterImages(Document doc, HashSet<ObjectId> paperClonedIds, OperationLogger log)
-    {
-        Database db = doc.Database;
         List<(ObjectId id, string path, Extents3d bounds)> result = [];
 
         int totalImages = 0;
@@ -291,6 +327,7 @@ internal static class ViewportLayoutExporter
         int nullBoundsCount = 0;
         int fileNotFoundCount = 0;
         int skippedFromPaperCount = 0;
+        int tooLargeCount = 0;
 
         using Transaction tr = db.TransactionManager.StartTransaction();
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
@@ -305,7 +342,7 @@ internal static class ViewportLayoutExporter
 
             totalImages++;
 
-            if (paperClonedIds.Contains(id))
+            if (paperClonedHandles.Contains(id.Handle.Value))
             {
                 skippedFromPaperCount++;
                 continue;
@@ -330,11 +367,19 @@ internal static class ViewportLayoutExporter
                 continue;
             }
 
-            string? resolvedPath = ResolveRasterPath(doc, def.SourceFileName);
+            string? resolvedPath = ResolveRasterPath(sourceDir, def.SourceFileName);
             if (string.IsNullOrEmpty(resolvedPath) || !File.Exists(resolvedPath))
             {
                 fileNotFoundCount++;
                 log.Warn($"RasterImage Handle={id.Handle}: файл не найден: {def.SourceFileName}");
+                continue;
+            }
+
+            long fileSize = new FileInfo(resolvedPath).Length;
+            if (fileSize > MaxOleFileSizeBytes)
+            {
+                tooLargeCount++;
+                log.Info($"RasterImage Handle={id.Handle}: файл {Path.GetFileName(resolvedPath)} слишком большой ({fileSize / (1024.0 * 1024.0):F1} МБ > 5 МБ), пропускаем OLE-конвертацию");
                 continue;
             }
 
@@ -345,7 +390,7 @@ internal static class ViewportLayoutExporter
 
         log.Info(
             $"EmbedRasterImages: total={totalImages}, skippedFromPaper={skippedFromPaperCount}, nullDef={nullDefCount}, " +
-            $"nullBounds={nullBoundsCount}, notFound={fileNotFoundCount}, readyToConvert={result.Count}");
+            $"nullBounds={nullBoundsCount}, notFound={fileNotFoundCount}, tooLarge={tooLargeCount}, readyToConvert={result.Count}");
 
         return result;
     }
@@ -354,8 +399,8 @@ internal static class ViewportLayoutExporter
     {
         try
         {
-            long maxHandleBefore = GetMaxHandleInModelSpace(db);
-            log.Info($"OLE вставка: до вставки max Handle = {maxHandleBefore}, точка {targetBounds.MinPoint}, файл {Path.GetFileName(path)}");
+            HashSet<ObjectId> snapshotBefore = GetModelSpaceSnapshot(db);
+            log.Info($"OLE вставка: до вставки объектов в MS: {snapshotBefore.Count}, точка {targetBounds.MinPoint}, файл {Path.GetFileName(path)}");
 
             if (!TryCopyImageToClipboard(path, log))
             {
@@ -365,7 +410,7 @@ internal static class ViewportLayoutExporter
 
             await doc.Editor.CommandAsync("._PASTECLIP", targetBounds.MinPoint);
 
-            ObjectId oleId = FindNewOle2Frame(db, maxHandleBefore, log);
+            ObjectId oleId = FindNewOle2Frame(db, snapshotBefore, log);
             if (oleId.IsNull)
             {
                 log.Warn($"PASTECLIP не создал новый OLE2FRAME для {path}. Проверьте OLEQUALITY и Clipboard.");
@@ -404,48 +449,39 @@ internal static class ViewportLayoutExporter
 
     private static bool TryCopyImageToClipboard(string path, OperationLogger log)
     {
-        for (int attempt = 1; attempt <= 3; attempt++)
+        try
         {
-            try
-            {
-                using FileStream fs = new(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-                using System.Drawing.Image img = System.Drawing.Image.FromStream(fs);
-                DataObject data = new(DataFormats.Bitmap, img);
-                Clipboard.SetDataObject(data, true, 10, 200);
-                return true;
-            }
-            catch (System.Exception ex)
-            {
-                log.Warn($"Clipboard попытка {attempt} неудачна для {path}: {ex.Message}");
-                Thread.Sleep(100);
-            }
+            using System.Drawing.Image img = System.Drawing.Image.FromFile(path);
+            Clipboard.SetImage(img);
+            return true;
         }
-
-        return false;
+        catch (System.Exception ex)
+        {
+            log.Warn(ex, $"Не удалось скопировать изображение в Clipboard: {path}");
+            return false;
+        }
     }
 
-    private static long GetMaxHandleInModelSpace(Database db)
+    private static HashSet<ObjectId> GetModelSpaceSnapshot(Database db)
     {
-        long maxHandle = 0;
-
+        HashSet<ObjectId> snapshot = [];
         using Transaction tr = db.TransactionManager.StartTransaction();
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
         BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
 
         foreach (ObjectId id in ms)
         {
-            maxHandle = Math.Max(maxHandle, id.Handle.Value);
+            _ = snapshot.Add(id);
         }
 
         tr.Commit();
-        return maxHandle;
+        return snapshot;
     }
 
-    private static ObjectId FindNewOle2Frame(Database db, long minHandleValue, OperationLogger log)
+    private static ObjectId FindNewOle2Frame(Database db, HashSet<ObjectId> snapshotBefore, OperationLogger log)
     {
         ObjectId newestOleId = ObjectId.Null;
-        long newestOleHandle = minHandleValue;
-        bool loggedUnexpectedType = false;
+        long newestOleHandle = 0;
 
         using Transaction tr = db.TransactionManager.StartTransaction();
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
@@ -453,27 +489,19 @@ internal static class ViewportLayoutExporter
 
         foreach (ObjectId id in ms)
         {
-            long handle = id.Handle.Value;
-            if (handle <= minHandleValue)
+            if (snapshotBefore.Contains(id))
             {
                 continue;
             }
 
             if (id.ObjectClass.DxfName == "OLE2FRAME")
             {
-                if (handle > newestOleHandle)
+                // Если создано несколько объектов, берем последний по Handle как наиболее вероятный
+                if (id.Handle.Value > newestOleHandle)
                 {
-                    newestOleHandle = handle;
+                    newestOleHandle = id.Handle.Value;
                     newestOleId = id;
                 }
-
-                continue;
-            }
-
-            if (!loggedUnexpectedType)
-            {
-                log.Info($"Новый объект Handle={handle}, тип={id.ObjectClass.DxfName} (ожидался OLE2FRAME)");
-                loggedUnexpectedType = true;
             }
         }
 
@@ -630,15 +658,14 @@ internal static class ViewportLayoutExporter
         return new Rectangle3d(lowerLeft, upperLeft, lowerRight, upperRight);
     }
 
-    private static string? ResolveRasterPath(Document doc, string rawPath)
+    private static string? ResolveRasterPath(string sourceDir, string rawPath)
     {
         if (string.IsNullOrWhiteSpace(rawPath))
         {
             return null;
         }
 
-        string? docDir = Path.GetDirectoryName(doc.Name);
-        if (string.IsNullOrEmpty(docDir))
+        if (string.IsNullOrEmpty(sourceDir))
         {
             return null;
         }
@@ -651,7 +678,7 @@ internal static class ViewportLayoutExporter
         string combined;
         try
         {
-            combined = Path.GetFullPath(Path.Combine(docDir, rawPath));
+            combined = Path.GetFullPath(Path.Combine(sourceDir, rawPath));
         }
         catch
         {
@@ -664,7 +691,7 @@ internal static class ViewportLayoutExporter
         }
 
         string fileNameOnly = Path.GetFileName(rawPath);
-        string inSameFolder = Path.Combine(docDir, fileNameOnly);
+        string inSameFolder = Path.Combine(sourceDir, fileNameOnly);
         return File.Exists(inSameFolder) ? inSameFolder : null;
     }
 }

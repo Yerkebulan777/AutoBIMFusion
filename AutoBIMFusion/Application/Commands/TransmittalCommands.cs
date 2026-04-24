@@ -23,10 +23,12 @@ public sealed class TransmittalCommands
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
         OperationLogger log = new(doc.Editor);
+        log.Info("Запуск команды CreateETransmitZip...");
 
         if (!doc.IsNamedDrawing || string.IsNullOrWhiteSpace(doc.Name))
         {
             log.Warn("Сначала сохраните текущий чертеж на диск, затем повторите команду CreateETransmitZip.");
+            log.Info("Завершение команды CreateETransmitZip.");
             return;
         }
 
@@ -80,6 +82,7 @@ public sealed class TransmittalCommands
         finally
         {
             TryDeleteTempFolder(tempFolder, log);
+            log.Info("Завершение команды CreateETransmitZip.");
         }
     }
 
@@ -122,7 +125,28 @@ public sealed class TransmittalCommands
 
     private static void ConfigureTransmittalInfo(dynamic transmittalInfo, string tempFolder, OperationLogger log)
     {
-        SetMemberValue(transmittalInfo, "destinationRoot", tempFolder, log, required: true);
+        // AutoCAD версии могут использовать разные имена для поля назначения
+        bool destinationSet = false;
+        foreach (string candidateName in new[] { "destinationRoot", "DestinationRoot", "destination_root", "DestFolder", "destFolder" })
+        {
+            try
+            {
+                SetMemberValue(transmittalInfo, candidateName, tempFolder, log, required: true);
+                log.Debug($"Поле назначения eTransmit задано через: {candidateName}");
+                destinationSet = true;
+                break;
+            }
+            catch (MissingMemberException)
+            {
+                // Попробуем следующий вариант
+            }
+        }
+
+        if (!destinationSet)
+        {
+            log.Warn("Не удалось задать папку назначения eTransmit — ни одно из известных имён полей не найдено. Пакет может быть создан в папке по умолчанию.");
+        }
+
         SetMemberValue(transmittalInfo, "preserveSubdirs", 0, log);
         SetMemberValue(transmittalInfo, "includeXrefDwg", 1, log);
         SetMemberValue(transmittalInfo, "includeImageFile", 1, log);
@@ -163,12 +187,9 @@ public sealed class TransmittalCommands
     {
         Type effectiveType = Nullable.GetUnderlyingType(targetType) ?? targetType;
 
-        if (effectiveType == typeof(bool) && value is int intValue)
-        {
-            return intValue != 0;
-        }
-
-        return effectiveType == typeof(int) && value is bool boolValue
+        return effectiveType == typeof(bool) && value is int intValue
+            ? intValue != 0
+            : effectiveType == typeof(int) && value is bool boolValue
             ? boolValue ? 1 : 0
             : effectiveType.IsEnum
             ? Enum.ToObject(effectiveType, value)
@@ -256,5 +277,3 @@ public sealed class TransmittalCommands
         }
     }
 }
-
-

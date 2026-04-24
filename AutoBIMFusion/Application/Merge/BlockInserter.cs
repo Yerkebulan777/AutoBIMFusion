@@ -5,12 +5,14 @@ namespace AutoBIMFusion.Application.Merge;
 
 /// <summary>
 /// Вставляет содержимое временных DWG как нативные объекты в Model Space целевого чертежа,
-/// располагая их вдоль оси X с заданным зазором.
+/// располагая их вдоль оси X с заданным зазором. Использует DuplicateRecordCloning.Ignore
+/// для предотвращения перезаписи стилей и слоёв.
+///
+/// ВАЖНО: объекты вставляются как нативные сущности (не в блоке), чтобы сохранить
+/// исходный вид и структуру объектов такими же, как в исходном файле.
 /// </summary>
 internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 {
-    private readonly double _gapPercent = gapPercent;
-    private readonly OperationLogger _log = log;
     private double _rightMax;
     private bool _hasPlacedObjects;
 
@@ -26,10 +28,12 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
         try
         {
+            ObjectIdCollection sourceIds = [];
+
             using Database sourceDb = new(false, true);
+
             sourceDb.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
 
-            ObjectIdCollection sourceIds = [];
             ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
 
             using (Transaction tr = sourceDb.TransactionManager.StartTransaction())
@@ -49,19 +53,20 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
             if (sourceIds.Count == 0)
             {
-                _log.Warn($"BlockInserter: {sourceName} — Model Space пуст");
+                log.Warn($"{sourceName}: пустой Model Space");
                 return null;
             }
 
             ObjectId targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
             IdMapping map = [];
-            sourceDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Replace, false);
-
             Extents3d? worldBounds = null;
             int clonedCount = 0;
 
             using (Transaction tr = targetDb.TransactionManager.StartTransaction())
             {
+                // Клонируем объекты из временной базы в целевую
+                targetDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Ignore, false);
+
                 foreach (IdPair pair in map)
                 {
                     if (!pair.IsCloned || !pair.IsPrimary)
@@ -89,7 +94,7 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
             if (clonedCount == 0)
             {
-                _log.Warn($"BlockInserter: {sourceName} — не удалось клонировать объекты");
+                log.Warn($"{sourceName}: не удалось клонировать объекты");
                 return null;
             }
 
@@ -103,12 +108,12 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
             _rightMax = worldBounds.Value.MaxPoint.X;
             _hasPlacedObjects = true;
-            _log.Info($"BlockInserter: {sourceName} — вставлено {clonedCount} нативных объектов");
+            log.Info($"{sourceName}: вставлено {clonedCount} нативных объектов");
             return worldBounds;
         }
         catch (System.Exception ex)
         {
-            _log.Error(ex, $"BlockInserter: {sourceName}");
+            log.Error(ex, $"Ошибка вставки: {sourceName}");
             return null;
         }
     }
@@ -118,14 +123,14 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
         double width = Math.Max(0, bounds.MaxPoint.X - bounds.MinPoint.X);
         double height = Math.Max(0, bounds.MaxPoint.Y - bounds.MinPoint.Y);
         double maxDimension = Math.Max(width, height);
-        double gap = Math.Max(1.0, Math.Round(maxDimension * _gapPercent, 0));
+        double gap = Math.Max(1.0, Math.Round(maxDimension * gapPercent, 0));
 
         double insertX = _hasPlacedObjects
             ? _rightMax + gap - bounds.MinPoint.X
             : -bounds.MinPoint.X;
         Point3d insertPt = new(insertX, -bounds.MinPoint.Y, 0);
 
-        _log.Debug($"Позиция вставки: X={insertPt.X:F2}, Y={insertPt.Y:F2}, gap={gap:F0}");
+        log.Debug($"Позиция вставки: X={insertPt.X:F2}, Y={insertPt.Y:F2}, gap={gap:F0}");
         return insertPt;
     }
 }

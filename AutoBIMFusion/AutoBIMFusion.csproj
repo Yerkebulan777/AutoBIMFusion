@@ -98,4 +98,15 @@
         <Message Importance="high" Text="AutoCAD autoload bundle deployed: $(DeployBundleDir)" />
     </Target>
 
+  <Target Name="CleanAutoCADBundle" AfterTargets="Clean">
+    <PropertyGroup>
+      <AutoCADDeployRootDir Condition="'$(DeployForAllUsers)' == 'true'">$(AutoCADAllUsersPluginsDir)</AutoCADDeployRootDir>
+      <AutoCADDeployRootDir Condition="'$(DeployForAllUsers)' != 'true'">$(AutoCADUserPluginsDir)</AutoCADDeployRootDir>
+      <DeployBundleDir>$(AutoCADDeployRootDir)$(BundleName)</DeployBundleDir>
+    </PropertyGroup>
+
+    <RemoveDir Directories="$(DeployBundleDir)" Condition="Exists('$(DeployBundleDir)')" />
+    <Message Importance="high" Text="AutoCAD autoload bundle removed: $(DeployBundleDir)" Condition="!Exists('$(DeployBundleDir)')" />
+  </Target>
+
 </Project>

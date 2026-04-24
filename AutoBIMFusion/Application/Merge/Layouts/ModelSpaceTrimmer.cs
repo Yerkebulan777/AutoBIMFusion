@@ -56,8 +56,13 @@ internal static class ModelSpaceTrimmer
     }
 
     /// <summary>
-    /// Удаляет из Model Space все сущности, чей bbox полностью вне frameBounds.
+    /// Вторичная защита: удаляет из Model Space все сущности, чей bbox не пересекает frameBounds.
     /// Сущности без валидных extents (например, пустые блоки) пропускаются.
+    ///
+    /// Замечание: этот метод НЕ является основным механизмом очистки объектов вспомогательных VP.
+    /// Объекты aux VP, чьи модельные координаты попадают в диапазон frameBounds (охватывающий
+    /// весь лист), не будут удалены здесь. Основная очистка выполняется в
+    /// ViewportTransformer.EraseEntitiesOutsideMainWindow непосредственно после клонирования.
     /// </summary>
     internal static int TrimOutside(Database db, Extents3d frameBounds, OperationLogger log)
     {
@@ -69,6 +74,10 @@ internal static class ModelSpaceTrimmer
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
         using Transaction tr = db.TransactionManager.StartTransaction();
+
+        // Гарантируем актуальность границ всей БД перед началом фильтрации
+        db.UpdateExt(true);
+
         BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
 
         foreach (ObjectId id in ms)
@@ -77,6 +86,15 @@ internal static class ModelSpaceTrimmer
 
             if (tr.GetObject(id, OpenMode.ForRead) is not Entity ent)
             {
+                continue;
+            }
+
+            // Оптимизация: для простых точечных объектов (Text, Point, BlockReference)
+            // проверяем их базовую точку. Если она ВНУТРИ frameBounds, то объект точно пересекается/внутри,
+            // и мы можем пропустить дорогой вызов GeometricExtents.
+            if (IsPointInsideBounds(ent, frameBounds))
+            {
+                inside++;
                 continue;
             }
 
@@ -106,6 +124,27 @@ internal static class ModelSpaceTrimmer
             $"ModelSpaceTrimmer.TrimOutside frame={GeometryUtils.FormatExtents(frameBounds)}, total={total}, inside={inside}, " +
             $"outside={outside}, skippedNoExtents={skippedNoExtents}, erased={erased}");
         return erased;
+    }
+
+    private static bool IsPointInsideBounds(Entity ent, Extents3d bounds)
+    {
+        Point3d? p = ent switch
+        {
+            MText m => m.Location,
+            DBText t => t.Position,
+            BlockReference br => br.Position,
+            DBPoint dbPoint => dbPoint.Position,
+            _ => null
+        };
+
+        if (!p.HasValue)
+        {
+            return false;
+        }
+
+        Point3d point = p.Value;
+        return point.X >= bounds.MinPoint.X && point.X <= bounds.MaxPoint.X &&
+               point.Y >= bounds.MinPoint.Y && point.Y <= bounds.MaxPoint.Y;
     }
 
 }

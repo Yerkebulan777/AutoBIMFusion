@@ -6,8 +6,7 @@ using Autodesk.AutoCAD.ApplicationServices;
 using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Windows.Forms;
-
-using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
+using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Application.Commands;
 
@@ -28,10 +27,12 @@ public sealed class MergeCommands
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
         OperationLogger log = new(doc.Editor);
+        log.Info("Запуск команды MERGEDWG...");
 
         if (!await _mergeGate.WaitAsync(0))
         {
-            log.Warn("Операция MERGEDWG уже выполняется.");
+            log.Warn("MERGEDWG: операция уже запущена.");
+            log.Info("Завершение команды MERGEDWG.");
             return;
         }
 
@@ -41,11 +42,12 @@ public sealed class MergeCommands
         }
         catch (System.Exception ex)
         {
-            log.Error(ex, "Ошибка выполнения команды");
+            log.Error(ex, "Ошибка выполнения MERGEDWG");
         }
         finally
         {
             _ = _mergeGate.Release();
+            log.Info("Завершение команды MERGEDWG.");
         }
     }
 
@@ -53,36 +55,35 @@ public sealed class MergeCommands
     {
         if (FolderSelector.TrySelectFolder(out string? folderPath))
         {
-            log.Info($"Выбрана папка: {folderPath}");
+            log.Info($"Исходная папка: {folderPath}");
             string[] dwgFiles = FileEnumerator.GetFiles(folderPath, log: log);
 
             if (dwgFiles.Length == 0)
             {
-                log.Warn("В выбранной папке и подпапках нет DWG файлов.");
+                log.Warn("DWG файлы не найдены.");
                 _ = MessageBox.Show("DWG-файлов нет!", "MERGEDWG", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
+            const double gapPercent = 0.1;
+            MergeStatistics stats = new();
+            Stopwatch sw = Stopwatch.StartNew();
+
+            string savePath = BuildSavePath(folderPath);
+            BlockInserter inserter = new(gapPercent, log);
+
             using (doc.LockDocument())
             {
-                const double gapPercent = 0.1;
-                MergeStatistics stats = new();
-                Stopwatch sw = Stopwatch.StartNew();
-
-                string savePath = BuildSavePath(folderPath);
-
-                BlockInserter inserter = new(gapPercent, log);
-
                 await MergeFiles(dwgFiles, inserter, doc.Database, stats, log);
 
                 RasterImagePathFixer.CopyImagesToTargetFolder(doc.Database, savePath, log);
+                DwgOptimizer.Optimize(doc.Database, log);
                 SaveMerged(doc.Database, savePath, log);
 
                 sw.Stop();
                 log.Prefix = string.Empty;
-                log.Info($"Готово: {stats}");
+                log.Info($"Завершено: {stats}");
 
-                // Обновляем чертёж и вид после сохранения
                 doc.SendStringToExecute("._REGENALL ", true, false, false);
                 doc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
 
@@ -105,7 +106,7 @@ public sealed class MergeCommands
 
             MergeResult result = await DwgMerger.MergeSingleFile(files[idx], inserter, db, log);
 
-            log.Info($"Результат: {(result.Success ? "OK" : result.IsSkipped ? "SKIP" : "FAIL")} - {result.Message}");
+            log.Info($"[{(result.Success ? "OK" : result.IsSkipped ? "SKIP" : "FAIL")}] {result.Message}");
 
             if (result.Success)
             {
@@ -155,11 +156,11 @@ public sealed class MergeCommands
                 db.SaveAs(savePath, DwgVersion.AC1032);
             }
 
-            log.Info($"Файл сохранен: {savePath}");
+            log.Info($"Сохранено: {savePath}");
         }
         catch (System.Exception ex)
         {
-            log.Error(ex, $"Ошибка сохранения результата: {savePath}");
+            log.Error(ex, $"Сбой сохранения: {savePath}");
             throw;
         }
     }

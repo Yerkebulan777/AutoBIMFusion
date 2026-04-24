@@ -19,6 +19,7 @@ public sealed class TextStyleCommands
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
         OperationLogger log = new(doc.Editor);
+        log.Info("Запуск команды MergeTextStyles...");
         Database db = doc.Database;
 
         int updatedObjects = 0;
@@ -42,6 +43,7 @@ public sealed class TextStyleCommands
                 if (duplicateGroups.Count == 0)
                 {
                     log.Info("MergeTextStyles: дубликаты текстовых стилей не найдены.");
+                    log.Info("Завершение команды MergeTextStyles.");
                     return;
                 }
 
@@ -68,6 +70,8 @@ public sealed class TextStyleCommands
                 tr.Commit();
                 log.Info($"MergeTextStyles: групп дубликатов {duplicateGroups.Count}, обновлено объектов {updatedObjects}, удалено стилей {deletedStyles}.");
             }
+
+            log.Info("Завершение команды MergeTextStyles.");
         }
         catch (System.Exception ex)
         {
@@ -134,42 +138,68 @@ public sealed class TextStyleCommands
         HashSet<ObjectId> duplicateStyleIds)
     {
         int updated = 0;
+        HashSet<ObjectId> visitedBtr = [];
 
         foreach (ObjectId btrId in blockTable)
         {
-            if (tr.GetObject(btrId, OpenMode.ForRead) is not BlockTableRecord btr)
+            updated += ReassignStylesInBlock(btrId, tr, masterStyleId, duplicateStyleIds, visitedBtr);
+        }
+
+        return updated;
+    }
+
+    private static int ReassignStylesInBlock(
+        ObjectId btrId,
+        Transaction tr,
+        ObjectId masterStyleId,
+        HashSet<ObjectId> duplicateStyleIds,
+        HashSet<ObjectId> visitedBtr)
+    {
+        if (!visitedBtr.Add(btrId))
+        {
+            return 0;
+        }
+
+        if (tr.GetObject(btrId, OpenMode.ForRead) is not BlockTableRecord btr)
+        {
+            return 0;
+        }
+
+        int updated = 0;
+
+        foreach (ObjectId entId in btr)
+        {
+            if (tr.GetObject(entId, OpenMode.ForRead, false) is not Entity entity)
             {
                 continue;
             }
 
-            foreach (ObjectId entId in btr)
+            if (entity is DBText dbText && duplicateStyleIds.Contains(dbText.TextStyleId))
             {
-                if (tr.GetObject(entId, OpenMode.ForRead, false) is not Entity entity)
-                {
-                    continue;
-                }
+                dbText.UpgradeOpen();
+                dbText.TextStyleId = masterStyleId;
+                updated++;
+            }
+            else if (entity is MText mText && duplicateStyleIds.Contains(mText.TextStyleId))
+            {
+                mText.UpgradeOpen();
+                mText.TextStyleId = masterStyleId;
+                updated++;
+            }
+            else if (entity is AttributeDefinition attrDef && duplicateStyleIds.Contains(attrDef.TextStyleId))
+            {
+                attrDef.UpgradeOpen();
+                attrDef.TextStyleId = masterStyleId;
+                updated++;
+            }
+            else if (entity is BlockReference blockRef)
+            {
+                updated += ReassignBlockAttributes(blockRef, tr, masterStyleId, duplicateStyleIds);
 
-                if (entity is DBText dbText && duplicateStyleIds.Contains(dbText.TextStyleId))
+                // Рекурсивно обходим вложенный блок (в т.ч. анонимные динамические блоки)
+                if (!blockRef.BlockTableRecord.IsNull)
                 {
-                    dbText.UpgradeOpen();
-                    dbText.TextStyleId = masterStyleId;
-                    updated++;
-                }
-                else if (entity is MText mText && duplicateStyleIds.Contains(mText.TextStyleId))
-                {
-                    mText.UpgradeOpen();
-                    mText.TextStyleId = masterStyleId;
-                    updated++;
-                }
-                else if (entity is AttributeDefinition attrDef && duplicateStyleIds.Contains(attrDef.TextStyleId))
-                {
-                    attrDef.UpgradeOpen();
-                    attrDef.TextStyleId = masterStyleId;
-                    updated++;
-                }
-                else if (entity is BlockReference blockRef)
-                {
-                    updated += ReassignBlockAttributes(blockRef, tr, masterStyleId, duplicateStyleIds);
+                    updated += ReassignStylesInBlock(blockRef.BlockTableRecord, tr, masterStyleId, duplicateStyleIds, visitedBtr);
                 }
             }
         }

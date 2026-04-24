@@ -29,7 +29,7 @@ internal static class DwgMerger
 
         try
         {
-            log.Info($"Обработка: {fileName}");
+            log.Info($"Файл: {fileName}");
 
             tempPath = await ViewportLayoutExporter.ExportToTempAsync(filePath, fileName, log);
 
@@ -38,7 +38,7 @@ internal static class DwgMerger
                 return MergeResult.Warn(fileName, "Листы не найдены");
             }
 
-            Extents3d? bounds = ReadBounds(tempPath);
+            Extents3d? bounds = ReadBounds(tempPath, log);
 
             if (!bounds.HasValue)
             {
@@ -52,12 +52,12 @@ internal static class DwgMerger
                 return MergeResult.Fail(fileName, "Не удалось вставить объекты");
             }
 
-            log.Info($"Успешно вставлены нативные объекты '{layoutName}'");
+            log.Info($"Вставлен лист '{layoutName}'");
             return MergeResult.Ok(fileName, layoutName);
         }
         catch (System.Exception ex)
         {
-            log.Error(ex, fileName);
+            log.Error(ex, $"Ошибка: {fileName}");
             return MergeResult.Fail(fileName, ex.Message, "Ошибка обработки");
         }
         finally
@@ -70,22 +70,33 @@ internal static class DwgMerger
                 }
                 catch (System.Exception deleteEx)
                 {
-                    log.Warn(deleteEx, $"Не удалось удалить временный файл: {tempPath}");
+                    log.Warn(deleteEx, $"Сбой удаления temp-файла: {tempPath}");
                 }
             }
         }
     }
 
-    private static Extents3d? ReadBounds(string tempPath)
+    private static Extents3d? ReadBounds(string tempPath, OperationLogger log)
     {
-        using Database db = new(false, true);
-        db.ReadDwgFile(tempPath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
-        db.UpdateExt(false);
+        try
+        {
+            using Database db = new(false, true);
+            db.ReadDwgFile(tempPath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
 
-        Point3d min = db.Extmin;
-        Point3d max = db.Extmax;
-        bool isEmpty = min.X > max.X || min.Y > max.Y;
+            using Transaction tr = db.TransactionManager.StartTransaction();
+            db.UpdateExt(true); // true для максимальной точности пересчета всех объектов
 
-        return isEmpty ? null : new Extents3d(min, max);
+            Point3d min = db.Extmin;
+            Point3d max = db.Extmax;
+            tr.Commit();
+
+            bool isEmpty = min.X > max.X || min.Y > max.Y;
+            return isEmpty ? null : new Extents3d(min, max);
+        }
+        catch (System.Exception ex)
+        {
+            log.Warn(ex, $"Не удалось прочитать границы временного файла: {tempPath}");
+            return null;
+        }
     }
 }
