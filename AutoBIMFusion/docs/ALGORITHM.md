@@ -72,9 +72,10 @@
 
 1. Для основного viewport вычисляется рабочий масштаб.
 2. Если масштаб слишком крупный, применяется нижний порог `1:100` (`ClampMainVpScale`).
-3. Матрицы преобразования строятся в `ViewportTransformer`:
-   - `BuildPaperToMainMatrix` для paper->model,
-   - `BuildMatrix` для переноса aux viewport в систему главного.
+3. Для `single-VP` и `multi-VP` при зажиме обязательно масштабируются **все model-объекты** с коэффициентом `clampRatio = original.CustomScale / clamped.CustomScale`, чтобы объекты модели и paper-объекты оставались в одном масштабе (в т.ч. для `1:1`).
+4. Матрицы преобразования строятся в `ViewportTransformer`:
+   - `BuildPaperToMainMatrix` для paper->model (на зажатом масштабе),
+   - `BuildMatrix` для переноса aux viewport в систему исходного main-VP, после чего применяется общий `clampRatio`.
 
 ### 4.2 Масштабирование растров (RasterImage -> OLE2FRAME)
 

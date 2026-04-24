@@ -21,8 +21,11 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 ///    удаляются (EraseEntitiesOutsideMainWindow). Без этого шага такие оригиналы
 ///    остаются в базе, потому что frameBounds охватывает весь лист и TrimOutside
 ///    их не захватывает.
-/// 3. Paper-содержимое (рамка, штамп) переносится в Model Space через главный VP.
-/// 4. TrimOutside удаляет всё за пределами frameBounds как вторичная защита.
+/// 3. При зажиме масштаба main VP (например, 1:1 -> 1:100) все model-объекты
+///    масштабируются общим коэффициентом clampRatio, чтобы соответствовать
+///    масштабу переносимого paper-содержимого.
+/// 4. Paper-содержимое (рамка, штамп) переносится в Model Space через главный VP.
+/// 5. TrimOutside удаляет всё за пределами frameBounds как вторичная защита.
 /// </summary>
 internal static class ViewportLayoutExporter
 {
@@ -161,7 +164,9 @@ internal static class ViewportLayoutExporter
     {
         log.Info($"VP: мульти-режим ({vps.Count} шт)");
 
-        LayoutViewportInfo main = ClampMainVpScale(LayoutViewportInfo.PickMainViewport(vps), log);
+        LayoutViewportInfo mainOriginal = LayoutViewportInfo.PickMainViewport(vps);
+        LayoutViewportInfo mainClamped = ClampMainVpScale(mainOriginal, log);
+        double clampRatio = mainOriginal.CustomScale / mainClamped.CustomScale;
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
@@ -169,19 +174,19 @@ internal static class ViewportLayoutExporter
 
         foreach (LayoutViewportInfo aux in vps)
         {
-            if (aux.VpId == main.VpId)
+            if (aux.VpId == mainOriginal.VpId)
             {
                 continue;
             }
 
-            Matrix3d m = ViewportTransformer.BuildMatrix(main, aux, log);
+            Matrix3d m = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
             ObjectIdCollection toClone = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, log);
 
             if (toClone.Count > 0)
             {
                 ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, m, log, "model-window");
                 // Удаляем оригиналы aux VP, которых нет в главном VP.
-                _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, main.ModelWindow, log);
+                _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow, log);
                 log.Info($"VP #{aux.Number}: обработано {cloned.Count} объектов");
             }
             else
@@ -190,7 +195,14 @@ internal static class ViewportLayoutExporter
             }
         }
 
-        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(main, log), log);
+        if (clampRatio > 1.0 + 1e-9)
+        {
+            // При зажиме 1:1 -> 1:100 модель должна масштабироваться так же, как paper-объекты.
+            Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, mainOriginal.ViewCenter);
+            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
+        }
+
+        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainClamped, log), log);
     }
 
     /// <summary>
