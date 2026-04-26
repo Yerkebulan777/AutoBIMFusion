@@ -1,4 +1,4 @@
-namespace AutoBIMFusion.Application.Merge.Layouts;
+﻿namespace AutoBIMFusion.Application.Merge.Layouts;
 
 /// <summary>
 /// Перечисляет активные Viewport'ы указанного листа и собирает LayoutViewportInfo.
@@ -47,14 +47,15 @@ internal static class ViewportCollector
             }
 
             Extents3d window = ComputeModelWindow(vp);
-            Point3d viewCenter = new(vp.ViewCenter.X, vp.ViewCenter.Y, 0);
+            Point3d viewCenterWcs = GetViewCenterWcs(vp);
+
             LayoutViewportInfo info = new(
                 VpId: id,
                 Number: vp.Number,
                 CenterPaper: vp.CenterPoint,
                 WidthPaper: vp.Width,
                 HeightPaper: vp.Height,
-                ViewCenter: viewCenter,
+                ViewCenter: viewCenterWcs,
                 ViewHeight: vp.ViewHeight,
                 ViewTwist: vp.TwistAngle,
                 CustomScale: scale,
@@ -64,6 +65,25 @@ internal static class ViewportCollector
 
         tr.Commit();
         return result;
+    }
+
+    private static Point3d GetViewCenterWcs(Viewport vp)
+    {
+        // ViewCenter — это 2D-точка в DCS (Display Coordinate System).
+        // Чтобы получить WCS, нужно применить трансформацию DCS -> WCS.
+        Matrix3d mat = GetDcsToWcsMatrix(vp);
+        return new Point3d(vp.ViewCenter.X, vp.ViewCenter.Y, 0).TransformBy(mat);
+    }
+
+    private static Matrix3d GetDcsToWcsMatrix(Viewport vp)
+    {
+        // DCS -> WCS для Viewport:
+        // 1. Поворот на TwistAngle вокруг Z в Eye-координатах.
+        // 2. Переход из Eye (Plane) в World через ViewDirection.
+        // 3. Смещение на ViewTarget.
+        return Matrix3d.Displacement(vp.ViewTarget.GetAsVector()) *
+               Matrix3d.PlaneToWorld(vp.ViewDirection) *
+               Matrix3d.Rotation(vp.TwistAngle, Vector3d.ZAxis, Point3d.Origin);
     }
 
     private static double ResolveScale(Viewport vp)
@@ -80,34 +100,31 @@ internal static class ViewportCollector
         double halfW = widthModel / 2.0;
         double halfH = heightModel / 2.0;
 
+        Matrix3d dcsToWcs = GetDcsToWcsMatrix(vp);
         Point2d vc = vp.ViewCenter;
-        double cs = Cos(vp.TwistAngle);
-        double sn = Sin(vp.TwistAngle);
 
-        Point2d[] corners =
+        Point3d[] corners =
         [
-            new(-halfW, -halfH),
-            new(+halfW, -halfH),
-            new(+halfW, +halfH),
-            new(-halfW, +halfH),
+            new Point3d(vc.X - halfW, vc.Y - halfH, 0).TransformBy(dcsToWcs),
+            new Point3d(vc.X + halfW, vc.Y - halfH, 0).TransformBy(dcsToWcs),
+            new Point3d(vc.X + halfW, vc.Y + halfH, 0).TransformBy(dcsToWcs),
+            new Point3d(vc.X - halfW, vc.Y + halfH, 0).TransformBy(dcsToWcs),
         ];
 
         double minX = double.PositiveInfinity, maxX = double.NegativeInfinity;
         double minY = double.PositiveInfinity, maxY = double.NegativeInfinity;
+        double minZ = double.PositiveInfinity, maxZ = double.NegativeInfinity;
 
-        foreach (Point2d c in corners)
+        foreach (Point3d p in corners)
         {
-            double x = vc.X + (c.X * cs) - (c.Y * sn);
-            double y = vc.Y + (c.X * sn) + (c.Y * cs);
-
-            minX = Math.Min(minX, x);
-            maxX = Math.Max(maxX, x);
-            minY = Math.Min(minY, y);
-            maxY = Math.Max(maxY, y);
+            minX = Math.Min(minX, p.X);
+            maxX = Math.Max(maxX, p.X);
+            minY = Math.Min(minY, p.Y);
+            maxY = Math.Max(maxY, p.Y);
+            minZ = Math.Min(minZ, p.Z);
+            maxZ = Math.Max(maxZ, p.Z);
         }
 
-        Point3d minPt = new(minX, minY, 0);
-        Point3d maxPt = new(maxX, maxY, 0);
-        return new Extents3d(minPt, maxPt);
+        return new Extents3d(new Point3d(minX, minY, minZ), new Point3d(maxX, maxY, maxZ));
     }
 }
