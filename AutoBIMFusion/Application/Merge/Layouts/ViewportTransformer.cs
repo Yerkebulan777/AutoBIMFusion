@@ -81,6 +81,9 @@ internal static class ViewportTransformer
         int skippedAssociative = 0;
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
+        Dictionary<string, int> successTypes = new();
+        Dictionary<string, int> errorTypes = new();
+
         using Transaction tr = db.TransactionManager.StartTransaction();
         BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
 
@@ -114,32 +117,55 @@ internal static class ViewportTransformer
                 continue;
             }
 
+            string entType = ent.GetType().Name;
+            string handle = ent.Handle.ToString();
+
             try
             {
+                Extents3d? oldExt = GeometryUtils.TryGetExtents(ent);
                 ent.TransformBy(matrix);
+                Extents3d? newExt = GeometryUtils.TryGetExtents(ent);
+
+                if (oldExt.HasValue && newExt.HasValue)
+                {
+                    double oldDiag = oldExt.Value.MaxPoint.DistanceTo(oldExt.Value.MinPoint);
+                    double newDiag = newExt.Value.MaxPoint.DistanceTo(newExt.Value.MinPoint);
+
+                    if (oldDiag > 0.001 && (newDiag / oldDiag) > (ratio * 5.0))
+                    {
+                        log.Warn($"[АНОМАЛИЯ МАСШТАБА] Тип: {entType}, Handle: {handle}. " +
+                                 $"Диагональ ДО: {oldDiag:F2}, ПОСЛЕ: {newDiag:F2}");
+                    }
+                }
+
                 scaled++;
+                if (!successTypes.ContainsKey(entType)) successTypes[entType] = 0;
+                successTypes[entType]++;
             }
             catch (System.Exception ex)
             {
-                log.Warn($"ScaleModelSpaceObjects TransformBy failed for {ent.GetType().Name}: {ex.Message}");
+                log.Error(ex, $"[ОШИБКА ТРАНСФОРМАЦИИ] Тип: {entType}, Handle: {handle}. Сообщение: {ex.Message}");
+                if (!errorTypes.ContainsKey(entType)) errorTypes[entType] = 0;
+                errorTypes[entType]++;
             }
         }
 
         tr.Commit();
 
-        if (scaled == 0)
+        log.Info($"ScaleModelSpaceObjects завершен: ratio={ratio:F6}, total={total}, scaled={scaled}, " +
+                 $"skippedAssociative={skippedAssociative}");
+
+        if (successTypes.Count > 0)
         {
-            log.Warn(
-                $"ScaleModelSpaceObjects: ratio={ratio:F6}, total={total}, scaled=0, " +
-                $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}, " +
-                $"skippedExcluded={skippedExcluded}, skippedAssociative={skippedAssociative}");
-            return;
+            string successStr = string.Join(", ", successTypes.Select(kv => $"{kv.Key}({kv.Value})"));
+            log.Debug($"Успешные типы (Scale): {successStr}");
         }
 
-        log.Info(
-            $"ScaleModelSpaceObjects: ratio={ratio:F6}, total={total}, scaled={scaled}, " +
-            $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}, " +
-            $"skippedExcluded={skippedExcluded}, skippedAssociative={skippedAssociative}");
+        if (errorTypes.Count > 0)
+        {
+            string errorStr = string.Join(", ", errorTypes.Select(kv => $"{kv.Key}({kv.Value})"));
+            log.Warn($"Ошибочные типы (Scale): {errorStr}");
+        }
     }
 
     internal static IReadOnlyList<ModelEntitySnapshot> CollectModelEntitiesWithExtents(Database db, ObjectId msId, OperationLogger log)
@@ -236,14 +262,32 @@ internal static class ViewportTransformer
                     if (e is Hatch clonedHatch && clonedHatch.Associative)
                         continue;
 
+                    string entType = e.GetType().Name;
+                    string handle = e.Handle.ToString();
+
                     try
                     {
+                        Extents3d? oldExt = GeometryUtils.TryGetExtents(e);
                         e.TransformBy(matrix);
+                        Extents3d? newExt = GeometryUtils.TryGetExtents(e);
+
+                        if (oldExt.HasValue && newExt.HasValue)
+                        {
+                            double oldDiag = oldExt.Value.MaxPoint.DistanceTo(oldExt.Value.MinPoint);
+                            double newDiag = newExt.Value.MaxPoint.DistanceTo(newExt.Value.MinPoint);
+
+                            if (oldDiag > 0.001 && (newDiag / oldDiag) > 1000.0)
+                            {
+                                log.Warn($"[АНОМАЛИЯ КЛОНА] Тип: {entType}, Handle: {handle}. " +
+                                         $"Диагональ ДО: {oldDiag:F2}, ПОСЛЕ: {newDiag:F2}");
+                            }
+                        }
+
                         _ = cloned.Add(pair.Value);
                     }
                     catch (System.Exception ex)
                     {
-                        log.Warn($"DeepCloneAndTransform TransformBy failed for {e.GetType().Name}: {ex.Message}");
+                        log.Warn($"[ОШИБКА КЛОНА] Тип: {entType}, Handle: {handle}. Ошибка: {ex.Message}");
                     }
                 }
             }
