@@ -175,6 +175,9 @@ internal static class ViewportLayoutExporter
         log.Info($"Выбранный метод масштабирования: ProcessMultiVp ({vps.Count} viewport'ов)");
 
         LayoutViewportInfo mainOriginal = LayoutViewportInfo.PickMainViewport(vps);
+        LayoutViewportInfo mainClamped = mainOriginal;
+        double clampRatio = 1.0;
+
         log.Info(
             $"VP main#{mainOriginal.Number}: исходный scale={mainOriginal.CustomScale:F6}, " +
             $"рабочий scale={mainClamped.CustomScale:F6}, clampRatio={clampRatio:F6}, " +
@@ -218,6 +221,8 @@ internal static class ViewportLayoutExporter
     {
         log.Info($"Выбранный метод масштабирования: ProcessSingleVp (VP #{vp.Number})");
 
+        LayoutViewportInfo clamped = vp;
+        double clampRatio = 1.0;
 
         log.Info(
             $"VP #{vp.Number}: исходный scale={vp.CustomScale:F6}, рабочий scale={clamped.CustomScale:F6}, " +
@@ -688,6 +693,9 @@ internal static class ViewportLayoutExporter
         return File.Exists(inSameFolder) ? inSameFolder : null;
     }
 }
+
+
+
 
 
 
