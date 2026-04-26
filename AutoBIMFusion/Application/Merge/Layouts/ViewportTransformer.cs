@@ -11,6 +11,21 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 /// PaperFromAuxModel(p) = CenterPaper_aux + Rot(-twist_aux) * (p - ViewCenter_aux) * scale_aux
 /// MainModelFromPaper(p) = ViewCenter_main + Rot(+twist_main) * (p - CenterPaper_main) / scale_main
 /// </summary>
+/// <remarks>
+/// ИЗВЕСТНЫЕ ОСОБЕННОСТИ AutoCAD API:
+///
+/// [Hatch + DeepCloneObjects] После глубокого клонирования (<see cref="Database.DeepCloneObjects"/>)
+/// ассоциативные штриховки (<see cref="Hatch"/>) теряют привязку к своим граничным контурам.
+/// Вызов <see cref="Hatch.EvaluateHatch"/> ОБЯЗАТЕЛЕН сразу после <see cref="Entity.TransformBy"/>
+/// — иначе штриховка остаётся на старых координатах или отображается некорректно ("каша" линий).
+///
+/// АНТИ-ПАТТЕРН (не вводить повторно!):
+///   if (ent is Hatch) continue;  // ← пропускает трансформацию штриховок → рассинхронизация
+///
+/// ПРАВИЛЬНЫЙ ПАТТЕРН:
+///   ent.TransformBy(matrix);
+///   if (ent is Hatch h) { try { h.EvaluateHatch(true); } catch { /* сломанная геометрия */ } }
+/// </remarks>
 internal static class ViewportTransformer
 {
     internal sealed record ModelEntitySnapshot(ObjectId Id, Extents3d Extents);
@@ -66,6 +81,11 @@ internal static class ViewportTransformer
         return result;
     }
 
+    /// <summary>
+    /// Применяет матрицу трансформации ко всем объектам модели в базе данных.
+    /// Viewport'ы пропускаются. Штриховки трансформируются и немедленно переоцениваются
+    /// через <see cref="Hatch.EvaluateHatch"/>, чтобы избежать рассинхронизации контуров.
+    /// </summary>
     internal static void ScaleModelSpaceObjects(Database db, Matrix3d matrix, double ratio, OperationLogger log)
     {
         int scaled = 0;
@@ -103,6 +123,15 @@ internal static class ViewportTransformer
             {
                 Extents3d? oldExt = GeometryUtils.TryGetExtents(ent);
                 ent.TransformBy(matrix);
+
+                // После TransformBy штриховка может рассинхронизироваться с контурами —
+                // принудительно переоцениваем геометрию заливки.
+                if (ent is Hatch hatchScale)
+                {
+                    try { hatchScale.EvaluateHatch(true); }
+                    catch { /* Игнорируем ошибки EvaluateHatch на сложной/сломанной геометрии */ }
+                }
+
                 Extents3d? newExt = GeometryUtils.TryGetExtents(ent);
 
                 if (oldExt.HasValue && newExt.HasValue)
@@ -187,6 +216,15 @@ internal static class ViewportTransformer
         return result;
     }
 
+    /// <summary>
+    /// Глубоко клонирует набор объектов и применяет матрицу трансформации к каждому клону.
+    /// </summary>
+    /// <remarks>
+    /// Штриховки (<see cref="Hatch"/>) требуют особой обработки: после
+    /// <see cref="Database.DeepCloneObjects"/> они теряют привязку к граничным контурам.
+    /// Вызов <see cref="Hatch.EvaluateHatch"/> сразу после <see cref="Entity.TransformBy"/>
+    /// восстанавливает корректное отображение заливки на новых координатах.
+    /// </remarks>
     internal static ObjectIdCollection DeepCloneAndTransform(
         Database db, ObjectIdCollection sourceIds, ObjectId sourceOwnerId, ObjectId ownerId,
         Matrix3d matrix, OperationLogger log, string sourceName)
@@ -243,6 +281,16 @@ internal static class ViewportTransformer
                     {
                         Extents3d? oldExt = GeometryUtils.TryGetExtents(e);
                         e.TransformBy(matrix);
+
+                        // DeepCloneObjects разрывает ассоциацию Hatch ↔ контур —
+                        // EvaluateHatch принудительно пересчитывает геометрию заливки
+                        // по актуальным (уже трансформированным) координатам.
+                        if (e is Hatch hatchClone)
+                        {
+                            try { hatchClone.EvaluateHatch(true); }
+                            catch { /* Игнорируем ошибки EvaluateHatch на сложной/сломанной геометрии */ }
+                        }
+
                         Extents3d? newExt = GeometryUtils.TryGetExtents(e);
 
                         if (oldExt.HasValue && newExt.HasValue)
