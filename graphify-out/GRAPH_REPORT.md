@@ -1,12 +1,12 @@
 # Graph Report - AutoBIMFusion  (2026-04-26)
 
 ## Corpus Check
-- 41 files · ~20,255 words
+- 41 files · ~20,604 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 208 nodes · 386 edges · 15 communities detected
-- Extraction: 65% EXTRACTED · 35% INFERRED · 0% AMBIGUOUS · INFERRED: 137 edges (avg confidence: 0.8)
+- 208 nodes · 391 edges · 15 communities detected
+- Extraction: 64% EXTRACTED · 36% INFERRED · 0% AMBIGUOUS · INFERRED: 142 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -64,12 +64,12 @@ Cohesion: 0.12
 Nodes (5): AutoBIMFusionExtension, IExtensionApplication, RasterImagePathFixer, RibbonBuilder, RibbonIconLoader
 
 ### Community 5 - "Community 5"
-Cohesion: 0.27
-Nodes (1): TransmittalCommands
-
-### Community 6 - "Community 6"
 Cohesion: 0.33
 Nodes (1): TextStyleCommands
+
+### Community 6 - "Community 6"
+Cohesion: 0.31
+Nodes (1): TransmittalCommands
 
 ### Community 7 - "Community 7"
 Cohesion: 0.36
@@ -108,9 +108,9 @@ Nodes (2): IComparer, WindowsNaturalComparer
   These have ≤1 connection - possible missing edges or undocumented components.
 - **Thin community `Community 1`** (27 nodes): `ViewportLayoutExporter.cs`, `LayoutUtil.cs`, `LayoutUtil`, `.GetLayoutBtrId()`, `.GetPaperSpaceEntities()`, `.TryFindFirstLayout()`, `.Warn()`, `ViewportLayoutExporter`, `.AlignOleToTargetMinPoint()`, `.ApplyWcsSize()`, `.BuildTargetRectangle()`, `.BuildTempPath()`, `.CheckIfNeedsOle()`, `.CollectRasterImages()`, `.EmbedSingleRasterAsync()`, `.EraseBlockContents()`, `.ExportToTempAsync()`, `.FindNewOle2Frame()`, `.GetModelSpaceSnapshot()`, `.IsCloseToTarget()`, `.MovePaperToModelSpace()`, `.ProcessNoVp()`, `.ResizeOleToTarget()`, `.ResolveRasterPath()`, `.RunOleEmbeddingAsync()`, `.TryApplyPositionFallback()`, `.TryCopyImageToClipboard()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 5`** (12 nodes): `TransmittalCommands.cs`, `.ToString()`, `TransmittalCommands`, `.ConfigureTransmittalInfo()`, `.ConvertMemberValue()`, `.CreateETransmitZip()`, `.PrepareOutputFolders()`, `.SafeGetTypes()`, `.SetMemberValue()`, `.TryCreateTransmittalOperation()`, `.TryDeleteTempFolder()`, `.TryLoadAssemblyByPath()`
+- **Thin community `Community 5`** (11 nodes): `TextStyleCommands.cs`, `TextStyleCommands`, `.BuildSignature()`, `.ChooseMasterStyle()`, `.CollectStyles()`, `.DeleteStyles()`, `.MergeTextStyles()`, `.Normalize()`, `.ReassignBlockAttributes()`, `.ReassignStyles()`, `.ReassignStylesInBlock()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 6`** (11 nodes): `TextStyleCommands.cs`, `TextStyleCommands`, `.BuildSignature()`, `.ChooseMasterStyle()`, `.CollectStyles()`, `.DeleteStyles()`, `.MergeTextStyles()`, `.Normalize()`, `.ReassignBlockAttributes()`, `.ReassignStyles()`, `.ReassignStylesInBlock()`
+- **Thin community `Community 6`** (11 nodes): `TransmittalCommands.cs`, `TransmittalCommands`, `.ConfigureTransmittalInfo()`, `.ConvertMemberValue()`, `.CreateETransmitZip()`, `.PrepareOutputFolders()`, `.SafeGetTypes()`, `.SetMemberValue()`, `.TryCreateTransmittalOperation()`, `.TryDeleteTempFolder()`, `.TryLoadAssemblyByPath()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 7`** (10 nodes): `SmartTextCommands.cs`, `SmartTextCommands`, `.AreTextsClose()`, `.CollectTextElements()`, `.CombineGroupText()`, `.EscapeMTextContent()`, `.EstimateTextWidth()`, `.GetTextBoundsAlongAxis()`, `.SmartGroupText()`, `.SmartMergeModelText()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -130,7 +130,7 @@ _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `ViewportLayoutExporter` connect `Community 1` to `Community 0`?**
   _High betweenness centrality (0.042) - this node is a cross-community bridge._
-- **Why does `TransmittalCommands` connect `Community 5` to `Community 4`?**
+- **Why does `TransmittalCommands` connect `Community 6` to `Community 4`?**
   _High betweenness centrality (0.037) - this node is a cross-community bridge._
 - **What connects `LineInfo` to the rest of the system?**
   _1 weakly-connected nodes found - possible documentation gaps or missing edges._
