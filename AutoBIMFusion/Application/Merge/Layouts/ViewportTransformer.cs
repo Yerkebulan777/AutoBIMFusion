@@ -78,6 +78,7 @@ internal static class ViewportTransformer
         int skippedViewport = 0;
         int skippedNonEntity = 0;
         int skippedExcluded = 0;
+        int skippedAssociative = 0;
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
         using Transaction tr = db.TransactionManager.StartTransaction();
@@ -105,8 +106,23 @@ internal static class ViewportTransformer
                 continue;
             }
 
-            ent.TransformBy(matrix);
-            scaled++;
+            // Associative hatches self-update when their boundary entities are transformed.
+            // Applying TransformBy to the hatch itself would cause double transformation (scale²).
+            if (ent is Hatch hatch && hatch.Associative)
+            {
+                skippedAssociative++;
+                continue;
+            }
+
+            try
+            {
+                ent.TransformBy(matrix);
+                scaled++;
+            }
+            catch (System.Exception ex)
+            {
+                log.Warn($"ScaleModelSpaceObjects TransformBy failed for {ent.GetType().Name}: {ex.Message}");
+            }
         }
 
         tr.Commit();
@@ -115,13 +131,15 @@ internal static class ViewportTransformer
         {
             log.Warn(
                 $"ScaleModelSpaceObjects: ratio={ratio:F6}, total={total}, scaled=0, " +
-                $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}, skippedExcluded={skippedExcluded}");
+                $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}, " +
+                $"skippedExcluded={skippedExcluded}, skippedAssociative={skippedAssociative}");
             return;
         }
 
         log.Info(
             $"ScaleModelSpaceObjects: ratio={ratio:F6}, total={total}, scaled={scaled}, " +
-            $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}, skippedExcluded={skippedExcluded}");
+            $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}, " +
+            $"skippedExcluded={skippedExcluded}, skippedAssociative={skippedAssociative}");
     }
 
     internal static IReadOnlyList<ModelEntitySnapshot> CollectModelEntitiesWithExtents(Database db, ObjectId msId, OperationLogger log)
@@ -213,8 +231,20 @@ internal static class ViewportTransformer
 
                 if (tr.GetObject(pair.Value, OpenMode.ForWrite) is Entity e)
                 {
-                    e.TransformBy(matrix);
-                    _ = cloned.Add(pair.Value);
+                    // Associative hatches self-update when their boundary entities are transformed.
+                    // Applying TransformBy to the hatch itself would cause double transformation (scale²).
+                    if (e is Hatch clonedHatch && clonedHatch.Associative)
+                        continue;
+
+                    try
+                    {
+                        e.TransformBy(matrix);
+                        _ = cloned.Add(pair.Value);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        log.Warn($"DeepCloneAndTransform TransformBy failed for {e.GetType().Name}: {ex.Message}");
+                    }
                 }
             }
 
