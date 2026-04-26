@@ -69,6 +69,9 @@ internal static class ViewportTransformer
     internal static void ScaleModelSpaceObjects(Database db, Matrix3d matrix, double ratio, OperationLogger log)
     {
         int scaled = 0;
+        int total = 0;
+        int skippedViewport = 0;
+        int skippedNonEntity = 0;
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
         using Transaction tr = db.TransactionManager.StartTransaction();
@@ -76,15 +79,36 @@ internal static class ViewportTransformer
 
         foreach (ObjectId id in ms)
         {
-            if (tr.GetObject(id, OpenMode.ForWrite) is Entity ent && ent is not Viewport)
+            total++;
+
+            if (tr.GetObject(id, OpenMode.ForWrite) is not Entity ent)
             {
-                ent.TransformBy(matrix);
-                scaled++;
+                skippedNonEntity++;
+                continue;
             }
+
+            if (ent is Viewport)
+            {
+                skippedViewport++;
+                continue;
+            }
+
+            ent.TransformBy(matrix);
+            scaled++;
         }
 
         tr.Commit();
-        log.Debug($"ScaleModelSpaceObjects: ratio={ratio:F4}, scaled={scaled}");
+        if (scaled == 0)
+        {
+            log.Warn(
+                $"ScaleModelSpaceObjects: ratio={ratio:F6}, total={total}, scaled=0, " +
+                $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}");
+            return;
+        }
+
+        log.Info(
+            $"ScaleModelSpaceObjects: ratio={ratio:F6}, total={total}, scaled={scaled}, " +
+            $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}");
     }
 
     internal static IReadOnlyList<ModelEntitySnapshot> CollectModelEntitiesWithExtents(Database db, ObjectId msId, OperationLogger log)
