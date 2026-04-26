@@ -172,7 +172,7 @@ internal static class ViewportLayoutExporter
     /// </summary>
     private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessMultiVp(Database db, string layoutName, List<LayoutViewportInfo> vps, OperationLogger log)
     {
-        log.Info($"=== ProcessMultiVp === ({vps.Count} viewport'ов)");
+        log.Info($"Выбранный метод масштабирования: ProcessMultiVp ({vps.Count} viewport'ов)");
 
         LayoutViewportInfo mainOriginal = LayoutViewportInfo.PickMainViewport(vps);
         LayoutViewportInfo mainClamped = ViewportScaleUtil.ClampMainVpScale(mainOriginal, log);
@@ -186,7 +186,6 @@ internal static class ViewportLayoutExporter
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
-        HashSet<ObjectId> clonedAuxObjects = [];
 
         foreach (LayoutViewportInfo aux in vps)
         {
@@ -201,10 +200,6 @@ internal static class ViewportLayoutExporter
             if (toClone.Count > 0)
             {
                 ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, m, log, "model-window");
-                foreach (ObjectId clonedId in cloned)
-                {
-                    clonedAuxObjects.Add(clonedId);
-                }
                 // Удаляем оригиналы aux VP, которых нет в главном VP.
                 _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow, log);
                 log.Info($"aux-VP #{aux.Number}: обработано {cloned.Count} объектов");
@@ -215,18 +210,7 @@ internal static class ViewportLayoutExporter
             }
         }
 
-        if (clampRatio > 1.0 + 1e-9)
-        {
-            log.Info(
-                $"VP main#{mainOriginal.Number}: выполняется масштабирование Model Space, " +
-                $"ratio={clampRatio:F6}, center={GeometryUtils.FormatPoint(mainOriginal.ViewCenter)}");
-            Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, mainOriginal.ViewCenter);
-            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log, clonedAuxObjects);
-        }
-        else
-        {
-            log.Debug($"VP main#{mainOriginal.Number}: масштабирование Model Space не требуется (clampRatio={clampRatio:F6})");
-        }
+        ViewportScaleUtil.ApplyClampToModelSpace(db, mainOriginal, clampRatio, log);
 
         return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainClamped, log), log);
     }
@@ -236,7 +220,7 @@ internal static class ViewportLayoutExporter
     /// </summary>
     private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessSingleVp(Database db, string layoutName, LayoutViewportInfo vp, OperationLogger log)
     {
-        log.Info($"=== ProcessSingleVp === (VP #{vp.Number})");
+        log.Info($"Выбранный метод масштабирования: ProcessSingleVp (VP #{vp.Number})");
 
         LayoutViewportInfo clamped = ViewportScaleUtil.ClampMainVpScale(vp, log);
         double clampRatio = ViewportScaleUtil.ClampRatio(vp, clamped);
@@ -255,7 +239,7 @@ internal static class ViewportLayoutExporter
     /// </summary>
     private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessNoVp(Database db, string layoutName, OperationLogger log)
     {
-        log.Info($"=== ProcessNoVp === (масштаб по умолчанию 1:{ViewportScaleUtil.MaxScaleMultiplier:F0})");
+        log.Info($"Выбранный метод масштабирования: ProcessNoVp (масштаб по умолчанию 1:{ViewportScaleUtil.MaxScaleMultiplier:F0})");
 
         ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
 

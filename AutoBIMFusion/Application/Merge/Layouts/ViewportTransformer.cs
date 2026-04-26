@@ -90,14 +90,12 @@ internal static class ViewportTransformer
         Database db,
         Matrix3d matrix,
         double ratio,
-        OperationLogger log,
-        HashSet<ObjectId> excludeIds = null)
+        OperationLogger log)
     {
         int scaled = 0;
         int total = 0;
         int skippedViewport = 0;
         int skippedNonEntity = 0;
-        int skippedExcluded = 0;
         int skippedAssociative = 0;
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
@@ -110,12 +108,6 @@ internal static class ViewportTransformer
         foreach (ObjectId id in ms)
         {
             total++;
-
-            if (excludeIds != null && excludeIds.Contains(id))
-            {
-                skippedExcluded++;
-                continue;
-            }
 
             if (tr.GetObject(id, OpenMode.ForWrite) is not Entity ent)
             {
@@ -182,7 +174,7 @@ internal static class ViewportTransformer
         tr.Commit();
 
         log.Info($"ScaleModelSpaceObjects завершен: ratio={ratio:F6}, total={total}, scaled={scaled}, " +
-                 $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}, skippedExcluded={skippedExcluded}, skippedAssociative={skippedAssociative}");
+                 $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}, skippedAssociative={skippedAssociative}");
 
         if (successTypes.Count > 0)
         {
