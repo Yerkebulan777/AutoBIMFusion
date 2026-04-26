@@ -175,6 +175,7 @@ internal static class ViewportLayoutExporter
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
+        HashSet<ObjectId> clonedAuxObjects = [];
 
         foreach (LayoutViewportInfo aux in vps)
         {
@@ -189,6 +190,10 @@ internal static class ViewportLayoutExporter
             if (toClone.Count > 0)
             {
                 ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, m, log, "model-window");
+                foreach (ObjectId clonedId in cloned)
+                {
+                    clonedAuxObjects.Add(clonedId);
+                }
                 // Удаляем оригиналы aux VP, которых нет в главном VP.
                 _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow, log);
                 log.Info($"VP #{aux.Number}: обработано {cloned.Count} объектов");
@@ -205,7 +210,7 @@ internal static class ViewportLayoutExporter
                 $"VP main#{mainOriginal.Number}: ��������� ��������������� Model Space, " +
                 $"ratio={clampRatio:F6}, center={GeometryUtils.FormatPoint(mainOriginal.ViewCenter)}");
             Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, mainOriginal.ViewCenter);
-            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
+            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log, clonedAuxObjects);
         }
         else
         {
@@ -720,4 +725,3 @@ internal static class ViewportLayoutExporter
         return File.Exists(inSameFolder) ? inSameFolder : null;
     }
 }
-

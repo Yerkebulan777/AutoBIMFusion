@@ -66,12 +66,18 @@ internal static class ViewportTransformer
         return result;
     }
 
-    internal static void ScaleModelSpaceObjects(Database db, Matrix3d matrix, double ratio, OperationLogger log)
+    internal static void ScaleModelSpaceObjects(
+        Database db,
+        Matrix3d matrix,
+        double ratio,
+        OperationLogger log,
+        HashSet<ObjectId> excludeIds = null)
     {
         int scaled = 0;
         int total = 0;
         int skippedViewport = 0;
         int skippedNonEntity = 0;
+        int skippedExcluded = 0;
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
         using Transaction tr = db.TransactionManager.StartTransaction();
@@ -80,6 +86,12 @@ internal static class ViewportTransformer
         foreach (ObjectId id in ms)
         {
             total++;
+
+            if (excludeIds != null && excludeIds.Contains(id))
+            {
+                skippedExcluded++;
+                continue;
+            }
 
             if (tr.GetObject(id, OpenMode.ForWrite) is not Entity ent)
             {
@@ -98,17 +110,18 @@ internal static class ViewportTransformer
         }
 
         tr.Commit();
+
         if (scaled == 0)
         {
             log.Warn(
                 $"ScaleModelSpaceObjects: ratio={ratio:F6}, total={total}, scaled=0, " +
-                $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}");
+                $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}, skippedExcluded={skippedExcluded}");
             return;
         }
 
         log.Info(
             $"ScaleModelSpaceObjects: ratio={ratio:F6}, total={total}, scaled={scaled}, " +
-            $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}");
+            $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}, skippedExcluded={skippedExcluded}");
     }
 
     internal static IReadOnlyList<ModelEntitySnapshot> CollectModelEntitiesWithExtents(Database db, ObjectId msId, OperationLogger log)
