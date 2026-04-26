@@ -175,9 +175,6 @@ internal static class ViewportLayoutExporter
         log.Info($"Выбранный метод масштабирования: ProcessMultiVp ({vps.Count} viewport'ов)");
 
         LayoutViewportInfo mainOriginal = LayoutViewportInfo.PickMainViewport(vps);
-        LayoutViewportInfo mainClamped = ViewportScaleUtil.ClampMainVpScale(mainOriginal, log);
-        double clampRatio = ViewportScaleUtil.ClampRatio(mainOriginal, mainClamped);
-
         log.Info(
             $"VP main#{mainOriginal.Number}: исходный scale={mainOriginal.CustomScale:F6}, " +
             $"рабочий scale={mainClamped.CustomScale:F6}, clampRatio={clampRatio:F6}, " +
@@ -210,9 +207,8 @@ internal static class ViewportLayoutExporter
             }
         }
 
-        ViewportScaleUtil.ApplyClampToModelSpace(db, mainOriginal, clampRatio, log);
 
-        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainClamped, log), log);
+        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainOriginal, log), log);
     }
 
     /// <summary>
@@ -222,16 +218,13 @@ internal static class ViewportLayoutExporter
     {
         log.Info($"Выбранный метод масштабирования: ProcessSingleVp (VP #{vp.Number})");
 
-        LayoutViewportInfo clamped = ViewportScaleUtil.ClampMainVpScale(vp, log);
-        double clampRatio = ViewportScaleUtil.ClampRatio(vp, clamped);
 
         log.Info(
             $"VP #{vp.Number}: исходный scale={vp.CustomScale:F6}, рабочий scale={clamped.CustomScale:F6}, " +
             $"clampRatio={clampRatio:F6}, центр={GeometryUtils.FormatPoint(clamped.ViewCenter)}");
 
-        ViewportScaleUtil.ApplyClampToModelSpace(db, vp, clampRatio, log);
 
-        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(clamped, log), log);
+        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(vp, log), log);
     }
 
     /// <summary>
@@ -239,7 +232,7 @@ internal static class ViewportLayoutExporter
     /// </summary>
     private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessNoVp(Database db, string layoutName, OperationLogger log)
     {
-        log.Info($"Выбранный метод масштабирования: ProcessNoVp (масштаб по умолчанию 1:{ViewportScaleUtil.MaxScaleMultiplier:F0})");
+        log.Info($"Выбранный метод масштабирования: ProcessNoVp (масштаб по умолчанию 1:1)");
 
         ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
 
@@ -257,12 +250,12 @@ internal static class ViewportLayoutExporter
 
         Point3d minPt = paperBounds.Value.MinPoint;
         Matrix3d moveToOrigin = Matrix3d.Displacement(Point3d.Origin - minPt);
-        Matrix3d scale = Matrix3d.Scaling(ViewportScaleUtil.MaxScaleMultiplier, Point3d.Origin);
+        Matrix3d scale = Matrix3d.Scaling(1.0, Point3d.Origin);
         Matrix3d matrix = scale * moveToOrigin;
 
         log.Info(
             $"ProcessNoVp: paper bounds={GeometryUtils.FormatExtents(paperBounds.Value)}, " +
-            $"ratio={ViewportScaleUtil.MaxScaleMultiplier:F2}");
+            $"ratio=1.00");
 
         return MovePaperToModelSpace(db, layoutName, matrix, log, "paper-no-vp");
     }
@@ -695,3 +688,7 @@ internal static class ViewportLayoutExporter
         return File.Exists(inSameFolder) ? inSameFolder : null;
     }
 }
+
+
+
+
