@@ -9,37 +9,37 @@ using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 namespace AutoBIMFusion.Application.Merge.Layouts;
 
 /// <summary>
-/// Viewport ������� ����� � ������� Model Space ���������� DWG.
-/// �������� EXPORTLAYOUT ��� �������, ����� �� ����� ������������ ������� ������:
-/// ������� VP ���������� ��������� ��������, ��������������� (����) �����������
-/// �������� �������������, paper-���������� ������ � Model Space ����� ������� VP.
+/// Viewport экспортирует виды из Model Space в отдельный DWG.
+/// Альтернатива EXPORTLAYOUT для сценариев, где нужно контролировать процесс:
+/// отбор VP осуществляется по CoverageScore, вырезаются (копируются) объекты
+/// из Model Space, paper-содержимое переносится в Model Space вместо VP.
 ///
-/// �������� (������-VP):
-/// 1. ������� VP ���������� �� ������������� CoverageScore.
-/// 2. ��� ������� aux VP: ������� � ��� model-window ����������� � ����������������
-///    �������� AuxModel?MainModel, ����� ���������, �� �������� � ���� �������� VP,
-///    ��������� (EraseEntitiesOutsideMainWindow). ��� ����� ���� ����� ���������
-///    �������� � ����, ������ ��� frameBounds ���������� ���� ���� � TrimOutside
-///    �� �� �����������.
-/// 3. ��� ������ �������� main VP (��������, 1:1 -> 1:100) ��� model-�������
-///    �������������� ����� ������������� clampRatio, ����� ���������������
-///    �������� ������������ paper-�����������.
-/// 4. Paper-���������� (�����, �����) ����������� � Model Space ����� ������� VP.
-/// 5. TrimOutside ������� �� �� ��������� frameBounds ��� ��������� ������.
+/// Алгоритм (мульти-VP):
+/// 1. Выбор VP осуществляется по CoverageScore.
+/// 2. Для каждого aux VP: объекты из model-window копируются с трансформацией
+///    масштаба AuxModel/MainModel, обрезаются по границам VP,
+///    очищаются (EraseEntitiesOutsideMainWindow). Это нужно чтобы избежать
+///    наложения объектов, чтобы при frameBounds можно было без TrimOutside
+///    их использовать.
+/// 3. Для главного viewport main VP (например, 1:1 -> 1:100) model-объекты
+///    масштабируются через clampRatio, чтобы соответствовать
+///    размеру paper-содержимого.
+/// 4. Paper-содержимое (рамки, штампы) переносится в Model Space вместо VP.
+/// 5. TrimOutside очищает всё за границами frameBounds для финального файла.
 /// </summary>
 internal static class ViewportLayoutExporter
 {
     /// <summary>
-    /// ������������ "��������" �������� ������ ����������������� Ole2Frame (� �������� �������).
-    /// ���� AutoCAD ����� ����� PASTECLIP �������� Bounds ������ ����� �������� � ������� ��
-    /// ������������� � ���������� ���� WcsWidth/Height, ����� ������� ��������� ����� Position3d.
-    /// �������� ������ � �������: �������� ����� ����� ��������� ~10^7 ������.
+    /// Максимальный "разумный" размер стороны Ole2Frame (в единицах черчения).
+    /// Если AutoCAD после PASTECLIP задаёт Bounds больше этого значения —
+    /// переключаемся на вычисление через WcsWidth/Height, иначе используем Position3d.
+    /// Защита от багов: некоторые файлы дают значения ~10^7 единиц.
     /// </summary>
     private const double MaxReasonableOleDimension = 1e8;
 
     /// <summary>
-    /// ������������ ������ ����� ����������� ��� ����������� � OLE (5 ��).
-    /// ������� ����� ����������� ��� RasterImage �� ��������� ��������� Clipboard.
+    /// Максимальный размер файла изображения для встраивания в OLE (5 МБ).
+    /// Большие файлы не копируются для RasterImage из-за ограничений Clipboard.
     /// </summary>
     private const long MaxOleFileSizeBytes = 5L * 1024 * 1024;
 
@@ -113,7 +113,7 @@ internal static class ViewportLayoutExporter
 
         if (tempDoc is null)
         {
-            log.Warn($"Ме удалось открыть временный файл для OLE-встраивания: {tempPath}");
+            log.Warn($"Не удалось открыть временный файл для OLE-встраивания: {tempPath}");
             return;
         }
 
@@ -399,11 +399,11 @@ internal static class ViewportLayoutExporter
         try
         {
             HashSet<ObjectId> snapshotBefore = GetModelSpaceSnapshot(db);
-            log.Info($"OLE в�?тавка: до в�?тавки объектов в MS: {snapshotBefore.Count}, точка {targetBounds.MinPoint}, файл {Path.GetFileName(path)}");
+            log.Info($"OLE вставка: до вставки объектов в MS: {snapshotBefore.Count}, точка {targetBounds.MinPoint}, файл {Path.GetFileName(path)}");
 
             if (!TryCopyImageToClipboard(path, log))
             {
-                log.Warn($"Ме удалось поместить изображение в Clipboard: {path}");
+                log.Warn($"Не удалось поместить изображение в Clipboard: {path}");
                 return;
             }
 
@@ -421,7 +421,7 @@ internal static class ViewportLayoutExporter
             using Transaction tr = db.TransactionManager.StartTransaction();
             if (tr.GetObject(oleId, OpenMode.ForWrite) is not Ole2Frame ole)
             {
-                log.Warn($"Майденный объект не является Ole2Frame: тип={oleId.ObjectClass.DxfName}");
+                log.Warn($"Найденный объект не является Ole2Frame: тип={oleId.ObjectClass.DxfName}");
                 tr.Commit();
                 return;
             }
@@ -442,7 +442,7 @@ internal static class ViewportLayoutExporter
         }
         catch (System.Exception ex)
         {
-            log.Warn(ex, $"Ошибка при в�?траивании OLE: {path}");
+            log.Warn(ex, $"Ошибка при встраивании OLE: {path}");
         }
     }
 
@@ -456,7 +456,7 @@ internal static class ViewportLayoutExporter
         }
         catch (System.Exception ex)
         {
-            log.Warn(ex, $"Ме удалось скопировать изображение в Clipboard: {path}");
+            log.Warn(ex, $"Не удалось скопировать изображение в Clipboard: {path}");
             return false;
         }
     }
@@ -606,7 +606,7 @@ internal static class ViewportLayoutExporter
         Extents3d? currentBounds = ole.Bounds;
         if (!currentBounds.HasValue)
         {
-            log.Warn("Ме удалось выровнять OLE: Bounds отсутствуют.");
+            log.Warn("Не удалось выровнять OLE: Bounds отсутствуют.");
             return;
         }
 
