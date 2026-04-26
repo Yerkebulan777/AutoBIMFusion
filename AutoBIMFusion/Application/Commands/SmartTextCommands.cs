@@ -10,7 +10,7 @@ namespace AutoBIMFusion.Application.Commands;
 [SupportedOSPlatform("Windows")]
 public sealed class SmartTextCommands
 {
-    private const double WordWidthFactor = 1.5; // Коэффициент допуска по ширине текста
+    private const double WordWidthFactor = 1.50; // Коэффициент допуска по ширине текста
     private const double LineHeightFactor = 2.0; // Увеличено для объединения многострочных текстов
 
     [CommandMethod("SMART_MERGE_TEXT")]
