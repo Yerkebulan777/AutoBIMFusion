@@ -43,6 +43,8 @@ internal static class ViewportLayoutExporter
     /// </summary>
     private const long MaxOleFileSizeBytes = 5L * 1024 * 1024;
 
+    private const double TargetScale = 0.01; // 1:100 — эталонный масштаб слияния
+
     public static async Task<string> ExportToTempAsync(string sourceFilePath, string fileName, OperationLogger log)
     {
         ArgumentNullException.ThrowIfNull(sourceFilePath);
@@ -174,8 +176,11 @@ internal static class ViewportLayoutExporter
         log.Info($"Выбранный метод масштабирования: ProcessMultiVp ({vps.Count} viewport'ов)");
 
         LayoutViewportInfo mainOriginal = LayoutViewportInfo.PickMainViewport(vps);
-        LayoutViewportInfo mainClamped = mainOriginal;
-        double clampRatio = 1.0;
+        bool needsNorm = mainOriginal.CustomScale > TargetScale;
+        LayoutViewportInfo mainClamped = needsNorm
+            ? mainOriginal with { CustomScale = TargetScale }
+            : mainOriginal;
+        double clampRatio = needsNorm ? TargetScale / mainOriginal.CustomScale : 1.0;
 
         log.Info(
             $"VP main#{mainOriginal.Number}: исходный scale={mainOriginal.CustomScale:F6}, " +
@@ -210,7 +215,7 @@ internal static class ViewportLayoutExporter
         }
 
 
-        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainOriginal, log), log);
+        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainClamped, log), log);
     }
 
     /// <summary>
@@ -220,15 +225,18 @@ internal static class ViewportLayoutExporter
     {
         log.Info($"Выбранный метод масштабирования: ProcessSingleVp (VP #{vp.Number})");
 
-        LayoutViewportInfo clamped = vp;
-        double clampRatio = 1.0;
+        bool needsNorm = vp.CustomScale > TargetScale;
+        LayoutViewportInfo clamped = needsNorm
+            ? vp with { CustomScale = TargetScale }
+            : vp;
+        double clampRatio = needsNorm ? TargetScale / vp.CustomScale : 1.0;
 
         log.Info(
             $"VP #{vp.Number}: исходный scale={vp.CustomScale:F6}, рабочий scale={clamped.CustomScale:F6}, " +
             $"clampRatio={clampRatio:F6}, центр={ExtentsUtils.FormatPoint(clamped.ViewCenter)}");
 
 
-        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(vp, log), log);
+        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(clamped, log), log);
     }
 
     /// <summary>
@@ -236,7 +244,7 @@ internal static class ViewportLayoutExporter
     /// </summary>
     private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessNoVp(Database db, string layoutName, OperationLogger log)
     {
-        log.Info($"Выбранный метод масштабирования: ProcessNoVp (масштаб по умолчанию 1:1)");
+        log.Info($"Выбранный метод масштабирования: ProcessNoVp (масштаб по умолчанию 1:100)");
 
         ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
 
@@ -254,12 +262,12 @@ internal static class ViewportLayoutExporter
 
         Point3d minPt = paperBounds.Value.MinPoint;
         Matrix3d moveToOrigin = Matrix3d.Displacement(Point3d.Origin - minPt);
-        Matrix3d scale = Matrix3d.Scaling(1.0, Point3d.Origin);
+        Matrix3d scale = Matrix3d.Scaling(1.0 / TargetScale, Point3d.Origin);
         Matrix3d matrix = scale * moveToOrigin;
 
         log.Info(
             $"ProcessNoVp: paper bounds={ExtentsUtils.FormatExtents(paperBounds.Value)}, " +
-            $"ratio=1.00");
+            $"ratio={1.0 / TargetScale:F2}");
 
         return MovePaperToModelSpace(db, layoutName, matrix, log, "paper-no-vp");
     }
