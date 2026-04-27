@@ -13,7 +13,7 @@ public sealed class TextStyleCommands
     private const double NumericTolerance = 0.0001;
 
     [CommandMethod("MergeTextStyles")]
-    public void MergeTextStyles()
+    public static void MergeTextStyles()
     {
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));

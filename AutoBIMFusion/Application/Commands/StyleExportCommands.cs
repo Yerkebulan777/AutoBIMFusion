@@ -11,7 +11,7 @@ namespace AutoBIMFusion.Application.Commands;
 public class StyleExportCommands
 {
     [CommandMethod("ExportTextStylesToMd", CommandFlags.Modal)]
-    public void ExportTextStyles()
+    public static void ExportTextStyles()
     {
         Document doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
@@ -27,7 +27,7 @@ public class StyleExportCommands
     }
 
     [CommandMethod("ExportDimStylesToMd", CommandFlags.Modal)]
-    public void ExportDimStyles()
+    public static void ExportDimStyles()
     {
         Document doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
