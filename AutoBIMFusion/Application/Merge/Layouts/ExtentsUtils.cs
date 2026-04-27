@@ -14,15 +14,17 @@ internal static class ExtentsUtils
     /// <returns>Объединённые габариты или null, если коллекция пуста.</returns>
     internal static Extents3d? GetExtents(IEnumerable<Entity> entities)
     {
-        var entityList = entities.ToList();
+        List<Entity> entityList = entities.ToList();
         if (entityList.Count == 0)
+        {
             return null;
+        }
 
         Extents3d result = TryGetExtents(entityList[0]) ?? new Extents3d();
 
-        foreach (var ent in entityList.Skip(1))
+        foreach (Entity? ent in entityList.Skip(1))
         {
-            var ext = TryGetExtents(ent);
+            Extents3d? ext = TryGetExtents(ent);
             if (ext.HasValue)
             {
                 result.AddExtents(ext.Value);
@@ -57,7 +59,7 @@ internal static class ExtentsUtils
     /// <returns>Центральная точка.</returns>
     internal static Point3d GetCenter(Extents3d extents)
     {
-        return Point3d.Origin + 0.5 * (extents.MinPoint.GetAsVector() + extents.MaxPoint.GetAsVector());
+        return Point3d.Origin + (0.5 * (extents.MinPoint.GetAsVector() + extents.MaxPoint.GetAsVector()));
     }
 
     /// <summary>
@@ -67,7 +69,7 @@ internal static class ExtentsUtils
     /// <returns>Центральная точка.</returns>
     internal static Point2d GetCenter(Extents2d extents)
     {
-        return Point2d.Origin + 0.5 * (extents.MinPoint.GetAsVector() + extents.MaxPoint.GetAsVector());
+        return Point2d.Origin + (0.5 * (extents.MinPoint.GetAsVector() + extents.MaxPoint.GetAsVector()));
     }
 
     /// <summary>
@@ -78,10 +80,10 @@ internal static class ExtentsUtils
     /// <returns>Масштабированные габариты.</returns>
     internal static Extents3d Expand(Extents3d extents, double factor)
     {
-        var center = GetCenter(extents);
+        Point3d center = GetCenter(extents);
         return new Extents3d(
-            center + factor * (extents.MinPoint - center),
-            center + factor * (extents.MaxPoint - center));
+            center + (factor * (extents.MinPoint - center)),
+            center + (factor * (extents.MaxPoint - center)));
     }
 
     /// <summary>
@@ -92,7 +94,7 @@ internal static class ExtentsUtils
     /// <returns>Габариты.</returns>
     internal static Extents3d Expand(Point3d center, double size)
     {
-        var move = new Vector3d(size / 2, size / 2, size / 2);
+        Vector3d move = new(size / 2, size / 2, size / 2);
         return new Extents3d(center - move, center + move);
     }
 
@@ -104,10 +106,10 @@ internal static class ExtentsUtils
     /// <returns>Масштабированные габариты.</returns>
     internal static Extents2d Expand(Extents2d extents, double factor)
     {
-        var center = GetCenter(extents);
+        Point2d center = GetCenter(extents);
         return new Extents2d(
-            center + factor * (extents.MinPoint - center),
-            center + factor * (extents.MaxPoint - center));
+            center + (factor * (extents.MinPoint - center)),
+            center + (factor * (extents.MaxPoint - center)));
     }
 
     /// <summary>
@@ -118,7 +120,7 @@ internal static class ExtentsUtils
     /// <returns>Габариты.</returns>
     internal static Extents2d Expand(Point2d center, double size)
     {
-        var move = new Vector2d(size / 2, size / 2);
+        Vector2d move = new(size / 2, size / 2);
         return new Extents2d(center - move, center + move);
     }
 
@@ -190,12 +192,12 @@ internal static class ExtentsUtils
     /// <returns>Объединённые габариты.</returns>
     internal static Extents3d Union(Extents3d a, Extents3d b)
     {
-        var min = new Point3d(
+        Point3d min = new(
             Math.Min(a.MinPoint.X, b.MinPoint.X),
             Math.Min(a.MinPoint.Y, b.MinPoint.Y),
             Math.Min(a.MinPoint.Z, b.MinPoint.Z));
 
-        var max = new Point3d(
+        Point3d max = new(
             Math.Max(a.MaxPoint.X, b.MaxPoint.X),
             Math.Max(a.MaxPoint.Y, b.MaxPoint.Y),
             Math.Max(a.MaxPoint.Z, b.MaxPoint.Z));
@@ -245,8 +247,8 @@ internal static class ExtentsUtils
         y ??= p => p.Y;
         z ??= p => 0;
 
-        var minPoint = new Point3d(x(extents.MinPoint), y(extents.MinPoint), z(extents.MinPoint));
-        var maxPoint = new Point3d(x(extents.MaxPoint), y(extents.MaxPoint), z(extents.MaxPoint));
+        Point3d minPoint = new(x(extents.MinPoint), y(extents.MinPoint), z(extents.MinPoint));
+        Point3d maxPoint = new(x(extents.MaxPoint), y(extents.MaxPoint), z(extents.MaxPoint));
         return new Extents3d(minPoint, maxPoint);
     }
 
@@ -286,10 +288,7 @@ internal static class ExtentsUtils
             Point3d max = db.Extmax;
 
             // В AutoCAD, если база пуста, Extmin > Extmax
-            if (min.X > max.X || min.Y > max.Y || min.Z > max.Z)
-                return null;
-
-            return new Extents3d(min, max);
+            return min.X > max.X || min.Y > max.Y || min.Z > max.Z ? null : new Extents3d(min, max);
         }
         catch (Autodesk.AutoCAD.Runtime.Exception)
         {
@@ -305,24 +304,24 @@ internal static class ExtentsUtils
     /// <returns>Новые габариты.</returns>
     internal static Extents3d Transform(Extents3d ext, Matrix3d mat)
     {
-        var corners = new Point3d[]
+        Point3d[] corners = new Point3d[]
         {
             ext.MinPoint,
-            new Point3d(ext.MinPoint.X, ext.MaxPoint.Y, ext.MinPoint.Z),
-            new Point3d(ext.MaxPoint.X, ext.MaxPoint.Y, ext.MinPoint.Z),
-            new Point3d(ext.MaxPoint.X, ext.MinPoint.Y, ext.MinPoint.Z),
+            new(ext.MinPoint.X, ext.MaxPoint.Y, ext.MinPoint.Z),
+            new(ext.MaxPoint.X, ext.MaxPoint.Y, ext.MinPoint.Z),
+            new(ext.MaxPoint.X, ext.MinPoint.Y, ext.MinPoint.Z),
             ext.MaxPoint,
-            new Point3d(ext.MinPoint.X, ext.MaxPoint.Y, ext.MaxPoint.Z),
-            new Point3d(ext.MaxPoint.X, ext.MinPoint.Y, ext.MaxPoint.Z),
-            new Point3d(ext.MinPoint.X, ext.MinPoint.Y, ext.MaxPoint.Z)
+            new(ext.MinPoint.X, ext.MaxPoint.Y, ext.MaxPoint.Z),
+            new(ext.MaxPoint.X, ext.MinPoint.Y, ext.MaxPoint.Z),
+            new(ext.MinPoint.X, ext.MinPoint.Y, ext.MaxPoint.Z)
         };
 
-        var transformedCorners = corners.Select(p => p.TransformBy(mat)).ToList();
-        var min = new Point3d(
+        List<Point3d> transformedCorners = corners.Select(p => p.TransformBy(mat)).ToList();
+        Point3d min = new(
             transformedCorners.Min(p => p.X),
             transformedCorners.Min(p => p.Y),
             transformedCorners.Min(p => p.Z));
-        var max = new Point3d(
+        Point3d max = new(
             transformedCorners.Max(p => p.X),
             transformedCorners.Max(p => p.Y),
             transformedCorners.Max(p => p.Z));
@@ -337,7 +336,7 @@ internal static class ExtentsUtils
     /// <returns>Габариты 2D или null.</returns>
     internal static Extents2d? GetExtents2d(IEnumerable<Entity> entities)
     {
-        var ext3d = GetExtents(entities);
+        Extents3d? ext3d = GetExtents(entities);
         return ext3d.HasValue ? ToExtents2d(ext3d.Value) : null;
     }
 
