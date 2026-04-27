@@ -3,18 +3,10 @@ using System.Reflection;
 
 namespace AutoBIMFusion.Application.Utils;
 
-/// <summary>
-/// Общий утилитарный класс для экспорта данных AutoCAD в файлы.
-/// Выполняет всю "грязную" работу, исключая дублирование кода.
-/// </summary>
 public static class StyleExportUtils
 {
-    /// <summary>
-    /// Универсальный метод для выгрузки любой SymbolTable (таблицы стилей/слоев) в Markdown.
-    /// </summary>
     public static void ExportSymbolTableToMd(Database db, ObjectId tableId, string fileName, string title, string itemLabel, Editor ed)
     {
-        // Формируем путь к рабочему столу
         string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         string filePath = Path.Combine(desktopPath, fileName);
 
@@ -35,7 +27,6 @@ public static class StyleExportUtils
         {
             using (Transaction tr = db.TransactionManager.StartTransaction())
             {
-                // Открываем переданную таблицу как общую SymbolTable
                 SymbolTable symTable = (SymbolTable)tr.GetObject(tableId, OpenMode.ForRead);
 
                 using (StreamWriter writer = new(filePath))
@@ -43,15 +34,12 @@ public static class StyleExportUtils
                     writer.WriteLine($"# {title}");
                     writer.WriteLine($"**Дата выгрузки:** {DateTime.Now}\n");
 
-                    // Перебираем все записи в таблице
                     foreach (ObjectId id in symTable)
                     {
-                        // Читаем запись как общую SymbolTableRecord
                         SymbolTableRecord record = (SymbolTableRecord)tr.GetObject(id, OpenMode.ForRead);
 
                         writer.WriteLine($"## {itemLabel}: `{record.Name}`");
 
-                        // Выгружаем свойства с помощью рефлексии
                         DumpProperties(record, writer);
 
                         writer.WriteLine("---\n");
@@ -69,9 +57,6 @@ public static class StyleExportUtils
         }
     }
 
-    /// <summary>
-    /// Извлекает все свойства объекта и пишет их в формате Markdown-таблицы.
-    /// </summary>
     private static void DumpProperties(object obj, StreamWriter writer)
     {
         PropertyInfo[] props = obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
@@ -86,11 +71,9 @@ public static class StyleExportUtils
                 object? value = prop.GetValue(obj, null);
                 string strVal = value?.ToString() ?? "null";
 
-                // Экранируем символ `|` и убираем переносы строк `\n`, 
-                // чтобы не сломать форматирование таблицы в Markdown.
+                // Экранируем | и \n чтобы не сломать Markdown-таблицу.
                 strVal = strVal.Replace("|", "\\|").Replace("\r", "").Replace("\n", " ");
 
-                // Получаем display name из атрибута DisplayNameAttribute
                 string displayName = GetPropertyDisplayName(prop);
 
                 writer.WriteLine($"| {displayName} | {strVal} |");
@@ -102,9 +85,6 @@ public static class StyleExportUtils
         }
     }
 
-    /// <summary>
-    /// Получает display name свойства из атрибута или возвращает имя свойства.
-    /// </summary>
     private static string GetPropertyDisplayName(PropertyInfo prop)
     {
         DisplayNameAttribute? displayNameAttr = prop.GetCustomAttribute<DisplayNameAttribute>();

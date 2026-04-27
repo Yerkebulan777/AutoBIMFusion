@@ -5,10 +5,7 @@ using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Application.Commands;
 
-/// <summary>
-/// Класс с командами AutoCAD для экспорта таблиц стилей.
-/// </summary>
-public class StyleExportCommands
+public sealed class StyleExportCommands
 {
     [CommandMethod("ExportTextStylesToMd", CommandFlags.Modal)]
     public static void ExportTextStyles()
@@ -18,7 +15,6 @@ public class StyleExportCommands
 
         string dwgName = Path.GetFileNameWithoutExtension(doc.Name);
 
-        // Вызываем утилиту, передавая ей ID таблицы текстовых стилей и настройки отчета
         StyleExportUtils.ExportSymbolTableToMd(
             doc.Database,
             doc.Database.TextStyleTableId,
@@ -36,7 +32,6 @@ public class StyleExportCommands
 
         string dwgName = Path.GetFileNameWithoutExtension(doc.Name);
 
-        // Вызываем ту же утилиту, но передаем ID таблицы размерных стилей
         StyleExportUtils.ExportSymbolTableToMd(
             doc.Database,
             doc.Database.DimStyleTableId,

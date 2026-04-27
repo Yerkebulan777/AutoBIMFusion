@@ -162,16 +162,7 @@ public sealed class SmartTextCommands
         return result;
     }
 
-    /// <summary>
-    /// Алгоритм группировки текстов в логические абзацы (предложения).
-    /// 1. Первичный фильтр: объединяет тексты с одинаковым стилем и углом поворота.
-    /// 2. Геометрический поиск (O(N log N) благодаря сортировке):
-    ///    Тексты сортируются по перпендикуляру (условно координата Y относительно угла поворота).
-    ///    Для каждого текста ищутся соседи, которые удовлетворяют двум условиям (AreTextsClose):
-    ///    - Находятся по вертикали на одной строке или на соседних строках (допуск LineHeightFactor).
-    ///    - Находятся по горизонтали достаточно близко (допуск зависит от ширины текста, WordWidthFactor).
-    ///    - При этом высота текстов не должна различаться более чем на 15%.
-    /// </summary>
+    // Группировка: сначала по стилю+ротации, затем O(N log N) поиск соседей: dy ≤ Height×LineHeightFactor, gap ≤ Width×WordWidthFactor, ΔHeight ≤ 10%.
     private static List<List<TextElement>> SmartGroupText(List<TextElement> texts)
     {
         List<List<TextElement>> groups = [];
@@ -191,8 +182,6 @@ public sealed class SmartTextCommands
             double cosA = Math.Cos(rotation);
             double sinA = Math.Sin(rotation);
 
-            // Сортируем кандидатов по координате перпендикулярной строке (условно "Y" строки)
-            // Это позволит нам сравнивать текст только с соседями по вертикали.
             var sortedCandidates = candidates
                 .Select(t => new { Text = t, Perp = (-t.Position.X * sinA) + (t.Position.Y * cosA) })
                 .OrderBy(item => item.Perp)
@@ -264,17 +253,12 @@ public sealed class SmartTextCommands
         return groups;
     }
 
-    /// <summary>
-    /// Группирует тексты по строкам и сортирует каждую строку слева направо.
-    /// Возвращает объединенный текст с разделителями строк \P и левый верхний элемент для позиционирования.
-    /// </summary>
     private static (string CombinedString, TextElement TopLeftElement) CombineGroupText(List<TextElement> group)
     {
         double rotation = group[0].Rotation;
         double cosA = Math.Cos(rotation);
         double sinA = Math.Sin(rotation);
 
-        // Сортировка сверху вниз (Perp по убыванию)
         List<TextElement> perpSorted = group
             .OrderByDescending(t => (-t.Position.X * sinA) + (t.Position.Y * cosA))
             .ToList();
@@ -283,7 +267,7 @@ public sealed class SmartTextCommands
         List<TextElement> currentLine = [];
 
         double currentLinePerp = (-perpSorted[0].Position.X * sinA) + (perpSorted[0].Position.Y * cosA);
-        double lineThreshold = perpSorted[0].Height * 0.5; // Порог для объединения текстов в одну строку
+        double lineThreshold = perpSorted[0].Height * 0.5;
 
         foreach (TextElement? t in perpSorted)
         {
@@ -309,7 +293,6 @@ public sealed class SmartTextCommands
 
         foreach (List<TextElement> line in lines)
         {
-            // Сортировка слева направо (Parallel по возрастанию)
             List<TextElement> sortedLine = line.OrderBy(t => (t.Position.X * cosA) + (t.Position.Y * sinA)).ToList();
 
             if (topLeftElement == null)
@@ -323,30 +306,14 @@ public sealed class SmartTextCommands
         return (string.Join("\\P", combinedLines), topLeftElement!);
     }
 
-    /// <summary>
-    /// Проверяет, можно ли объединить два текстовых элемента в один абзац (группу).
-    /// 
-    /// Логика проверок:
-    /// 1. Вертикальный зазор (dy): проекция на перпендикулярную ось (относительно угла текста)
-    ///    не должна превышать (максимальная высота * LineHeightFactor). Это позволяет объединять
-    ///    соседние строки многострочного текста.
-    /// 
-    /// 2. Горизонтальный зазор (gap): вычисляются чистые границы (Left, Right) обоих текстов
-    ///    на их параллельной оси (ось направления текста). Если тексты пересекаются, gap = 0.
-    ///    Если между ними есть просвет, gap будет равен физическому расстоянию между краями.
-    ///    Зазор не должен превышать (максимальная ширина текста * WordWidthFactor).
-    ///    Для защиты сверхкоротких слов (например "и", "в") минимальный допуск равен 2.5 высотам текста.
-    /// </summary>
+    // dy ≤ maxHeight×LineHeightFactor; gap ≤ maxWidth×WordWidthFactor (min 2.5×height для коротких слов).
     private static bool AreTextsClose(TextElement current, TextElement other)
     {
         double baseHeight = Math.Max(current.Height, other.Height);
 
-        // Проецируем позиции на направление текстовой строки и перпендикуляр к ней
         double rotation = current.Rotation;
         double cosA = Math.Cos(rotation);
         double sinA = Math.Sin(rotation);
-        _ = (current.Position.X * cosA) + (current.Position.Y * sinA);
-        _ = (other.Position.X * cosA) + (other.Position.Y * sinA);
 
         double curPerp = (-current.Position.X * sinA) + (current.Position.Y * cosA);
         double othPerp = (-other.Position.X * sinA) + (other.Position.Y * cosA);

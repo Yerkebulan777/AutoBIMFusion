@@ -15,7 +15,7 @@ public sealed class JoinCommands
     private const int OffDecimals = 4;
 
     [CommandMethod("JOIN_LINES")]
-    public void JoinLinesCommand()
+    public static void JoinLinesCommand()
     {
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));

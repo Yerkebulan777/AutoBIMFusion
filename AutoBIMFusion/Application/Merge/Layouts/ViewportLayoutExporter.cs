@@ -63,7 +63,6 @@ internal static class ViewportLayoutExporter
                 return string.Empty;
             }
 
-            // Вся логика работы с БД теперь в Side-Database.
             List<LayoutViewportInfo> vps = ViewportCollector.Collect(db, layoutName);
             log.Info($"VP: найдено {vps.Count}");
 
