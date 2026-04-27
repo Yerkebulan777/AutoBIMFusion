@@ -136,6 +136,27 @@ internal static class ExtentsUtils
     }
 
     /// <summary>
+    /// Проверяет, находится ли базовая точка сущности (Position/Location) внутри габаритов.
+    /// Поддерживает DBText, MText, BlockReference, DBPoint.
+    /// </summary>
+    /// <param name="ent">Сущность.</param>
+    /// <param name="bounds">Габариты.</param>
+    /// <returns>True, если точка сущности внутри; иначе false.</returns>
+    internal static bool IsEntityPointIn(Entity ent, Extents3d bounds)
+    {
+        Point3d? p = ent switch
+        {
+            MText m => m.Location,
+            DBText t => t.Position,
+            BlockReference br => br.Position,
+            DBPoint dbPoint => dbPoint.Position,
+            _ => null
+        };
+
+        return p.HasValue && IsPointIn(bounds, p.Value);
+    }
+
+    /// <summary>
     /// Проверяет, находится ли точка внутри габаритов 2D (включая границы).
     /// </summary>
     /// <param name="extents">Габариты.</param>

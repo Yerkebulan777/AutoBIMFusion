@@ -83,7 +83,7 @@
 | **Application/Merge** | Модели данных: `MergeResult`, `MergeStatistics`. |
 | **Application/Ribbon** | Создание вкладки на ленте AutoCAD. |
 | **Application/Utils** | Вспомогательные утилиты: `FileEnumerator`, `FileHelper`, `LayoutUtil`, `FolderSelector`, `WindowsNaturalComparer`. |
-| **Application/Merge/Layouts** | Геометрические утилиты: `GeometryUtils` (форматирование, AABB-пересечения, безопасное чтение `GeometricExtents`). |
+| **Application/Merge/Layouts** | Геометрические утилиты: `ExtentsUtils` (форматирование, AABB-пересечения, безопасное чтение `GeometricExtents`). |
 | **Infrastructure/Logging** | Логирование операций через `OperationLogger`. |
 
 Полное и актуализированное описание архитектуры, моделей данных, конфигурации окружений, обработки ошибок, логирования и процесса контрибьютинга доступно в технической документации: [AutoBIMFusion/docs/TECHNICAL_DOCUMENTATION.md](AutoBIMFusion/docs/TECHNICAL_DOCUMENTATION.md).
@@ -95,7 +95,7 @@
 - **Прямолинейность (Flatter Architecture):** Избегание излишних слоёв абстракций, обёрток и глубокой вложенности. Использование прямых вызовов методов вместо создания промежуточных классов.
 - **Явные проверки (Explicit Validation):** Использование `ArgumentNullException.ThrowIfNull` для валидации аргументов.
 - **Отсутствие локальных функций:** Предпочтение отдаётся обычным методам или линейному коду без вложенных методов (local functions).
-- **Локализация утилит:** Специализированные утилиты выделены в отдельные классы: геометрия — `GeometryUtils`, файлы — `FileHelper`.
+- **Локализация утилит:** Специализированные утилиты выделены в отдельные классы: геометрия — `ExtentsUtils`, файлы — `FileHelper`.
 
 ---
 

@@ -92,7 +92,7 @@ internal static class ModelSpaceTrimmer
             // Оптимизация: для простых точечных объектов (Text, Point, BlockReference)
             // проверяем их базовую точку. Если она ВНУТРИ frameBounds, то объект точно пересекается/внутри,
             // и мы можем пропустить дорогой вызов GeometricExtents.
-            if (IsPointInsideBounds(ent, frameBounds))
+            if (ExtentsUtils.IsEntityPointIn(ent, frameBounds))
             {
                 inside++;
                 continue;
@@ -126,25 +126,5 @@ internal static class ModelSpaceTrimmer
         return erased;
     }
 
-    private static bool IsPointInsideBounds(Entity ent, Extents3d bounds)
-    {
-        Point3d? p = ent switch
-        {
-            MText m => m.Location,
-            DBText t => t.Position,
-            BlockReference br => br.Position,
-            DBPoint dbPoint => dbPoint.Position,
-            _ => null
-        };
-
-        if (!p.HasValue)
-        {
-            return false;
-        }
-
-        Point3d point = p.Value;
-        return point.X >= bounds.MinPoint.X && point.X <= bounds.MaxPoint.X &&
-               point.Y >= bounds.MinPoint.Y && point.Y <= bounds.MaxPoint.Y;
-    }
 
 }

@@ -59,7 +59,7 @@ AutoBIMFusion/
 │   │       ├── ViewportTransformer.cs
 │   │       ├── ModelSpaceTrimmer.cs
 │   │       ├── DrawOrderPreserver.cs
-│   │       ├── GeometryUtils.cs
+│   │       ├── ExtentsUtils.cs
 │   │       └── LayoutViewportInfo.cs
 │   ├── Ribbon/                         # UI-интеграция в ленту AutoCAD
 │   │   ├── RibbonBuilder.cs
