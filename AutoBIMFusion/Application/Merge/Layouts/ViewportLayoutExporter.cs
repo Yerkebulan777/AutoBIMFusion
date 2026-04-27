@@ -1,7 +1,8 @@
-using AutoBIMFusion.Application.AcadSupport;
+﻿using AutoBIMFusion.Application.AcadSupport;
 using AutoBIMFusion.Application.Utils;
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
+using System.Runtime.Versioning;
 using System.Windows.Forms;
 
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
@@ -9,7 +10,7 @@ using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 namespace AutoBIMFusion.Application.Merge.Layouts;
 
 /// <summary>
-/// Viewport экспорт листа в плоский Model Space временного DWG.
+/// Экспорт листа с viewport в плоский Model Space временного DWG.
 /// Заменяет EXPORTLAYOUT для случаев, когда на листе присутствуют видовые экраны:
 /// главный VP становится «линейкой» масштаба, вспомогательные (узлы) переносятся
 /// матрицей трансформации, paper-содержимое уходит в Model Space через главный VP.
@@ -23,17 +24,17 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 ///    их не захватывает.
 /// 3. При зажиме масштаба main VP (например, 1:1 -> 1:100) все model-объекты
 ///    масштабируются общим коэффициентом clampRatio, чтобы соответствовать
-///    масштабу переносимого paper-содержимого.
+///    масштаб переноса paper-содержимого.
 /// 4. Paper-содержимое (рамка, штамп) переносится в Model Space через главный VP.
 /// 5. TrimOutside удаляет всё за пределами frameBounds как вторичная защита.
 /// </summary>
+[SupportedOSPlatform ("windows")]
 internal static class ViewportLayoutExporter
 {
     private const double MaxScaleMultiplier = 100.0;
 
-
     /// <summary>
-    /// Максимальный "разумный" линейный размер свежевставленного Ole2Frame (в единицах чертежа).
+    /// Максимальный "разумный" линейный размер Ole2Frame (в единицах чертежа).
     /// Если AutoCAD сразу после PASTECLIP сообщает Bounds больше этого значения — считаем их
     /// некорректными и пропускаем путь WcsWidth/Height, сразу задавая геометрию через Position3d.
     /// Диапазон выбран с запасом: реальные листы редко превышают ~10^7 единиц.
@@ -202,14 +203,14 @@ internal static class ViewportLayoutExporter
         if (clampRatio > 1.0 + 1e-9)
         {
             log.Info(
-                $"VP main#{mainOriginal.Number}: ��������� ��������������� Model Space, " +
+                $"VP main#{mainOriginal.Number}: запускаем масштабирование Model Space, " +
                 $"ratio={clampRatio:F6}, center={GeometryUtils.FormatPoint(mainOriginal.ViewCenter)}");
             Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, mainOriginal.ViewCenter);
             ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
         }
         else
         {
-            log.Debug($"VP main#{mainOriginal.Number}: ��������������� Model Space �� ��������� (clampRatio={clampRatio:F6})");
+            log.Debug($"VP main#{mainOriginal.Number}: масштабирование Model Space не требуется (clampRatio={clampRatio:F6})");
         }
 
         return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainClamped, log), log);
@@ -224,19 +225,19 @@ internal static class ViewportLayoutExporter
 
         double clampRatio = vp.CustomScale / clamped.CustomScale;
         log.Info(
-            $"VP #{vp.Number}: �������� scale={vp.CustomScale:F6}, ������� scale={clamped.CustomScale:F6}, " +
-            $"clampRatio={clampRatio:F6}, �����={GeometryUtils.FormatPoint(clamped.ViewCenter)}");
+            $"VP #{vp.Number}: исходный scale={vp.CustomScale:F6}, рабочий scale={clamped.CustomScale:F6}, " +
+            $"clampRatio={clampRatio:F6}, центр={GeometryUtils.FormatPoint(clamped.ViewCenter)}");
         if (clampRatio > 1.0 + 1e-9)
         {
             log.Info(
-                $"VP #{vp.Number}: ��������� ��������������� Model Space, " +
+                $"VP #{vp.Number}: запускаем масштабирование Model Space, " +
                 $"ratio={clampRatio:F6}, center={GeometryUtils.FormatPoint(clamped.ViewCenter)}");
             Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, clamped.ViewCenter);
             ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
         }
         else
         {
-            log.Debug($"VP #{vp.Number}: ��������������� Model Space �� ��������� (clampRatio={clampRatio:F6})");
+            log.Debug($"VP #{vp.Number}: масштабирование Model Space не требуется (clampRatio={clampRatio:F6})");
         }
 
         return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(clamped, log), log);
@@ -261,7 +262,7 @@ internal static class ViewportLayoutExporter
     }
 
     /// <summary>
-    /// Нет VP: масштабирует и переносит Paper-содержимое в Model Space с масштабом 1:MaxScaleMultiplier.
+    /// Нет VP: масштабирует и переносит paper-содержимое в Model Space с масштабом 1:MaxScaleMultiplier.
     /// </summary>
     private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessNoVp(Database db, string layoutName, OperationLogger log)
     {
@@ -286,7 +287,7 @@ internal static class ViewportLayoutExporter
         Matrix3d scale = Matrix3d.Scaling(MaxScaleMultiplier, Point3d.Origin);
         Matrix3d matrix = scale * moveToOrigin;
         log.Info(
-            $"VP: no-vp ��������������� paper->model, ratio={MaxScaleMultiplier:F2}, " +
+            $"VP: no-vp масштабирование paper->model, ratio={MaxScaleMultiplier:F2}, " +
             $"bounds={GeometryUtils.FormatExtents(paperBounds.Value)}");
 
         return MovePaperToModelSpace(db, layoutName, matrix, log, "paper-no-vp");
@@ -414,8 +415,8 @@ internal static class ViewportLayoutExporter
         tr.Commit();
 
         log.Info(
-            $"EmbedRasterImages: total={totalImages}, skippedFromPaper={skippedFromPaperCount}, nullDef={nullDefCount}, " +
-            $"nullBounds={nullBoundsCount}, notFound={fileNotFoundCount}, tooLarge={tooLargeCount}, readyToConvert={result.Count}");
+            $"EmbedRasterImages: всего={totalImages}, пропущеноИзБуфера={skippedFromPaperCount}, nullDef={nullDefCount}, " +
+            $"nullBounds={nullBoundsCount}, неНайдено={fileNotFoundCount}, слишкомБольшой={tooLargeCount}, готовоККонвертации={result.Count}");
 
         return result;
     }

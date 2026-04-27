@@ -1,10 +1,12 @@
 using Autodesk.Windows;
+using System.Runtime.Versioning;
 
 namespace AutoBIMFusion.Application.Ribbon;
 
 /// <summary>
 /// Строит вкладку AutoBIMFusion на Ribbon AutoCAD.
 /// </summary>
+[SupportedOSPlatform("windows")]
 internal static class RibbonBuilder
 {
     public static void CreateTab()

@@ -1,4 +1,5 @@
 using Autodesk.Windows;
+using System.Runtime.Versioning;
 using System.Windows.Input;
 using App = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
@@ -7,6 +8,7 @@ namespace AutoBIMFusion.Application.Ribbon;
 /// <summary>
 /// Обработчик команд Ribbon кнопок AutoBIMFusion.
 /// </summary>
+[SupportedOSPlatform ("windows")]
 internal sealed class ButtonCommandHandler : ICommand
 {
 #pragma warning disable CS0067
