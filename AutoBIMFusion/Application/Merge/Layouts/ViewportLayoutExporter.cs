@@ -15,18 +15,77 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 /// отбор VP осуществляется по CoverageScore, вырезаются (копируются) объекты
 /// из Model Space, paper-содержимое переносится в Model Space вместо VP.
 ///
-/// Алгоритм (мульти-VP):
-/// 1. Выбор VP осуществляется по CoverageScore.
-/// 2. Для каждого aux VP: объекты из model-window копируются с трансформацией
-///    масштаба AuxModel/MainModel, обрезаются по границам VP,
-///    очищаются (EraseEntitiesOutsideMainWindow). Это нужно чтобы избежать
-///    наложения объектов, чтобы при frameBounds можно было без TrimOutside
-///    их использовать.
-/// 3. Для главного viewport main VP (например, 1:1 -> 1:100) model-объекты
-///    масштабируются через clampRatio, чтобы соответствовать
-///    размеру paper-содержимого.
-/// 4. Paper-содержимое (рамки, штампы) переносится в Model Space вместо VP.
-/// 5. TrimOutside очищает всё за границами frameBounds для финального файла.
+/// ─────────────────────────────────────────────────────────────────────────
+/// АЛГОРИТМ ПРОЕЦИРОВАНИЯ И МАСШТАБИРОВАНИЯ (multi-VP)
+/// ─────────────────────────────────────────────────────────────────────────
+/// Дано: layout с >=2 viewport'ами. У каждого VP свои CustomScale, ViewCenter,
+/// ViewTwist (поворот DCS), CenterPaper (центр VP на бумаге), ModelWindow
+/// (DCS-окно VP в координатах модели).
+///
+/// 1. ВЫБОР MAIN-VP. <see cref="LayoutViewportInfo.PickMainViewport"/> →
+///    VP с максимальным CoverageScore = площадь / scale. Это «контейнер»,
+///    в координаты которого будут приведены все вспомогательные узлы.
+///
+/// 2. ЗАЖИМ МАСШТАБА ДО ЭТАЛОНА. TargetScale = 0.01 (1:100). Если
+///    main.CustomScale &gt; TargetScale, формируем mainClamped с CustomScale =
+///    TargetScale и вычисляем clampRatio = TargetScale / mainOriginal.CustomScale.
+///    Иначе clampRatio = 1.0. Зачем: финальный сводный файл должен иметь
+///    предсказуемый эталонный масштаб 1:100; крупные виды «прижимаются».
+///
+/// 3. SNAPSHOT МОДЕЛИ. <see cref="ViewportTransformer.CollectModelEntitiesWithExtents"/>
+///    кэширует (ObjectId, Extents3d) всех entity Model Space (кроме Viewport).
+///    Используется на шагах 4a/4c для AABB-отбора и удаления «мусора».
+///
+/// 4. ПЕРЕНОС AUX → MAIN (в координатах ИСХОДНОГО main, не зажатого).
+///    Для каждого aux VP:
+///    a) m = <see cref="ViewportTransformer.BuildMatrix"/>(mainOriginal, aux):
+///       композиция t_main · r_main · s_main · t_paper · s_aux · r_aux · t_aux,
+///       где s_main = 1 / mainOriginal.CustomScale, s_aux = aux.CustomScale.
+///       КРИТИЧНО: используется mainOriginal.CustomScale, а НЕ mainClamped —
+///       иначе делитель 1/main.CustomScale окажется в clampRatio раз больше
+///       и aux-клоны «улетят» дальше + станут крупнее (баг ветки OldVersion).
+///    b) toClone = <see cref="ViewportTransformer.SelectModelInside"/>(snapshot,
+///       aux.ModelWindow) — AABB-пересечение entity с DCS-окном aux.
+///    c) <see cref="ViewportTransformer.DeepCloneAndTransform"/> — глубокое
+///       клонирование + TransformBy(m) каждому клону + EvaluateHatch(true)
+///       для не-ассоциативных штриховок (восстановление геометрии заливки).
+///    d) <see cref="ViewportTransformer.EraseEntitiesOutsideMainWindow"/> —
+///       оригиналы из aux-окна, попадающие ВНЕ главного окна, удаляются.
+///       Иначе они попадут в frameBounds и не уйдут в TrimOutside.
+///
+/// 5. МАСШТАБИРОВАНИЕ MODEL SPACE на clampRatio (★ ключевой шаг).
+///    После цикла aux всё содержимое MS (оригиналы main + клоны aux) ещё
+///    в ИСХОДНОМ масштабе. Чтобы оно совпало с paper, который дальше ляжет
+///    через mainClamped, весь MS масштабируется вокруг mainOriginal.ViewCenter:
+///       Matrix3d.Scaling(clampRatio, mainOriginal.ViewCenter)
+///    Через <see cref="ViewportTransformer.ScaleModelSpaceObjects"/>: пропускает
+///    Viewport и ассоциативные Hatch (они пересчитываются по контурам),
+///    вызывает EvaluateHatch на простых hatch.
+///    Если clampRatio == 1.0, шаг пропускается.
+///
+/// 6. ПЕРЕНОС PAPER → MODEL (в зажатом main).
+///    <see cref="ViewportTransformer.BuildPaperToMainMatrix"/>(mainClamped):
+///    t_main · r_main · s_main · t_paper, где s_main = 1/TargetScale = 100.
+///    Здесь УЖЕ используется mainClamped — после шага 5 MS живёт в зажатом
+///    масштабе. MovePaperToModelSpace клонирует paper-объекты в MS, очищает
+///    paper btr, возвращает (frameBounds, paperClonedIds).
+///
+/// 7. TRIM &amp; SAVE (ExportToTempAsync). <see cref="ModelSpaceTrimmer.TrimOutside"/>
+///    обрезает всё за пределами frameBounds → db.SaveAs(tempPath, AC1032).
+///
+/// ─────────────────────────────────────────────────────────────────────────
+/// АЛГОРИТМ (single-VP) — упрощённая версия без шага 4.
+/// ─────────────────────────────────────────────────────────────────────────
+/// 1. Зажим масштаба → clamped, clampRatio.
+/// 2. Масштабирование Model Space на clampRatio вокруг vp.ViewCenter
+///    (если clampRatio != 1.0).
+/// 3. Paper → Model через BuildPaperToMainMatrix(clamped).
+///
+/// ─────────────────────────────────────────────────────────────────────────
+/// АЛГОРИТМ (no-VP) — fallback при отсутствии viewport'ов.
+/// ─────────────────────────────────────────────────────────────────────────
+/// Paper-содержимое сдвигается к origin и масштабируется на 1/TargetScale (×100)
+/// вокруг origin, далее переносится в Model Space.
 /// </summary>
 [SupportedOSPlatform("Windows")]
 internal static class ViewportLayoutExporter
@@ -174,17 +233,17 @@ internal static class ViewportLayoutExporter
     }
 
     /// <summary>
-    /// Multi-VP: главный VP + aux (узлы).
+    /// Multi-VP: главный VP + aux (узлы). Полное описание алгоритма — в XML-doc класса.
     ///
-    /// Порядок операций и почему именно так:
-    /// 1. Берём mainOriginal (исходный масштаб) и mainClamped (зажатый до 1:MaxScaleMultiplier).
-    /// 2. Матрицы aux→main строим ПО mainOriginal. Если строить по mainClamped, то делитель
-    ///    1/main.CustomScale в BuildMatrix окажется в clampRatio раз больше → aux-клоны
-    ///    «улетают» в clampRatio раз дальше и крупнее. Это баг из ветки OldVersion.
-    /// 3. После клонирования aux весь Model Space масштабируется на clampRatio вокруг
-    ///    mainOriginal.ViewCenter (ApplyClampToModelSpace). Выравнивает оригиналы main
-    ///    и aux-клоны под масштаб paper-содержимого.
-    /// 4. Paper переносится через BuildPaperToMainMatrix(mainClamped).
+    /// Краткий порядок:
+    /// 1. mainOriginal (исходный) + mainClamped (зажатый до TargetScale) + clampRatio.
+    /// 2. Snapshot модели для AABB-отбора.
+    /// 3. Для каждого aux: BuildMatrix(mainOriginal, aux) → DeepCloneAndTransform →
+    ///    EraseEntitiesOutsideMainWindow. Матрицы строятся по mainOriginal (НЕ Clamped),
+    ///    иначе клоны «улетают» в clampRatio раз дальше — баг ветки OldVersion.
+    /// 4. ScaleModelSpaceObjects(clampRatio, mainOriginal.ViewCenter) — приводит весь
+    ///    Model Space (оригиналы main + клоны aux) к зажатому масштабу.
+    /// 5. MovePaperToModelSpace через BuildPaperToMainMatrix(mainClamped).
     /// </summary>
     private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessMultiVp(Database db, string layoutName, List<LayoutViewportInfo> vps, OperationLogger log)
     {
@@ -229,6 +288,14 @@ internal static class ViewportLayoutExporter
             }
         }
 
+        if (clampRatio != 1.0)
+        {
+            Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, mainOriginal.ViewCenter);
+            log.Info(
+                $"Применяем clampRatio={clampRatio:F6} к Model Space вокруг " +
+                $"{ExtentsUtils.FormatPoint(mainOriginal.ViewCenter)}");
+            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
+        }
 
         return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainClamped, log), log);
     }
@@ -250,6 +317,14 @@ internal static class ViewportLayoutExporter
             $"VP #{vp.Number}: исходный scale={vp.CustomScale:F6}, рабочий scale={clamped.CustomScale:F6}, " +
             $"clampRatio={clampRatio:F6}, центр={ExtentsUtils.FormatPoint(clamped.ViewCenter)}");
 
+        if (clampRatio != 1.0)
+        {
+            Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, vp.ViewCenter);
+            log.Info(
+                $"Применяем clampRatio={clampRatio:F6} к Model Space вокруг " +
+                $"{ExtentsUtils.FormatPoint(vp.ViewCenter)}");
+            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
+        }
 
         return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(clamped, log), log);
     }
