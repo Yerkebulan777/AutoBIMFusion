@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Reflection;
 
 namespace AutoBIMFusion.Application.Utils;
@@ -16,6 +17,19 @@ public static class StyleExportUtils
         // Формируем путь к рабочему столу
         string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         string filePath = Path.Combine(desktopPath, fileName);
+
+        if (File.Exists(filePath))
+        {
+            try
+            {
+                File.Delete(filePath);
+            }
+            catch (System.Exception ex)
+            {
+                ed.WriteMessage($"\nНе удалось удалить существующий файл '{filePath}': {ex.Message}");
+                return;
+            }
+        }
 
         try
         {
@@ -76,12 +90,24 @@ public static class StyleExportUtils
                 // чтобы не сломать форматирование таблицы в Markdown.
                 strVal = strVal.Replace("|", "\\|").Replace("\r", "").Replace("\n", " ");
 
-                writer.WriteLine($"| {prop.Name} | {strVal} |");
+                // Получаем display name из атрибута DisplayNameAttribute
+                string displayName = GetPropertyDisplayName(prop);
+
+                writer.WriteLine($"| {displayName} | {strVal} |");
             }
             catch (System.Exception)
             {
                 writer.WriteLine($"| {prop.Name} | *ошибка чтения* |");
             }
         }
+    }
+
+    /// <summary>
+    /// Получает display name свойства из атрибута или возвращает имя свойства.
+    /// </summary>
+    private static string GetPropertyDisplayName(PropertyInfo prop)
+    {
+        DisplayNameAttribute? displayNameAttr = prop.GetCustomAttribute<DisplayNameAttribute>();
+        return displayNameAttr != null && !string.IsNullOrEmpty(displayNameAttr.DisplayName) ? displayNameAttr.DisplayName : prop.Name;
     }
 }
