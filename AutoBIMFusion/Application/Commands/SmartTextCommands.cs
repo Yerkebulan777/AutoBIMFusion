@@ -14,7 +14,7 @@ public sealed class SmartTextCommands
     private const double LineHeightFactor = 2.0; // Увеличено для объединения многострочных текстов
 
     [CommandMethod("SMART_MERGE_TEXT")]
-    public void SmartMergeModelText()
+    public static void SmartMergeModelText()
     {
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));

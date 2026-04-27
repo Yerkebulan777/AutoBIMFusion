@@ -17,7 +17,7 @@ public sealed class TransmittalCommands
     private const string ZipFileSuffix = "_Package.zip";
 
     [CommandMethod("CreateETransmitZip")]
-    public void CreateETransmitZip()
+    public static void CreateETransmitZip()
     {
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
