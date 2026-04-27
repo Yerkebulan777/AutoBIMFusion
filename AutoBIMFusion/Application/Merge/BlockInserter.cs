@@ -100,10 +100,7 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
             if (!worldBounds.HasValue)
             {
-                worldBounds = new Extents3d(
-                    new Point3d(insertPt.X + sourceBounds.MinPoint.X, insertPt.Y + sourceBounds.MinPoint.Y, 0),
-                    new Point3d(insertPt.X + sourceBounds.MaxPoint.X, insertPt.Y + sourceBounds.MaxPoint.Y, 0)
-                );
+                worldBounds = ExtentsUtils.Transform(sourceBounds, displacement);
             }
 
             _rightMax = worldBounds.Value.MaxPoint.X;

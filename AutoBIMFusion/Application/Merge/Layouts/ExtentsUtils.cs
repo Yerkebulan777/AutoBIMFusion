@@ -252,6 +252,75 @@ internal static class ExtentsUtils
     }
 
     /// <summary>
+    /// Получает габариты всей базы данных.
+    /// </summary>
+    /// <param name="db">База данных AutoCAD.</param>
+    /// <returns>Габариты или null, если база пуста или некорректна.</returns>
+    internal static Extents3d? GetDatabaseExtents(Database db)
+    {
+        try
+        {
+            db.UpdateExt(true);
+            Point3d min = db.Extmin;
+            Point3d max = db.Extmax;
+
+            // В AutoCAD, если база пуста, Extmin > Extmax
+            if (min.X > max.X || min.Y > max.Y || min.Z > max.Z)
+                return null;
+
+            return new Extents3d(min, max);
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Трансформирует габариты с помощью матрицы.
+    /// </summary>
+    /// <param name="ext">Габариты.</param>
+    /// <param name="mat">Матрица трансформации.</param>
+    /// <returns>Новые габариты.</returns>
+    internal static Extents3d Transform(Extents3d ext, Matrix3d mat)
+    {
+        var corners = new Point3d[]
+        {
+            ext.MinPoint,
+            new Point3d(ext.MinPoint.X, ext.MaxPoint.Y, ext.MinPoint.Z),
+            new Point3d(ext.MaxPoint.X, ext.MaxPoint.Y, ext.MinPoint.Z),
+            new Point3d(ext.MaxPoint.X, ext.MinPoint.Y, ext.MinPoint.Z),
+            ext.MaxPoint,
+            new Point3d(ext.MinPoint.X, ext.MaxPoint.Y, ext.MaxPoint.Z),
+            new Point3d(ext.MaxPoint.X, ext.MinPoint.Y, ext.MaxPoint.Z),
+            new Point3d(ext.MinPoint.X, ext.MinPoint.Y, ext.MaxPoint.Z)
+        };
+
+        var transformedCorners = corners.Select(p => p.TransformBy(mat)).ToList();
+        var min = new Point3d(
+            transformedCorners.Min(p => p.X),
+            transformedCorners.Min(p => p.Y),
+            transformedCorners.Min(p => p.Z));
+        var max = new Point3d(
+            transformedCorners.Max(p => p.X),
+            transformedCorners.Max(p => p.Y),
+            transformedCorners.Max(p => p.Z));
+
+        return new Extents3d(min, max);
+    }
+
+    /// <summary>
+    /// Получает габариты 2D для коллекции сущностей.
+    /// </summary>
+    /// <param name="entities">Коллекция сущностей.</param>
+    /// <returns>Габариты 2D или null.</returns>
+    internal static Extents2d? GetExtents2d(IEnumerable<Entity> entities)
+    {
+        var ext3d = GetExtents(entities);
+        return ext3d.HasValue ? ToExtents2d(ext3d.Value) : null;
+    }
+
+    /// <summary>
     /// Форматирует габариты для логирования/отладки.
     /// Пример: "[(-10.123, -20.456, 0.000) -> (100.789, 200.345, 50.000)]"
     /// </summary>
