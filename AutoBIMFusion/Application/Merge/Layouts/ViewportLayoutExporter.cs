@@ -67,9 +67,8 @@ internal static class ViewportLayoutExporter
                 return string.Empty;
             }
 
-            // Вся логика работы с БД теперь в Side-Database.
             List<LayoutViewportInfo> vps = ViewportCollector.Collect(db, layoutName);
-            log.Info($"VP: найдено {vps.Count}");
+            log.Info($"Найдено VP: {vps.Count}");
 
             (Extents3d? frameBounds, HashSet<ObjectId> paperClonedIds) = vps.Count switch
             {
@@ -81,7 +80,7 @@ internal static class ViewportLayoutExporter
             if (frameBounds.HasValue)
             {
                 int erased = ModelSpaceTrimmer.TrimOutside(db, frameBounds.Value, log);
-                log.Info($"VP: очищено {erased} объектов");
+                log.Info($"Очищено объектов за рамкой: {erased}");
             }
 
             using (new AcadWarningSuppressScope())
@@ -89,8 +88,6 @@ internal static class ViewportLayoutExporter
                 db.SaveAs(tempPath, DwgVersion.AC1032);
             }
 
-            // Проверяем на наличие растров для внедрения.
-            // Используем Handles, так как при открытии документа ObjectIds изменятся.
             paperClonedHandles = [.. paperClonedIds.Select(id => id.Handle.Value)];
             needsOle = CheckIfNeedsOle(db, paperClonedHandles, sourceDir, log);
         }
@@ -100,7 +97,7 @@ internal static class ViewportLayoutExporter
             await RunOleEmbeddingAsync(tempPath, paperClonedHandles, sourceDir, log);
         }
 
-        log.Info($"VP: экспорт завершен ({fileName})");
+        log.Info($"Экспорт завершён: {fileName}");
         return tempPath;
     }
 
@@ -163,18 +160,15 @@ internal static class ViewportLayoutExporter
 
     private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessMultiVp(Database db, string layoutName, List<LayoutViewportInfo> vps, OperationLogger log)
     {
-        log.Info($"VP: мульти-режим ({vps.Count} шт)");
+        log.Debug($"ProcessMultiVp метод");
 
         LayoutViewportInfo mainOriginal = LayoutViewportInfo.PickMainViewport(vps);
         LayoutViewportInfo mainClamped = ClampMainVpScale(mainOriginal, log);
         double clampRatio = mainOriginal.CustomScale / mainClamped.CustomScale;
-        log.Info(
-            $"VP main#{mainOriginal.Number}: исходный scale={mainOriginal.CustomScale:F6}, " +
-            $"рабочий scale={mainClamped.CustomScale:F6}, clampRatio={clampRatio:F6}, " +
-            $"центр={GeometryUtils.FormatPoint(mainOriginal.ViewCenter)}");
+
+        log.Debug($"Главный VP  масштаб 1:{1.0 / mainClamped.CustomScale:F0}, clampRatio={clampRatio:F4}");
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
-
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
 
         foreach (LayoutViewportInfo aux in vps)
@@ -190,59 +184,43 @@ internal static class ViewportLayoutExporter
             if (toClone.Count > 0)
             {
                 ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, m, log, "model-window");
-                // Удаляем оригиналы aux VP, которых нет в главном VP.
                 _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow, log);
-                log.Info($"VP #{aux.Number}: обработано {cloned.Count} объектов");
+                log.Debug($"VP #{aux.Number}: перенесено {cloned.Count} объектов");
             }
             else
             {
-                log.Info($"VP #{aux.Number}: 0 объектов");
+                log.Debug($"VP #{aux.Number}: объектов не найдено");
             }
         }
 
         if (clampRatio > 1.0 + 1e-9)
         {
-            log.Info(
-                $"VP main#{mainOriginal.Number}: запускаем масштабирование Model Space, " +
-                $"ratio={clampRatio:F6}, center={GeometryUtils.FormatPoint(mainOriginal.ViewCenter)}");
+            log.Debug($"Масштабирование Model Space: ratio={clampRatio:F4}");
             Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, mainOriginal.ViewCenter);
             ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
-        }
-        else
-        {
-            log.Debug($"VP main#{mainOriginal.Number}: масштабирование Model Space не требуется (clampRatio={clampRatio:F6})");
         }
 
         return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainClamped, log), log);
     }
 
-    /// <summary>
-    /// Один VP: зажимает масштаб, масштабирует Model Space если нужно, переносит Paper в Model Space.
-    /// </summary>
     private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessSingleVp(Database db, string layoutName, LayoutViewportInfo vp, OperationLogger log)
     {
-        LayoutViewportInfo clamped = ClampMainVpScale(vp, log);
+        log.Debug($"ProcessSingleVp метод");
 
+        LayoutViewportInfo clamped = ClampMainVpScale(vp, log);
         double clampRatio = vp.CustomScale / clamped.CustomScale;
-        log.Info(
-            $"VP #{vp.Number}: исходный scale={vp.CustomScale:F6}, рабочий scale={clamped.CustomScale:F6}, " +
-            $"clampRatio={clampRatio:F6}, центр={GeometryUtils.FormatPoint(clamped.ViewCenter)}");
+
+        log.Debug($"VP #{vp.Number}: масштаб 1:{1.0 / clamped.CustomScale:F0}, clampRatio={clampRatio:F4}");
+
         if (clampRatio > 1.0 + 1e-9)
         {
-            log.Info(
-                $"VP #{vp.Number}: запускаем масштабирование Model Space, " +
-                $"ratio={clampRatio:F6}, center={GeometryUtils.FormatPoint(clamped.ViewCenter)}");
+            log.Debug($"Масштабирование Model Space: ratio={clampRatio:F4}");
             Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, clamped.ViewCenter);
             ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
-        }
-        else
-        {
-            log.Debug($"VP #{vp.Number}: масштабирование Model Space не требуется (clampRatio={clampRatio:F6})");
         }
 
         return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(clamped, log), log);
     }
-
 
     private static LayoutViewportInfo ClampMainVpScale(LayoutViewportInfo vp, OperationLogger log)
     {
@@ -250,23 +228,17 @@ internal static class ViewportLayoutExporter
 
         if (multiplier < MaxScaleMultiplier)
         {
-            // Масштаб крупнее 1:100 — зажимаем, чтобы не получить слишком большой Model Space после экспорта.
-            log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0} зажат до 1:{MaxScaleMultiplier:F0}");
+            log.Debug($"VP #{vp.Number}: масштаб 1:{multiplier:F0} → зажат до 1:{MaxScaleMultiplier:F0}");
             return vp with { CustomScale = 1.0 / MaxScaleMultiplier };
         }
 
-        log.Info(
-            $"VP #{vp.Number}: масштаб 1:{multiplier:F0} (без зажима), " +
-            $"customScale={vp.CustomScale:F6}");
+        log.Debug($"VP #{vp.Number}: масштаб 1:{multiplier:F0}");
         return vp;
     }
 
-    /// <summary>
-    /// Нет VP: масштабирует и переносит paper-содержимое в Model Space с масштабом 1:MaxScaleMultiplier.
-    /// </summary>
     private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessNoVp(Database db, string layoutName, OperationLogger log)
     {
-        log.Info($"VP: нет видовых экранов, масштаб 1:{MaxScaleMultiplier:F0}");
+        log.Debug($"ProcessNoVp метод");
 
         ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
 
@@ -286,9 +258,6 @@ internal static class ViewportLayoutExporter
         Matrix3d moveToOrigin = Matrix3d.Displacement(Point3d.Origin - minPt);
         Matrix3d scale = Matrix3d.Scaling(MaxScaleMultiplier, Point3d.Origin);
         Matrix3d matrix = scale * moveToOrigin;
-        log.Info(
-            $"VP: no-vp масштабирование paper->model, ratio={MaxScaleMultiplier:F2}, " +
-            $"bounds={GeometryUtils.FormatExtents(paperBounds.Value)}");
 
         return MovePaperToModelSpace(db, layoutName, matrix, log, "paper-no-vp");
     }
@@ -349,11 +318,10 @@ internal static class ViewportLayoutExporter
         List<(ObjectId id, string path, Extents3d bounds)> result = [];
 
         int totalImages = 0;
-        int nullDefCount = 0;
-        int nullBoundsCount = 0;
-        int fileNotFoundCount = 0;
-        int skippedFromPaperCount = 0;
-        int tooLargeCount = 0;
+        int skipped = 0;
+        int invalid = 0;
+        int notFound = 0;
+        int tooLarge = 0;
 
         using Transaction tr = db.TransactionManager.StartTransaction();
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
@@ -370,42 +338,42 @@ internal static class ViewportLayoutExporter
 
             if (paperClonedHandles.Contains(id.Handle.Value))
             {
-                skippedFromPaperCount++;
+                skipped++;
                 continue;
             }
 
             if (tr.GetObject(id, OpenMode.ForRead) is not RasterImage ri || ri.ImageDefId.IsNull)
             {
-                nullDefCount++;
+                invalid++;
                 continue;
             }
 
             if (tr.GetObject(ri.ImageDefId, OpenMode.ForRead) is not RasterImageDef def)
             {
-                nullDefCount++;
+                invalid++;
                 continue;
             }
 
             if (!ri.Bounds.HasValue)
             {
-                nullBoundsCount++;
-                log.Warn($"RasterImage Handle={id.Handle}: Bounds=null, path={Path.GetFileName(def.SourceFileName)}");
+                invalid++;
+                log.Warn($"RasterImage {id.Handle}: Bounds отсутствуют ({Path.GetFileName(def.SourceFileName)})");
                 continue;
             }
 
             string? resolvedPath = ResolveRasterPath(sourceDir, def.SourceFileName);
             if (string.IsNullOrEmpty(resolvedPath) || !File.Exists(resolvedPath))
             {
-                fileNotFoundCount++;
-                log.Warn($"RasterImage Handle={id.Handle}: файл не найден: {def.SourceFileName}");
+                notFound++;
+                log.Warn($"RasterImage {id.Handle}: файл не найден — {def.SourceFileName}");
                 continue;
             }
 
             long fileSize = new FileInfo(resolvedPath).Length;
             if (fileSize > MaxOleFileSizeBytes)
             {
-                tooLargeCount++;
-                log.Info($"RasterImage Handle={id.Handle}: файл {Path.GetFileName(resolvedPath)} слишком большой ({fileSize / (1024.0 * 1024.0):F1} МБ > 5 МБ), пропускаем OLE-конвертацию");
+                tooLarge++;
+                log.Debug($"RasterImage {id.Handle}: файл слишком большой ({fileSize / (1024.0 * 1024.0):F1} МБ), пропускаем OLE");
                 continue;
             }
 
@@ -414,9 +382,7 @@ internal static class ViewportLayoutExporter
 
         tr.Commit();
 
-        log.Info(
-            $"EmbedRasterImages: всего={totalImages}, пропущеноИзБуфера={skippedFromPaperCount}, nullDef={nullDefCount}, " +
-            $"nullBounds={nullBoundsCount}, неНайдено={fileNotFoundCount}, слишкомБольшой={tooLargeCount}, готовоККонвертации={result.Count}");
+        log.Info($"Растры: всего={totalImages}, к конвертации={result.Count}, пропущено={skipped}, невалидных={invalid}, не найдено={notFound}, слишком большие={tooLarge}");
 
         return result;
     }
@@ -426,11 +392,10 @@ internal static class ViewportLayoutExporter
         try
         {
             HashSet<ObjectId> snapshotBefore = GetModelSpaceSnapshot(db);
-            log.Info($"OLE вставка: до вставки объектов в MS: {snapshotBefore.Count}, точка {targetBounds.MinPoint}, файл {Path.GetFileName(path)}");
 
             if (!TryCopyImageToClipboard(path, log))
             {
-                log.Warn($"Не удалось поместить изображение в Clipboard: {path}");
+                log.Warn($"Не удалось скопировать в Clipboard: {path}");
                 return;
             }
 
@@ -439,16 +404,16 @@ internal static class ViewportLayoutExporter
             ObjectId oleId = FindNewOle2Frame(db, snapshotBefore, log);
             if (oleId.IsNull)
             {
-                log.Warn($"PASTECLIP не создал новый OLE2FRAME для {path}. Проверьте OLEQUALITY и Clipboard.");
+                log.Warn($"OLE2FRAME не создан после PASTECLIP: {Path.GetFileName(path)}");
                 return;
             }
 
-            log.Info($"Найден новый OLE2FRAME: Handle={oleId.Handle}, Id={oleId}");
+            log.Debug($"OLE2FRAME создан: Handle={oleId.Handle}");
 
             using Transaction tr = db.TransactionManager.StartTransaction();
             if (tr.GetObject(oleId, OpenMode.ForWrite) is not Ole2Frame ole)
             {
-                log.Warn($"Найденный объект не является Ole2Frame: тип={oleId.ObjectClass.DxfName}");
+                log.Warn($"Объект не является Ole2Frame: {oleId.ObjectClass.DxfName}");
                 tr.Commit();
                 return;
             }
@@ -462,14 +427,14 @@ internal static class ViewportLayoutExporter
             if (tr.GetObject(rasterId, OpenMode.ForWrite) is RasterImage originalImage)
             {
                 originalImage.Erase();
-                log.Info($"Удалён исходный RasterImage: {rasterId.Handle}");
+                log.Debug($"RasterImage удалён: {rasterId.Handle}");
             }
 
             tr.Commit();
         }
         catch (System.Exception ex)
         {
-            log.Warn(ex, $"Ошибка при встраивании OLE: {path}");
+            log.Warn(ex, $"Ошибка OLE-встраивания: {Path.GetFileName(path)}");
         }
     }
 
@@ -541,20 +506,19 @@ internal static class ViewportLayoutExporter
         double targetHeight = targetBounds.MaxPoint.Y - targetBounds.MinPoint.Y;
         if (targetWidth <= 0 || targetHeight <= 0)
         {
-            log.Warn($"Целевой размер OLE некорректен: {targetWidth:F4} x {targetHeight:F4}");
+            log.Warn($"Некорректный целевой размер OLE: {targetWidth:F4} x {targetHeight:F4}");
             return false;
         }
 
         Extents3d? initialBounds = ole.Bounds;
         if (!initialBounds.HasValue)
         {
-            log.Warn("OLE Bounds не определены до масштабирования. Пробуем Position3d fallback.");
+            log.Warn("OLE Bounds недоступны, используем Position3d");
             return TryApplyPositionFallback(ole, targetBounds, log);
         }
 
         double initialWidth = initialBounds.Value.MaxPoint.X - initialBounds.Value.MinPoint.X;
         double initialHeight = initialBounds.Value.MaxPoint.Y - initialBounds.Value.MinPoint.Y;
-        log.Info($"OLE размер до масштабирования: {initialWidth:F4} x {initialHeight:F4}, целевой: {targetWidth:F4} x {targetHeight:F4}");
 
         bool invalidBounds =
             initialWidth <= 0
@@ -564,9 +528,7 @@ internal static class ViewportLayoutExporter
 
         if (invalidBounds)
         {
-            log.Warn(
-                $"OLE Bounds некорректны: {initialWidth:F4}x{initialHeight:F4}. " +
-                "Пропускаем WcsWidth/Height, используем Position3d.");
+            log.Warn($"OLE Bounds некорректны: {initialWidth:F4}x{initialHeight:F4}, используем Position3d");
             return TryApplyPositionFallback(ole, targetBounds, log);
         }
 
@@ -575,23 +537,20 @@ internal static class ViewportLayoutExporter
         Extents3d? resizedBounds = ole.Bounds;
         if (!resizedBounds.HasValue)
         {
-            log.Warn("После WcsWidth/WcsHeight не удалось получить Bounds. Пробуем Position3d fallback.");
+            log.Warn("После WcsWidth/Height Bounds недоступны, используем Position3d");
             return TryApplyPositionFallback(ole, targetBounds, log);
         }
 
         double resizedWidth = resizedBounds.Value.MaxPoint.X - resizedBounds.Value.MinPoint.X;
         double resizedHeight = resizedBounds.Value.MaxPoint.Y - resizedBounds.Value.MinPoint.Y;
-        log.Info($"OLE размер после WcsWidth/Height: {resizedWidth:F4} x {resizedHeight:F4}");
 
-        bool resizedCorrectly = IsCloseToTarget(resizedWidth, targetWidth) && IsCloseToTarget(resizedHeight, targetHeight);
-        if (resizedCorrectly)
+        if (IsCloseToTarget(resizedWidth, targetWidth) && IsCloseToTarget(resizedHeight, targetHeight))
         {
+            log.Debug($"OLE размер задан: {resizedWidth:F4} x {resizedHeight:F4}");
             return false;
         }
 
-        log.Warn(
-            $"WcsWidth/WcsHeight не применились корректно: текущий={resizedWidth:F4}x{resizedHeight:F4}, " +
-            $"целевой={targetWidth:F4}x{targetHeight:F4}. Пробуем Position3d fallback.");
+        log.Warn($"WcsWidth/Height не сработали ({resizedWidth:F4}x{resizedHeight:F4} вместо {targetWidth:F4}x{targetHeight:F4}), используем Position3d");
         return TryApplyPositionFallback(ole, targetBounds, log);
     }
 
@@ -616,14 +575,14 @@ internal static class ViewportLayoutExporter
             {
                 double width = boundsAfterFallback.Value.MaxPoint.X - boundsAfterFallback.Value.MinPoint.X;
                 double height = boundsAfterFallback.Value.MaxPoint.Y - boundsAfterFallback.Value.MinPoint.Y;
-                log.Info($"OLE размер после Position3d fallback: {width:F4} x {height:F4}");
+                log.Debug($"OLE Position3d применён: {width:F4} x {height:F4}");
             }
 
             return true;
         }
         catch (System.Exception ex)
         {
-            log.Warn(ex, "Position3d fallback не сработал.");
+            log.Warn(ex, "Position3d fallback не сработал");
             return false;
         }
     }
@@ -633,7 +592,7 @@ internal static class ViewportLayoutExporter
         Extents3d? currentBounds = ole.Bounds;
         if (!currentBounds.HasValue)
         {
-            log.Warn("Не удалось выровнять OLE: Bounds отсутствуют.");
+            log.Warn("Выравнивание OLE невозможно: Bounds недоступны");
             return;
         }
 
@@ -648,18 +607,18 @@ internal static class ViewportLayoutExporter
         Extents3d? movedBounds = ole.Bounds;
         if (!movedBounds.HasValue)
         {
-            log.Warn("TransformBy выполнен, но Bounds OLE недоступны после сдвига.");
+            log.Warn("После TransformBy Bounds недоступны");
             return;
         }
 
         double movedDistance = (movedBounds.Value.MinPoint - currentBounds.Value.MinPoint).Length;
         if (movedDistance > 1e-6)
         {
-            log.Info($"TransformBy сработал, смещение {movedDistance:F4}");
+            log.Debug($"OLE сдвинут на {movedDistance:F4}");
             return;
         }
 
-        log.Warn("TransformBy(Displacement) не изменил OLE. Пробуем Position3d fallback.");
+        log.Warn("TransformBy не сработал, используем Position3d fallback");
         _ = TryApplyPositionFallback(ole, targetBounds, log);
     }
 
