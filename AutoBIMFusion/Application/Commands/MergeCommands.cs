@@ -1,5 +1,6 @@
 using AutoBIMFusion.Application.AcadSupport;
 using AutoBIMFusion.Application.Merge;
+using AutoBIMFusion.Application.Merge.Models;
 using AutoBIMFusion.Application.Utils;
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
