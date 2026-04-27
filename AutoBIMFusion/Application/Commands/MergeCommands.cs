@@ -15,7 +15,7 @@ public sealed class MergeCommands
 {
     private readonly SemaphoreSlim _mergeGate = new(1, 1);
 
-    [CommandMethod("MERGEDWG", CommandFlags.Session)]
+    [CommandMethod("MERGEDWG", CommandFlags.Modal | CommandFlags.Session)]
     public async void MergeDwgFolderCommand()
     {
         await MergeDwgFolderCommandAsync();

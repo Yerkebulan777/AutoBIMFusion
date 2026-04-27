@@ -16,11 +16,13 @@ public class StyleExportCommands
         Document doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
+        string dwgName = Path.GetFileNameWithoutExtension(doc.Name);
+
         // Вызываем утилиту, передавая ей ID таблицы текстовых стилей и настройки отчета
         StyleExportUtils.ExportSymbolTableToMd(
             doc.Database,
             doc.Database.TextStyleTableId,
-            "TextStylesReport.md",
+            $"{dwgName}_TextStylesReport.md",
             "Отчет по текстовым стилям (Text Styles)",
             "Текстовый стиль",
             doc.Editor);
@@ -32,11 +34,13 @@ public class StyleExportCommands
         Document doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
+        string dwgName = Path.GetFileNameWithoutExtension(doc.Name);
+
         // Вызываем ту же утилиту, но передаем ID таблицы размерных стилей
         StyleExportUtils.ExportSymbolTableToMd(
             doc.Database,
             doc.Database.DimStyleTableId,
-            "DimStylesReport.md",
+            $"{dwgName}_DimStylesReport.md",
             "Отчет по размерным стилям (Dimension Styles)",
             "Размерный стиль",
             doc.Editor);

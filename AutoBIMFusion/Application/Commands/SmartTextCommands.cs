@@ -13,7 +13,7 @@ public sealed class SmartTextCommands
     private const double WordWidthFactor = 1.50; // Коэффициент допуска по ширине текста
     private const double LineHeightFactor = 2.0; // Увеличено для объединения многострочных текстов
 
-    [CommandMethod("SMART_MERGE_TEXT")]
+    [CommandMethod("SMART_MERGE_TEXT", CommandFlags.Modal)]
     public static void SmartMergeModelText()
     {
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
