@@ -52,7 +52,7 @@ internal static class ViewportTransformer
             $"BuildMatrix aux#{aux.Number} -> main#{main.Number}: " +
             $"auxScale={aux.CustomScale:F6}, mainScale={main.CustomScale:F6}, " +
             $"auxTwist={aux.ViewTwist:F6}, mainTwist={main.ViewTwist:F6}, " +
-            $"auxWindow={GeometryUtils.FormatExtents(aux.ModelWindow)}");
+            $"auxWindow={ExtentsUtils.FormatExtents(aux.ModelWindow)}");
 
         return result;
     }
@@ -76,7 +76,7 @@ internal static class ViewportTransformer
         log.Debug(
             $"BuildPaperToMainMatrix main#{main.Number}: " +
             $"mainScale={main.CustomScale:F6}, mainTwist={main.ViewTwist:F6}, " +
-            $"centerPaper={GeometryUtils.FormatPoint(main.CenterPaper)}, viewCenter={GeometryUtils.FormatPoint(main.ViewCenter)}");
+            $"centerPaper={ExtentsUtils.FormatPoint(main.CenterPaper)}, viewCenter={ExtentsUtils.FormatPoint(main.ViewCenter)}");
 
         return result;
     }
@@ -134,7 +134,7 @@ internal static class ViewportTransformer
 
             try
             {
-                Extents3d? oldExt = GeometryUtils.TryGetExtents(ent);
+                Extents3d? oldExt = ExtentsUtils.TryGetExtents(ent);
                 ent.TransformBy(matrix);
 
                 // После TransformBy штриховка может рассинхронизироваться с контурами —
@@ -145,7 +145,7 @@ internal static class ViewportTransformer
                     catch { /* Игнорируем ошибки EvaluateHatch на сложной/сломанной геометрии */ }
                 }
 
-                Extents3d? newExt = GeometryUtils.TryGetExtents(ent);
+                Extents3d? newExt = ExtentsUtils.TryGetExtents(ent);
 
                 if (oldExt.HasValue && newExt.HasValue)
                 {
@@ -222,7 +222,7 @@ internal static class ViewportTransformer
                 continue;
             }
 
-            Extents3d? ext = GeometryUtils.TryGetExtents(ent);
+            Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
             if (ext is null)
             {
                 skippedNoExtents++;
@@ -308,7 +308,7 @@ internal static class ViewportTransformer
 
                     try
                     {
-                        Extents3d? oldExt = GeometryUtils.TryGetExtents(e);
+                        Extents3d? oldExt = ExtentsUtils.TryGetExtents(e);
                         e.TransformBy(matrix);
 
                         // DeepCloneObjects разрывает ассоциацию Hatch ↔ контур —
@@ -320,7 +320,7 @@ internal static class ViewportTransformer
                             catch { /* Игнорируем ошибки EvaluateHatch на сложной/сломанной геометрии */ }
                         }
 
-                        Extents3d? newExt = GeometryUtils.TryGetExtents(e);
+                        Extents3d? newExt = ExtentsUtils.TryGetExtents(e);
 
                         if (oldExt.HasValue && newExt.HasValue)
                         {
@@ -362,7 +362,7 @@ internal static class ViewportTransformer
 
         foreach (ModelEntitySnapshot entity in modelEntities)
         {
-            if (GeometryUtils.AabbIntersect(window, entity.Extents))
+            if (ExtentsUtils.AabbIntersect(window, entity.Extents))
             {
                 _ = result.Add(entity.Id);
             }
@@ -374,7 +374,7 @@ internal static class ViewportTransformer
 
         log.Debug(
             $"SelectModelInside cached={modelEntities.Count}, selected={result.Count}, " +
-            $"outsideWindow={outsideWindow}, window={GeometryUtils.FormatExtents(window)}");
+            $"outsideWindow={outsideWindow}, window={ExtentsUtils.FormatExtents(window)}");
         return result;
     }
 
@@ -398,7 +398,7 @@ internal static class ViewportTransformer
         HashSet<ObjectId> inMain = [];
         foreach (ModelEntitySnapshot s in modelSnapshots)
         {
-            if (GeometryUtils.AabbIntersect(mainWindow, s.Extents))
+            if (ExtentsUtils.AabbIntersect(mainWindow, s.Extents))
             {
                 _ = inMain.Add(s.Id);
             }

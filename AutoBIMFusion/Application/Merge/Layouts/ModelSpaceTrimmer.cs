@@ -32,20 +32,20 @@ internal static class ModelSpaceTrimmer
                 continue;
             }
 
-            Extents3d? ext = GeometryUtils.TryGetExtents(ent);
+            Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
 
             if (ext is null)
             {
                 continue;
             }
 
-            acc = acc is null ? ext.Value : GeometryUtils.Union(acc.Value, ext.Value);
+            acc = acc is null ? ext.Value : ExtentsUtils.Union(acc.Value, ext.Value);
         }
 
         tr.Commit();
         if (acc.HasValue)
         {
-            log.Debug($"ModelSpaceTrimmer.ComputeBounds: entities={entityIds.Count}, bounds={GeometryUtils.FormatExtents(acc.Value)}");
+            log.Debug($"ModelSpaceTrimmer.ComputeBounds: entities={entityIds.Count}, bounds={ExtentsUtils.FormatExtents(acc.Value)}");
         }
         else
         {
@@ -98,7 +98,7 @@ internal static class ModelSpaceTrimmer
                 continue;
             }
 
-            Extents3d? ext = GeometryUtils.TryGetExtents(ent);
+            Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
 
             if (ext is null)
             {
@@ -106,7 +106,7 @@ internal static class ModelSpaceTrimmer
                 continue;
             }
 
-            if (!GeometryUtils.AabbIntersect(frameBounds, ext.Value))
+            if (!ExtentsUtils.AabbIntersect(frameBounds, ext.Value))
             {
                 outside++;
                 ent.UpgradeOpen();
@@ -121,7 +121,7 @@ internal static class ModelSpaceTrimmer
 
         tr.Commit();
         log.Debug(
-            $"ModelSpaceTrimmer.TrimOutside frame={GeometryUtils.FormatExtents(frameBounds)}, total={total}, inside={inside}, " +
+            $"ModelSpaceTrimmer.TrimOutside frame={ExtentsUtils.FormatExtents(frameBounds)}, total={total}, inside={inside}, " +
             $"outside={outside}, skippedNoExtents={skippedNoExtents}, erased={erased}");
         return erased;
     }

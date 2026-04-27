@@ -180,7 +180,7 @@ internal static class ViewportLayoutExporter
         log.Info(
             $"VP main#{mainOriginal.Number}: исходный scale={mainOriginal.CustomScale:F6}, " +
             $"рабочий scale={mainClamped.CustomScale:F6}, clampRatio={clampRatio:F6}, " +
-            $"центр={GeometryUtils.FormatPoint(mainOriginal.ViewCenter)}");
+            $"центр={ExtentsUtils.FormatPoint(mainOriginal.ViewCenter)}");
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
@@ -225,7 +225,7 @@ internal static class ViewportLayoutExporter
 
         log.Info(
             $"VP #{vp.Number}: исходный scale={vp.CustomScale:F6}, рабочий scale={clamped.CustomScale:F6}, " +
-            $"clampRatio={clampRatio:F6}, центр={GeometryUtils.FormatPoint(clamped.ViewCenter)}");
+            $"clampRatio={clampRatio:F6}, центр={ExtentsUtils.FormatPoint(clamped.ViewCenter)}");
 
 
         return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(vp, log), log);
@@ -258,7 +258,7 @@ internal static class ViewportLayoutExporter
         Matrix3d matrix = scale * moveToOrigin;
 
         log.Info(
-            $"ProcessNoVp: paper bounds={GeometryUtils.FormatExtents(paperBounds.Value)}, " +
+            $"ProcessNoVp: paper bounds={ExtentsUtils.FormatExtents(paperBounds.Value)}, " +
             $"ratio=1.00");
 
         return MovePaperToModelSpace(db, layoutName, matrix, log, "paper-no-vp");

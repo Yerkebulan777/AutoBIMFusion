@@ -79,11 +79,11 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
                         ent.TransformBy(displacement);
                         clonedCount++;
 
-                        Extents3d? ext = GeometryUtils.TryGetExtents(ent);
+                        Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
                         if (ext.HasValue)
                         {
                             worldBounds = worldBounds.HasValue
-                                ? GeometryUtils.Union(worldBounds.Value, ext.Value)
+                                ? ExtentsUtils.Union(worldBounds.Value, ext.Value)
                                 : ext.Value;
                         }
                     }
