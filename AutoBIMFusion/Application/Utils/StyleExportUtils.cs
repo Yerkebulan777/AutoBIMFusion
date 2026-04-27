@@ -1,7 +1,4 @@
-using System.IO;
 using System.Reflection;
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.EditorInput;
 
 namespace AutoBIMFusion.Application.Utils;
 
@@ -27,7 +24,7 @@ public static class StyleExportUtils
                 // Открываем переданную таблицу как общую SymbolTable
                 SymbolTable symTable = (SymbolTable)tr.GetObject(tableId, OpenMode.ForRead);
 
-                using (StreamWriter writer = new StreamWriter(filePath))
+                using (StreamWriter writer = new(filePath))
                 {
                     writer.WriteLine($"# {title}");
                     writer.WriteLine($"**Дата выгрузки:** {DateTime.Now}\n");

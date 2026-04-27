@@ -99,8 +99,8 @@ internal static class ViewportTransformer
         int skippedAssociative = 0;
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
-        Dictionary<string, int> successTypes = new();
-        Dictionary<string, int> errorTypes = new();
+        Dictionary<string, int> successTypes = [];
+        Dictionary<string, int> errorTypes = [];
 
         using Transaction tr = db.TransactionManager.StartTransaction();
         BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
@@ -160,13 +160,21 @@ internal static class ViewportTransformer
                 }
 
                 scaled++;
-                if (!successTypes.ContainsKey(entType)) successTypes[entType] = 0;
+                if (!successTypes.ContainsKey(entType))
+                {
+                    successTypes[entType] = 0;
+                }
+
                 successTypes[entType]++;
             }
             catch (System.Exception ex)
             {
                 log.Error(ex, $"[ОШИБКА ТРАНСФОРМАЦИИ] Тип: {entType}, Handle: {handle}. Сообщение: {ex.Message}");
-                if (!errorTypes.ContainsKey(entType)) errorTypes[entType] = 0;
+                if (!errorTypes.ContainsKey(entType))
+                {
+                    errorTypes[entType] = 0;
+                }
+
                 errorTypes[entType]++;
             }
         }

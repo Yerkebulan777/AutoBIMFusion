@@ -279,8 +279,8 @@ public sealed class SmartTextCommands
             .OrderByDescending(t => (-t.Position.X * sinA) + (t.Position.Y * cosA))
             .ToList();
 
-        List<List<TextElement>> lines = new();
-        List<TextElement> currentLine = new();
+        List<List<TextElement>> lines = [];
+        List<TextElement> currentLine = [];
 
         double currentLinePerp = (-perpSorted[0].Position.X * sinA) + (perpSorted[0].Position.Y * cosA);
         double lineThreshold = perpSorted[0].Height * 0.5; // Порог для объединения текстов в одну строку
@@ -304,7 +304,7 @@ public sealed class SmartTextCommands
             lines.Add(currentLine);
         }
 
-        List<string> combinedLines = new();
+        List<string> combinedLines = [];
         TextElement? topLeftElement = null;
 
         foreach (List<TextElement> line in lines)
