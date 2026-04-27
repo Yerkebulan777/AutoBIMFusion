@@ -32,20 +32,20 @@ internal static class ModelSpaceTrimmer
                 continue;
             }
 
-            Extents3d? ext = GeometryUtils.TryGetExtents(ent);
+            Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
 
             if (ext is null)
             {
                 continue;
             }
 
-            acc = acc is null ? ext.Value : GeometryUtils.Union(acc.Value, ext.Value);
+            acc = acc is null ? ext.Value : ExtentsUtils.Union(acc.Value, ext.Value);
         }
 
         tr.Commit();
         if (acc.HasValue)
         {
-            log.Debug($"ModelSpaceTrimmer.ComputeBounds: entities={entityIds.Count}, bounds={GeometryUtils.FormatExtents(acc.Value)}");
+            log.Debug($"ModelSpaceTrimmer.ComputeBounds: entities={entityIds.Count}, bounds={ExtentsUtils.FormatExtents(acc.Value)}");
         }
         else
         {
@@ -92,13 +92,13 @@ internal static class ModelSpaceTrimmer
             // Оптимизация: для простых точечных объектов (Text, Point, BlockReference)
             // проверяем их базовую точку. Если она ВНУТРИ frameBounds, то объект точно пересекается/внутри,
             // и мы можем пропустить дорогой вызов GeometricExtents.
-            if (IsPointInsideBounds(ent, frameBounds))
+            if (ExtentsUtils.IsEntityPointIn(ent, frameBounds))
             {
                 inside++;
                 continue;
             }
 
-            Extents3d? ext = GeometryUtils.TryGetExtents(ent);
+            Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
 
             if (ext is null)
             {
@@ -106,7 +106,7 @@ internal static class ModelSpaceTrimmer
                 continue;
             }
 
-            if (!GeometryUtils.AabbIntersect(frameBounds, ext.Value))
+            if (!ExtentsUtils.AabbIntersect(frameBounds, ext.Value))
             {
                 outside++;
                 ent.UpgradeOpen();
@@ -121,30 +121,10 @@ internal static class ModelSpaceTrimmer
 
         tr.Commit();
         log.Debug(
-            $"ModelSpaceTrimmer.TrimOutside frame={GeometryUtils.FormatExtents(frameBounds)}, total={total}, inside={inside}, " +
+            $"ModelSpaceTrimmer.TrimOutside frame={ExtentsUtils.FormatExtents(frameBounds)}, total={total}, inside={inside}, " +
             $"outside={outside}, skippedNoExtents={skippedNoExtents}, erased={erased}");
         return erased;
     }
 
-    private static bool IsPointInsideBounds(Entity ent, Extents3d bounds)
-    {
-        Point3d? p = ent switch
-        {
-            MText m => m.Location,
-            DBText t => t.Position,
-            BlockReference br => br.Position,
-            DBPoint dbPoint => dbPoint.Position,
-            _ => null
-        };
-
-        if (!p.HasValue)
-        {
-            return false;
-        }
-
-        Point3d point = p.Value;
-        return point.X >= bounds.MinPoint.X && point.X <= bounds.MaxPoint.X &&
-               point.Y >= bounds.MinPoint.Y && point.Y <= bounds.MaxPoint.Y;
-    }
 
 }

@@ -8,7 +8,8 @@ namespace AutoBIMFusion.Application.Ribbon;
 /// <summary>
 /// Обработчик команд Ribbon кнопок AutoBIMFusion.
 /// </summary>
-[SupportedOSPlatform ("windows")]
+/// 
+[SupportedOSPlatform("windows")]
 internal sealed class ButtonCommandHandler : ICommand
 {
 #pragma warning disable CS0067
@@ -24,7 +25,10 @@ internal sealed class ButtonCommandHandler : ICommand
     {
         string? command = parameter switch
         {
-            RibbonButton { CommandParameter: string cmd } => cmd,
+            RibbonButton
+            {
+                CommandParameter: string cmd
+            } => cmd,
             string cmd => cmd,
             _ => null
         };

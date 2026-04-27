@@ -52,7 +52,7 @@ internal static class ViewportTransformer
             $"BuildMatrix aux#{aux.Number} -> main#{main.Number}: " +
             $"auxScale={aux.CustomScale:F6}, mainScale={main.CustomScale:F6}, " +
             $"auxTwist={aux.ViewTwist:F6}, mainTwist={main.ViewTwist:F6}, " +
-            $"auxWindow={GeometryUtils.FormatExtents(aux.ModelWindow)}");
+            $"auxWindow={ExtentsUtils.FormatExtents(aux.ModelWindow)}");
 
         return result;
     }
@@ -76,7 +76,7 @@ internal static class ViewportTransformer
         log.Debug(
             $"BuildPaperToMainMatrix main#{main.Number}: " +
             $"mainScale={main.CustomScale:F6}, mainTwist={main.ViewTwist:F6}, " +
-            $"centerPaper={GeometryUtils.FormatPoint(main.CenterPaper)}, viewCenter={GeometryUtils.FormatPoint(main.ViewCenter)}");
+            $"centerPaper={ExtentsUtils.FormatPoint(main.CenterPaper)}, viewCenter={ExtentsUtils.FormatPoint(main.ViewCenter)}");
 
         return result;
     }
@@ -86,16 +86,21 @@ internal static class ViewportTransformer
     /// Viewport'ы пропускаются. Штриховки трансформируются и немедленно переоцениваются
     /// через <see cref="Hatch.EvaluateHatch"/>, чтобы избежать рассинхронизации контуров.
     /// </summary>
-    internal static void ScaleModelSpaceObjects(Database db, Matrix3d matrix, double ratio, OperationLogger log)
+    internal static void ScaleModelSpaceObjects(
+        Database db,
+        Matrix3d matrix,
+        double ratio,
+        OperationLogger log)
     {
         int scaled = 0;
         int total = 0;
         int skippedViewport = 0;
         int skippedNonEntity = 0;
+        int skippedAssociative = 0;
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
-        Dictionary<string, int> successTypes = new();
-        Dictionary<string, int> errorTypes = new();
+        Dictionary<string, int> successTypes = [];
+        Dictionary<string, int> errorTypes = [];
 
         using Transaction tr = db.TransactionManager.StartTransaction();
         BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
@@ -116,12 +121,20 @@ internal static class ViewportTransformer
                 continue;
             }
 
+            // Associative hatches self-update when their boundary entities are transformed.
+            // Applying TransformBy to the hatch itself would cause double transformation (scale²).
+            if (ent is Hatch hatch && hatch.Associative)
+            {
+                skippedAssociative++;
+                continue;
+            }
+
             string entType = ent.GetType().Name;
             string handle = ent.Handle.ToString();
 
             try
             {
-                Extents3d? oldExt = GeometryUtils.TryGetExtents(ent);
+                Extents3d? oldExt = ExtentsUtils.TryGetExtents(ent);
                 ent.TransformBy(matrix);
 
                 // После TransformBy штриховка может рассинхронизироваться с контурами —
@@ -132,7 +145,7 @@ internal static class ViewportTransformer
                     catch { /* Игнорируем ошибки EvaluateHatch на сложной/сломанной геометрии */ }
                 }
 
-                Extents3d? newExt = GeometryUtils.TryGetExtents(ent);
+                Extents3d? newExt = ExtentsUtils.TryGetExtents(ent);
 
                 if (oldExt.HasValue && newExt.HasValue)
                 {
@@ -147,13 +160,21 @@ internal static class ViewportTransformer
                 }
 
                 scaled++;
-                if (!successTypes.ContainsKey(entType)) successTypes[entType] = 0;
+                if (!successTypes.ContainsKey(entType))
+                {
+                    successTypes[entType] = 0;
+                }
+
                 successTypes[entType]++;
             }
             catch (System.Exception ex)
             {
                 log.Error(ex, $"[ОШИБКА ТРАНСФОРМАЦИИ] Тип: {entType}, Handle: {handle}. Сообщение: {ex.Message}");
-                if (!errorTypes.ContainsKey(entType)) errorTypes[entType] = 0;
+                if (!errorTypes.ContainsKey(entType))
+                {
+                    errorTypes[entType] = 0;
+                }
+
                 errorTypes[entType]++;
             }
         }
@@ -161,7 +182,7 @@ internal static class ViewportTransformer
         tr.Commit();
 
         log.Info($"ScaleModelSpaceObjects завершен: ratio={ratio:F6}, total={total}, scaled={scaled}, " +
-                 $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}");
+                 $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}, skippedAssociative={skippedAssociative}");
 
         if (successTypes.Count > 0)
         {
@@ -201,7 +222,7 @@ internal static class ViewportTransformer
                 continue;
             }
 
-            Extents3d? ext = GeometryUtils.TryGetExtents(ent);
+            Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
             if (ext is null)
             {
                 skippedNoExtents++;
@@ -274,12 +295,20 @@ internal static class ViewportTransformer
 
                 if (tr.GetObject(pair.Value, OpenMode.ForWrite) is Entity e)
                 {
+                    // Associative hatches self-update when their boundary entities are transformed.
+                    // Applying TransformBy to the hatch itself would cause double transformation (scale²).
+                    if (e is Hatch clonedHatch && clonedHatch.Associative)
+                    {
+                        _ = cloned.Add(pair.Value);
+                        continue;
+                    }
+
                     string entType = e.GetType().Name;
                     string handle = e.Handle.ToString();
 
                     try
                     {
-                        Extents3d? oldExt = GeometryUtils.TryGetExtents(e);
+                        Extents3d? oldExt = ExtentsUtils.TryGetExtents(e);
                         e.TransformBy(matrix);
 
                         // DeepCloneObjects разрывает ассоциацию Hatch ↔ контур —
@@ -291,7 +320,7 @@ internal static class ViewportTransformer
                             catch { /* Игнорируем ошибки EvaluateHatch на сложной/сломанной геометрии */ }
                         }
 
-                        Extents3d? newExt = GeometryUtils.TryGetExtents(e);
+                        Extents3d? newExt = ExtentsUtils.TryGetExtents(e);
 
                         if (oldExt.HasValue && newExt.HasValue)
                         {
@@ -333,7 +362,7 @@ internal static class ViewportTransformer
 
         foreach (ModelEntitySnapshot entity in modelEntities)
         {
-            if (GeometryUtils.AabbIntersect(window, entity.Extents))
+            if (ExtentsUtils.AabbIntersect(window, entity.Extents))
             {
                 _ = result.Add(entity.Id);
             }
@@ -345,7 +374,7 @@ internal static class ViewportTransformer
 
         log.Debug(
             $"SelectModelInside cached={modelEntities.Count}, selected={result.Count}, " +
-            $"outsideWindow={outsideWindow}, window={GeometryUtils.FormatExtents(window)}");
+            $"outsideWindow={outsideWindow}, window={ExtentsUtils.FormatExtents(window)}");
         return result;
     }
 
@@ -369,7 +398,7 @@ internal static class ViewportTransformer
         HashSet<ObjectId> inMain = [];
         foreach (ModelEntitySnapshot s in modelSnapshots)
         {
-            if (GeometryUtils.AabbIntersect(mainWindow, s.Extents))
+            if (ExtentsUtils.AabbIntersect(mainWindow, s.Extents))
             {
                 _ = inMain.Add(s.Id);
             }

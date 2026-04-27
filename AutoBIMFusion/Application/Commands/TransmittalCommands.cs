@@ -16,8 +16,8 @@ public sealed class TransmittalCommands
     private const string TempFolderSuffix = "_TempPack";
     private const string ZipFileSuffix = "_Package.zip";
 
-    [CommandMethod("CreateETransmitZip")]
-    public void CreateETransmitZip()
+    [CommandMethod("CreateETransmitZip", CommandFlags.Modal)]
+    public static void CreateETransmitZip()
     {
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));

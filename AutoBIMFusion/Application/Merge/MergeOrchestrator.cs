@@ -1,7 +1,9 @@
 using AutoBIMFusion.Application.Merge.Layouts;
+using AutoBIMFusion.Application.Merge.Models;
 using AutoBIMFusion.Application.Utils;
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
+using System.Runtime.Versioning;
 
 namespace AutoBIMFusion.Application.Merge;
 
@@ -9,12 +11,13 @@ namespace AutoBIMFusion.Application.Merge;
 /// Координирует слияние DWG-файлов: экспортирует первый Paper Space лист,
 /// вычисляет границы, вставляет как блок со смещением.
 /// </summary>
-internal static class DwgMerger
+[SupportedOSPlatform("windows")]
+internal static class MergeCoordinator
 {
     public static async Task<MergeResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc, OperationLogger log)
     {
-        string layoutName = Path.GetFileNameWithoutExtension(filePath);
         string fileName = Path.GetFileName(filePath);
+        string layoutName = Path.GetFileNameWithoutExtension(filePath);
 
         if (!FileHelper.TryValidateFile(filePath, FileShare.ReadWrite, out string warn))
         {
@@ -87,16 +90,7 @@ internal static class DwgMerger
         {
             using Database db = new(false, true);
             db.ReadDwgFile(tempPath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
-
-            using Transaction tr = db.TransactionManager.StartTransaction();
-            db.UpdateExt(true); // true для максимальной точности пересчета всех объектов
-
-            Point3d min = db.Extmin;
-            Point3d max = db.Extmax;
-            tr.Commit();
-
-            bool isEmpty = min.X > max.X || min.Y > max.Y;
-            return isEmpty ? null : new Extents3d(min, max);
+            return ExtentsUtils.GetDatabaseExtents(db);
         }
         catch (System.Exception ex)
         {

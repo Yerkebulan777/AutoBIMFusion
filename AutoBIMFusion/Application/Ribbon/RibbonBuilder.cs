@@ -6,7 +6,8 @@ namespace AutoBIMFusion.Application.Ribbon;
 /// <summary>
 /// Строит вкладку AutoBIMFusion на Ribbon AutoCAD.
 /// </summary>
-[SupportedOSPlatform("windows")]
+///
+[SupportedOSPlatform("Windows")]
 internal static class RibbonBuilder
 {
     public static void CreateTab()
@@ -17,22 +18,19 @@ internal static class RibbonBuilder
             return;
         }
 
-        RibbonButton mergeDwgButton = CreateLargeButton("AutoBIMFusionBtn1", "Объединить DWG", "MERGEDWG ");
-        RibbonButton mergeTextButton = CreateLargeButton("AutoBIMFusionBtn2", "Склеить TEXT", "SMART_MERGE_TEXT ");
-        RibbonButton joinLinesButton = CreateLargeButton("AutoBIMFusionBtn5", "Соединить линии", "JOIN_LINES ");
-        RibbonButton mergeTextStylesButton = CreateLargeButton("AutoBIMFusionBtn4", "Слить стили", "MergeTextStyles ");
-        RibbonButton etransmitButton = CreateLargeButton("AutoBIMFusionBtn3", "eTransmit ZIP", "CreateETransmitZip ");
-
         RibbonPanelSource panelSource = new()
         {
             Title = "Panel",
             Id = "AutoBIMFusion.MainPanel"
         };
-        panelSource.Items.Add(mergeDwgButton);
-        panelSource.Items.Add(mergeTextButton);
-        panelSource.Items.Add(joinLinesButton);
-        panelSource.Items.Add(mergeTextStylesButton);
-        panelSource.Items.Add(etransmitButton);
+
+        panelSource.Items.Add(CreateLargeButton("AutoBIMFusionBtn1", "Объединить DWG", "MERGEDWG "));
+        panelSource.Items.Add(CreateLargeButton("AutoBIMFusionBtn2", "Склеить TEXT", "SMART_MERGE_TEXT "));
+        panelSource.Items.Add(CreateLargeButton("AutoBIMFusionBtn3", "eTransmit ZIP", "CreateETransmitZip "));
+        panelSource.Items.Add(CreateLargeButton("AutoBIMFusionBtn4", "Слить стили", "MergeTextStyles "));
+        panelSource.Items.Add(CreateLargeButton("AutoBIMFusionBtn5", "Соединить линии", "JOIN_LINES "));
+        panelSource.Items.Add(CreateLargeButton("AutoBIMFusionBtn6", "Экспорт Текстовых стилей", "ExportTextStylesToMd "));
+        panelSource.Items.Add(CreateLargeButton("AutoBIMFusionBtn7", "Экспорт Размерных стилей", "ExportDimStylesToMd "));
 
         RibbonTab tab = new() { Id = "AutoBIMFusion.RibbonTab", Title = "AutoBIMFusion" };
         tab.Panels.Add(new RibbonPanel { Source = panelSource });

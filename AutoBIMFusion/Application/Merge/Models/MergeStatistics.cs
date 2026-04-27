@@ -1,4 +1,4 @@
-namespace AutoBIMFusion.Application.Merge;
+namespace AutoBIMFusion.Application.Merge.Models;
 
 /// <summary>
 /// Статистика операции слияния DWG-файлов.

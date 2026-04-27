@@ -79,11 +79,11 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
                         ent.TransformBy(displacement);
                         clonedCount++;
 
-                        Extents3d? ext = GeometryUtils.TryGetExtents(ent);
+                        Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
                         if (ext.HasValue)
                         {
                             worldBounds = worldBounds.HasValue
-                                ? GeometryUtils.Union(worldBounds.Value, ext.Value)
+                                ? ExtentsUtils.Union(worldBounds.Value, ext.Value)
                                 : ext.Value;
                         }
                     }
@@ -100,10 +100,7 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
             if (!worldBounds.HasValue)
             {
-                worldBounds = new Extents3d(
-                    new Point3d(insertPt.X + sourceBounds.MinPoint.X, insertPt.Y + sourceBounds.MinPoint.Y, 0),
-                    new Point3d(insertPt.X + sourceBounds.MaxPoint.X, insertPt.Y + sourceBounds.MaxPoint.Y, 0)
-                );
+                worldBounds = ExtentsUtils.Transform(sourceBounds, displacement);
             }
 
             _rightMax = worldBounds.Value.MaxPoint.X;

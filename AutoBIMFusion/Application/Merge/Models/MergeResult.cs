@@ -1,6 +1,6 @@
 using AutoBIMFusion.Application.Utils;
 
-namespace AutoBIMFusion.Application.Merge;
+namespace AutoBIMFusion.Application.Merge.Models;
 
 /// <summary>
 /// Результат слияния одного DWG-файла.

@@ -1,5 +1,6 @@
 using AutoBIMFusion.Application.AcadSupport;
 using AutoBIMFusion.Application.Merge;
+using AutoBIMFusion.Application.Merge.Models;
 using AutoBIMFusion.Application.Utils;
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
@@ -15,7 +16,7 @@ public sealed class MergeCommands
 {
     private readonly SemaphoreSlim _mergeGate = new(1, 1);
 
-    [CommandMethod("MERGEDWG", CommandFlags.Session)]
+    [CommandMethod("MERGEDWG", CommandFlags.Modal | CommandFlags.Session)]
     public async void MergeDwgFolderCommand()
     {
         await MergeDwgFolderCommandAsync();
@@ -106,7 +107,7 @@ public sealed class MergeCommands
 
                 stats.RecordTotal();
 
-                MergeResult result = await DwgMerger.MergeSingleFile(files[idx], inserter, doc, log);
+                MergeResult result = await MergeCoordinator.MergeSingleFile(files[idx], inserter, doc, log);
 
                 log.Info($"[{(result.Success ? "OK" : result.IsSkipped ? "SKIP" : "FAIL")}] {result.Message}");
 

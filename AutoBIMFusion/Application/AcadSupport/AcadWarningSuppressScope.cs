@@ -2,10 +2,6 @@ using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Application.AcadSupport;
 
-/// <summary>
-/// Временно подавляет предупреждения и диалоги AutoCAD
-/// для операций экспорта и сохранения.
-/// </summary>
 internal sealed class AcadWarningSuppressScope : IDisposable
 {
     private readonly ManagedSystemVariable _fileDia = new("FILEDIA", 0);
@@ -30,10 +26,7 @@ internal sealed class AcadWarningSuppressScope : IDisposable
     }
 }
 
-/// <summary>
-/// Подготавливает документ к редактированию листа: TILEMODE=0 (PaperSpace активен)
-/// и сохранение предыдущих CTAB/CVPORT/TILEMODE для восстановления при Dispose.
-/// </summary>
+// Устанавливает TILEMODE=0, сохраняет CTAB/CVPORT/TILEMODE для восстановления при Dispose.
 internal sealed class LayoutEditScope : IDisposable
 {
     private readonly ManagedSystemVariable _tileMode = new("TILEMODE", 0);
@@ -54,10 +47,6 @@ internal sealed class LayoutEditScope : IDisposable
     }
 }
 
-/// <summary>
-/// Автоматизирует сохранение, изменение и восстановление
-/// системной переменной AutoCAD.
-/// </summary>
 internal sealed class ManagedSystemVariable : IDisposable
 {
     private readonly string _name;
