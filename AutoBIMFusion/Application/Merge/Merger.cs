@@ -10,7 +10,7 @@ namespace AutoBIMFusion.Application.Merge;
 /// Координирует слияние DWG-файлов: экспортирует первый Paper Space лист,
 /// вычисляет границы, вставляет как блок со смещением.
 /// </summary>
-internal static class DwgMerger
+internal static class Merger
 {
     public static async Task<MergeResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc, OperationLogger log)
     {

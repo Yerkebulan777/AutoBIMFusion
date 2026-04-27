@@ -2,6 +2,7 @@ using AutoBIMFusion.Application.AcadSupport;
 using AutoBIMFusion.Application.Utils;
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
+using System.Runtime.Versioning;
 using System.Windows.Forms;
 
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
@@ -27,6 +28,7 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 /// 4. Paper-содержимое (рамки, штампы) переносится в Model Space вместо VP.
 /// 5. TrimOutside очищает всё за границами frameBounds для финального файла.
 /// </summary>
+[SupportedOSPlatform("Windows")]
 internal static class ViewportLayoutExporter
 {
     /// <summary>
@@ -107,54 +109,67 @@ internal static class ViewportLayoutExporter
         return CollectRasterImages(db, paperClonedHandles, sourceDir, log).Count > 0;
     }
 
+    /// <summary>
+    /// Выполняет OLE-встраивание растровых изображений во временный файл.
+    /// </summary>
+    /// <param name="tempPath">Путь к временному файлу DWG.</param>
+    /// <param name="paperClonedHandles">Набор хэндлов клонированных объектов бумаги.</param>
+    /// <param name="sourceDir">Каталог исходных файлов.</param>
+    /// <param name="log">Логгер операций.</param>
+    /// <returns></returns>
     private static async Task RunOleEmbeddingAsync(string tempPath, HashSet<long> paperClonedHandles, string sourceDir, OperationLogger log)
     {
         DocumentCollection docs = AcadApp.DocumentManager;
         Document? tempDoc = docs.Open(tempPath);
 
-        if (tempDoc is null)
+        if (tempDoc is not null)
         {
-            log.Warn($"Не удалось открыть временный файл для OLE-встраивания: {tempPath}");
-            return;
-        }
-
-        try
-        {
-            docs.MdiActiveDocument = tempDoc;
-
-            await docs.ExecuteInCommandContextAsync(async _ =>
+            try
             {
-                Database db = tempDoc.Database;
-                List<(ObjectId id, string path, Extents3d bounds)> imagesToConvert = CollectRasterImages(db, paperClonedHandles, sourceDir, log);
+                docs.MdiActiveDocument = tempDoc;
 
-                if (imagesToConvert.Count == 0)
+                await docs.ExecuteInCommandContextAsync(async _ =>
                 {
-                    return;
-                }
+                    Database db = tempDoc.Database;
+                    List<(ObjectId id, string path, Extents3d bounds)> imagesToConvert = CollectRasterImages(db, paperClonedHandles, sourceDir, log);
 
-                AcadApp.SetSystemVariable("TILEMODE", 1);
-                await tempDoc.Editor.CommandAsync("._REGEN");
+                    if (imagesToConvert.Count == 0)
+                    {
+                        return;
+                    }
 
-                foreach ((ObjectId id, string path, Extents3d bounds) in imagesToConvert)
+                    AcadApp.SetSystemVariable("TILEMODE", 1);
+                    await tempDoc.Editor.CommandAsync("._REGEN");
+
+                    foreach ((ObjectId id, string path, Extents3d bounds) in imagesToConvert)
+                    {
+                        await EmbedSingleRasterAsync(tempDoc, db, id, path, bounds, log);
+                    }
+
+                    try
+                    {
+                        Clipboard.Clear();
+                    }
+                    catch
+                    {
+                        log.Warn("Не удалось очистить Clipboard после OLE-вставки.");
+                    }
+
+                }, null);
+
+                using (new AcadWarningSuppressScope())
                 {
-                    await EmbedSingleRasterAsync(tempDoc, db, id, path, bounds, log);
+                    tempDoc.Database.SaveAs(tempPath, DwgVersion.AC1032);
                 }
-
-                try { Clipboard.Clear(); } catch { }
-            }, null);
-
-            using (new AcadWarningSuppressScope())
-            {
-                tempDoc.Database.SaveAs(tempPath, DwgVersion.AC1032);
             }
-        }
-        catch (System.Exception ex)
-        {
-            log.Error(ex, "Ошибка при OLE-встраивании во временный файл");
-        }
-        finally
-        {
-            tempDoc.CloseAndDiscard();
+            catch (System.Exception ex)
+            {
+                log.Error(ex, "Ошибка при OLE-встраивании во временный файл");
+            }
+            finally
+            {
+                tempDoc.CloseAndDiscard();
+            }
         }
     }
 

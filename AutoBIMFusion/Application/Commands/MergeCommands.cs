@@ -107,7 +107,7 @@ public sealed class MergeCommands
 
                 stats.RecordTotal();
 
-                MergeResult result = await DwgMerger.MergeSingleFile(files[idx], inserter, doc, log);
+                MergeResult result = await Merger.MergeSingleFile(files[idx], inserter, doc, log);
 
                 log.Info($"[{(result.Success ? "OK" : result.IsSkipped ? "SKIP" : "FAIL")}] {result.Message}");
 
