@@ -1,10 +1,13 @@
 using Autodesk.Windows;
+using System.Runtime.Versioning;
 
 namespace AutoBIMFusion.Application.Ribbon;
 
 /// <summary>
 /// Строит вкладку AutoBIMFusion на Ribbon AutoCAD.
 /// </summary>
+///
+[SupportedOSPlatform("Windows")]
 internal static class RibbonBuilder
 {
     public static void CreateTab()
@@ -26,8 +29,8 @@ internal static class RibbonBuilder
         panelSource.Items.Add(CreateLargeButton("AutoBIMFusionBtn3", "eTransmit ZIP", "CreateETransmitZip "));
         panelSource.Items.Add(CreateLargeButton("AutoBIMFusionBtn4", "Слить стили", "MergeTextStyles "));
         panelSource.Items.Add(CreateLargeButton("AutoBIMFusionBtn5", "Соединить линии", "JOIN_LINES "));
-        panelSource.Items.Add(CreateLargeButton("AutoBIMFusionBtn6", "Экспорт TEXT стилей", "ExportTextStylesToMd "));
-        panelSource.Items.Add(CreateLargeButton("AutoBIMFusionBtn7", "Экспорт DIM стилей", "ExportDimStylesToMd "));
+        panelSource.Items.Add(CreateLargeButton("AutoBIMFusionBtn6", "Экспорт Текстовых стилей", "ExportTextStylesToMd "));
+        panelSource.Items.Add(CreateLargeButton("AutoBIMFusionBtn7", "Экспорт Размерных стилей", "ExportDimStylesToMd "));
 
         RibbonTab tab = new() { Id = "AutoBIMFusion.RibbonTab", Title = "AutoBIMFusion" };
         tab.Panels.Add(new RibbonPanel { Source = panelSource });
