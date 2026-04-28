@@ -355,6 +355,9 @@ internal static class ViewportTransformer
         int mappedPrimary = 0;
         int dimensionOverrides = 0;
 
+        // Извлекаем коэффициент масштабирования из матрицы для корректного расчета Dimscale
+        double scaleFactor = Vector3d.XAxis.TransformBy(matrix).Length;
+
         using (Transaction tr = db.TransactionManager.StartTransaction())
         {
             db.DeepCloneObjects(validIds, ownerId, map, false);
@@ -384,25 +387,21 @@ internal static class ViewportTransformer
                     {
                         Extents3d? oldExt = ExtentsUtils.TryGetExtents(e);
 
-                        if (dimensionScale.HasValue && e is Dimension clonedDimension)
-                        {
-                            DimensionOverrideResult overrideResult = ApplyDimensionScaleOverride(tr, clonedDimension, dimensionScale.Value);
-                            log.Debug(
-                                $"DimscaleOverride clone source={sourceName}: SourceHandle={pair.Key.Handle}, " +
-                                $"CloneHandle={clonedDimension.Handle}, Type={overrideResult.EntityType}, " +
-                                $"Layer=\"{overrideResult.LayerName}\", DimStyle=\"{overrideResult.StyleName}\", " +
-                                $"before={overrideResult.Before:F6}, target={dimensionScale.Value:F6}, " +
-                                $"afterBeforeTransform={overrideResult.After:F6}");
-                            dimensionOverrides++;
-                        }
-
+                        // 1. Сначала трансформируем геометрию (точки привязки изменят координаты)
                         e.TransformBy(matrix);
 
-                        if (dimensionScale.HasValue && e is Dimension transformedDimension)
+                        // 2. Если это размер, пропорционально меняем его масштаб и пересчитываем
+                        if (e is Dimension transformedDimension)
                         {
+                            double originalDimscale = transformedDimension.Dimscale;
+                            transformedDimension.Dimscale = transformedDimension.Dimscale * scaleFactor;
+                            transformedDimension.RecomputeDimensionBlock(true);
+
                             log.Debug(
-                                $"DimscaleOverride clone after TransformBy source={sourceName}: " +
-                                $"CloneHandle={transformedDimension.Handle}, afterTransform={transformedDimension.Dimscale:F6}");
+                                $"[DBG] DimscaleOverride clone source={sourceName}: CloneHandle={transformedDimension.Handle}, " +
+                                $"scaleFactor={scaleFactor:F6}, originalDimscale={originalDimscale:F6}, " +
+                                $"newDimscale={transformedDimension.Dimscale:F6}");
+                            dimensionOverrides++;
                         }
 
                         // DeepCloneObjects разрывает ассоциацию Hatch ↔ контур —
@@ -444,7 +443,8 @@ internal static class ViewportTransformer
 
         log.Debug(
             $"DeepCloneAndTransform source={sourceName}, input={sourceIds.Count}, " +
-            $"mappedPrimary={mappedPrimary}, transformed={cloned.Count}, dimensionOverrides={dimensionOverrides}");
+            $"mappedPrimary={mappedPrimary}, transformed={cloned.Count}, dimensionOverrides={dimensionOverrides}, " +
+            $"scaleFactor={scaleFactor:F6}");
         return cloned;
     }
 
