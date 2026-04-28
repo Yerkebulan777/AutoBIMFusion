@@ -72,57 +72,6 @@ internal static class ExtentsUtils
         return Point2d.Origin + (0.5 * (extents.MinPoint.GetAsVector() + extents.MaxPoint.GetAsVector()));
     }
 
-    /// <summary>
-    /// Масштабирует габариты 3D относительно их центра.
-    /// </summary>
-    /// <param name="extents">Габариты.</param>
-    /// <param name="factor">Коэффициент масштабирования (> 1 увеличивает, < 1 уменьшает).</param>
-    /// <returns>Масштабированные габариты.</returns>
-    internal static Extents3d Expand(Extents3d extents, double factor)
-    {
-        Point3d center = GetCenter(extents);
-        return new Extents3d(
-            center + (factor * (extents.MinPoint - center)),
-            center + (factor * (extents.MaxPoint - center)));
-    }
-
-    /// <summary>
-    /// Создаёт габариты 3D вокруг точки заданного размера.
-    /// </summary>
-    /// <param name="center">Центральная точка.</param>
-    /// <param name="size">Размер (будет разделён пополам для каждой стороны).</param>
-    /// <returns>Габариты.</returns>
-    internal static Extents3d Expand(Point3d center, double size)
-    {
-        Vector3d move = new(size / 2, size / 2, size / 2);
-        return new Extents3d(center - move, center + move);
-    }
-
-    /// <summary>
-    /// Масштабирует габариты 2D относительно их центра.
-    /// </summary>
-    /// <param name="extents">Габариты.</param>
-    /// <param name="factor">Коэффициент масштабирования.</param>
-    /// <returns>Масштабированные габариты.</returns>
-    internal static Extents2d Expand(Extents2d extents, double factor)
-    {
-        Point2d center = GetCenter(extents);
-        return new Extents2d(
-            center + (factor * (extents.MinPoint - center)),
-            center + (factor * (extents.MaxPoint - center)));
-    }
-
-    /// <summary>
-    /// Создаёт габариты 2D вокруг точки заданного размера.
-    /// </summary>
-    /// <param name="center">Центральная точка.</param>
-    /// <param name="size">Размер (будет разделён пополам для каждой стороны).</param>
-    /// <returns>Габариты.</returns>
-    internal static Extents2d Expand(Point2d center, double size)
-    {
-        Vector2d move = new(size / 2, size / 2);
-        return new Extents2d(center - move, center + move);
-    }
 
     /// <summary>
     /// Проверяет, находится ли точка внутри габаритов 3D (включая границы).
@@ -228,51 +177,6 @@ internal static class ExtentsUtils
             y(extents.MaxPoint));
     }
 
-    /// <summary>
-    /// Преобразует габариты 2D в габариты 3D.
-    /// По умолчанию создаёт 3D габариты с Z = 0.
-    /// </summary>
-    /// <param name="extents">Габариты 2D.</param>
-    /// <param name="x">Функция для вычисления X координаты (по умолчанию использует X из 2D).</param>
-    /// <param name="y">Функция для вычисления Y координаты (по умолчанию использует Y из 2D).</param>
-    /// <param name="z">Функция для вычисления Z координаты (по умолчанию 0).</param>
-    /// <returns>Габариты 3D.</returns>
-    internal static Extents3d ToExtents3d(
-        Extents2d extents,
-        Func<Point2d, double>? x = null,
-        Func<Point2d, double>? y = null,
-        Func<Point2d, double>? z = null)
-    {
-        x ??= p => p.X;
-        y ??= p => p.Y;
-        z ??= p => 0;
-
-        Point3d minPoint = new(x(extents.MinPoint), y(extents.MinPoint), z(extents.MinPoint));
-        Point3d maxPoint = new(x(extents.MaxPoint), y(extents.MaxPoint), z(extents.MaxPoint));
-        return new Extents3d(minPoint, maxPoint);
-    }
-
-    /// <summary>
-    /// Получает площадь габаритов 2D (произведение ширины и высоты).
-    /// </summary>
-    /// <param name="extents">Габариты.</param>
-    /// <returns>Площадь.</returns>
-    internal static double GetArea(Extents2d extents)
-    {
-        return (extents.MaxPoint.X - extents.MinPoint.X) * (extents.MaxPoint.Y - extents.MinPoint.Y);
-    }
-
-    /// <summary>
-    /// Получает объём габаритов 3D (произведение ширины, высоты и глубины).
-    /// </summary>
-    /// <param name="extents">Габариты.</param>
-    /// <returns>Объём.</returns>
-    internal static double GetVolume(Extents3d extents)
-    {
-        return (extents.MaxPoint.X - extents.MinPoint.X)
-            * (extents.MaxPoint.Y - extents.MinPoint.Y)
-            * (extents.MaxPoint.Z - extents.MinPoint.Z);
-    }
 
     /// <summary>
     /// Получает габариты всей базы данных.
