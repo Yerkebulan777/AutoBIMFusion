@@ -47,8 +47,8 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 ///    b) toClone = <see cref="ViewportTransformer.SelectModelInside"/>(snapshot,
 ///       aux.ModelWindow) — AABB-пересечение entity с DCS-окном aux.
 ///    c) <see cref="ViewportTransformer.DeepCloneAndTransform"/> — глубокое
-///       клонирование + локальный Dimscale=1/aux.CustomScale для Dimension +
-///       TransformBy(m) каждому клону + EvaluateHatch(true) для
+///       клонирование + TransformBy(m) каждому клону с пропорциональной
+///       компенсацией Dimension/MLeader + EvaluateHatch(true) для
 ///       не-ассоциативных штриховок (восстановление геометрии заливки).
 ///    d) <see cref="ViewportTransformer.EraseEntitiesOutsideMainWindow"/> —
 ///       оригиналы из aux-окна, попадающие ВНЕ главного окна, удаляются.
@@ -61,7 +61,7 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 ///       Matrix3d.Scaling(clampRatio, mainOriginal.ViewCenter)
 ///    Через <see cref="ViewportTransformer.ScaleModelSpaceObjects"/>: пропускает
 ///    Viewport и ассоциативные Hatch (они пересчитываются по контурам),
-///    вызывает EvaluateHatch на простых hatch.
+///    компенсирует Dimension/MLeader, вызывает EvaluateHatch на простых hatch.
 ///    Если clampRatio == 1.0, шаг пропускается.
 ///
 /// 6. ПЕРЕНОС PAPER → MODEL (в зажатом main).
@@ -78,10 +78,9 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 /// АЛГОРИТМ (single-VP) — упрощённая версия без шага 4.
 /// ─────────────────────────────────────────────────────────────────────────
 /// 1. Зажим масштаба → clamped, clampRatio.
-/// 2. Локальный Dimscale=1/vp.CustomScale для Dimension внутри окна VP.
-/// 3. Масштабирование Model Space на clampRatio вокруг vp.ViewCenter
+/// 2. Масштабирование Model Space на clampRatio вокруг vp.ViewCenter
 ///    (если clampRatio != 1.0).
-/// 4. Paper → Model через BuildPaperToMainMatrix(clamped).
+/// 3. Paper → Model через BuildPaperToMainMatrix(clamped).
 ///
 /// ─────────────────────────────────────────────────────────────────────────
 /// АЛГОРИТМ (no-VP) — fallback при отсутствии viewport'ов.
@@ -240,14 +239,13 @@ internal static class ViewportLayoutExporter
     /// Краткий порядок:
     /// 1. mainOriginal (исходный) + mainClamped (зажатый до TargetScale) + clampRatio.
     /// 2. Snapshot модели для AABB-отбора.
-    /// 3. Dimension внутри главного окна получают Dimscale=1/mainOriginal.CustomScale.
-    /// 4. Для каждого aux: BuildMatrix(mainOriginal, aux) → DeepCloneAndTransform
-    ///    с Dimscale=1/aux.CustomScale для клонированных Dimension →
+    /// 3. Для каждого aux: BuildMatrix(mainOriginal, aux) → DeepCloneAndTransform
+    ///    с пропорциональной компенсацией Dimension/MLeader →
     ///    EraseEntitiesOutsideMainWindow. Матрицы строятся по mainOriginal (НЕ Clamped),
     ///    иначе клоны «улетают» в clampRatio раз дальше — баг ветки OldVersion.
-    /// 5. ScaleModelSpaceObjects(clampRatio, mainOriginal.ViewCenter) — приводит весь
+    /// 4. ScaleModelSpaceObjects(clampRatio, mainOriginal.ViewCenter) — приводит весь
     ///    Model Space (оригиналы main + клоны aux) к зажатому масштабу.
-    /// 6. MovePaperToModelSpace через BuildPaperToMainMatrix(mainClamped).
+    /// 5. MovePaperToModelSpace через BuildPaperToMainMatrix(mainClamped).
     /// </summary>
     private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProcessMultiVp(Database db, string layoutName, List<LayoutViewportInfo> vps, OperationLogger log)
     {
@@ -266,14 +264,7 @@ internal static class ViewportLayoutExporter
 
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
         ObjectIdCollection mainIds = ViewportTransformer.SelectModelInside(modelEntities, mainOriginal.ModelWindow, log);
-        double mainDimensionScale = GetDimensionScale(mainOriginal, log);
-        LogDimensionScalePlan("main", mainOriginal, mainIds.Count, mainDimensionScale, log);
-        _ = ViewportTransformer.ApplyDimensionScaleOverrides(
-            db,
-            mainIds,
-            mainDimensionScale,
-            log,
-            $"main-VP #{mainOriginal.Number}");
+        log.Debug($"main-VP #{mainOriginal.Number}: selected={mainIds.Count}, dimension scale overrides skipped");
 
         foreach (LayoutViewportInfo aux in vps)
         {
@@ -284,8 +275,6 @@ internal static class ViewportLayoutExporter
 
             Matrix3d m = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
             ObjectIdCollection toClone = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, log);
-            double auxDimensionScale = GetDimensionScale(aux, log);
-            LogDimensionScalePlan("aux", aux, toClone.Count, auxDimensionScale, log);
 
             if (toClone.Count > 0)
             {
@@ -296,8 +285,7 @@ internal static class ViewportLayoutExporter
                     msId,
                     m,
                     log,
-                    $"aux-VP #{aux.Number}",
-                    auxDimensionScale);
+                    $"aux-VP #{aux.Number}");
                 // Удаляем оригиналы aux VP, которых нет в главном VP.
                 _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow, log);
                 log.Info($"aux-VP #{aux.Number}: обработано {cloned.Count} объектов");
@@ -337,14 +325,7 @@ internal static class ViewportLayoutExporter
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
         ObjectIdCollection visibleIds = ViewportTransformer.SelectModelInside(modelEntities, vp.ModelWindow, log);
-        double dimensionScale = GetDimensionScale(vp, log);
-        LogDimensionScalePlan("single", vp, visibleIds.Count, dimensionScale, log);
-        _ = ViewportTransformer.ApplyDimensionScaleOverrides(
-            db,
-            visibleIds,
-            dimensionScale,
-            log,
-            $"VP #{vp.Number}");
+        log.Debug($"VP #{vp.Number}: selected={visibleIds.Count}, dimension scale overrides skipped");
 
         if (clampRatio > 1.0 + 1e-9)
         {
@@ -370,31 +351,6 @@ internal static class ViewportLayoutExporter
 
         log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0}");
         return vp;
-    }
-
-    private static double GetDimensionScale(LayoutViewportInfo vp, OperationLogger log)
-    {
-        if (vp.CustomScale > 0.0 && !double.IsNaN(vp.CustomScale) && !double.IsInfinity(vp.CustomScale))
-        {
-            return 1.0 / vp.CustomScale;
-        }
-
-        log.Warn($"VP #{vp.Number}: CustomScale={vp.CustomScale:F6} некорректен, Dimscale={MaxScaleMultiplier:F6}");
-        return MaxScaleMultiplier;
-    }
-
-    private static void LogDimensionScalePlan(
-        string scope,
-        LayoutViewportInfo vp,
-        int selectedEntityCount,
-        double dimensionScale,
-        OperationLogger log)
-    {
-        log.Info(
-            $"DimscalePlan scope={scope} VP#{vp.Number}: CustomScale={vp.CustomScale:F6}, " +
-            $"targetDimscale={dimensionScale:F6}, selectedEntities={selectedEntityCount}, " +
-            $"ViewCenter={ExtentsUtils.FormatPoint(vp.ViewCenter)}, " +
-            $"ModelWindow={ExtentsUtils.FormatExtents(vp.ModelWindow)}");
     }
 
     /// <summary>

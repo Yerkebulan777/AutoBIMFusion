@@ -174,6 +174,7 @@ internal static class ViewportTransformer
 
         Dictionary<string, int> successTypes = [];
         Dictionary<string, int> errorTypes = [];
+        double scaleFactor = Vector3d.XAxis.TransformBy(matrix).Length;
 
         using Transaction tr = db.TransactionManager.StartTransaction();
         BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
@@ -210,9 +211,17 @@ internal static class ViewportTransformer
                 Extents3d? oldExt = ExtentsUtils.TryGetExtents(ent);
                 ent.TransformBy(matrix);
 
-                // После TransformBy штриховка может рассинхронизироваться с контурами —
-                // принудительно переоцениваем геометрию заливки.
-                if (ent is Hatch hatchScale)
+                if (ent is Dimension dimScale)
+                {
+                    dimScale.Dimscale *= scaleFactor;
+                    dimScale.Dimlfac /= scaleFactor;
+                    dimScale.RecomputeDimensionBlock(true);
+                }
+                else if (ent is MLeader mleaderScale)
+                {
+                    mleaderScale.Scale *= scaleFactor;
+                }
+                else if (ent is Hatch hatchScale)
                 {
                     try { hatchScale.EvaluateHatch(true); }
                     catch { /* Игнорируем ошибки EvaluateHatch на сложной/сломанной геометрии */ }
@@ -394,7 +403,8 @@ internal static class ViewportTransformer
                         if (e is Dimension transformedDimension)
                         {
                             double originalDimscale = transformedDimension.Dimscale;
-                            transformedDimension.Dimscale = transformedDimension.Dimscale * scaleFactor;
+                            transformedDimension.Dimscale *= scaleFactor;
+                            transformedDimension.Dimlfac /= scaleFactor;
                             transformedDimension.RecomputeDimensionBlock(true);
 
                             log.Debug(
@@ -402,6 +412,10 @@ internal static class ViewportTransformer
                                 $"scaleFactor={scaleFactor:F6}, originalDimscale={originalDimscale:F6}, " +
                                 $"newDimscale={transformedDimension.Dimscale:F6}");
                             dimensionOverrides++;
+                        }
+                        else if (e is MLeader clonedMLeader)
+                        {
+                            clonedMLeader.Scale *= scaleFactor;
                         }
 
                         // DeepCloneObjects разрывает ассоциацию Hatch ↔ контур —
