@@ -174,7 +174,7 @@ internal static class ViewportLayoutExporter
     /// Выполняет OLE-встраивание растровых изображений во временный файл.
     /// </summary>
     /// <param name="tempPath">Путь к временному файлу DWG.</param>
-    /// <param name="paperClonedHandles">Набор хэндлов клонированных объектов бумаги.</param>
+    /// <param name="paperClonedHandles">Набор хэндллеров клонированных объектов бумаги.</param>
     /// <param name="sourceDir">Каталог исходных файлов.</param>
     /// <param name="log">Логгер операций.</param>
     /// <returns></returns>
