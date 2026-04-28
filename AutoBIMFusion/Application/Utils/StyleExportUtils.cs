@@ -3,9 +3,9 @@ using System.Reflection;
 
 namespace AutoBIMFusion.Application.Utils;
 
-public static class StyleExportUtils
+internal static class StyleExportUtils
 {
-    public static void ExportSymbolTableToMd(Database db, ObjectId tableId, string fileName, string title, string itemLabel, Editor ed, params string[] additionalStyleNamesToSkip)
+    internal static void ExportSymbolTableToMd(Database db, ObjectId tableId, string fileName, string title, string itemLabel, Editor ed, params string[] additionalStyleNamesToSkip)
     {
         HashSet<string> stylesToSkip = new(StringComparer.OrdinalIgnoreCase)
         {

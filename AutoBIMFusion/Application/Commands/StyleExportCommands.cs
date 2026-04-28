@@ -10,7 +10,7 @@ public sealed class StyleExportCommands
     [CommandMethod("ExportTextStylesToMd", CommandFlags.Modal)]
     public static void ExportTextStyles()
     {
-        Document doc = AcadApp.DocumentManager.MdiActiveDocument;
+        Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
         string dwgName = Path.GetFileNameWithoutExtension(doc.Name);
@@ -27,7 +27,7 @@ public sealed class StyleExportCommands
     [CommandMethod("ExportDimStylesToMd", CommandFlags.Modal)]
     public static void ExportDimStyles()
     {
-        Document doc = AcadApp.DocumentManager.MdiActiveDocument;
+        Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
         string dwgName = Path.GetFileNameWithoutExtension(doc.Name);

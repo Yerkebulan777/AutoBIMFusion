@@ -1,255 +1,63 @@
-# Известные проблемы и TODO
+# Known Issues
 
-**Актуализировано:** 2026-04-24
+**Updated:** 2026-04-28
 
-Файл содержит подтверждённые недочёты и планируемые улучшения, выявленные при code review.
-Исправленные пункты удаляются из этого документа.
+This file tracks only active risks and contentious design decisions. Fixed stale items were removed.
 
----
+## Open
 
-## 🔴 Критичные — требуют решения
+### KI-1. Raster OLE embedding still depends on Clipboard and `PASTECLIP`
 
-### KI-1. Race condition на системном Clipboard при встраивании растров
+**Where:** `Application/Merge/Layouts/ViewportLayoutExporter.cs`
 
-**Где:** `Application/Merge/Layouts/ViewportLayoutExporter.cs`, методы `EmbedSingleRasterAsync`, `TryCopyImageToClipboard`
+The code now saves and restores the previous Clipboard content, and it erases the source `RasterImage` only after a new `OLE2FRAME` is found. However, the operation still depends on the global Windows Clipboard and AutoCAD command execution.
 
-**Описание:** Clipboard — глобальный системный ресурс. Между моментом вызова `Clipboard.SetDataObject(...)` и выполнением команды `._PASTECLIP` другой процесс может перезаписать содержимое буфера обмена. Пользователь теряет свои данные, а в целевой документ может вставиться неправильное изображение.
+**Risk:** Another process can change Clipboard contents between `SetDataObject` and `PASTECLIP`, or AutoCAD can reject the paste command in a specific UI state.
 
-**Риск:** 
-- Вставка не того изображения в целевой документ.
-- Сбой команды `PASTECLIP` без понятной причины.
-- Потеря данных пользователя из буфера обмена.
+**Preferred fix:** Replace Clipboard/command-based insertion with direct OLE API creation if a reliable managed API path is confirmed for supported AutoCAD versions.
 
-**Варианты решения:**
+### KI-2. `DuplicateRecordCloning.Ignore` can reuse target styles/layers
 
-1. **Сохранение/восстановление содержимого Clipboard (краткосрочно):** Сохранить `IDataObject` перед операцией и восстановить после.
+**Where:** `Application/Merge/BlockInserter.cs`
 
-2. **Отказ от Clipboard в пользу прямого программного создания OLE2FRAME (рекомендуется):** Создать `Ole2Frame` через конструктор и заполнить бинарные данные напрямую через `SetOleData()`.
+`WblockCloneObjects` uses `DuplicateRecordCloning.Ignore`. This avoids style/layer duplication and keeps the target database stable, but if a source style has the same name and different properties, cloned objects can inherit the target definition.
 
-3. **Pre-flight проверка:** Убедиться, что `OLEQUALITY` допустима и Clipboard не заблокирован.
+**Decision needed:** Keep target-stability behavior, or switch to `MangleName` / explicit style import for visual fidelity.
 
-4. **Атомарность операции:** Обернуть вставку OLE и удаление `RasterImage` в единую транзакцию.
+### KI-3. No cancellation for long merges
 
-5. **Детерминированный поиск OLE (см. KI-4):** Использовать snapshot `ObjectIdCollection` вместо Handle-эвристики.
+**Where:** `MergeCommands`, `MergeCoordinator`, `ViewportLayoutExporter`
 
-6. **Порог по размеру изображения:** Если файл превышает 5 МБ или 2500×2500 px, оставлять `RasterImage` с внешней ссылкой.
+Large batches can run for a long time without a user cancellation path.
 
----
+**Preferred fix:** Introduce a cancellation token through the merge pipeline and check it between files and before expensive layout/raster operations.
 
-### KI-2. `WblockCloneObjects` с `DuplicateRecordCloning.Ignore` — потеря стилей исходного файла
+### KI-4. Hard-coded operational limits
 
-**Где:** `Application/Merge/BlockInserter.cs`, метод `InsertNativeObjects`
+| Limit | Current value | Location |
+| :--- | :--- | :--- |
+| Max DWG file size | 15 MB | `FileEnumerator` |
+| Max folder recursion | 3 | `FileEnumerator` |
+| Viewport scale clamp | 1:100 | `ViewportLayoutExporter` |
+| OLE image threshold | 5 MB | `ViewportLayoutExporter` |
 
-```csharp
-sourceDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Ignore, false);
-```
+These are intentionally conservative, but they are not user-configurable.
 
-**Описание:** Режим `Ignore` не создаёт дубликаты символьных таблиц — если в целевом документе уже есть слой или стиль с тем же именем, клонированные объекты получают существующую запись. Если исходный DWG имеет другие параметры слоя «0» или уникальные текстовые стили — они не будут перенесены, и объекты получат параметры целевого документа.
+**Preferred fix:** Add a small options model or config file only if real projects require different thresholds.
 
-**Риск:** 
-- Визуальные свойства объектов могут отличаться от исходного файла при несовпадении стилей.
-- Уникальные стили исходного файла теряются (объекты получают ближайший существующий стиль).
-- Результат зависит от того, какие стили уже есть в целевом документе.
+## Recently Fixed
 
-**Варианты решения:**
+| Item | Fix |
+| :--- | :--- |
+| Clipboard data loss | Replaced `Clipboard.Clear()` with save/restore in `finally`. |
+| New OLE detection by max handle | Detection now compares Model Space snapshots and only uses handle ordering among new `OLE2FRAME` candidates. |
+| Duplicate raster copies | `RasterImagePathFixer` reuses one copied file for repeated source image paths. |
+| Fire-and-forget startup failure | `MergeDwgFolderCommand` catches startup exceptions around the awaited task. |
+| ProgressMeter cleanup | `MergeFiles` stops `ProgressMeter` in `finally`. |
+| Root repair artifacts | Removed tracked `fix_enc.cs`, `fix_enc.exe`, and `fix.js`. |
 
-1. **Использовать `DuplicateRecordCloning.MangleName`:** Переименовать конфликтующие таблицы с префиксом источника, сохранив оригинальные параметры.
+## Questions
 
-2. **Предварительное слияние стилей:** Перед `WblockCloneObjects` анализировать различия и создавать недостающие стили с уникальными именами.
-
-3. **Явная документация:** Текущее поведение (`Ignore`) задокументировано как осознанный выбор — стабильность целевого документа важнее точного сохранения стилей источника.
-
----
-
-### KI-3. `Clipboard.Clear()` стирает данные пользователя
-
-**Где:** `Application/Merge/Layouts/ViewportLayoutExporter.cs`, методы ~267–273
-
-**Описание:** После встраивания OLE-растров вызывается `Clipboard.Clear()` — безвозвратно удаляет содержимое буфера обмена пользователя.
-
-**Риск:** Потеря последних скопированных пользователем данных и негативный UX.
-
-**Варианты решения:**
-
-1. **Убрать `Clear()` полностью:** Оставить буфер обмена нетронутым.
-
-2. **Сохранять и восстанавливать содержимое:** Вернуть оригинальные данные в Clipboard после операции.
-
----
-
-### KI-4. Поиск нового OLE по Handle — хрупкий хак
-
-**Где:** `Application/Merge/Layouts/ViewportLayoutExporter.cs`, методы `GetMaxHandleInModelSpace`, `FindNewOle2Frame`
-
-**Описание:** Handle в AutoCAD не гарантируется монотонно возрастающим. При высокой нагрузке новый объект может получить Handle меньше текущего максимума. `FindNewOle2Frame` вернёт `ObjectId.Null`, OLE останется неотмасштабированным.
-
-**Риск:** OLE-объект останется с неправильными параметрами; смещение и масштабирование не будут применены.
-
-**Варианты решения:**
-
-1. **Snapshot ObjectIdCollection (рекомендуется):** Захватить ObjectIdCollection до `PASTECLIP` и после, найти разницу. Новый OLE2FRAME — единственный объект, присутствующий во втором наборе.
-
-2. **XData/DBDictionary метка:** Пометить вновь созданный OLE2FRAME уникальным маркером сразу после `PASTECLIP`.
-
-3. **Транзакция с откатом:** Если `FindNewOle2Frame` вернул `ObjectId.Null`, откатить операцию встраивания.
-
----
-
-## 🟡 Средние — влияют на стабильность и UX
-
-### KI-5. Отсутствие CancellationToken
-
-**Где:** `Application/Commands/MergeCommands.cs`, `Application/Merge/DwgMerger.cs`, `Application/Merge/Layouts/ViewportLayoutExporter.cs`
-
-**Описание:** Операция на сотнях файлов может занимать минуты/часы. Пользователь не может прервать процесс штатно.
-
-**Риск:** Пользователь заблокирован; невозможно отменить неправильно запущенную операцию.
-
-**Варианты решения:**
-
-1. Протянуть `CancellationToken` через всю цепочку.
-2. Проверять `token.ThrowIfCancellationRequested()` в цикле по файлам.
-3. Обрабатывать `OperationCanceledException` на UI-уровне.
-4. Добавить UI-кнопку отмены.
-
----
-
-### KI-6. Fire-and-forget команда без обработки исключений
-
-**Где:** `Application/Commands/MergeCommands.cs`, метод `MergeDwgFolderCommand()`
-
-```csharp
-public void MergeDwgFolderCommand()
-{
-    _ = MergeDwgFolderCommandAsync();  // Fire-and-forget без обработки
-}
-```
-
-**Описание:** Если исключение вылетит до входа в `try`, оно уйдет в `TaskScheduler.UnobservedTaskException`. Пользователь не увидит причину ошибки.
-
-**Риск:** Непойманные исключения; пользователь не получит информацию об ошибке.
-
-**Варианты решения:**
-
-1. Добавить `ContinueWith` для обработки ошибок.
-2. Использовать `async void` (хотя считается антипаттерном).
-
----
-
-### KI-7. `await` внутри `using (doc.LockDocument())`
-
-**Где:** `Application/Commands/MergeCommands.cs`, метод `ExecuteMerge()`
-
-**Описание:** `DocumentLock.Dispose()` должен вызваться из UI-потока. Если `await` вернет управление в другой поток, получим `eLockChange` или нестабильность.
-
-**Риск:** Medium — потенциальная бомба с часовым механизмом.
-
-**Варианты решения:**
-
-1. Вынести `await` за пределы `using`.
-2. Зафиксировать правило: все `await` должны оставаться в UI-потоке (без `ConfigureAwait(false)`).
-3. Создать собственный `AsyncLock` обертку.
-
----
-
-### KI-8. `RasterImagePathFixer` дублирует один и тот же файл
-
-**Где:** `Application/Merge/RasterImagePathFixer.cs`, методы ~38–56
-
-**Описание:** Если два `RasterImageDef` ссылаются на один физический файл, логика копирует файл несколько раз с разными именами.
-
-**Риск:** Неэффективное использование дискового пространства и времени.
-
-**Варианты решения:**
-
-Использовать `Dictionary<string, string> sourcePath → destFileName` для отслеживания скопированных файлов.
-
----
-
-### KI-9. `ProgressMeter` может застрять в UI при исключении
-
-**Где:** `Application/Commands/MergeCommands.cs`, методы ~130–157
-
-**Описание:** Если исключение в цикле `MeterProgress`, метод `pm.Stop()` не вызовется. Прогресс-бар зависнет.
-
-**Риск:** UI блокируется; прогресс-бар остается видимым.
-
-**Варианты решения:**
-
-1. Явный `try-finally` с гарантированным `Stop()`.
-2. Собственный `IDisposable` обертка `ProgressMeterScope`.
-
----
-
-## 🟢 Улучшения — архитектура и гибкость
-
-### KI-10. Жёсткие лимиты без конфигурации
-
-| Параметр | Значение | Проблема |
-|----------|----------|----------|
-| `MaxFileSizeBytes` | 15 МБ | Большие DWG отсекаются безальтернативно |
-| `MaxRecursionDepth` | 3 | Глубокая вложенность игнорируется |
-| `MaxScaleMultiplier` | 100.0 | Масштабы крупнее 1:100 меняются |
-| Порог OLE | Не установлен | Большие изображения вызывают зависания |
-
-**Варианты решения:**
-
-1. Конфигурационный файл JSON/XML.
-2. Именованные константы с XML-документацией.
-3. Builder pattern с `MergeOptions`.
-
----
-
-### KI-11. `OperationLogger` нарушает SRP
-
-**Где:** `Infrastructure/Logging/OperationLogger.cs`
-
-**Описание:** Класс делает три вещи: пишет в Serilog, выводит в Editor, форматирует сообщения.
-
-**Варианты решения:**
-
-Разделить на интерфейсы: `IEditorOutput`, `IFileLogger`, `IMessageFormatter`. `OperationLogger` — фасад, зависящий от абстракций.
-
----
-
-### KI-12. `TryCloseDocument` может переключить активный документ
-
-**Где:** `Application/Merge/Layouts/ViewportLayoutExporter.cs`, методы ~235–245
-
-**Описание:** Если временный документ активен при закрытии, `CloseAndDiscard()` переключает фокус AutoCAD на другой документ.
-
-**Варианты решения:**
-
-1. Сохранять и восстанавливать активный документ.
-2. Не делать временный документ активным в первую очередь.
-
----
-
-## Статус исправлений
-
-| ID | Статус | Дата обновления |
-|:---|:-------|:---|
-| KI-1 | 🔴 Открыто | 2026-04-24 |
-| KI-2 | 🔴 Открыто | 2026-04-24 |
-| KI-3 | 🔴 Открыто | 2026-04-24 |
-| KI-4 | 🔴 Открыто | 2026-04-24 |
-| KI-5 | 🟡 Открыто | 2026-04-24 |
-| KI-6 | 🟡 Открыто | 2026-04-24 |
-| KI-7 | 🟡 Открыто | 2026-04-24 |
-| KI-8 | 🟡 Открыто | 2026-04-24 |
-| KI-9 | 🟡 Открыто | 2026-04-24 |
-| KI-10 | 🟢 Открыто | 2026-04-24 |
-| KI-11 | 🟢 Открыто | 2026-04-24 |
-| KI-12 | 🟢 Открыто | 2026-04-24 |
-
----
-
-## Связанные документы
-
-- [TECHNICAL_DOCUMENTATION.md](TECHNICAL_DOCUMENTATION.md) — архитектура и runtime-поток
-- [ALGORITHM.md](ALGORITHM.md) — математика viewport'ов и алгоритм merge
-
----
-
-**Версия документа:** 2.1  
-**Последнее обновление:** 2026-04-24
+1. Should source drawing styles/layers be preserved exactly, even if that creates mangled names in the target DWG?
+2. Should the plugin keep converting rasters to OLE, or should large/unstable images remain as external raster references?
+3. Should all layouts be processed, or should the command intentionally stay first-layout-only?

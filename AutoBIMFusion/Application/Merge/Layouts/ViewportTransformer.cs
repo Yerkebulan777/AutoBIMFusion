@@ -268,7 +268,7 @@ internal static class ViewportTransformer
     /// </remarks>
     internal static ObjectIdCollection DeepCloneAndTransform(
         Database db, ObjectIdCollection sourceIds, ObjectId sourceOwnerId, ObjectId ownerId,
-        Matrix3d matrix, OperationLogger log, string sourceName, double? dimensionScale = null)
+        Matrix3d matrix, OperationLogger log, string sourceName)
     {
         IReadOnlyList<ObjectId> sourceOrder = DrawOrderPreserver.Capture(db, sourceOwnerId, sourceIds, log);
 

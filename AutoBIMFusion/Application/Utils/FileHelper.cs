@@ -1,9 +1,6 @@
 namespace AutoBIMFusion.Application.Utils;
 
-/// <summary>
-/// Вспомогательные методы для работы с приложением.
-/// </summary>
-public static class FileHelper
+internal static class FileHelper
 {
     /// <summary>
     /// Проверяет доступность файла для чтения.
@@ -49,7 +46,7 @@ public static class FileHelper
     /// <summary>
     /// Проверяет структуру DWG-файла, чтобы убедиться, что он не поврежден и соответствует формату DWG.
     /// </summary>
-    public static bool TryValidateDwgStructure(string filePath, out string warn)
+    internal static bool TryValidateDwgStructure(string filePath, out string warn)
     {
         ArgumentNullException.ThrowIfNull(filePath);
 
@@ -57,8 +54,14 @@ public static class FileHelper
         {
             using Database db = new(false, true);
             db.ReadDwgFile(filePath, FileOpenMode.OpenForReadAndReadShare, true, string.Empty);
+            db.CloseInput(true);
             warn = string.Empty;
             return true;
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception ex)
+        {
+            warn = $"AutoCAD API не смог открыть DWG: {ex.Message}";
+            return false;
         }
         catch (System.Exception ex)
         {

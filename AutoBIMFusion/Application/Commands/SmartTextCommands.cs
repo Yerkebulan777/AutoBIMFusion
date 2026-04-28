@@ -46,9 +46,14 @@ public sealed class SmartTextCommands
 
                 BlockTableRecord modelSpaceWrite = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
 
-                foreach (List<TextElement> group in groups.Where(g => g.Count > 1))
+                foreach (List<TextElement> group in groups)
                 {
-                    (string? combinedString, TextElement? topLeftElement) = CombineGroupText(group);
+                    if (group.Count <= 1)
+                    {
+                        continue;
+                    }
+
+                    (string combinedString, TextElement topLeftElement) = CombineGroupText(group);
 
                     MText mergedText = new()
                     {
@@ -162,7 +167,7 @@ public sealed class SmartTextCommands
         return result;
     }
 
-    // Группировка: сначала по стилю+ротации, затем O(N log N) поиск соседей: dy ≤ Height×LineHeightFactor, gap ≤ Width×WordWidthFactor, ΔHeight ≤ 10%.
+    // Группировка: сначала по стилю+ротации, затем поиск соседей в отсортированном окне по перпендикулярной оси.
     private static List<List<TextElement>> SmartGroupText(List<TextElement> texts)
     {
         List<List<TextElement>> groups = [];
@@ -177,13 +182,12 @@ public sealed class SmartTextCommands
 
         foreach (var preGroup in preFilteredGroups)
         {
-            List<TextElement> candidates = preGroup.ToList();
             double rotation = preGroup.Key.Rotation;
             double cosA = Math.Cos(rotation);
             double sinA = Math.Sin(rotation);
 
-            var sortedCandidates = candidates
-                .Select(t => new { Text = t, Perp = (-t.Position.X * sinA) + (t.Position.Y * cosA) })
+            List<TextCandidate> sortedCandidates = preGroup
+                .Select(t => new TextCandidate(t, ProjectPerpendicular(t.Position, cosA, sinA)))
                 .OrderBy(item => item.Perp)
                 .ToList();
 
@@ -204,32 +208,26 @@ public sealed class SmartTextCommands
                     TextElement current = queue.Dequeue();
                     currentGroup.Add(current);
 
-                    double curPerp = (-current.Position.X * sinA) + (current.Position.Y * cosA);
+                    double curPerp = ProjectPerpendicular(current.Position, cosA, sinA);
                     double verticalThreshold = current.Height * LineHeightFactor;
+                    double minPerp = curPerp - verticalThreshold;
+                    double maxPerp = curPerp + verticalThreshold;
+                    int firstCandidate = LowerBoundByPerp(sortedCandidates, minPerp);
 
-                    // Ищем соседей только в ограниченном диапазоне по Perp
-                    // Так как sortedCandidates отсортирован, мы можем искать в обе стороны от i
-                    // Но проще и эффективнее в рамках этой очереди проверить ближайших соседей в списке.
-
-                    // Для простоты реализации мы проходим по соседям в sortedCandidates.
-                    for (int j = 0; j < sortedCandidates.Count; j++)
+                    for (int j = firstCandidate; j < sortedCandidates.Count; j++)
                     {
-                        var otherItem = sortedCandidates[j];
+                        TextCandidate otherItem = sortedCandidates[j];
+                        if (otherItem.Perp > maxPerp)
+                        {
+                            break;
+                        }
+
                         if (visited.Contains(otherItem.Text.ObjectId))
                         {
                             continue;
                         }
 
-                        // Тексты должны быть близкого размера (допускаем 10% разницы, как запрошено)
-                        double minH = Math.Min(current.Height, otherItem.Text.Height);
-                        double maxH = Math.Max(current.Height, otherItem.Text.Height);
-                        if (minH / maxH < 0.90)
-                        {
-                            continue;
-                        }
-
-                        // Если мы вышли за вертикальный порог...
-                        if (Math.Abs(curPerp - otherItem.Perp) > verticalThreshold)
+                        if (!AreHeightsClose(current.Height, otherItem.Text.Height))
                         {
                             continue;
                         }
@@ -251,6 +249,38 @@ public sealed class SmartTextCommands
         }
 
         return groups;
+    }
+
+    private static int LowerBoundByPerp(List<TextCandidate> sortedCandidates, double value)
+    {
+        int left = 0;
+        int right = sortedCandidates.Count;
+
+        while (left < right)
+        {
+            int middle = left + ((right - left) / 2);
+            if (sortedCandidates[middle].Perp < value)
+            {
+                left = middle + 1;
+            }
+            else
+            {
+                right = middle;
+            }
+        }
+
+        return left;
+    }
+
+    private static bool AreHeightsClose(double first, double second)
+    {
+        double maxHeight = Math.Max(first, second);
+        return maxHeight <= double.Epsilon || Math.Min(first, second) / maxHeight >= 0.90;
+    }
+
+    private static double ProjectPerpendicular(Point3d point, double cosA, double sinA)
+    {
+        return (-point.X * sinA) + (point.Y * cosA);
     }
 
     private static (string CombinedString, TextElement TopLeftElement) CombineGroupText(List<TextElement> group)
@@ -431,17 +461,18 @@ public sealed class SmartTextCommands
             .Replace("\n", "\\P")
             .Replace("\r", "");
     }
-}
 
-public sealed record TextElement(
-    ObjectId ObjectId,
-    string TextString,
-    Point3d Position,
-    ObjectId TextStyleId,
-    double Height,
-    double Rotation,
-    Vector3d Normal,
-    string Layer,
-    Color Color,
-    Entity OriginalEntity
-);
+    private sealed record TextCandidate(TextElement Text, double Perp);
+
+    private sealed record TextElement(
+        ObjectId ObjectId,
+        string TextString,
+        Point3d Position,
+        ObjectId TextStyleId,
+        double Height,
+        double Rotation,
+        Vector3d Normal,
+        string Layer,
+        Color Color,
+        Entity OriginalEntity);
+}

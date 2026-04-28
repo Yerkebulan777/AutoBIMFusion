@@ -1,151 +1,93 @@
-# Алгоритм объединения DWG-файлов (MERGEDWG)
+# MERGEDWG Algorithm
 
-**Актуализировано:** 2026-04-26
-**Источник:** `Application/Commands/MergeCommands.cs`, `Application/Merge/*`, `Application/Merge/Layouts/*`, `Application/Utils/*`
+**Updated:** 2026-04-28
+**Primary code:** `Application/Commands/MergeCommands.cs`, `Application/Merge/MergeOrchestrator.cs`, `Application/Merge/BlockInserter.cs`, `Application/Merge/Layouts/*`
 
-Документ описывает фактический рабочий алгоритм объединения, включая вставку и масштабирование объектов.
+This document describes the actual merge path and only the decisions that affect correctness or stability.
 
-## 0. Главный приоритет: Точность геометрии
+## 1. Batch Entry
 
-**Критическое условие:** Максимальная точность вычисления границ геометрии (`Extents3d`), матриц трансформации и масштабирования является абсолютным приоритетом проекта. 
+1. `MERGEDWG` starts in `MergeCommands.MergeDwgFolderCommand`.
+2. A `SemaphoreSlim` prevents a second merge from running against the same AutoCAD session.
+3. The user selects a source folder.
+4. `FileEnumerator.GetFiles` returns sorted DWG files:
+   - recursive depth: 3
+   - skipped prefix: `#`
+   - max file size: 15 MB
+5. One `BlockInserter` instance is reused for the batch so placement state is preserved.
 
-- **Точность > Скорость:** Допускается снижение производительности ради гарантии корректного определения габаритов объектов и их точного позиционирования в итоговом чертеже.
-- **Никаких упрощений:** Запрещено использовать аппроксимации или упрощенные алгоритмы вычисления границ, которые могут привести к потере точности даже на доли миллиметра.
-- **Валидация:** Каждое преобразование должно учитывать специфику AutoCAD (например, динамические блоки, прокси-объекты и вложенные аннотации), которые влияют на итоговые `Extents`.
+## 2. Single DWG Processing
 
-## 1. Общая схема
+`MergeCoordinator.MergeSingleFile` handles one file:
 
-1. Пользователь запускает `MERGEDWG`.
-2. Выбирается папка с DWG.
-3. Файлы собираются рекурсивно (`*.dwg`) с фильтрами:
-   - глубина вложенности до 3,
-   - исключение имен с префиксом `#`,
-   - исключение файлов больше 15 МБ.
-4. Для каждого файла:
-   - проверка доступности и структуры DWG,
-   - экспорт первого листа во временный DWG (layout -> model),
-   - вставка нативной геометрии в целевой чертеж,
-   - удаление временного файла.
-5. После цикла:
-   - остаточные `RasterImage` приводятся к локальным путям (`RasterImagePathFixer`),
-   - результат сохраняется в `AC1032`,
-   - выполняются `REGENALL` и `ZOOM EXTENTS`.
+1. `FileHelper.TryValidateFile` checks existence, read access, and non-zero size.
+2. `FileHelper.TryValidateDwgStructure` opens the DWG in a side database and closes input with `CloseInput(true)`.
+3. `ViewportLayoutExporter.ExportToTempAsync` exports the first Paper Space layout into a temporary DWG.
+4. Temporary DWG bounds are read from a side database.
+5. `BlockInserter.InsertNativeObjects` clones all temporary Model Space entities into the target drawing.
+6. The temporary file is deleted in `finally`.
 
-## 2. Пошагово: обработка одного файла
+Failures at this level return `MergeResult.Warn` or `MergeResult.Fail`; the batch continues with the next file.
 
-1. `DwgMerger.MergeSingleFile(...)` (вызывается как статический метод) валидирует исходный файл (`FileHelper`).
-2. `ViewportLayoutExporter.ExportToTempAsync(...)` (вызывается как статический метод):
-   - открывает DWG,
-   - выбирает первый Paper Space layout,
-   - в `ExecuteInCommandContextAsync` переносит лист в Model Space.
-3. Сценарии по viewport:
-   - `0 VP`: бумажные объекты переносятся в модель с масштабом `1:100`.
-   - `1 VP`: перенос через матрицу paper->main viewport.
-   - `2+ VP`: выбирается главный viewport, вспомогательные окна переносят модельные объекты через матрицу `aux -> main`.
-4. После переноса выполняется `ModelSpaceTrimmer.TrimOutside(...)` по рамке листа.
-5. Растры на модели встраиваются как `OLE2FRAME` (через `PASTECLIP`) с контролем размеров.
-6. Временный DWG сохраняется.
-7. Экземпляр `BlockInserter` (созданный один раз в `MergeCommands`) клонирует нативные сущности в итоговый чертеж и смещает их по оси X.
+## 3. Layout Export
 
-## 3. Алгоритм вставки объектов (оптимизирован)
+`ViewportLayoutExporter` opens the source DWG in a side `Database`, calls `CloseInput(true)`, finds the first non-model layout, then chooses one of three paths:
 
-Вставка выполняется последовательно слева направо:
+| Case | Path | Behavior |
+| :--- | :--- | :--- |
+| 0 viewports | `ProcessNoVp` | Moves Paper Space entities to Model Space and scales by `MaxScaleMultiplier` (`100`). |
+| 1 viewport | `ProcessSingleVp` | Clamps the viewport scale if needed, scales Model Space, then maps Paper Space through the viewport. |
+| 2+ viewports | `ProcessMultiVp` | Picks the main viewport, clones auxiliary viewport model content into the main viewport coordinate system, scales Model Space once, then maps Paper Space. |
 
-1. Из временного DWG читается Model Space.
-2. Все сущности клонируются в Model Space целевой базы (`WblockCloneObjects`).
-3. Вычисляется точка вставки:
-   - ширина/высота берутся из `sourceBounds`,
-   - отступ `gap = max(1, round(max(width,height) * gapPercent))`.
-4. Первая вставка ставится в начало координат по нижнему левому углу.
-5. Каждая следующая вставка ставится после правой границы предыдущей (`_rightMax + gap`).
-6. После успешной вставки обновляется `_rightMax` и флаг наличия размещенных объектов.
+After Paper Space is cloned into Model Space, `ModelSpaceTrimmer.TrimOutside` removes entities whose extents do not intersect the cloned frame bounds.
 
-### Что исправлено
+## 4. Viewport Math
 
-- Убрана логическая зависимость от `_rightMax > 0` (могла давать наложения в граничных случаях).
-- Добавлен явный флаг факта первой/последующих вставок.
-- Добавлен минимальный зазор `>= 1`, чтобы избежать нулевого расстояния между объектами.
+Main formulas live in `ViewportTransformer`:
 
-## 4. Алгоритм масштабирования объектов
+- `BuildPaperToMainMatrix`: Paper Space to main viewport model coordinates.
+- `BuildMatrix`: auxiliary viewport model coordinates to main viewport model coordinates.
+- `ScaleModelSpaceObjects`: applies clamp scaling while compensating `Dimension.Dimscale`, `Dimension.Dimlfac`, and `MLeader.Scale`.
 
-### 4.1 Масштабирование геометрии листа
+Associative hatches are skipped during direct scaling because their boundary entities update them. Non-associative hatches are transformed and then evaluated.
 
-1. Для основного viewport вычисляется рабочий масштаб.
-2. Если масштаб слишком крупный, применяется нижний порог `1:100` (`ClampMainVpScale`).
-3. Для `single-VP` и `multi-VP` при зажиме обязательно масштабируются **все model-объекты** с коэффициентом `clampRatio = original.CustomScale / clamped.CustomScale`, чтобы объекты модели и paper-объекты оставались в одном масштабе (в т.ч. для `1:1`).
-4. Матрицы преобразования строятся в `ViewportTransformer`:
-   - `BuildPaperToMainMatrix` для paper->model (на зажатом масштабе),
-   - `BuildMatrix` для переноса aux viewport в систему исходного main-VP, после чего применяется общий `clampRatio`.
+## 5. Raster Handling
 
-### 4.1.1 Расширенное логирование масштабирования
+Eligible `RasterImage` entities originally in Model Space are embedded into the temporary DWG as `OLE2FRAME` objects:
 
-В методе `ViewportTransformer.ScaleModelSpaceObjects` реализовано детальное логирование трансформации каждого объекта:
+1. The code snapshots Model Space object IDs.
+2. It copies the image to Clipboard and calls `._PASTECLIP`.
+3. The new `OLE2FRAME` is found by comparing the post-insert object set with the snapshot.
+4. Size is applied through `WcsWidth` / `WcsHeight`; if that is unreliable, `Position3d` is used.
+5. The source `RasterImage` is erased only after a new OLE object is found.
+6. The previous Clipboard content is restored in `finally`.
 
-- **Счётчики по типу сущности:** После обхода Model Space в `Debug`-лог выводится сводка успешно масштабированных объектов с группировкой по типу (`Line(12), BlockReference(3), ...`). Аналогично в `Warn` выводятся типы объектов, на которых трансформация завершилась исключением.
+Images larger than 5 MB are not converted to OLE.
 
-- **Детекция аномалий масштаба:** Перед и после `TransformBy` вычисляется диагональ габаритного ящика объекта. Если новая диагональ превышает старую более чем в `ratio × 5` раз (аномальный рост), в лог пишется предупреждение `[АНОМАЛИЯ МАСШТАБА]` с типом и Handle объекта.
+## 6. Target Insertion
 
-- **Обработка исключений:** Если `TransformBy` выбрасывает исключение (прокси-объект, повреждённая геометрия), объект пропускается с записью `[ОШИБКА ТРАНСФОРМАЦИИ]` в `Error`-лог. Это не прерывает обработку остальных объектов.
+`BlockInserter.InsertNativeObjects`:
 
-- **Итоговый Info-лог** всегда выводится после `Commit` (не только при `scaled == 0`) и содержит `total`, `scaled`, `skippedViewport`, `skippedNonEntity`.
+1. Opens the temporary DWG in a side database and closes input with `CloseInput(true)`.
+2. Collects Model Space object IDs.
+3. Uses `WblockCloneObjects(..., DuplicateRecordCloning.Ignore, ...)` to clone native entities into target Model Space.
+4. Applies a displacement to every cloned entity.
+5. Computes resulting world bounds from cloned extents; if extents are unavailable, transforms the source bounds.
+6. Updates `_rightMax` for the next sheet placement.
 
-В методе `DeepCloneAndTransform` аналогичная логика применяется к клонированным объектам:
+The output is not wrapped in `BlockReference`; objects remain directly editable.
 
-- Аномальный рост диагонали более чем в 1000 раз записывается как `[АНОМАЛИЯ КЛОНА]`.
-- Исключение при `TransformBy` записывается как `[ОШИБКА КЛОНА]` с продолжением обработки.
+## 7. Finalization
 
-### 4.2 Масштабирование растров (RasterImage -> OLE2FRAME)
+After all files:
 
-1. В модели собираются все `RasterImage` с валидными `Bounds` и доступным файлом (`CollectRasterImages`). Изображения, перенесённые с листов (Paper Space) при экспорте Layout, **пропускаются** (`paperClonedIds`) и остаются как внешние ссылки. Встраиваются только изображения, изначально находившиеся в пространстве Модели.
-2. Изображение кладётся в системный Clipboard (`TryCopyImageToClipboard`, 3 попытки с задержкой 100 мс), затем вставляется через команду `._PASTECLIP` в точку `bounds.MinPoint`.
-3. Новый `OLE2FRAME` ищется эвристически — как объект с наибольшим Handle, превышающим `maxHandleBefore` (снимок до вставки). Это не гарантировано API и является хрупким предположением.
-4. Размер приводится к целевому:
-   - сначала через `WcsWidth/WcsHeight` (с отключением `LockAspect`),
-   - если `Bounds` некорректны или `WcsWidth/WcsHeight` не дали целевого размера (проверка `IsCloseToTarget` с допуском 2%), используется fallback через `Position3d`,
-   - если и `Position3d` не сработал, выполняется сдвиг `TransformBy(Displacement)` для выравнивания по `MinPoint`.
-5. Исходный `RasterImage` удаляется в той же транзакции.
+1. `RasterImagePathFixer.CopyImagesToTargetFolder` copies unresolved raster files next to the result DWG and reuses one copy for duplicate source paths.
+2. `DwgOptimizer.Optimize` purges unused symbols in bounded passes.
+3. `SaveMerged` writes `DwgVersion.AC1032`.
+4. AutoCAD runs `REGENALL` and `ZOOM EXTENTS`.
 
-**Ограничения стабильности:**
-- `PASTECLIP` зависит от глобального Clipboard: внешний процесс может перезаписать содержимое между шагами 2 и 3.
-- Поиск по Handle ненадёжен при высокой нагрузке или специфических сценариях AutoCAD.
-- `Clipboard.Clear()` после цикла безвозвратно стирает данные пользователя из буфера обмена.
-- Операция не атомарна: если `FindNewOle2Frame` возвращает `ObjectId.Null` (объект не найден), исходный `RasterImage` всё равно удаляется, что может привести к потере изображения.
+## Contentious Points
 
-## 5. Упрощения структуры и удаленный лишний код
-
-- Убран неиспользуемый метод `LayoutUtil.SanitizeSymbolName(...)`.
-- Убрано дублирующее удаление целевого файла перед сохранением (теперь удаление выполняется в одном месте).
-- Логика OLE-встраивания разложена на небольшие методы с ранними выходами:
-  - `CollectRasterImages`,
-  - `EmbedSingleRasterAsync`,
-  - `TryCopyImageToClipboard`,
-  - `ResizeOleToTarget`,
-  - `AlignOleToTargetMinPoint`.
-- Классы `DwgMerger` и `ViewportLayoutExporter` переведены в разряд статических утилит, устранены лишние аллокации объектов-оберток. Вызовы стали прямыми и более прозрачными.
-
-Это уменьшило вложенность и упростило поддержку без изменения рабочего сценария.
-
-## 6. Проверка оптимальности и рекомендации
-
-Текущее состояние алгоритма вставки геометрии можно считать **оптимальным по читаемости и стабильности** для текущей архитектуры (AutoCAD command context + транзакции БД).
-
-Однако встраивание растров (`RasterImage -> OLE2FRAME`) имеет **архитектурно низкую стабильность** и требует доработки.
-
-### 6.1 Рекомендации по стабильности растров
-
-| # | Проблема | Рекомендуемое решение |
-|---|----------|----------------------|
-| 1 | Зависимость от глобального Clipboard | Отказаться от `Clipboard`/`PASTECLIP` в пользу прямого программного создания `Ole2Frame` через конструктор и заполнение бинарных данных (`SetOleData`). Это устранит race condition с внешними процессами. |
-| 2 | Поиск нового OLE по Handle — хрупкий хак | Делать snapshot `ObjectIdCollection` Model Space до `PASTECLIP`, затем сравнивать с набором после. Новый `OLE2FRAME` — единственный объект, отсутствующий в первом наборе. Либо помечать созданный `Ole2Frame` уникальным XData сразу после вставки. |
-| 3 | Потеря данных пользователя из Clipboard | Сохранять `IDataObject` перед операцией и восстанавливать после (или отказаться от Clipboard). |
-| 4 | Неатомарность операции | Обернуть вставку OLE и удаление исходного `RasterImage` в единую транзакцию с откатом. Если `FindNewOle2Frame` вернул `ObjectId.Null`, транзакция откатывается и исходное изображение остаётся на месте. |
-| 5 | Нет pre-flight проверки | Перед конвертацией проверять системную переменную `OLEQUALITY` и убедиться, что Clipboard не заблокирован внешним процессом. |
-| 6 | `RasterImagePathFixer` дублирует один файл | Вести `Dictionary<string, string> sourcePath -> destFileName`, чтобы один исходный файл копировался один раз. |
-| 7 | Большие изображения через OLE нестабильны | Внедрить порог по размеру изображения: если файл растра превышает заданный порог (например, 5 МБ или разрешение выше 2500×2500 px), метод OLE не применять — оставлять исходный `RasterImage` с внешней ссылкой. |
-
-### 6.2 Общие рекомендации
-
-1. Порог `MaxScaleMultiplier = 100` и `MaxReasonableOleDimension = 1e8` лучше вынести в конфигурацию, если в проектах встречаются нетипичные масштабы.
-2. Обрабатывается только первый layout файла. Если нужна обработка всех листов, это должен быть отдельный режим команды.
-3. Для полностью headless-сценариев нужен отдельный механизм встраивания растров без использования UI-команд.
-
+- Should source layer/style conflicts use `DuplicateRecordCloning.MangleName` instead of `Ignore` to preserve visual fidelity?
+- Should raster embedding be replaced with direct OLE API creation or should large/problematic images remain as external `RasterImage` references?
+- Should processing all layouts be added as a separate command mode?

@@ -15,7 +15,7 @@ internal static class FileEnumerator
     /// Возвращает отсортированный список DWG-файлов из директории и поддиректорий.
     /// Исключает файлы с заданным префиксом и файлы размером больше 15 МБ.
     /// </summary>
-    public static string[] GetFiles(string rootPath, string excludePrefix = "#", OperationLogger? log = null)
+    internal static string[] GetFiles(string rootPath, string excludePrefix = "#", OperationLogger? log = null)
     {
         EnumerationOptions opts = new()
         {

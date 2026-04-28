@@ -16,13 +16,6 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
     private double _rightMax;
     private bool _hasPlacedObjects;
 
-    private readonly record struct DimensionSnapshot(
-        string Handle,
-        string EntityType,
-        string LayerName,
-        string StyleName,
-        double Dimscale);
-
     /// <summary>
     /// Открывает временный DWG, клонирует все объекты из его Model Space
     /// в целевой чертёж как нативные сущности с учётом смещения.
@@ -40,6 +33,7 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
             using Database sourceDb = new(false, true);
 
             sourceDb.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
+            sourceDb.CloseInput(true);
 
             ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
             int sourceDimensionCount = 0;
@@ -53,15 +47,9 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
                     if (!id.IsNull && !id.IsErased)
                     {
                         _ = sourceIds.Add(id);
-
-                        if (tr.GetObject(id, OpenMode.ForRead) is Dimension dim)
+                        if (id.ObjectClass.DxfName == "DIMENSION")
                         {
                             sourceDimensionCount++;
-                            DimensionSnapshot snapshot = CreateDimensionSnapshot(tr, dim);
-                            log.Debug(
-                                $"MergeDimscale source={sourceName}: SourceHandle={snapshot.Handle}, " +
-                                $"Type={snapshot.EntityType}, Layer=\"{snapshot.LayerName}\", " +
-                                $"DimStyle=\"{snapshot.StyleName}\", Dimscale={snapshot.Dimscale:F6}");
                         }
                     }
                 }
@@ -95,26 +83,13 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
                     if (tr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
                     {
-                        DimensionSnapshot? dimensionBeforeMove = null;
-                        if (ent is Dimension dimBeforeMove)
+                        if (ent is Dimension)
                         {
                             targetDimensionCount++;
-                            dimensionBeforeMove = CreateDimensionSnapshot(tr, dimBeforeMove);
                         }
 
                         ent.TransformBy(displacement);
                         clonedCount++;
-
-                        if (ent is Dimension dimAfterMove && dimensionBeforeMove.HasValue)
-                        {
-                            DimensionSnapshot afterMove = CreateDimensionSnapshot(tr, dimAfterMove);
-                            log.Debug(
-                                $"MergeDimscale target={sourceName}: SourceHandle={pair.Key.Handle}, " +
-                                $"TargetHandle={afterMove.Handle}, Type={afterMove.EntityType}, " +
-                                $"Layer=\"{afterMove.LayerName}\", DimStyleBeforeMove=\"{dimensionBeforeMove.Value.StyleName}\", " +
-                                $"DimStyleAfterMove=\"{afterMove.StyleName}\", DimscaleBeforeMove={dimensionBeforeMove.Value.Dimscale:F6}, " +
-                                $"DimscaleAfterMove={afterMove.Dimscale:F6}");
-                        }
 
                         Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
                         if (ext.HasValue)
@@ -147,6 +122,11 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
                 $"sourceDimensions={sourceDimensionCount}, targetDimensions={targetDimensionCount}");
             return worldBounds;
         }
+        catch (Autodesk.AutoCAD.Runtime.Exception ex)
+        {
+            log.Error(ex, $"Ошибка AutoCAD API при вставке: {sourceName}");
+            return null;
+        }
         catch (System.Exception ex)
         {
             log.Error(ex, $"Ошибка вставки: {sourceName}");
@@ -168,34 +148,5 @@ internal sealed class BlockInserter(double gapPercent, OperationLogger log)
 
         log.Debug($"Позиция вставки: X={insertPt.X:F2}, Y={insertPt.Y:F2}, gap={gap:F0}");
         return insertPt;
-    }
-
-    private static DimensionSnapshot CreateDimensionSnapshot(Transaction tr, Dimension dim)
-    {
-        return new DimensionSnapshot(
-            dim.Handle.ToString(),
-            dim.GetType().Name,
-            dim.Layer,
-            ResolveDimensionStyleName(tr, dim.DimensionStyle),
-            dim.Dimscale);
-    }
-
-    private static string ResolveDimensionStyleName(Transaction tr, ObjectId dimStyleId)
-    {
-        if (dimStyleId.IsNull)
-        {
-            return "<null>";
-        }
-
-        try
-        {
-            return tr.GetObject(dimStyleId, OpenMode.ForRead) is DimStyleTableRecord style
-                ? style.Name
-                : "<not DimStyleTableRecord>";
-        }
-        catch
-        {
-            return "<unavailable>";
-        }
     }
 }

@@ -37,17 +37,7 @@ internal static class LayoutUtil
     internal static ObjectId GetLayoutBtrId(Database db, string layoutName)
     {
         using Transaction tr = db.TransactionManager.StartTransaction();
-        DBDictionary dict = (DBDictionary)tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
-
-        if (!dict.Contains(layoutName))
-        {
-            tr.Commit();
-            return ObjectId.Null;
-        }
-
-        ObjectId layoutId = dict.GetAt(layoutName);
-        Layout layout = (Layout)tr.GetObject(layoutId, OpenMode.ForRead);
-        ObjectId btrId = layout.BlockTableRecordId;
+        ObjectId btrId = GetLayoutBtrId(db, layoutName, tr);
         tr.Commit();
         return btrId;
     }
@@ -59,17 +49,18 @@ internal static class LayoutUtil
     internal static ObjectIdCollection GetPaperSpaceEntities(
         Database db, string layoutName, bool excludeViewports)
     {
+        RXClass viewportClass = RXObject.GetClass(typeof(Viewport));
         ObjectIdCollection result = [];
-        ObjectId btrId = GetLayoutBtrId(db, layoutName);
+
+        using Transaction tr = db.TransactionManager.StartTransaction();
+        ObjectId btrId = GetLayoutBtrId(db, layoutName, tr);
 
         if (btrId.IsNull)
         {
+            tr.Commit();
             return result;
         }
 
-        RXClass viewportClass = RXObject.GetClass(typeof(Viewport));
-
-        using Transaction tr = db.TransactionManager.StartTransaction();
         BlockTableRecord btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForRead);
 
         foreach (ObjectId id in btr)
@@ -84,5 +75,19 @@ internal static class LayoutUtil
 
         tr.Commit();
         return result;
+    }
+
+    private static ObjectId GetLayoutBtrId(Database db, string layoutName, Transaction tr)
+    {
+        DBDictionary dict = (DBDictionary)tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+
+        if (!dict.Contains(layoutName))
+        {
+            return ObjectId.Null;
+        }
+
+        ObjectId layoutId = dict.GetAt(layoutName);
+        Layout layout = (Layout)tr.GetObject(layoutId, OpenMode.ForRead);
+        return layout.BlockTableRecordId;
     }
 }

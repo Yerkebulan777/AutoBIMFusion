@@ -1,39 +1,10 @@
 namespace AutoBIMFusion.Application.Merge.Layouts;
 
 /// <summary>
-/// Утилитарный класс для работы с габаритами (Extents3d и Extents2d).
-/// Предоставляет методы для вычисления, преобразования и анализа границ геометрических объектов.
-/// Соблюдает принцип Single Responsibility: отвечает только за математику габаритов.
+/// Математические операции с габаритами AutoCAD-геометрии.
 /// </summary>
 internal static class ExtentsUtils
 {
-    /// <summary>
-    /// Получает объединённые габариты для коллекции сущностей.
-    /// </summary>
-    /// <param name="entities">Коллекция сущностей.</param>
-    /// <returns>Объединённые габариты или null, если коллекция пуста.</returns>
-    internal static Extents3d? GetExtents(IEnumerable<Entity> entities)
-    {
-        List<Entity> entityList = entities.ToList();
-        if (entityList.Count == 0)
-        {
-            return null;
-        }
-
-        Extents3d result = TryGetExtents(entityList[0]) ?? new Extents3d();
-
-        foreach (Entity? ent in entityList.Skip(1))
-        {
-            Extents3d? ext = TryGetExtents(ent);
-            if (ext.HasValue)
-            {
-                result.AddExtents(ext.Value);
-            }
-        }
-
-        return result;
-    }
-
     /// <summary>
     /// Безопасно получает геометрические габариты сущности.
     /// Перехватывает исключения при расчёте габаритов некорректных геометрий.
@@ -51,27 +22,6 @@ internal static class ExtentsUtils
             return null;
         }
     }
-
-    /// <summary>
-    /// Получает геометрический центр габаритов 3D.
-    /// </summary>
-    /// <param name="extents">Габариты.</param>
-    /// <returns>Центральная точка.</returns>
-    internal static Point3d GetCenter(Extents3d extents)
-    {
-        return Point3d.Origin + (0.5 * (extents.MinPoint.GetAsVector() + extents.MaxPoint.GetAsVector()));
-    }
-
-    /// <summary>
-    /// Получает геометрический центр габаритов 2D.
-    /// </summary>
-    /// <param name="extents">Габариты.</param>
-    /// <returns>Центральная точка.</returns>
-    internal static Point2d GetCenter(Extents2d extents)
-    {
-        return Point2d.Origin + (0.5 * (extents.MinPoint.GetAsVector() + extents.MaxPoint.GetAsVector()));
-    }
-
 
     /// <summary>
     /// Проверяет, находится ли точка внутри габаритов 3D (включая границы).
@@ -105,18 +55,6 @@ internal static class ExtentsUtils
         };
 
         return p.HasValue && IsPointIn(bounds, p.Value);
-    }
-
-    /// <summary>
-    /// Проверяет, находится ли точка внутри габаритов 2D (включая границы).
-    /// </summary>
-    /// <param name="extents">Габариты.</param>
-    /// <param name="point">Точка.</param>
-    /// <returns>True, если точка внутри; иначе false.</returns>
-    internal static bool IsPointIn(Extents2d extents, Point2d point)
-    {
-        return point.X >= extents.MinPoint.X && point.X <= extents.MaxPoint.X
-            && point.Y >= extents.MinPoint.Y && point.Y <= extents.MaxPoint.Y;
     }
 
     /// <summary>
@@ -155,30 +93,6 @@ internal static class ExtentsUtils
     }
 
     /// <summary>
-    /// Преобразует габариты 3D в габариты 2D.
-    /// По умолчанию проецирует на плоскость XY.
-    /// </summary>
-    /// <param name="extents">Габариты 3D.</param>
-    /// <param name="x">Функция для вычисления X координаты (по умолчанию использует X из 3D).</param>
-    /// <param name="y">Функция для вычисления Y координаты (по умолчанию использует Y из 3D).</param>
-    /// <returns>Габариты 2D.</returns>
-    internal static Extents2d ToExtents2d(
-        Extents3d extents,
-        Func<Point3d, double>? x = null,
-        Func<Point3d, double>? y = null)
-    {
-        x ??= p => p.X;
-        y ??= p => p.Y;
-
-        return new Extents2d(
-            x(extents.MinPoint),
-            y(extents.MinPoint),
-            x(extents.MaxPoint),
-            y(extents.MaxPoint));
-    }
-
-
-    /// <summary>
     /// Получает габариты всей базы данных.
     /// </summary>
     /// <param name="db">База данных AutoCAD.</param>
@@ -208,8 +122,8 @@ internal static class ExtentsUtils
     /// <returns>Новые габариты.</returns>
     internal static Extents3d Transform(Extents3d ext, Matrix3d mat)
     {
-        Point3d[] corners = new Point3d[]
-        {
+        Span<Point3d> corners =
+        [
             ext.MinPoint,
             new(ext.MinPoint.X, ext.MaxPoint.Y, ext.MinPoint.Z),
             new(ext.MaxPoint.X, ext.MaxPoint.Y, ext.MinPoint.Z),
@@ -218,30 +132,28 @@ internal static class ExtentsUtils
             new(ext.MinPoint.X, ext.MaxPoint.Y, ext.MaxPoint.Z),
             new(ext.MaxPoint.X, ext.MinPoint.Y, ext.MaxPoint.Z),
             new(ext.MinPoint.X, ext.MinPoint.Y, ext.MaxPoint.Z)
-        };
+        ];
 
-        List<Point3d> transformedCorners = corners.Select(p => p.TransformBy(mat)).ToList();
-        Point3d min = new(
-            transformedCorners.Min(p => p.X),
-            transformedCorners.Min(p => p.Y),
-            transformedCorners.Min(p => p.Z));
-        Point3d max = new(
-            transformedCorners.Max(p => p.X),
-            transformedCorners.Max(p => p.Y),
-            transformedCorners.Max(p => p.Z));
+        Point3d first = corners[0].TransformBy(mat);
+        double minX = first.X;
+        double minY = first.Y;
+        double minZ = first.Z;
+        double maxX = first.X;
+        double maxY = first.Y;
+        double maxZ = first.Z;
 
-        return new Extents3d(min, max);
-    }
+        for (int i = 1; i < corners.Length; i++)
+        {
+            Point3d p = corners[i].TransformBy(mat);
+            minX = Math.Min(minX, p.X);
+            minY = Math.Min(minY, p.Y);
+            minZ = Math.Min(minZ, p.Z);
+            maxX = Math.Max(maxX, p.X);
+            maxY = Math.Max(maxY, p.Y);
+            maxZ = Math.Max(maxZ, p.Z);
+        }
 
-    /// <summary>
-    /// Получает габариты 2D для коллекции сущностей.
-    /// </summary>
-    /// <param name="entities">Коллекция сущностей.</param>
-    /// <returns>Габариты 2D или null.</returns>
-    internal static Extents2d? GetExtents2d(IEnumerable<Entity> entities)
-    {
-        Extents3d? ext3d = GetExtents(entities);
-        return ext3d.HasValue ? ToExtents2d(ext3d.Value) : null;
+        return new Extents3d(new Point3d(minX, minY, minZ), new Point3d(maxX, maxY, maxZ));
     }
 
     /// <summary>

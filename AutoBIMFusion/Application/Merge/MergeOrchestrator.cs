@@ -90,7 +90,13 @@ internal static class MergeCoordinator
         {
             using Database db = new(false, true);
             db.ReadDwgFile(tempPath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
+            db.CloseInput(true);
             return ExtentsUtils.GetDatabaseExtents(db);
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception ex)
+        {
+            log.Warn(ex, $"AutoCAD API не смог прочитать границы временного файла: {tempPath}");
+            return null;
         }
         catch (System.Exception ex)
         {

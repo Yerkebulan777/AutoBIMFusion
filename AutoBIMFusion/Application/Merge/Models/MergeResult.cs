@@ -5,7 +5,7 @@ namespace AutoBIMFusion.Application.Merge.Models;
 /// <summary>
 /// Результат слияния одного DWG-файла.
 /// </summary>
-public sealed record MergeResult(
+internal sealed record MergeResult(
     bool Success,
     string FileName,
     string? BlockName = null,

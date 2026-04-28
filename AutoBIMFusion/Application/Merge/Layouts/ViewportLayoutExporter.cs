@@ -136,6 +136,7 @@ internal static class ViewportLayoutExporter
         using (Database db = new(false, true))
         {
             db.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
+            db.CloseInput(true);
 
             if (!LayoutUtil.TryFindFirstLayout(db, out string layoutName))
             {
@@ -167,7 +168,7 @@ internal static class ViewportLayoutExporter
             // Проверяем на наличие растров для внедрения.
             // Используем Handles, так как при открытии документа ObjectIds изменятся.
             paperClonedHandles = [.. paperClonedIds.Select(id => id.Handle.Value)];
-            needsOle = CheckIfNeedsOle(db, paperClonedHandles, sourceDir, log);
+            needsOle = CollectRasterImages(db, paperClonedHandles, sourceDir, log, stopAfterFirst: true, emitSummary: false).Count > 0;
         }
 
         if (needsOle)
@@ -177,12 +178,6 @@ internal static class ViewportLayoutExporter
 
         log.Info($"VP: экспорт завершен ({fileName})");
         return tempPath;
-    }
-
-    private static bool CheckIfNeedsOle(Database db, HashSet<long> paperClonedHandles, string sourceDir, OperationLogger log)
-    {
-        // Нам не нужны полные данные, только факт наличия хотя бы одного подходящего изображения
-        return CollectRasterImages(db, paperClonedHandles, sourceDir, log).Count > 0;
     }
 
     /// <summary>
@@ -196,6 +191,7 @@ internal static class ViewportLayoutExporter
     private static async Task RunOleEmbeddingAsync(string tempPath, HashSet<long> paperClonedHandles, string sourceDir, OperationLogger log)
     {
         DocumentCollection docs = AcadApp.DocumentManager;
+        Document? previousDoc = docs.MdiActiveDocument;
         Document? tempDoc = docs.Open(tempPath);
 
         if (tempDoc is not null)
@@ -217,18 +213,17 @@ internal static class ViewportLayoutExporter
                     AcadApp.SetSystemVariable("TILEMODE", 1);
                     await tempDoc.Editor.CommandAsync("._REGEN");
 
-                    foreach ((ObjectId id, string path, Extents3d bounds) in imagesToConvert)
-                    {
-                        await EmbedSingleRasterAsync(tempDoc, db, id, path, bounds, log);
-                    }
-
+                    IDataObject? clipboardBackup = TryGetClipboardData(log);
                     try
                     {
-                        Clipboard.Clear();
+                        foreach ((ObjectId id, string path, Extents3d bounds) in imagesToConvert)
+                        {
+                            await EmbedSingleRasterAsync(tempDoc, db, id, path, bounds, log);
+                        }
                     }
-                    catch
+                    finally
                     {
-                        log.Warn("Не удалось очистить Clipboard после OLE-вставки.");
+                        TryRestoreClipboardData(clipboardBackup, log);
                     }
 
                 }, null);
@@ -238,13 +233,18 @@ internal static class ViewportLayoutExporter
                     tempDoc.Database.SaveAs(tempPath, DwgVersion.AC1032);
                 }
             }
+            catch (Autodesk.AutoCAD.Runtime.Exception ex)
+            {
+                log.Error(ex, "AutoCAD API ошибка при OLE-встраивании во временный файл");
+            }
             catch (System.Exception ex)
             {
                 log.Error(ex, "Ошибка при OLE-встраивании во временный файл");
             }
             finally
             {
-                tempDoc.CloseAndDiscard();
+                TryCloseDocument(tempDoc, log);
+                TryRestoreActiveDocument(docs, previousDoc, log);
             }
         }
     }
@@ -458,7 +458,13 @@ internal static class ViewportLayoutExporter
         return Path.Combine(Path.GetTempPath(), $"{name}-{Guid.NewGuid()}.dwg");
     }
 
-    private static List<(ObjectId id, string path, Extents3d bounds)> CollectRasterImages(Database db, HashSet<long> paperClonedHandles, string sourceDir, OperationLogger log)
+    private static List<(ObjectId id, string path, Extents3d bounds)> CollectRasterImages(
+        Database db,
+        HashSet<long> paperClonedHandles,
+        string sourceDir,
+        OperationLogger log,
+        bool stopAfterFirst = false,
+        bool emitSummary = true)
     {
         List<(ObjectId id, string path, Extents3d bounds)> result = [];
 
@@ -524,15 +530,89 @@ internal static class ViewportLayoutExporter
             }
 
             result.Add((id, resolvedPath, ri.Bounds.Value));
+            if (stopAfterFirst)
+            {
+                break;
+            }
         }
 
         tr.Commit();
 
-        log.Info(
-            $"EmbedRasterImages: total={totalImages}, skippedFromPaper={skippedFromPaperCount}, nullDef={nullDefCount}, " +
-            $"nullBounds={nullBoundsCount}, notFound={fileNotFoundCount}, tooLarge={tooLargeCount}, readyToConvert={result.Count}");
+        if (emitSummary)
+        {
+            log.Info(
+                $"EmbedRasterImages: total={totalImages}, skippedFromPaper={skippedFromPaperCount}, nullDef={nullDefCount}, " +
+                $"nullBounds={nullBoundsCount}, notFound={fileNotFoundCount}, tooLarge={tooLargeCount}, readyToConvert={result.Count}");
+        }
 
         return result;
+    }
+
+    private static IDataObject? TryGetClipboardData(OperationLogger log)
+    {
+        try
+        {
+            return Clipboard.GetDataObject();
+        }
+        catch (System.Exception ex)
+        {
+            log.Warn(ex, "Не удалось сохранить текущее содержимое Clipboard перед OLE-вставкой.");
+            return null;
+        }
+    }
+
+    private static void TryRestoreClipboardData(IDataObject? data, OperationLogger log)
+    {
+        if (data is null)
+        {
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetDataObject(data, copy: true);
+        }
+        catch (System.Exception ex)
+        {
+            log.Warn(ex, "Не удалось восстановить Clipboard после OLE-вставки.");
+        }
+    }
+
+    private static void TryCloseDocument(Document doc, OperationLogger log)
+    {
+        try
+        {
+            doc.CloseAndDiscard();
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception ex)
+        {
+            log.Warn(ex, "AutoCAD API не смог закрыть временный документ.");
+        }
+        catch (System.Exception ex)
+        {
+            log.Warn(ex, "Не удалось закрыть временный документ.");
+        }
+    }
+
+    private static void TryRestoreActiveDocument(DocumentCollection docs, Document? previousDoc, OperationLogger log)
+    {
+        if (previousDoc is null)
+        {
+            return;
+        }
+
+        try
+        {
+            docs.MdiActiveDocument = previousDoc;
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception ex)
+        {
+            log.Warn(ex, "AutoCAD API не смог восстановить активный документ после OLE-вставки.");
+        }
+        catch (System.Exception ex)
+        {
+            log.Warn(ex, "Не удалось восстановить активный документ после OLE-вставки.");
+        }
     }
 
     private static async Task EmbedSingleRasterAsync(Document doc, Database db, ObjectId rasterId, string path, Extents3d targetBounds, OperationLogger log)
@@ -592,7 +672,7 @@ internal static class ViewportLayoutExporter
         try
         {
             using System.Drawing.Image img = System.Drawing.Image.FromFile(path);
-            Clipboard.SetImage(img);
+            Clipboard.SetDataObject(img, copy: true);
             return true;
         }
         catch (System.Exception ex)

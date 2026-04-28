@@ -20,7 +20,18 @@ public sealed class MergeCommands
     [CommandMethod("MERGEDWG", CommandFlags.Modal | CommandFlags.Session)]
     public async void MergeDwgFolderCommand()
     {
-        await MergeDwgFolderCommandAsync();
+        try
+        {
+            await MergeDwgFolderCommandAsync();
+        }
+        catch (System.Exception ex)
+        {
+            Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
+            if (doc is not null)
+            {
+                new OperationLogger(doc.Editor).Error(ex, "Критическая ошибка запуска MERGEDWG");
+            }
+        }
     }
 
     private async Task MergeDwgFolderCommandAsync()

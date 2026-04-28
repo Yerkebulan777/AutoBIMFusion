@@ -17,7 +17,8 @@ internal static class RasterImagePathFixer
             return;
         }
 
-        HashSet<string> copiedFiles = new(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, string> copiedBySourcePath = new(StringComparer.OrdinalIgnoreCase);
+        HashSet<string> reservedDestinationPaths = new(StringComparer.OrdinalIgnoreCase);
 
         using Transaction tr = db.TransactionManager.StartTransaction();
         ObjectId dictId = RasterImageDef.GetImageDictionary(db);
@@ -61,24 +62,25 @@ internal static class RasterImagePathFixer
                     continue;
                 }
 
-                string fileName = Path.GetFileName(resolvedPath);
-                string destPath = Path.Combine(targetDir, fileName);
-
-                // Обработка коллизий имён
-                int counter = 1;
-                string uniqueDestPath = destPath;
-                string uniqueFileName = fileName;
-                while (copiedFiles.Contains(uniqueDestPath) || File.Exists(uniqueDestPath))
+                if (copiedBySourcePath.TryGetValue(resolvedPath, out string? existingRelativePath)
+                    && !string.IsNullOrEmpty(existingRelativePath))
                 {
-                    string name = Path.GetFileNameWithoutExtension(fileName);
-                    string ext = Path.GetExtension(fileName);
-                    uniqueFileName = $"{name}_{counter}{ext}";
-                    uniqueDestPath = Path.Combine(targetDir, uniqueFileName);
-                    counter++;
+                    def.SourceFileName = existingRelativePath;
+                    def.Load();
+                    fixedCount++;
+                    log.Debug($"RasterImage повторно использует файл: {existingRelativePath}");
+                    continue;
                 }
 
-                File.Copy(resolvedPath, uniqueDestPath, overwrite: true);
-                _ = copiedFiles.Add(uniqueDestPath);
+                (string uniqueDestPath, string uniqueFileName) = BuildUniqueDestination(targetDir, resolvedPath, reservedDestinationPaths);
+
+                if (!string.Equals(Path.GetFullPath(resolvedPath), Path.GetFullPath(uniqueDestPath), StringComparison.OrdinalIgnoreCase))
+                {
+                    File.Copy(resolvedPath, uniqueDestPath, overwrite: true);
+                }
+
+                _ = reservedDestinationPaths.Add(uniqueDestPath);
+                copiedBySourcePath[resolvedPath] = uniqueFileName;
                 def.SourceFileName = uniqueFileName; // относительный путь к папке DWG
                 def.Load(); // Правило 2: загружаем определение после смены пути
                 fixedCount++;
@@ -96,6 +98,34 @@ internal static class RasterImagePathFixer
         {
             log.Info($"RasterImagePathFixer: обработано {fixedCount} изображений");
         }
+    }
+
+    private static (string DestinationPath, string FileName) BuildUniqueDestination(
+        string targetDir,
+        string sourcePath,
+        HashSet<string> reservedDestinationPaths)
+    {
+        string sourceFullPath = Path.GetFullPath(sourcePath);
+        string sourceDir = Path.GetDirectoryName(sourceFullPath) ?? string.Empty;
+        if (string.Equals(sourceDir, Path.GetFullPath(targetDir), StringComparison.OrdinalIgnoreCase))
+        {
+            return (sourceFullPath, Path.GetFileName(sourceFullPath));
+        }
+
+        string fileName = Path.GetFileName(sourcePath);
+        string destinationPath = Path.Combine(targetDir, fileName);
+
+        int counter = 1;
+        while (reservedDestinationPaths.Contains(destinationPath) || File.Exists(destinationPath))
+        {
+            string name = Path.GetFileNameWithoutExtension(fileName);
+            string ext = Path.GetExtension(fileName);
+            string candidateName = $"{name}_{counter}{ext}";
+            destinationPath = Path.Combine(targetDir, candidateName);
+            counter++;
+        }
+
+        return (destinationPath, Path.GetFileName(destinationPath));
     }
 
     private static bool TryResolveImagePath(

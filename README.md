@@ -1,105 +1,52 @@
 # AutoBIMFusion
 
-**AutoBIMFusion** — это плагин для AutoCAD, разработанный для пакетного объединения нескольких DWG-файлов в один чертёж. Он автоматически обрабатывает все DWG-файлы из выбранной папки (включая подпапки), экспортирует первый Paper Space лист каждого файла и размещает их в итоговом чертеже вдоль оси X с автоматическими отступами.
+AutoBIMFusion is a .NET 8 plugin for AutoCAD 2025-2027. Its main command, `MERGEDWG`, merges DWG files from a selected folder into the active drawing while keeping the imported geometry editable as native Model Space entities.
 
----
+## Commands
 
-## ⚡ Основные возможности
-
-- **Пакетное объединение DWG:** Обработка всех файлов из выбранной папки и её подпапок в один чертёж одной командой.
-- **Умное объединение `TEXT` в `MText`:** Команда `SMART_MERGE_TEXT` собирает близко расположенные фрагменты в связный многострочный текст.
-- **Объединение дубликатов текстовых стилей:** Команда `MergeTextStyles` находит идентичные стили, переназначает объекты на мастер-стиль и удаляет дубликаты.
-- **Пакет eTransmit в ZIP:** Команда `CreateETransmitZip` собирает зависимости текущего чертежа (Xref, шрифты, изображения, plot/data links) и формирует ZIP-архив.
-- **Экспорт первого Layout:** Из каждого исходного файла экспортируется первый Paper Space лист через viewport-aware стратегию (2+ VP — матрица трансформации, 1 VP — клонирование через главный viewport, 0 VP — масштабирование ×100).
-- **Автоматическое размещение:** Содержимое файлов вставляется как блоки вдоль оси X с отступом 10% от размера объекта (настраивается).
-- **Внедрение Xref:** Файлы временно подключаются как внешние ссылки и сразу внедряются (Bind) в итоговый чертёж.
-- **Бесшовная интеграция:** Автоматическая загрузка в AutoCAD через стандартный механизм `ApplicationPlugins`.
-- **Логирование:** Подробный вывод хода операции в редактор AutoCAD с прогресс-баром.
-
-## 📚 Документация
-
-- Техническая документация: [AutoBIMFusion/docs/TECHNICAL_DOCUMENTATION.md](AutoBIMFusion/docs/TECHNICAL_DOCUMENTATION.md)
-- Детальный алгоритм merge-пайплайна: [AutoBIMFusion/docs/ALGORITHM.md](AutoBIMFusion/docs/ALGORITHM.md)
-
-## ✨ Последние улучшения
-
-- **Исправление OLE для крупных JPG/PNG (2026-04-23):** добавлен fallback ресайза через `Ole2Frame.Position3d`, если `WcsWidth/WcsHeight` не применились (наблюдалось как гигантские размеры `OLE2FRAME` у отдельных листов). Теперь после `PASTECLIP` объект принудительно приводится к целевым габаритам рамки и только затем выравнивается по позиции.
-- **Встраивание растров (OLE) и draw order:** Все внешние растровые изображения (`RasterImage`) конвертируются и внедряются внутрь объединённого чертежа как объекты `OLE2FRAME` через системный буфер обмена (команда `._PASTECLIP`). Это полностью отвязывает итоговый DWG от внешних файлов изображений. Порядок отрисовки (`SortentsTable`) сохраняется при клонировании Paper Space → Model Space.
-- **`GeometryUtils.Union`:** метод объединения AABB перенесён из `ModelSpaceTrimmer` в общий утилитный класс — `ModelSpaceTrimmer.ComputeBounds` теперь использует `GeometryUtils.Union` вместо приватной копии.
-- **`ClampMainVpScale`:** дублированная логика ограничения масштаба VP (присутствовала отдельно в `ProcessSingleVp` и `ProcessMultiVp`) объединена в один приватный метод; оба пути теперь вызывают `ClampMainVpScale(...)`.
-- **`ALGORITHM.md` актуализирован:** корректные имена классов (`ViewportLayoutExporter`, `LayoutUtil.TryFindFirstLayout`), добавлена секция математики трансформаций, убраны устаревшие блоки с некорректным контентом.
-- **Оптимизация multi-viewport:** кэширование `ModelEntitySnapshot` устраняет повторные проходы по Model Space при обработке каждого aux-viewport (O(n·m) → O(n)).
-- **Корректная асинхронность команды `MERGEDWG`:** убран опасный `async void`, добавлен `SemaphoreSlim` для защиты от повторного запуска.
-- **Надёжность временных файлов:** `tempPath` теперь локальная переменная вместо поля класса — исключены утечки при исключениях между итерациями.
-- **Удаление мёртвого кода и классов-оберток:** убраны неиспользуемые `ExportWarningSuppressScope`, `PaperToModelChspace`, пустой `ImageToOle.cs`. Устранены классы-обертки `MergeSaver`, `MainViewportSelector`, `MessageUtil` — их логика перенесена в соответствующие места использования для упрощения структуры (Flatter Architecture).
-- **Исправление `FileEnumerator`:** фильтр по префиксу теперь проверяет имя файла, а не полный путь; убраны лишние проходы LINQ.
-- **Ribbon:** вкладка больше не захватывает фокус при старте (`IsActive = true` удалено).
-
-## 🛠 Требования
-
-- **AutoCAD:** 2025, 2026, 2027 (64-bit).
-- **OS:** Windows 8.0+ (x64).
-- **Runtime:** [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/8.0).
-
----
-
-## 🚀 Быстрый старт
-
-### Установка и сборка
-
-1. Клонируйте репозиторий.
-2. Откройте `AutoBIMFusion.slnx` в Visual Studio.
-3. Скомпилируйте решение в конфигурации **ReleaseA25** / **ReleaseA26** / **ReleaseA27** (для нужной версии AutoCAD).
-4. После успешной сборки плагин будет автоматически скопирован в папку плагинов Autodesk:
-   `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`
-
-### Использование
-
-1. Запустите AutoCAD. Плагин загрузится автоматически и создаст собственную вкладку на ленте.
-2. Введите команду **`MERGEDWG`**.
-3. Выберите папку, содержащую DWG-файлы для объединения.
-4. Плагин обработает все файлы и сохранит результат в родительскую директорию с именем `<Имя_папки>.dwg`.
-
----
-
-## ⌨️ Команды
-
-| Команда | Описание |
+| Command | Purpose |
 | :--- | :--- |
-| `MERGEDWG` | **Merge DWG Files**: Объединяет все DWG-файлы из выбранной папки в один чертёж. |
-| `SMART_MERGE_TEXT` | Объединяет соседние `TEXT` (по стилю, высоте и геометрической близости) в единый `MText` в Model Space. |
-| `MergeTextStyles` | Находит и сливает дубликаты текстовых стилей (`TextStyle`), обновляя `DBText`, `MText`, `AttributeDefinition`, `AttributeReference`. |
-| `CreateETransmitZip` | Собирает пакет зависимостей текущего DWG через eTransmit и сохраняет ZIP в папку `ETransmitOutput` рядом с чертежом. |
+| `MERGEDWG` | Recursively finds DWG files, exports the first Paper Space layout of each file, and inserts the result into the active drawing. |
+| `SMART_MERGE_TEXT` | Groups nearby `TEXT` / `MTEXT` objects in Model Space and replaces each group with one `MText`. |
+| `MergeTextStyles` | Finds duplicate text styles, reassigns text and attributes to a master style, then removes duplicates. |
+| `CreateETransmitZip` | Creates an AutoCAD eTransmit package for the current saved drawing and writes a ZIP archive. |
+| `ExportTextStylesToMd` / `ExportDimStylesToMd` | Exports style table diagnostics to Markdown on the desktop. |
 
----
+## Merge Flow
 
-## 🏗 Архитектура проекта
+1. `MergeCommands` guards against parallel `MERGEDWG` runs with `SemaphoreSlim`.
+2. `FileEnumerator` collects DWG files up to 3 folder levels deep, skipping names prefixed with `#` and files larger than 15 MB.
+3. `MergeCoordinator.MergeSingleFile` validates each DWG, exports the first layout via `ViewportLayoutExporter`, then inserts the temporary result via `BlockInserter`.
+4. `ViewportLayoutExporter` handles 0 / 1 / multi-viewport layouts, moves Paper Space content into Model Space, trims objects outside the frame, and embeds eligible model rasters as `OLE2FRAME`.
+5. `BlockInserter` clones native entities into the target Model Space with `WblockCloneObjects` and places each sheet along X with a calculated gap.
+6. The final drawing copies remaining raster files next to the target DWG, purges unused database objects, saves as `AC1032`, then runs `REGENALL` and `ZOOM EXTENTS`.
 
-| Модуль | Назначение |
-| :--- | :--- |
-| **Application/Commands** | Точки входа — команды AutoCAD (`MERGEDWG`, `SMART_MERGE_TEXT`, `MergeTextStyles`, `CreateETransmitZip`). |
-| **Application/Merge** | Ядро объединения: `DwgMerger`, `BlockInserter`. Сохранение вынесено в `MergeCommands`. |
-| **Application/Merge/Layouts** | Обработка viewport'ов: `ViewportLayoutExporter`, `ViewportTransformer`, `ModelSpaceTrimmer`, `ViewportCollector`. Выбор главного VP вынесен в `LayoutViewportInfo`. |
-| **Application/Merge** | Модели данных: `MergeResult`, `MergeStatistics`. |
-| **Application/Ribbon** | Создание вкладки на ленте AutoCAD. |
-| **Application/Utils** | Вспомогательные утилиты: `FileEnumerator`, `FileHelper`, `LayoutUtil`, `FolderSelector`, `WindowsNaturalComparer`. |
-| **Application/Merge/Layouts** | Геометрические утилиты: `ExtentsUtils` (форматирование, AABB-пересечения, безопасное чтение `GeometricExtents`). |
-| **Infrastructure/Logging** | Логирование операций через `OperationLogger`. |
+## Current Design Rules
 
-Полное и актуализированное описание архитектуры, моделей данных, конфигурации окружений, обработки ошибок, логирования и процесса контрибьютинга доступно в технической документации: [AutoBIMFusion/docs/TECHNICAL_DOCUMENTATION.md](AutoBIMFusion/docs/TECHNICAL_DOCUMENTATION.md).
+- AutoCAD transactions and disposable objects are always scoped with `using`.
+- Command classes own AutoCAD UI entry points; utility classes contain file, layout, geometry, and logging helpers.
+- Geometry helpers stay small and only expose methods used by the merge pipeline.
+- Per-entity debug logging is kept limited; high-volume operations log counts and critical failures.
+- AutoCAD API exceptions are caught at command/file boundaries and reported through `OperationLogger`.
 
----
+## Known Tradeoffs
 
-## 📐 Принципы проектирования
+- `DuplicateRecordCloning.Ignore` keeps the target drawing stable but may reuse existing layers/styles instead of preserving conflicting source definitions.
+- Raster embedding still depends on Clipboard + `PASTECLIP`; the plugin now preserves/restores Clipboard data, but direct OLE creation would be more robust.
+- Only the first Paper Space layout is processed.
+- Long merge operations do not yet support cancellation.
 
-- **Прямолинейность (Flatter Architecture):** Избегание излишних слоёв абстракций, обёрток и глубокой вложенности. Использование прямых вызовов методов вместо создания промежуточных классов.
-- **Явные проверки (Explicit Validation):** Использование `ArgumentNullException.ThrowIfNull` для валидации аргументов.
-- **Отсутствие локальных функций:** Предпочтение отдаётся обычным методам или линейному коду без вложенных методов (local functions).
-- **Локализация утилит:** Специализированные утилиты выделены в отдельные классы: геометрия — `ExtentsUtils`, файлы — `FileHelper`.
+## Build
 
----
+```powershell
+dotnet build AutoBIMFusion.slnx -c DebugA26
+dotnet build AutoBIMFusion.slnx -c ReleaseA26
+```
 
-## 📄 Лицензия
+The MSBuild target creates and deploys an AutoCAD bundle under `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle` by default.
 
-Проект распространяется под лицензией **MIT**. Подробности в файле [LICENSE.txt](LICENSE.txt).
+## Documentation
 
+- [Technical documentation](AutoBIMFusion/docs/TECHNICAL_DOCUMENTATION.md)
+- [Merge algorithm](AutoBIMFusion/docs/ALGORITHM.md)
+- [Known issues](AutoBIMFusion/docs/KNOWN_ISSUES.md)
