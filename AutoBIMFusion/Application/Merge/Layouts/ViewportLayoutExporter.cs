@@ -22,6 +22,13 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 /// ViewTwist (поворот DCS), CenterPaper (центр VP на бумаге), ModelWindow
 /// (DCS-окно VP в координатах модели).
 ///
+/// 0. ПРЕ-ПАСС: РАЗБЛОКИРОВКА ВЫСОТЫ ТЕКСТОВЫХ СТИЛЕЙ.
+///    <see cref="ViewportTransformer.UnlockTextStylesHeight"/> обнуляет TextSize
+///    для всех TextStyleTableRecord с TextSize &gt; 0. Если высота задана жёстко,
+///    AutoCAD игнорирует Dimscale на размерных примитивах — обнуление «отвязывает»
+///    высоту и позволяет per-entity переопределениям Dimscale работать корректно.
+///    Глобальные DimStyleTableRecord не изменяются.
+///
 /// 1. ВЫБОР MAIN-VP. <see cref="LayoutViewportInfo.PickMainViewport"/> →
 ///    VP с максимальным CoverageScore = площадь / scale. Это «контейнер»,
 ///    в координаты которого будут приведены все вспомогательные узлы.
@@ -50,6 +57,10 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 ///       клонирование + TransformBy(m) каждому клону с пропорциональной
 ///       компенсацией Dimension/MLeader + EvaluateHatch(true) для
 ///       не-ассоциативных штриховок (восстановление геометрии заливки).
+///       Для каждого клона Dimension: dim.Dimscale *= scaleFactor,
+///       dim.Dimlfac /= scaleFactor, dim.RecomputeDimensionBlock(true).
+///       Для MLeader: mleader.Scale *= scaleFactor.
+///       DimStyleTableRecord не изменяются.
 ///    d) <see cref="ViewportTransformer.EraseEntitiesOutsideMainWindow"/> —
 ///       оригиналы из aux-окна, попадающие ВНЕ главного окна, удаляются.
 ///       Иначе они попадут в frameBounds и не уйдут в TrimOutside.
@@ -61,8 +72,8 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 ///       Matrix3d.Scaling(clampRatio, mainOriginal.ViewCenter)
 ///    Через <see cref="ViewportTransformer.ScaleModelSpaceObjects"/>: пропускает
 ///    Viewport и ассоциативные Hatch (они пересчитываются по контурам),
-///    компенсирует Dimension/MLeader, вызывает EvaluateHatch на простых hatch.
-///    Если clampRatio == 1.0, шаг пропускается.
+///    компенсирует Dimension/MLeader аналогично шагу 4c, вызывает EvaluateHatch
+///    на простых hatch. Если clampRatio == 1.0, шаг пропускается.
 ///
 /// 6. ПЕРЕНОС PAPER → MODEL (в зажатом main).
 ///    <see cref="ViewportTransformer.BuildPaperToMainMatrix"/>(mainClamped):
@@ -77,20 +88,26 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 /// ─────────────────────────────────────────────────────────────────────────
 /// АЛГОРИТМ (single-VP) — упрощённая версия без шага 4.
 /// ─────────────────────────────────────────────────────────────────────────
+/// 0. Пре-пасс: UnlockTextStylesHeight (только если clampRatio > 1).
 /// 1. Зажим масштаба → clamped, clampRatio.
 /// 2. Масштабирование Model Space на clampRatio вокруг vp.ViewCenter
-///    (если clampRatio != 1.0).
+///    (если clampRatio != 1.0) с per-entity компенсацией Dimension/MLeader.
 /// 3. Paper → Model через BuildPaperToMainMatrix(clamped).
 ///
 /// ─────────────────────────────────────────────────────────────────────────
 /// АЛГОРИТМ (no-VP) — fallback при отсутствии viewport'ов.
 /// ─────────────────────────────────────────────────────────────────────────
+/// 0. Пре-пасс: UnlockTextStylesHeight.
 /// Paper-содержимое сдвигается к origin и масштабируется на 1/TargetScale (×100)
 /// вокруг origin, далее переносится в Model Space.
 /// </summary>
 [SupportedOSPlatform("Windows")]
 internal static class ViewportLayoutExporter
 {
+    /// <summary>
+    /// Максимальный коэффициент зажатия масштаба (1:100).
+    /// </summary>
+    private const double MaxScaleMultiplier = 100.0;
     /// <summary>
     /// Максимальный "разумный" размер стороны Ole2Frame (в единицах черчения).
     /// Если AutoCAD после PASTECLIP задаёт Bounds больше этого значения —
@@ -105,7 +122,6 @@ internal static class ViewportLayoutExporter
     /// </summary>
     private const long MaxOleFileSizeBytes = 5L * 1024 * 1024;
 
-    private const double MaxScaleMultiplier = 100.0;
 
     public static async Task<string> ExportToTempAsync(string sourceFilePath, string fileName, OperationLogger log)
     {
@@ -237,6 +253,8 @@ internal static class ViewportLayoutExporter
     /// Multi-VP: главный VP + aux (узлы). Полное описание алгоритма — в XML-doc класса.
     ///
     /// Краткий порядок:
+    /// 0. UnlockTextStylesHeight — обнуляет TextSize текстовых стилей (только если clampRatio > 1),
+    ///    чтобы per-entity переопределения Dimscale на примитивах Dimension работали корректно.
     /// 1. mainOriginal (исходный) + mainClamped (зажатый до TargetScale) + clampRatio.
     /// 2. Snapshot модели для AABB-отбора.
     /// 3. Для каждого aux: BuildMatrix(mainOriginal, aux) → DeepCloneAndTransform
@@ -302,6 +320,7 @@ internal static class ViewportLayoutExporter
             log.Info(
                 $"Применяем clampRatio={clampRatio:F6} к Model Space вокруг " +
                 $"{ExtentsUtils.FormatPoint(mainOriginal.ViewCenter)}");
+            ViewportTransformer.UnlockTextStylesHeight(db, log);
             ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
         }
 
@@ -333,6 +352,7 @@ internal static class ViewportLayoutExporter
             log.Info(
                 $"Применяем clampRatio={clampRatio:F6} к Model Space вокруг " +
                 $"{ExtentsUtils.FormatPoint(vp.ViewCenter)}");
+            ViewportTransformer.UnlockTextStylesHeight(db, log);
             ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
         }
 
@@ -383,6 +403,7 @@ internal static class ViewportLayoutExporter
             $"ProcessNoVp: paper bounds={ExtentsUtils.FormatExtents(paperBounds.Value)}, " +
             $"ratio={MaxScaleMultiplier:F2}");
 
+        ViewportTransformer.UnlockTextStylesHeight(db, log);
         return MovePaperToModelSpace(db, layoutName, matrix, log, "paper-no-vp");
     }
 

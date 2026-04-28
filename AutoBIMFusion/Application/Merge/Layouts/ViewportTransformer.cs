@@ -483,4 +483,33 @@ internal static class ViewportTransformer
         log.Info($"EraseEntitiesOutsideMainWindow: erased={erased} of {auxEntities.Count}, inMain={inMain.Count}");
         return erased;
     }
+
+    /// <summary>
+    /// Обнуляет фиксированную высоту текста во всех текстовых стилях базы данных.
+    /// Если высота задана жёстко (TextSize > 0), AutoCAD игнорирует Dimscale размерных стилей —
+    /// обнуление «отвязывает» высоту и позволяет масштабированию работать корректно.
+    /// Вызывается перед масштабированием объектов Model Space.
+    /// </summary>
+    internal static void UnlockTextStylesHeight(Database db, OperationLogger log)
+    {
+        int unlocked = 0;
+
+        using Transaction tr = db.TransactionManager.StartTransaction();
+        TextStyleTable tt = (TextStyleTable)tr.GetObject(db.TextStyleTableId, OpenMode.ForRead);
+
+        foreach (ObjectId tsId in tt)
+        {
+            TextStyleTableRecord ts = (TextStyleTableRecord)tr.GetObject(tsId, OpenMode.ForRead);
+
+            if (ts.TextSize > 0.0)
+            {
+                ts.UpgradeOpen();
+                ts.TextSize = 0.0;
+                unlocked++;
+            }
+        }
+
+        tr.Commit();
+        log.Info($"UnlockTextStylesHeight: разблокировано {unlocked} текстовых стилей");
+    }
 }
