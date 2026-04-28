@@ -267,6 +267,7 @@ internal static class ViewportLayoutExporter
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
         ObjectIdCollection mainIds = ViewportTransformer.SelectModelInside(modelEntities, mainOriginal.ModelWindow, log);
         double mainDimensionScale = GetDimensionScale(mainOriginal, log);
+        LogDimensionScalePlan("main", mainOriginal, mainIds.Count, mainDimensionScale, log);
         _ = ViewportTransformer.ApplyDimensionScaleOverrides(
             db,
             mainIds,
@@ -284,6 +285,7 @@ internal static class ViewportLayoutExporter
             Matrix3d m = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
             ObjectIdCollection toClone = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, log);
             double auxDimensionScale = GetDimensionScale(aux, log);
+            LogDimensionScalePlan("aux", aux, toClone.Count, auxDimensionScale, log);
 
             if (toClone.Count > 0)
             {
@@ -336,6 +338,7 @@ internal static class ViewportLayoutExporter
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
         ObjectIdCollection visibleIds = ViewportTransformer.SelectModelInside(modelEntities, vp.ModelWindow, log);
         double dimensionScale = GetDimensionScale(vp, log);
+        LogDimensionScalePlan("single", vp, visibleIds.Count, dimensionScale, log);
         _ = ViewportTransformer.ApplyDimensionScaleOverrides(
             db,
             visibleIds,
@@ -378,6 +381,20 @@ internal static class ViewportLayoutExporter
 
         log.Warn($"VP #{vp.Number}: CustomScale={vp.CustomScale:F6} некорректен, Dimscale={MaxScaleMultiplier:F6}");
         return MaxScaleMultiplier;
+    }
+
+    private static void LogDimensionScalePlan(
+        string scope,
+        LayoutViewportInfo vp,
+        int selectedEntityCount,
+        double dimensionScale,
+        OperationLogger log)
+    {
+        log.Info(
+            $"DimscalePlan scope={scope} VP#{vp.Number}: CustomScale={vp.CustomScale:F6}, " +
+            $"targetDimscale={dimensionScale:F6}, selectedEntities={selectedEntityCount}, " +
+            $"ViewCenter={ExtentsUtils.FormatPoint(vp.ViewCenter)}, " +
+            $"ModelWindow={ExtentsUtils.FormatExtents(vp.ModelWindow)}");
     }
 
     /// <summary>

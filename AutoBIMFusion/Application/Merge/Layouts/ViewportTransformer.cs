@@ -30,6 +30,13 @@ internal static class ViewportTransformer
 {
     internal sealed record ModelEntitySnapshot(ObjectId Id, Extents3d Extents);
 
+    private readonly record struct DimensionOverrideResult(
+        double Before,
+        double After,
+        string StyleName,
+        string EntityType,
+        string LayerName);
+
     internal static int ApplyDimensionScaleOverrides(
         Database db,
         ObjectIdCollection entityIds,
@@ -43,8 +50,13 @@ internal static class ViewportTransformer
             return 0;
         }
 
+        int candidates = 0;
         int updated = 0;
         int errors = 0;
+
+        log.Info(
+            $"DimscaleOverride start source={sourceName}: ids={entityIds.Count}, " +
+            $"targetDimscale={dimensionScale:F6}");
 
         using Transaction tr = db.TransactionManager.StartTransaction();
 
@@ -59,7 +71,12 @@ internal static class ViewportTransformer
             {
                 if (tr.GetObject(id, OpenMode.ForWrite) is Dimension dim)
                 {
-                    ApplyDimensionScaleOverride(dim, dimensionScale);
+                    candidates++;
+                    DimensionOverrideResult result = ApplyDimensionScaleOverride(tr, dim, dimensionScale);
+                    log.Debug(
+                        $"DimscaleOverride source={sourceName}: Handle={dim.Handle}, Type={result.EntityType}, " +
+                        $"Layer=\"{result.LayerName}\", DimStyle=\"{result.StyleName}\", " +
+                        $"before={result.Before:F6}, target={dimensionScale:F6}, after={result.After:F6}");
                     updated++;
                 }
             }
@@ -74,11 +91,13 @@ internal static class ViewportTransformer
 
         if (updated > 0 || errors > 0)
         {
-            log.Info($"ApplyDimensionScaleOverrides source={sourceName}: Dimscale={dimensionScale:F6}, updated={updated}, errors={errors}");
+            log.Info(
+                $"DimscaleOverride done source={sourceName}: targetDimscale={dimensionScale:F6}, " +
+                $"dimensionCandidates={candidates}, updated={updated}, errors={errors}");
         }
         else
         {
-            log.Debug($"ApplyDimensionScaleOverrides source={sourceName}: размеры не найдены");
+            log.Info($"DimscaleOverride done source={sourceName}: размеры не найдены среди ids={entityIds.Count}");
         }
 
         return updated;
@@ -334,6 +353,7 @@ internal static class ViewportTransformer
         IdMapping map = [];
         ObjectIdCollection cloned = [];
         int mappedPrimary = 0;
+        int dimensionOverrides = 0;
 
         using (Transaction tr = db.TransactionManager.StartTransaction())
         {
@@ -366,10 +386,24 @@ internal static class ViewportTransformer
 
                         if (dimensionScale.HasValue && e is Dimension clonedDimension)
                         {
-                            ApplyDimensionScaleOverride(clonedDimension, dimensionScale.Value);
+                            DimensionOverrideResult overrideResult = ApplyDimensionScaleOverride(tr, clonedDimension, dimensionScale.Value);
+                            log.Debug(
+                                $"DimscaleOverride clone source={sourceName}: SourceHandle={pair.Key.Handle}, " +
+                                $"CloneHandle={clonedDimension.Handle}, Type={overrideResult.EntityType}, " +
+                                $"Layer=\"{overrideResult.LayerName}\", DimStyle=\"{overrideResult.StyleName}\", " +
+                                $"before={overrideResult.Before:F6}, target={dimensionScale.Value:F6}, " +
+                                $"afterBeforeTransform={overrideResult.After:F6}");
+                            dimensionOverrides++;
                         }
 
                         e.TransformBy(matrix);
+
+                        if (dimensionScale.HasValue && e is Dimension transformedDimension)
+                        {
+                            log.Debug(
+                                $"DimscaleOverride clone after TransformBy source={sourceName}: " +
+                                $"CloneHandle={transformedDimension.Handle}, afterTransform={transformedDimension.Dimscale:F6}");
+                        }
 
                         // DeepCloneObjects разрывает ассоциацию Hatch ↔ контур —
                         // EvaluateHatch принудительно пересчитывает геометрию заливки
@@ -408,14 +442,43 @@ internal static class ViewportTransformer
 
         DrawOrderPreserver.Restore(db, ownerId, sourceOrder, map, log);
 
-        log.Debug($"DeepCloneAndTransform source={sourceName}, input={sourceIds.Count}, mappedPrimary={mappedPrimary}, transformed={cloned.Count}");
+        log.Debug(
+            $"DeepCloneAndTransform source={sourceName}, input={sourceIds.Count}, " +
+            $"mappedPrimary={mappedPrimary}, transformed={cloned.Count}, dimensionOverrides={dimensionOverrides}");
         return cloned;
     }
 
-    private static void ApplyDimensionScaleOverride(Dimension dim, double dimensionScale)
+    private static DimensionOverrideResult ApplyDimensionScaleOverride(Transaction tr, Dimension dim, double dimensionScale)
     {
+        double before = dim.Dimscale;
+        string styleName = ResolveDimensionStyleName(tr, dim.DimensionStyle);
         dim.Dimscale = dimensionScale;
         dim.RecomputeDimensionBlock(true);
+        return new DimensionOverrideResult(
+            before,
+            dim.Dimscale,
+            styleName,
+            dim.GetType().Name,
+            dim.Layer);
+    }
+
+    private static string ResolveDimensionStyleName(Transaction tr, ObjectId dimStyleId)
+    {
+        if (dimStyleId.IsNull)
+        {
+            return "<null>";
+        }
+
+        try
+        {
+            return tr.GetObject(dimStyleId, OpenMode.ForRead) is DimStyleTableRecord style
+                ? style.Name
+                : "<not DimStyleTableRecord>";
+        }
+        catch
+        {
+            return "<unavailable>";
+        }
     }
 
     private static bool IsValidDimensionScale(double dimensionScale)
