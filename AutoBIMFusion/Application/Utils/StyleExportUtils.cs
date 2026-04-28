@@ -9,6 +9,7 @@ public static class StyleExportUtils
     {
         HashSet<string> stylesToSkip = new(StringComparer.OrdinalIgnoreCase)
         {
+            "ISO-25",
             "Standard",
             "Annotative"
         };
