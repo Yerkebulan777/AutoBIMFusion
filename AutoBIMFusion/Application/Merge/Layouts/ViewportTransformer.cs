@@ -495,6 +495,7 @@ internal static class ViewportTransformer
         int unlocked = 0;
 
         using Transaction tr = db.TransactionManager.StartTransaction();
+
         TextStyleTable tt = (TextStyleTable)tr.GetObject(db.TextStyleTableId, OpenMode.ForRead);
 
         foreach (ObjectId tsId in tt)
