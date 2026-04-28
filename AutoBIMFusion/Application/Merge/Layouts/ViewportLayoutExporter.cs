@@ -104,7 +104,7 @@ internal static class ViewportLayoutExporter
     /// </summary>
     private const long MaxOleFileSizeBytes = 5L * 1024 * 1024;
 
-    private const double TargetScale = 0.01; // 1:100 — эталонный масштаб слияния
+    private const double MaxScaleMultiplier = 100.0;
 
     public static async Task<string> ExportToTempAsync(string sourceFilePath, string fileName, OperationLogger log)
     {
@@ -250,11 +250,8 @@ internal static class ViewportLayoutExporter
         log.Info($"Выбранный метод масштабирования: ProcessMultiVp ({vps.Count} viewport'ов)");
 
         LayoutViewportInfo mainOriginal = LayoutViewportInfo.PickMainViewport(vps);
-        bool needsNorm = mainOriginal.CustomScale > TargetScale;
-        LayoutViewportInfo mainClamped = needsNorm
-            ? mainOriginal with { CustomScale = TargetScale }
-            : mainOriginal;
-        double clampRatio = needsNorm ? TargetScale / mainOriginal.CustomScale : 1.0;
+        LayoutViewportInfo mainClamped = ClampMainVpScale(mainOriginal, log);
+        double clampRatio = mainOriginal.CustomScale / mainClamped.CustomScale;
 
         log.Info(
             $"VP main#{mainOriginal.Number}: исходный scale={mainOriginal.CustomScale:F6}, " +
@@ -288,7 +285,7 @@ internal static class ViewportLayoutExporter
             }
         }
 
-        if (clampRatio != 1.0)
+        if (clampRatio > 1.0 + 1e-9)
         {
             Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, mainOriginal.ViewCenter);
             log.Info(
@@ -307,17 +304,14 @@ internal static class ViewportLayoutExporter
     {
         log.Info($"Выбранный метод масштабирования: ProcessSingleVp (VP #{vp.Number})");
 
-        bool needsNorm = vp.CustomScale > TargetScale;
-        LayoutViewportInfo clamped = needsNorm
-            ? vp with { CustomScale = TargetScale }
-            : vp;
-        double clampRatio = needsNorm ? TargetScale / vp.CustomScale : 1.0;
+        LayoutViewportInfo clamped = ClampMainVpScale(vp, log);
+        double clampRatio = vp.CustomScale / clamped.CustomScale;
 
         log.Info(
             $"VP #{vp.Number}: исходный scale={vp.CustomScale:F6}, рабочий scale={clamped.CustomScale:F6}, " +
             $"clampRatio={clampRatio:F6}, центр={ExtentsUtils.FormatPoint(clamped.ViewCenter)}");
 
-        if (clampRatio != 1.0)
+        if (clampRatio > 1.0 + 1e-9)
         {
             Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, vp.ViewCenter);
             log.Info(
@@ -327,6 +321,20 @@ internal static class ViewportLayoutExporter
         }
 
         return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(clamped, log), log);
+    }
+
+    private static LayoutViewportInfo ClampMainVpScale(LayoutViewportInfo vp, OperationLogger log)
+    {
+        double multiplier = 1.0 / vp.CustomScale;
+
+        if (multiplier < MaxScaleMultiplier)
+        {
+            log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0} → зажат до 1:{MaxScaleMultiplier:F0}");
+            return vp with { CustomScale = 1.0 / MaxScaleMultiplier };
+        }
+
+        log.Info($"VP #{vp.Number}: масштаб 1:{multiplier:F0}");
+        return vp;
     }
 
     /// <summary>
@@ -352,12 +360,12 @@ internal static class ViewportLayoutExporter
 
         Point3d minPt = paperBounds.Value.MinPoint;
         Matrix3d moveToOrigin = Matrix3d.Displacement(Point3d.Origin - minPt);
-        Matrix3d scale = Matrix3d.Scaling(1.0 / TargetScale, Point3d.Origin);
+        Matrix3d scale = Matrix3d.Scaling(MaxScaleMultiplier, Point3d.Origin);
         Matrix3d matrix = scale * moveToOrigin;
 
         log.Info(
             $"ProcessNoVp: paper bounds={ExtentsUtils.FormatExtents(paperBounds.Value)}, " +
-            $"ratio={1.0 / TargetScale:F2}");
+            $"ratio={MaxScaleMultiplier:F2}");
 
         return MovePaperToModelSpace(db, layoutName, matrix, log, "paper-no-vp");
     }
@@ -790,10 +798,3 @@ internal static class ViewportLayoutExporter
         return File.Exists(inSameFolder) ? inSameFolder : null;
     }
 }
-
-
-
-
-
-
-
