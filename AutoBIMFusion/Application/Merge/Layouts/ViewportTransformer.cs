@@ -101,6 +101,7 @@ internal static class ViewportTransformer
 
         Dictionary<string, int> successTypes = [];
         Dictionary<string, int> errorTypes = [];
+        double scaleFactor = Vector3d.XAxis.TransformBy(matrix).Length;
 
         using Transaction tr = db.TransactionManager.StartTransaction();
         BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
@@ -135,9 +136,6 @@ internal static class ViewportTransformer
             try
             {
                 Extents3d? oldExt = ExtentsUtils.TryGetExtents(ent);
-                ent.TransformBy(matrix);
-
-                double scaleFactor = Vector3d.XAxis.TransformBy(matrix).Length;
 
                 if (ent is Dimension dimScale)
                 {
@@ -149,17 +147,23 @@ internal static class ViewportTransformer
                         dimScale.Dimlfac = dimScale.Dimlfac / scaleFactor;
                     }
 
+                    dimScale.TransformBy(matrix);
                     dimScale.RecomputeDimensionBlock(true);
                 }
-                else if (ent is MLeader mleaderScale)
+                else
                 {
-                    double currentScale = mleaderScale.Scale == 0.0 ? 1.0 : mleaderScale.Scale;
-                    mleaderScale.Scale = currentScale * scaleFactor;
-                }
-                else if (ent is Hatch hatchScale)
-                {
-                    try { hatchScale.EvaluateHatch(true); }
-                    catch { }
+                    ent.TransformBy(matrix);
+
+                    if (ent is MLeader mleaderScale)
+                    {
+                        double currentScale = mleaderScale.Scale == 0.0 ? 1.0 : mleaderScale.Scale;
+                        mleaderScale.Scale = currentScale * scaleFactor;
+                    }
+                    else if (ent is Hatch hatchScale)
+                    {
+                        try { hatchScale.EvaluateHatch(true); }
+                        catch { }
+                    }
                 }
 
                 Extents3d? newExt = ExtentsUtils.TryGetExtents(ent);

@@ -99,7 +99,7 @@
       "source_file": "AutoBIMFusion\\Application\\AcadSupport\\AcadWarningSuppressScope.cs",
       "source_location": "L1",
       "id": "autobimfusion_application_acadsupport_acadwarningsuppressscope_cs",
-      "community": 11,
+      "community": 10,
       "norm_label": "acadwarningsuppressscope.cs"
     },
     {
@@ -108,7 +108,7 @@
       "source_file": "AutoBIMFusion\\Application\\AcadSupport\\AcadWarningSuppressScope.cs",
       "source_location": "L5",
       "id": "acadsupport_acadwarningsuppressscope_acadwarningsuppressscope",
-      "community": 11,
+      "community": 10,
       "norm_label": "acadwarningsuppressscope"
     },
     {
@@ -117,7 +117,7 @@
       "source_file": "",
       "source_location": "",
       "id": "idisposable",
-      "community": 11,
+      "community": 10,
       "norm_label": "idisposable"
     },
     {
@@ -126,7 +126,7 @@
       "source_file": "AutoBIMFusion\\Application\\AcadSupport\\AcadWarningSuppressScope.cs",
       "source_location": "L16",
       "id": "acadsupport_acadwarningsuppressscope_acadwarningsuppressscope_dispose",
-      "community": 11,
+      "community": 10,
       "norm_label": ".dispose()"
     },
     {
@@ -135,7 +135,7 @@
       "source_file": "AutoBIMFusion\\Application\\AcadSupport\\AcadWarningSuppressScope.cs",
       "source_location": "L30",
       "id": "acadsupport_acadwarningsuppressscope_layouteditscope",
-      "community": 11,
+      "community": 10,
       "norm_label": "layouteditscope"
     },
     {
@@ -144,7 +144,7 @@
       "source_file": "AutoBIMFusion\\Application\\AcadSupport\\AcadWarningSuppressScope.cs",
       "source_location": "L42",
       "id": "acadsupport_acadwarningsuppressscope_layouteditscope_dispose",
-      "community": 11,
+      "community": 10,
       "norm_label": ".dispose()"
     },
     {
@@ -153,7 +153,7 @@
       "source_file": "AutoBIMFusion\\Application\\AcadSupport\\AcadWarningSuppressScope.cs",
       "source_location": "L50",
       "id": "acadsupport_acadwarningsuppressscope_managedsystemvariable",
-      "community": 11,
+      "community": 10,
       "norm_label": "managedsystemvariable"
     },
     {
@@ -162,7 +162,7 @@
       "source_file": "AutoBIMFusion\\Application\\AcadSupport\\AcadWarningSuppressScope.cs",
       "source_location": "L69",
       "id": "acadsupport_acadwarningsuppressscope_managedsystemvariable_dispose",
-      "community": 11,
+      "community": 10,
       "norm_label": ".dispose()"
     },
     {
@@ -171,7 +171,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\JoinCommands.cs",
       "source_location": "L1",
       "id": "autobimfusion_application_commands_joincommands_cs",
-      "community": 8,
+      "community": 15,
       "norm_label": "joincommands.cs"
     },
     {
@@ -180,7 +180,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\JoinCommands.cs",
       "source_location": "L9",
       "id": "commands_joincommands_joincommands",
-      "community": 8,
+      "community": 15,
       "norm_label": "joincommands"
     },
     {
@@ -189,7 +189,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\JoinCommands.cs",
       "source_location": "L17",
       "id": "commands_joincommands_joincommands_joinlinescommand",
-      "community": 8,
+      "community": 15,
       "norm_label": ".joinlinescommand()"
     },
     {
@@ -198,7 +198,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\JoinCommands.cs",
       "source_location": "L141",
       "id": "commands_joincommands_joincommands_mergegroup",
-      "community": 8,
+      "community": 15,
       "norm_label": ".mergegroup()"
     },
     {
@@ -207,7 +207,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\JoinCommands.cs",
       "source_location": "L188",
       "id": "commands_joincommands_lineinfo",
-      "community": 8,
+      "community": 15,
       "norm_label": "lineinfo"
     },
     {
@@ -297,7 +297,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\SmartTextCommands.cs",
       "source_location": "L1",
       "id": "autobimfusion_application_commands_smarttextcommands_cs",
-      "community": 9,
+      "community": 8,
       "norm_label": "smarttextcommands.cs"
     },
     {
@@ -306,7 +306,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\SmartTextCommands.cs",
       "source_location": "L10",
       "id": "commands_smarttextcommands_smarttextcommands",
-      "community": 9,
+      "community": 8,
       "norm_label": "smarttextcommands"
     },
     {
@@ -315,7 +315,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\SmartTextCommands.cs",
       "source_location": "L16",
       "id": "commands_smarttextcommands_smarttextcommands_smartmergemodeltext",
-      "community": 9,
+      "community": 8,
       "norm_label": ".smartmergemodeltext()"
     },
     {
@@ -324,7 +324,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\SmartTextCommands.cs",
       "source_location": "L90",
       "id": "commands_smarttextcommands_smarttextcommands_collecttextelements",
-      "community": 9,
+      "community": 8,
       "norm_label": ".collecttextelements()"
     },
     {
@@ -333,7 +333,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\SmartTextCommands.cs",
       "source_location": "L166",
       "id": "commands_smarttextcommands_smarttextcommands_smartgrouptext",
-      "community": 9,
+      "community": 8,
       "norm_label": ".smartgrouptext()"
     },
     {
@@ -342,7 +342,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\SmartTextCommands.cs",
       "source_location": "L256",
       "id": "commands_smarttextcommands_smarttextcommands_combinegrouptext",
-      "community": 9,
+      "community": 8,
       "norm_label": ".combinegrouptext()"
     },
     {
@@ -351,7 +351,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\SmartTextCommands.cs",
       "source_location": "L310",
       "id": "commands_smarttextcommands_smarttextcommands_aretextsclose",
-      "community": 9,
+      "community": 8,
       "norm_label": ".aretextsclose()"
     },
     {
@@ -360,7 +360,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\SmartTextCommands.cs",
       "source_location": "L353",
       "id": "commands_smarttextcommands_smarttextcommands_gettextboundsalongaxis",
-      "community": 9,
+      "community": 8,
       "norm_label": ".gettextboundsalongaxis()"
     },
     {
@@ -369,7 +369,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\SmartTextCommands.cs",
       "source_location": "L409",
       "id": "commands_smarttextcommands_smarttextcommands_estimatetextwidth",
-      "community": 9,
+      "community": 8,
       "norm_label": ".estimatetextwidth()"
     },
     {
@@ -378,7 +378,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\SmartTextCommands.cs",
       "source_location": "L419",
       "id": "commands_smarttextcommands_smarttextcommands_escapemtextcontent",
-      "community": 9,
+      "community": 8,
       "norm_label": ".escapemtextcontent()"
     },
     {
@@ -387,7 +387,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\StyleExportCommands.cs",
       "source_location": "L1",
       "id": "autobimfusion_application_commands_styleexportcommands_cs",
-      "community": 10,
+      "community": 9,
       "norm_label": "styleexportcommands.cs"
     },
     {
@@ -396,7 +396,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\StyleExportCommands.cs",
       "source_location": "L8",
       "id": "commands_styleexportcommands_styleexportcommands",
-      "community": 10,
+      "community": 9,
       "norm_label": "styleexportcommands"
     },
     {
@@ -405,7 +405,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\StyleExportCommands.cs",
       "source_location": "L10",
       "id": "commands_styleexportcommands_styleexportcommands_exporttextstyles",
-      "community": 10,
+      "community": 9,
       "norm_label": ".exporttextstyles()"
     },
     {
@@ -414,7 +414,7 @@
       "source_file": "AutoBIMFusion\\Application\\Commands\\StyleExportCommands.cs",
       "source_location": "L27",
       "id": "commands_styleexportcommands_styleexportcommands_exportdimstyles",
-      "community": 10,
+      "community": 9,
       "norm_label": ".exportdimstyles()"
     },
     {
@@ -630,7 +630,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\BlockInserter.cs",
       "source_location": "L1",
       "id": "autobimfusion_application_merge_blockinserter_cs",
-      "community": 2,
+      "community": 5,
       "norm_label": "blockinserter.cs"
     },
     {
@@ -639,7 +639,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\BlockInserter.cs",
       "source_location": "L14",
       "id": "merge_blockinserter_blockinserter",
-      "community": 2,
+      "community": 5,
       "norm_label": "blockinserter"
     },
     {
@@ -648,7 +648,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\BlockInserter.cs",
       "source_location": "L31",
       "id": "merge_blockinserter_blockinserter_insertnativeobjects",
-      "community": 2,
+      "community": 5,
       "norm_label": ".insertnativeobjects()"
     },
     {
@@ -657,7 +657,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\BlockInserter.cs",
       "source_location": "L157",
       "id": "merge_blockinserter_blockinserter_calcinsertionpoint",
-      "community": 2,
+      "community": 5,
       "norm_label": ".calcinsertionpoint()"
     },
     {
@@ -666,7 +666,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\BlockInserter.cs",
       "source_location": "L173",
       "id": "merge_blockinserter_blockinserter_createdimensionsnapshot",
-      "community": 2,
+      "community": 5,
       "norm_label": ".createdimensionsnapshot()"
     },
     {
@@ -675,7 +675,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\BlockInserter.cs",
       "source_location": "L183",
       "id": "merge_blockinserter_blockinserter_resolvedimensionstylename",
-      "community": 2,
+      "community": 5,
       "norm_label": ".resolvedimensionstylename()"
     },
     {
@@ -684,7 +684,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\DwgOptimizer.cs",
       "source_location": "L1",
       "id": "c_users_yerkebulan_yandexdisk_repository_autobimfusion_autobimfusion_application_merge_dwgoptimizer_cs",
-      "community": 15,
+      "community": 14,
       "norm_label": "dwgoptimizer.cs"
     },
     {
@@ -693,7 +693,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\DwgOptimizer.cs",
       "source_location": "L10",
       "id": "dwgoptimizer_dwgoptimizer",
-      "community": 15,
+      "community": 14,
       "norm_label": "dwgoptimizer"
     },
     {
@@ -702,7 +702,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\DwgOptimizer.cs",
       "source_location": "L18",
       "id": "dwgoptimizer_dwgoptimizer_optimize",
-      "community": 15,
+      "community": 14,
       "norm_label": ".optimize()"
     },
     {
@@ -711,7 +711,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\DwgOptimizer.cs",
       "source_location": "L47",
       "id": "dwgoptimizer_dwgoptimizer_purgepass",
-      "community": 15,
+      "community": 14,
       "norm_label": ".purgepass()"
     },
     {
@@ -720,7 +720,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\DwgOptimizer.cs",
       "source_location": "L117",
       "id": "dwgoptimizer_dwgoptimizer_addtableids",
-      "community": 15,
+      "community": 14,
       "norm_label": ".addtableids()"
     },
     {
@@ -729,7 +729,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\DwgOptimizer.cs",
       "source_location": "L141",
       "id": "dwgoptimizer_dwgoptimizer_adddictionaryids",
-      "community": 15,
+      "community": 14,
       "norm_label": ".adddictionaryids()"
     },
     {
@@ -738,7 +738,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\MergeOrchestrator.cs",
       "source_location": "L1",
       "id": "autobimfusion_application_merge_mergeorchestrator_cs",
-      "community": 5,
+      "community": 2,
       "norm_label": "mergeorchestrator.cs"
     },
     {
@@ -747,7 +747,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\MergeOrchestrator.cs",
       "source_location": "L14",
       "id": "merge_mergeorchestrator_mergecoordinator",
-      "community": 5,
+      "community": 2,
       "norm_label": "mergecoordinator"
     },
     {
@@ -756,7 +756,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\MergeOrchestrator.cs",
       "source_location": "L17",
       "id": "merge_mergeorchestrator_mergecoordinator_mergesinglefile",
-      "community": 5,
+      "community": 2,
       "norm_label": ".mergesinglefile()"
     },
     {
@@ -765,7 +765,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\MergeOrchestrator.cs",
       "source_location": "L87",
       "id": "merge_mergeorchestrator_mergecoordinator_readbounds",
-      "community": 5,
+      "community": 2,
       "norm_label": ".readbounds()"
     },
     {
@@ -810,7 +810,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\Layouts\\DrawOrderPreserver.cs",
       "source_location": "L1",
       "id": "c_users_yerkebulan_yandexdisk_repository_autobimfusion_autobimfusion_application_merge_layouts_draworderpreserver_cs",
-      "community": 0,
+      "community": 1,
       "norm_label": "draworderpreserver.cs"
     },
     {
@@ -819,7 +819,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\Layouts\\DrawOrderPreserver.cs",
       "source_location": "L10",
       "id": "draworderpreserver_draworderpreserver",
-      "community": 0,
+      "community": 1,
       "norm_label": "draworderpreserver"
     },
     {
@@ -828,7 +828,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\Layouts\\DrawOrderPreserver.cs",
       "source_location": "L12",
       "id": "draworderpreserver_draworderpreserver_capture",
-      "community": 0,
+      "community": 1,
       "norm_label": ".capture()"
     },
     {
@@ -837,7 +837,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\Layouts\\DrawOrderPreserver.cs",
       "source_location": "L51",
       "id": "draworderpreserver_draworderpreserver_restore",
-      "community": 0,
+      "community": 1,
       "norm_label": ".restore()"
     },
     {
@@ -846,7 +846,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
       "source_location": "L1",
       "id": "autobimfusion_application_merge_layouts_extentsutils_cs",
-      "community": 2,
+      "community": 5,
       "norm_label": "extentsutils.cs"
     },
     {
@@ -855,7 +855,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
       "source_location": "L8",
       "id": "layouts_extentsutils_extentsutils",
-      "community": 2,
+      "community": 5,
       "norm_label": "extentsutils"
     },
     {
@@ -864,7 +864,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
       "source_location": "L15",
       "id": "layouts_extentsutils_extentsutils_getextents",
-      "community": 2,
+      "community": 5,
       "norm_label": ".getextents()"
     },
     {
@@ -873,7 +873,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
       "source_location": "L43",
       "id": "layouts_extentsutils_extentsutils_trygetextents",
-      "community": 0,
+      "community": 5,
       "norm_label": ".trygetextents()"
     },
     {
@@ -882,133 +882,97 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
       "source_location": "L60",
       "id": "layouts_extentsutils_extentsutils_getcenter",
-      "community": 2,
+      "community": 5,
       "norm_label": ".getcenter()"
-    },
-    {
-      "label": ".Expand()",
-      "file_type": "code",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L81",
-      "id": "layouts_extentsutils_extentsutils_expand",
-      "community": 2,
-      "norm_label": ".expand()"
     },
     {
       "label": ".IsPointIn()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L133",
+      "source_location": "L82",
       "id": "layouts_extentsutils_extentsutils_ispointin",
-      "community": 2,
+      "community": 5,
       "norm_label": ".ispointin()"
     },
     {
       "label": ".IsEntityPointIn()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L147",
+      "source_location": "L96",
       "id": "layouts_extentsutils_extentsutils_isentitypointin",
-      "community": 2,
+      "community": 5,
       "norm_label": ".isentitypointin()"
     },
     {
       "label": ".AabbIntersect()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L179",
+      "source_location": "L128",
       "id": "layouts_extentsutils_extentsutils_aabbintersect",
-      "community": 0,
+      "community": 1,
       "norm_label": ".aabbintersect()"
     },
     {
       "label": ".Union()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L193",
+      "source_location": "L142",
       "id": "layouts_extentsutils_extentsutils_union",
-      "community": 2,
+      "community": 5,
       "norm_label": ".union()"
     },
     {
       "label": ".ToExtents2d()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L216",
+      "source_location": "L165",
       "id": "layouts_extentsutils_extentsutils_toextents2d",
-      "community": 2,
+      "community": 5,
       "norm_label": ".toextents2d()"
-    },
-    {
-      "label": ".ToExtents3d()",
-      "file_type": "code",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L240",
-      "id": "layouts_extentsutils_extentsutils_toextents3d",
-      "community": 2,
-      "norm_label": ".toextents3d()"
-    },
-    {
-      "label": ".GetArea()",
-      "file_type": "code",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L260",
-      "id": "layouts_extentsutils_extentsutils_getarea",
-      "community": 2,
-      "norm_label": ".getarea()"
-    },
-    {
-      "label": ".GetVolume()",
-      "file_type": "code",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L270",
-      "id": "layouts_extentsutils_extentsutils_getvolume",
-      "community": 2,
-      "norm_label": ".getvolume()"
     },
     {
       "label": ".GetDatabaseExtents()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L282",
+      "source_location": "L186",
       "id": "layouts_extentsutils_extentsutils_getdatabaseextents",
-      "community": 5,
+      "community": 2,
       "norm_label": ".getdatabaseextents()"
     },
     {
       "label": ".Transform()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L305",
+      "source_location": "L209",
       "id": "layouts_extentsutils_extentsutils_transform",
-      "community": 2,
+      "community": 5,
       "norm_label": ".transform()"
     },
     {
       "label": ".GetExtents2d()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L337",
+      "source_location": "L241",
       "id": "layouts_extentsutils_extentsutils_getextents2d",
-      "community": 2,
+      "community": 5,
       "norm_label": ".getextents2d()"
     },
     {
       "label": ".FormatExtents()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L349",
+      "source_location": "L253",
       "id": "layouts_extentsutils_extentsutils_formatextents",
-      "community": 0,
+      "community": 1,
       "norm_label": ".formatextents()"
     },
     {
       "label": ".FormatPoint()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L360",
+      "source_location": "L264",
       "id": "layouts_extentsutils_extentsutils_formatpoint",
-      "community": 0,
+      "community": 1,
       "norm_label": ".formatpoint()"
     },
     {
@@ -1017,7 +981,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\Layouts\\LayoutViewportInfo.cs",
       "source_location": "L1",
       "id": "c_users_yerkebulan_yandexdisk_repository_autobimfusion_autobimfusion_application_merge_layouts_layoutviewportinfo_cs",
-      "community": 0,
+      "community": 1,
       "norm_label": "layoutviewportinfo.cs"
     },
     {
@@ -1026,7 +990,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\Layouts\\LayoutViewportInfo.cs",
       "source_location": "L26",
       "id": "layoutviewportinfo_pickmainviewport",
-      "community": 0,
+      "community": 1,
       "norm_label": "pickmainviewport()"
     },
     {
@@ -1062,7 +1026,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ModelSpaceTrimmer.cs",
       "source_location": "L67",
       "id": "layouts_modelspacetrimmer_modelspacetrimmer_trimoutside",
-      "community": 0,
+      "community": 1,
       "norm_label": ".trimoutside()"
     },
     {
@@ -1071,7 +1035,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportCollector.cs",
       "source_location": "L1",
       "id": "autobimfusion_application_merge_layouts_viewportcollector_cs",
-      "community": 13,
+      "community": 12,
       "norm_label": "viewportcollector.cs"
     },
     {
@@ -1080,7 +1044,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportCollector.cs",
       "source_location": "L7",
       "id": "layouts_viewportcollector_viewportcollector",
-      "community": 13,
+      "community": 12,
       "norm_label": "viewportcollector"
     },
     {
@@ -1089,7 +1053,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportCollector.cs",
       "source_location": "L9",
       "id": "layouts_viewportcollector_viewportcollector_collect",
-      "community": 13,
+      "community": 12,
       "norm_label": ".collect()"
     },
     {
@@ -1098,7 +1062,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportCollector.cs",
       "source_location": "L70",
       "id": "layouts_viewportcollector_viewportcollector_getviewcenterwcs",
-      "community": 13,
+      "community": 12,
       "norm_label": ".getviewcenterwcs()"
     },
     {
@@ -1107,7 +1071,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportCollector.cs",
       "source_location": "L78",
       "id": "layouts_viewportcollector_viewportcollector_getdcstowcsmatrix",
-      "community": 13,
+      "community": 12,
       "norm_label": ".getdcstowcsmatrix()"
     },
     {
@@ -1116,7 +1080,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportCollector.cs",
       "source_location": "L89",
       "id": "layouts_viewportcollector_viewportcollector_resolvescale",
-      "community": 13,
+      "community": 12,
       "norm_label": ".resolvescale()"
     },
     {
@@ -1125,7 +1089,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportCollector.cs",
       "source_location": "L94",
       "id": "layouts_viewportcollector_viewportcollector_computemodelwindow",
-      "community": 13,
+      "community": 12,
       "norm_label": ".computemodelwindow()"
     },
     {
@@ -1134,214 +1098,214 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
       "source_location": "L1",
       "id": "autobimfusion_application_merge_layouts_viewportlayoutexporter_cs",
-      "community": 1,
+      "community": 0,
       "norm_label": "viewportlayoutexporter.cs"
     },
     {
       "label": "ViewportLayoutExporter",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L91",
+      "source_location": "L104",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter",
-      "community": 1,
+      "community": 0,
       "norm_label": "viewportlayoutexporter"
     },
     {
       "label": ".ExportToTempAsync()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L110",
+      "source_location": "L126",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_exporttotempasync",
-      "community": 1,
+      "community": 0,
       "norm_label": ".exporttotempasync()"
     },
     {
       "label": ".CheckIfNeedsOle()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L166",
+      "source_location": "L182",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_checkifneedsole",
-      "community": 1,
+      "community": 0,
       "norm_label": ".checkifneedsole()"
     },
     {
       "label": ".RunOleEmbeddingAsync()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L180",
+      "source_location": "L196",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_runoleembeddingasync",
-      "community": 1,
+      "community": 0,
       "norm_label": ".runoleembeddingasync()"
     },
     {
       "label": ".ProcessMultiVp()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L250",
+      "source_location": "L268",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_processmultivp",
-      "community": 0,
+      "community": 1,
       "norm_label": ".processmultivp()"
     },
     {
       "label": ".ProcessSingleVp()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L314",
+      "source_location": "L333",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_processsinglevp",
-      "community": 0,
+      "community": 1,
       "norm_label": ".processsinglevp()"
     },
     {
       "label": ".ClampMainVpScale()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L342",
+      "source_location": "L362",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_clampmainvpscale",
-      "community": 0,
+      "community": 1,
       "norm_label": ".clampmainvpscale()"
     },
     {
       "label": ".ProcessNoVp()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L359",
+      "source_location": "L379",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_processnovp",
-      "community": 1,
+      "community": 0,
       "norm_label": ".processnovp()"
     },
     {
       "label": ".MovePaperToModelSpace()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L389",
+      "source_location": "L410",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_movepapertomodelspace",
-      "community": 1,
+      "community": 0,
       "norm_label": ".movepapertomodelspace()"
     },
     {
       "label": ".EraseBlockContents()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L413",
+      "source_location": "L434",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_eraseblockcontents",
-      "community": 1,
+      "community": 0,
       "norm_label": ".eraseblockcontents()"
     },
     {
       "label": ".BuildTempPath()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L434",
+      "source_location": "L455",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_buildtemppath",
-      "community": 1,
+      "community": 0,
       "norm_label": ".buildtemppath()"
     },
     {
       "label": ".CollectRasterImages()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L440",
+      "source_location": "L461",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_collectrasterimages",
-      "community": 1,
+      "community": 0,
       "norm_label": ".collectrasterimages()"
     },
     {
       "label": ".EmbedSingleRasterAsync()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L517",
+      "source_location": "L538",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_embedsinglerasterasync",
-      "community": 1,
+      "community": 0,
       "norm_label": ".embedsinglerasterasync()"
     },
     {
       "label": ".TryCopyImageToClipboard()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L569",
+      "source_location": "L590",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_trycopyimagetoclipboard",
-      "community": 1,
+      "community": 0,
       "norm_label": ".trycopyimagetoclipboard()"
     },
     {
       "label": ".GetModelSpaceSnapshot()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L584",
+      "source_location": "L605",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_getmodelspacesnapshot",
-      "community": 1,
+      "community": 0,
       "norm_label": ".getmodelspacesnapshot()"
     },
     {
       "label": ".FindNewOle2Frame()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L600",
+      "source_location": "L621",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_findnewole2frame",
-      "community": 1,
+      "community": 0,
       "norm_label": ".findnewole2frame()"
     },
     {
       "label": ".ResizeOleToTarget()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L631",
+      "source_location": "L652",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_resizeoletotarget",
-      "community": 1,
+      "community": 0,
       "norm_label": ".resizeoletotarget()"
     },
     {
       "label": ".ApplyWcsSize()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L691",
+      "source_location": "L712",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_applywcssize",
-      "community": 1,
+      "community": 0,
       "norm_label": ".applywcssize()"
     },
     {
       "label": ".TryApplyPositionFallback()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L700",
+      "source_location": "L721",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_tryapplypositionfallback",
-      "community": 1,
+      "community": 0,
       "norm_label": ".tryapplypositionfallback()"
     },
     {
       "label": ".AlignOleToTargetMinPoint()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L724",
+      "source_location": "L745",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_alignoletotargetminpoint",
-      "community": 1,
+      "community": 0,
       "norm_label": ".alignoletotargetminpoint()"
     },
     {
       "label": ".IsCloseToTarget()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L759",
+      "source_location": "L780",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_isclosetotarget",
-      "community": 1,
+      "community": 0,
       "norm_label": ".isclosetotarget()"
     },
     {
       "label": ".BuildTargetRectangle()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L770",
+      "source_location": "L791",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_buildtargetrectangle",
-      "community": 1,
+      "community": 0,
       "norm_label": ".buildtargetrectangle()"
     },
     {
       "label": ".ResolveRasterPath()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L780",
+      "source_location": "L801",
       "id": "layouts_viewportlayoutexporter_viewportlayoutexporter_resolverasterpath",
-      "community": 1,
+      "community": 0,
       "norm_label": ".resolverasterpath()"
     },
     {
@@ -1350,7 +1314,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
       "source_location": "L1",
       "id": "autobimfusion_application_merge_layouts_viewporttransformer_cs",
-      "community": 0,
+      "community": 1,
       "norm_label": "viewporttransformer.cs"
     },
     {
@@ -1359,107 +1323,80 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
       "source_location": "L29",
       "id": "layouts_viewporttransformer_viewporttransformer",
-      "community": 0,
+      "community": 1,
       "norm_label": "viewporttransformer"
-    },
-    {
-      "label": ".ApplyDimensionScaleOverrides()",
-      "file_type": "code",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L40",
-      "id": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverrides",
-      "community": 0,
-      "norm_label": ".applydimensionscaleoverrides()"
     },
     {
       "label": ".BuildMatrix()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L109",
+      "source_location": "L36",
       "id": "layouts_viewporttransformer_viewporttransformer_buildmatrix",
-      "community": 0,
+      "community": 1,
       "norm_label": ".buildmatrix()"
     },
     {
       "label": ".BuildPaperToMainMatrix()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L137",
+      "source_location": "L64",
       "id": "layouts_viewporttransformer_viewporttransformer_buildpapertomainmatrix",
-      "community": 0,
+      "community": 1,
       "norm_label": ".buildpapertomainmatrix()"
     },
     {
       "label": ".ScaleModelSpaceObjects()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L162",
+      "source_location": "L89",
       "id": "layouts_viewporttransformer_viewporttransformer_scalemodelspaceobjects",
-      "community": 0,
+      "community": 1,
       "norm_label": ".scalemodelspaceobjects()"
     },
     {
       "label": ".CollectModelEntitiesWithExtents()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L282",
+      "source_location": "L220",
       "id": "layouts_viewporttransformer_viewporttransformer_collectmodelentitieswithextents",
-      "community": 0,
+      "community": 1,
       "norm_label": ".collectmodelentitieswithextents()"
     },
     {
       "label": ".DeepCloneAndTransform()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L331",
+      "source_location": "L269",
       "id": "layouts_viewporttransformer_viewporttransformer_deepcloneandtransform",
-      "community": 0,
+      "community": 1,
       "norm_label": ".deepcloneandtransform()"
-    },
-    {
-      "label": ".ApplyDimensionScaleOverride()",
-      "file_type": "code",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L465",
-      "id": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverride",
-      "community": 0,
-      "norm_label": ".applydimensionscaleoverride()"
-    },
-    {
-      "label": ".ResolveDimensionStyleName()",
-      "file_type": "code",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L479",
-      "id": "layouts_viewporttransformer_viewporttransformer_resolvedimensionstylename",
-      "community": 0,
-      "norm_label": ".resolvedimensionstylename()"
-    },
-    {
-      "label": ".IsValidDimensionScale()",
-      "file_type": "code",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L498",
-      "id": "layouts_viewporttransformer_viewporttransformer_isvaliddimensionscale",
-      "community": 0,
-      "norm_label": ".isvaliddimensionscale()"
     },
     {
       "label": ".SelectModelInside()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L503",
+      "source_location": "L412",
       "id": "layouts_viewporttransformer_viewporttransformer_selectmodelinside",
-      "community": 0,
+      "community": 1,
       "norm_label": ".selectmodelinside()"
     },
     {
       "label": ".EraseEntitiesOutsideMainWindow()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L539",
+      "source_location": "L448",
       "id": "layouts_viewporttransformer_viewporttransformer_eraseentitiesoutsidemainwindow",
-      "community": 0,
+      "community": 1,
       "norm_label": ".eraseentitiesoutsidemainwindow()"
+    },
+    {
+      "label": ".UnlockTextStylesHeight()",
+      "file_type": "code",
+      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
+      "source_location": "L497",
+      "id": "layouts_viewporttransformer_viewporttransformer_unlocktextstylesheight",
+      "community": 1,
+      "norm_label": ".unlocktextstylesheight()"
     },
     {
       "label": "MergeResult.cs",
@@ -1467,7 +1404,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Models\\MergeResult.cs",
       "source_location": "L1",
       "id": "autobimfusion_application_merge_models_mergeresult_cs",
-      "community": 5,
+      "community": 2,
       "norm_label": "mergeresult.cs"
     },
     {
@@ -1476,7 +1413,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Models\\MergeResult.cs",
       "source_location": "L17",
       "id": "models_mergeresult_ok",
-      "community": 5,
+      "community": 2,
       "norm_label": "ok()"
     },
     {
@@ -1485,7 +1422,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Models\\MergeResult.cs",
       "source_location": "L22",
       "id": "models_mergeresult_fail",
-      "community": 5,
+      "community": 2,
       "norm_label": "fail()"
     },
     {
@@ -1494,7 +1431,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Models\\MergeResult.cs",
       "source_location": "L27",
       "id": "models_mergeresult_warn",
-      "community": 5,
+      "community": 2,
       "norm_label": "warn()"
     },
     {
@@ -1557,7 +1494,7 @@
       "source_file": "AutoBIMFusion\\Application\\Merge\\Models\\MergeStatistics.cs",
       "source_location": "L34",
       "id": "models_mergestatistics_mergestatistics_tostring",
-      "community": 10,
+      "community": 3,
       "norm_label": ".tostring()"
     },
     {
@@ -1674,7 +1611,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\FileEnumerator.cs",
       "source_location": "L1",
       "id": "c_users_yerkebulan_yandexdisk_repository_autobimfusion_autobimfusion_application_utils_fileenumerator_cs",
-      "community": 12,
+      "community": 11,
       "norm_label": "fileenumerator.cs"
     },
     {
@@ -1683,7 +1620,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\FileEnumerator.cs",
       "source_location": "L8",
       "id": "fileenumerator_fileenumerator",
-      "community": 12,
+      "community": 11,
       "norm_label": "fileenumerator"
     },
     {
@@ -1692,7 +1629,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\FileEnumerator.cs",
       "source_location": "L18",
       "id": "fileenumerator_fileenumerator_getfiles",
-      "community": 12,
+      "community": 11,
       "norm_label": ".getfiles()"
     },
     {
@@ -1701,7 +1638,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\FileHelper.cs",
       "source_location": "L1",
       "id": "c_users_yerkebulan_yandexdisk_repository_autobimfusion_autobimfusion_application_utils_filehelper_cs",
-      "community": 5,
+      "community": 2,
       "norm_label": "filehelper.cs"
     },
     {
@@ -1710,7 +1647,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\FileHelper.cs",
       "source_location": "L6",
       "id": "filehelper_filehelper",
-      "community": 5,
+      "community": 2,
       "norm_label": "filehelper"
     },
     {
@@ -1719,7 +1656,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\FileHelper.cs",
       "source_location": "L14",
       "id": "filehelper_filehelper_tryvalidatefile",
-      "community": 5,
+      "community": 2,
       "norm_label": ".tryvalidatefile()"
     },
     {
@@ -1728,7 +1665,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\FileHelper.cs",
       "source_location": "L52",
       "id": "filehelper_filehelper_tryvalidatedwgstructure",
-      "community": 5,
+      "community": 2,
       "norm_label": ".tryvalidatedwgstructure()"
     },
     {
@@ -1764,7 +1701,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\LayoutUtil.cs",
       "source_location": "L1",
       "id": "c_users_yerkebulan_yandexdisk_repository_autobimfusion_autobimfusion_application_utils_layoututil_cs",
-      "community": 1,
+      "community": 0,
       "norm_label": "layoututil.cs"
     },
     {
@@ -1773,7 +1710,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\LayoutUtil.cs",
       "source_location": "L3",
       "id": "layoututil_layoututil",
-      "community": 1,
+      "community": 0,
       "norm_label": "layoututil"
     },
     {
@@ -1782,7 +1719,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\LayoutUtil.cs",
       "source_location": "L9",
       "id": "layoututil_layoututil_tryfindfirstlayout",
-      "community": 1,
+      "community": 0,
       "norm_label": ".tryfindfirstlayout()"
     },
     {
@@ -1791,7 +1728,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\LayoutUtil.cs",
       "source_location": "L37",
       "id": "layoututil_layoututil_getlayoutbtrid",
-      "community": 1,
+      "community": 0,
       "norm_label": ".getlayoutbtrid()"
     },
     {
@@ -1800,7 +1737,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\LayoutUtil.cs",
       "source_location": "L59",
       "id": "layoututil_layoututil_getpaperspaceentities",
-      "community": 1,
+      "community": 0,
       "norm_label": ".getpaperspaceentities()"
     },
     {
@@ -1809,7 +1746,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\StringUtils.cs",
       "source_location": "L1",
       "id": "c_users_yerkebulan_yandexdisk_repository_autobimfusion_autobimfusion_application_utils_stringutils_cs",
-      "community": 5,
+      "community": 2,
       "norm_label": "stringutils.cs"
     },
     {
@@ -1818,7 +1755,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\StringUtils.cs",
       "source_location": "L6",
       "id": "stringutils_stringutils",
-      "community": 5,
+      "community": 2,
       "norm_label": "stringutils"
     },
     {
@@ -1827,7 +1764,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\StringUtils.cs",
       "source_location": "L13",
       "id": "stringutils_stringutils_truncate",
-      "community": 5,
+      "community": 2,
       "norm_label": ".truncate()"
     },
     {
@@ -1836,7 +1773,7 @@
       "source_file": "AutoBIMFusion\\Application\\Utils\\StyleExportUtils.cs",
       "source_location": "L1",
       "id": "autobimfusion_application_utils_styleexportutils_cs",
-      "community": 10,
+      "community": 9,
       "norm_label": "styleexportutils.cs"
     },
     {
@@ -1845,7 +1782,7 @@
       "source_file": "AutoBIMFusion\\Application\\Utils\\StyleExportUtils.cs",
       "source_location": "L6",
       "id": "utils_styleexportutils_styleexportutils",
-      "community": 10,
+      "community": 9,
       "norm_label": "styleexportutils"
     },
     {
@@ -1854,7 +1791,7 @@
       "source_file": "AutoBIMFusion\\Application\\Utils\\StyleExportUtils.cs",
       "source_location": "L8",
       "id": "utils_styleexportutils_styleexportutils_exportsymboltabletomd",
-      "community": 10,
+      "community": 9,
       "norm_label": ".exportsymboltabletomd()"
     },
     {
@@ -1863,7 +1800,7 @@
       "source_file": "AutoBIMFusion\\Application\\Utils\\StyleExportUtils.cs",
       "source_location": "L80",
       "id": "utils_styleexportutils_styleexportutils_dumpproperties",
-      "community": 10,
+      "community": 9,
       "norm_label": ".dumpproperties()"
     },
     {
@@ -1872,7 +1809,7 @@
       "source_file": "AutoBIMFusion\\Application\\Utils\\StyleExportUtils.cs",
       "source_location": "L108",
       "id": "utils_styleexportutils_styleexportutils_getpropertydisplayname",
-      "community": 10,
+      "community": 9,
       "norm_label": ".getpropertydisplayname()"
     },
     {
@@ -1881,7 +1818,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\WindowsNaturalComparer.cs",
       "source_location": "L1",
       "id": "c_users_yerkebulan_yandexdisk_repository_autobimfusion_autobimfusion_application_utils_windowsnaturalcomparer_cs",
-      "community": 12,
+      "community": 11,
       "norm_label": "windowsnaturalcomparer.cs"
     },
     {
@@ -1890,7 +1827,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\WindowsNaturalComparer.cs",
       "source_location": "L9",
       "id": "windowsnaturalcomparer_windowsnaturalcomparer",
-      "community": 12,
+      "community": 11,
       "norm_label": "windowsnaturalcomparer"
     },
     {
@@ -1899,7 +1836,7 @@
       "source_file": "",
       "source_location": "",
       "id": "icomparer",
-      "community": 12,
+      "community": 11,
       "norm_label": "icomparer"
     },
     {
@@ -1908,7 +1845,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\WindowsNaturalComparer.cs",
       "source_location": "L11",
       "id": "windowsnaturalcomparer_windowsnaturalcomparer_compare",
-      "community": 12,
+      "community": 11,
       "norm_label": ".compare()"
     },
     {
@@ -1917,7 +1854,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\WindowsNaturalComparer.cs",
       "source_location": "L16",
       "id": "windowsnaturalcomparer_windowsnaturalcomparer_strcmplogicalw",
-      "community": 12,
+      "community": 11,
       "norm_label": ".strcmplogicalw()"
     },
     {
@@ -1926,7 +1863,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\LoggerFactory.cs",
       "source_location": "L1",
       "id": "c_users_yerkebulan_yandexdisk_repository_autobimfusion_autobimfusion_infrastructure_logging_loggerfactory_cs",
-      "community": 14,
+      "community": 13,
       "norm_label": "loggerfactory.cs"
     },
     {
@@ -1935,7 +1872,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\LoggerFactory.cs",
       "source_location": "L9",
       "id": "loggerfactory_loggerfactory",
-      "community": 14,
+      "community": 13,
       "norm_label": "loggerfactory"
     },
     {
@@ -1944,7 +1881,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\LoggerFactory.cs",
       "source_location": "L13",
       "id": "loggerfactory_loggerfactory_getsharedlogger",
-      "community": 14,
+      "community": 13,
       "norm_label": ".getsharedlogger()"
     },
     {
@@ -1953,7 +1890,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\LoggerFactory.cs",
       "source_location": "L18",
       "id": "loggerfactory_loggerfactory_createfilelogger",
-      "community": 14,
+      "community": 13,
       "norm_label": ".createfilelogger()"
     },
     {
@@ -1962,7 +1899,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\LoggerFactory.cs",
       "source_location": "L42",
       "id": "loggerfactory_diagnosticsink",
-      "community": 14,
+      "community": 13,
       "norm_label": "diagnosticsink"
     },
     {
@@ -1971,7 +1908,7 @@
       "source_file": "",
       "source_location": "",
       "id": "ilogeventsink",
-      "community": 14,
+      "community": 13,
       "norm_label": "ilogeventsink"
     },
     {
@@ -1980,7 +1917,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\LoggerFactory.cs",
       "source_location": "L44",
       "id": "loggerfactory_diagnosticsink_emit",
-      "community": 14,
+      "community": 13,
       "norm_label": ".emit()"
     },
     {
@@ -1989,7 +1926,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\OperationLogger.cs",
       "source_location": "L1",
       "id": "c_users_yerkebulan_yandexdisk_repository_autobimfusion_autobimfusion_infrastructure_logging_operationlogger_cs",
-      "community": 8,
+      "community": 2,
       "norm_label": "operationlogger.cs"
     },
     {
@@ -1998,7 +1935,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\OperationLogger.cs",
       "source_location": "L8",
       "id": "operationlogger_operationlogger",
-      "community": 8,
+      "community": 2,
       "norm_label": "operationlogger"
     },
     {
@@ -2016,7 +1953,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\OperationLogger.cs",
       "source_location": "L20",
       "id": "operationlogger_operationlogger_debug",
-      "community": 0,
+      "community": 1,
       "norm_label": ".debug()"
     },
     {
@@ -2025,7 +1962,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\OperationLogger.cs",
       "source_location": "L25",
       "id": "operationlogger_operationlogger_warn",
-      "community": 1,
+      "community": 0,
       "norm_label": ".warn()"
     },
     {
@@ -2034,7 +1971,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\OperationLogger.cs",
       "source_location": "L35",
       "id": "operationlogger_operationlogger_error",
-      "community": 8,
+      "community": 2,
       "norm_label": ".error()"
     },
     {
@@ -2043,7 +1980,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\OperationLogger.cs",
       "source_location": "L40",
       "id": "operationlogger_operationlogger_log",
-      "community": 8,
+      "community": 2,
       "norm_label": ".log()"
     },
     {
@@ -2052,7 +1989,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\OperationLogger.cs",
       "source_location": "L66",
       "id": "operationlogger_operationlogger_trywritetoeditor",
-      "community": 8,
+      "community": 2,
       "norm_label": ".trywritetoeditor()"
     },
     {
@@ -4455,19 +4392,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L121",
-      "weight": 1.0,
-      "_src": "layouts_extentsutils_extentsutils",
-      "_tgt": "layouts_extentsutils_extentsutils_expand",
-      "source": "layouts_extentsutils_extentsutils",
-      "target": "layouts_extentsutils_extentsutils_expand",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L167",
+      "source_location": "L116",
       "weight": 1.0,
       "_src": "layouts_extentsutils_extentsutils",
       "_tgt": "layouts_extentsutils_extentsutils_ispointin",
@@ -4479,7 +4404,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L147",
+      "source_location": "L96",
       "weight": 1.0,
       "_src": "layouts_extentsutils_extentsutils",
       "_tgt": "layouts_extentsutils_extentsutils_isentitypointin",
@@ -4491,7 +4416,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L179",
+      "source_location": "L128",
       "weight": 1.0,
       "_src": "layouts_extentsutils_extentsutils",
       "_tgt": "layouts_extentsutils_extentsutils_aabbintersect",
@@ -4503,7 +4428,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L193",
+      "source_location": "L142",
       "weight": 1.0,
       "_src": "layouts_extentsutils_extentsutils",
       "_tgt": "layouts_extentsutils_extentsutils_union",
@@ -4515,7 +4440,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L216",
+      "source_location": "L165",
       "weight": 1.0,
       "_src": "layouts_extentsutils_extentsutils",
       "_tgt": "layouts_extentsutils_extentsutils_toextents2d",
@@ -4527,43 +4452,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L240",
-      "weight": 1.0,
-      "_src": "layouts_extentsutils_extentsutils",
-      "_tgt": "layouts_extentsutils_extentsutils_toextents3d",
-      "source": "layouts_extentsutils_extentsutils",
-      "target": "layouts_extentsutils_extentsutils_toextents3d",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L260",
-      "weight": 1.0,
-      "_src": "layouts_extentsutils_extentsutils",
-      "_tgt": "layouts_extentsutils_extentsutils_getarea",
-      "source": "layouts_extentsutils_extentsutils",
-      "target": "layouts_extentsutils_extentsutils_getarea",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L270",
-      "weight": 1.0,
-      "_src": "layouts_extentsutils_extentsutils",
-      "_tgt": "layouts_extentsutils_extentsutils_getvolume",
-      "source": "layouts_extentsutils_extentsutils",
-      "target": "layouts_extentsutils_extentsutils_getvolume",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L282",
+      "source_location": "L186",
       "weight": 1.0,
       "_src": "layouts_extentsutils_extentsutils",
       "_tgt": "layouts_extentsutils_extentsutils_getdatabaseextents",
@@ -4575,7 +4464,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L305",
+      "source_location": "L209",
       "weight": 1.0,
       "_src": "layouts_extentsutils_extentsutils",
       "_tgt": "layouts_extentsutils_extentsutils_transform",
@@ -4587,7 +4476,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L337",
+      "source_location": "L241",
       "weight": 1.0,
       "_src": "layouts_extentsutils_extentsutils",
       "_tgt": "layouts_extentsutils_extentsutils_getextents2d",
@@ -4599,7 +4488,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L349",
+      "source_location": "L253",
       "weight": 1.0,
       "_src": "layouts_extentsutils_extentsutils",
       "_tgt": "layouts_extentsutils_extentsutils_formatextents",
@@ -4611,7 +4500,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L360",
+      "source_location": "L264",
       "weight": 1.0,
       "_src": "layouts_extentsutils_extentsutils",
       "_tgt": "layouts_extentsutils_extentsutils_formatpoint",
@@ -4635,7 +4524,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L339",
+      "source_location": "L243",
       "weight": 1.0,
       "_src": "layouts_extentsutils_extentsutils_getextents2d",
       "_tgt": "layouts_extentsutils_extentsutils_getextents",
@@ -4707,19 +4596,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L83",
-      "weight": 1.0,
-      "_src": "layouts_extentsutils_extentsutils_expand",
-      "_tgt": "layouts_extentsutils_extentsutils_getcenter",
-      "source": "layouts_extentsutils_extentsutils_getcenter",
-      "target": "layouts_extentsutils_extentsutils_expand",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L158",
+      "source_location": "L107",
       "weight": 1.0,
       "_src": "layouts_extentsutils_extentsutils_isentitypointin",
       "_tgt": "layouts_extentsutils_extentsutils_ispointin",
@@ -4791,7 +4668,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L340",
+      "source_location": "L244",
       "weight": 1.0,
       "_src": "layouts_extentsutils_extentsutils_getextents2d",
       "_tgt": "layouts_extentsutils_extentsutils_toextents2d",
@@ -4803,7 +4680,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ExtentsUtils.cs",
-      "source_location": "L351",
+      "source_location": "L255",
       "weight": 1.0,
       "_src": "layouts_extentsutils_extentsutils_formatextents",
       "_tgt": "layouts_extentsutils_extentsutils_formatpoint",
@@ -5175,7 +5052,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L91",
+      "source_location": "L104",
       "weight": 1.0,
       "_src": "autobimfusion_application_merge_layouts_viewportlayoutexporter_cs",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter",
@@ -5187,7 +5064,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L110",
+      "source_location": "L126",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_exporttotempasync",
@@ -5199,7 +5076,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L166",
+      "source_location": "L182",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_checkifneedsole",
@@ -5211,7 +5088,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L180",
+      "source_location": "L196",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_runoleembeddingasync",
@@ -5223,7 +5100,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L250",
+      "source_location": "L268",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_processmultivp",
@@ -5235,7 +5112,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L314",
+      "source_location": "L333",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_processsinglevp",
@@ -5247,7 +5124,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L342",
+      "source_location": "L362",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_clampmainvpscale",
@@ -5259,7 +5136,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L359",
+      "source_location": "L379",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_processnovp",
@@ -5271,7 +5148,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L389",
+      "source_location": "L410",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_movepapertomodelspace",
@@ -5283,7 +5160,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L413",
+      "source_location": "L434",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_eraseblockcontents",
@@ -5295,7 +5172,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L434",
+      "source_location": "L455",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_buildtemppath",
@@ -5307,7 +5184,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L440",
+      "source_location": "L461",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_collectrasterimages",
@@ -5319,7 +5196,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L517",
+      "source_location": "L538",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_embedsinglerasterasync",
@@ -5331,7 +5208,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L569",
+      "source_location": "L590",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_trycopyimagetoclipboard",
@@ -5343,7 +5220,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L584",
+      "source_location": "L605",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_getmodelspacesnapshot",
@@ -5355,7 +5232,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L600",
+      "source_location": "L621",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_findnewole2frame",
@@ -5367,7 +5244,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L631",
+      "source_location": "L652",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_resizeoletotarget",
@@ -5379,7 +5256,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L691",
+      "source_location": "L712",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_applywcssize",
@@ -5391,7 +5268,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L700",
+      "source_location": "L721",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_tryapplypositionfallback",
@@ -5403,7 +5280,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L724",
+      "source_location": "L745",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_alignoletotargetminpoint",
@@ -5415,7 +5292,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L759",
+      "source_location": "L780",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_isclosetotarget",
@@ -5427,7 +5304,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L770",
+      "source_location": "L791",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_buildtargetrectangle",
@@ -5439,7 +5316,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L780",
+      "source_location": "L801",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_resolverasterpath",
@@ -5451,7 +5328,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L114",
+      "source_location": "L130",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_exporttotempasync",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_buildtemppath",
@@ -5463,7 +5340,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L135",
+      "source_location": "L151",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_exporttotempasync",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_processnovp",
@@ -5475,7 +5352,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L136",
+      "source_location": "L152",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_exporttotempasync",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_processsinglevp",
@@ -5487,7 +5364,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L137",
+      "source_location": "L153",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_exporttotempasync",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_processmultivp",
@@ -5499,7 +5376,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L154",
+      "source_location": "L170",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_exporttotempasync",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_checkifneedsole",
@@ -5511,7 +5388,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L159",
+      "source_location": "L175",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_exporttotempasync",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_runoleembeddingasync",
@@ -5559,7 +5436,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L169",
+      "source_location": "L185",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_checkifneedsole",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_collectrasterimages",
@@ -5571,7 +5448,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L194",
+      "source_location": "L210",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_runoleembeddingasync",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_collectrasterimages",
@@ -5583,7 +5460,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L206",
+      "source_location": "L222",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_runoleembeddingasync",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_embedsinglerasterasync",
@@ -5619,7 +5496,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L255",
+      "source_location": "L273",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_processmultivp",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_clampmainvpscale",
@@ -5631,7 +5508,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L308",
+      "source_location": "L327",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_processmultivp",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_movepapertomodelspace",
@@ -5728,6 +5605,18 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
+      "source_location": "L323",
+      "weight": 1.0,
+      "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_processmultivp",
+      "_tgt": "layouts_viewporttransformer_viewporttransformer_unlocktextstylesheight",
+      "source": "layouts_viewportlayoutexporter_viewportlayoutexporter_processmultivp",
+      "target": "layouts_viewporttransformer_viewporttransformer_unlocktextstylesheight"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
       "source_location": "L294",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_processmultivp",
@@ -5749,21 +5638,9 @@
     },
     {
       "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L270",
-      "weight": 1.0,
-      "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_processmultivp",
-      "_tgt": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverrides",
-      "source": "layouts_viewportlayoutexporter_viewportlayoutexporter_processmultivp",
-      "target": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverrides"
-    },
-    {
-      "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L318",
+      "source_location": "L337",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_processsinglevp",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_clampmainvpscale",
@@ -5775,7 +5652,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L339",
+      "source_location": "L359",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_processsinglevp",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_movepapertomodelspace",
@@ -5836,6 +5713,18 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
+      "source_location": "L355",
+      "weight": 1.0,
+      "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_processsinglevp",
+      "_tgt": "layouts_viewporttransformer_viewporttransformer_unlocktextstylesheight",
+      "source": "layouts_viewportlayoutexporter_viewportlayoutexporter_processsinglevp",
+      "target": "layouts_viewporttransformer_viewporttransformer_unlocktextstylesheight"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
       "source_location": "L320",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_processsinglevp",
@@ -5860,18 +5749,6 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L339",
-      "weight": 1.0,
-      "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_processsinglevp",
-      "_tgt": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverrides",
-      "source": "layouts_viewportlayoutexporter_viewportlayoutexporter_processsinglevp",
-      "target": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverrides"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
       "source_location": "L332",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_clampmainvpscale",
@@ -5883,7 +5760,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L386",
+      "source_location": "L407",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_processnovp",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_movepapertomodelspace",
@@ -5917,9 +5794,21 @@
     },
     {
       "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
+      "source_location": "L406",
+      "weight": 1.0,
+      "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_processnovp",
+      "_tgt": "layouts_viewporttransformer_viewporttransformer_unlocktextstylesheight",
+      "source": "layouts_viewportlayoutexporter_viewportlayoutexporter_processnovp",
+      "target": "layouts_viewporttransformer_viewporttransformer_unlocktextstylesheight"
+    },
+    {
+      "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L408",
+      "source_location": "L429",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_movepapertomodelspace",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_eraseblockcontents",
@@ -5967,7 +5856,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L489",
+      "source_location": "L510",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_collectrasterimages",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_resolverasterpath",
@@ -6003,7 +5892,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L521",
+      "source_location": "L542",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_embedsinglerasterasync",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_getmodelspacesnapshot",
@@ -6015,7 +5904,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L524",
+      "source_location": "L545",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_embedsinglerasterasync",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_trycopyimagetoclipboard",
@@ -6027,7 +5916,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L532",
+      "source_location": "L553",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_embedsinglerasterasync",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_findnewole2frame",
@@ -6039,7 +5928,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L549",
+      "source_location": "L570",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_embedsinglerasterasync",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_resizeoletotarget",
@@ -6051,7 +5940,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L552",
+      "source_location": "L573",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_embedsinglerasterasync",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_alignoletotargetminpoint",
@@ -6099,7 +5988,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L645",
+      "source_location": "L666",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_resizeoletotarget",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_tryapplypositionfallback",
@@ -6111,7 +6000,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L666",
+      "source_location": "L687",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_resizeoletotarget",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_applywcssize",
@@ -6123,7 +6012,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L679",
+      "source_location": "L700",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_resizeoletotarget",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_isclosetotarget",
@@ -6159,7 +6048,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L705",
+      "source_location": "L726",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_tryapplypositionfallback",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_buildtargetrectangle",
@@ -6171,7 +6060,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportLayoutExporter.cs",
-      "source_location": "L756",
+      "source_location": "L777",
       "weight": 1.0,
       "_src": "layouts_viewportlayoutexporter_viewportlayoutexporter_alignoletotargetminpoint",
       "_tgt": "layouts_viewportlayoutexporter_viewportlayoutexporter_tryapplypositionfallback",
@@ -6243,19 +6132,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L40",
-      "weight": 1.0,
-      "_src": "layouts_viewporttransformer_viewporttransformer",
-      "_tgt": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverrides",
-      "source": "layouts_viewporttransformer_viewporttransformer",
-      "target": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverrides",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L109",
+      "source_location": "L36",
       "weight": 1.0,
       "_src": "layouts_viewporttransformer_viewporttransformer",
       "_tgt": "layouts_viewporttransformer_viewporttransformer_buildmatrix",
@@ -6267,7 +6144,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L137",
+      "source_location": "L64",
       "weight": 1.0,
       "_src": "layouts_viewporttransformer_viewporttransformer",
       "_tgt": "layouts_viewporttransformer_viewporttransformer_buildpapertomainmatrix",
@@ -6279,7 +6156,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L162",
+      "source_location": "L89",
       "weight": 1.0,
       "_src": "layouts_viewporttransformer_viewporttransformer",
       "_tgt": "layouts_viewporttransformer_viewporttransformer_scalemodelspaceobjects",
@@ -6291,7 +6168,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L282",
+      "source_location": "L220",
       "weight": 1.0,
       "_src": "layouts_viewporttransformer_viewporttransformer",
       "_tgt": "layouts_viewporttransformer_viewporttransformer_collectmodelentitieswithextents",
@@ -6303,7 +6180,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L331",
+      "source_location": "L269",
       "weight": 1.0,
       "_src": "layouts_viewporttransformer_viewporttransformer",
       "_tgt": "layouts_viewporttransformer_viewporttransformer_deepcloneandtransform",
@@ -6315,43 +6192,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L465",
-      "weight": 1.0,
-      "_src": "layouts_viewporttransformer_viewporttransformer",
-      "_tgt": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverride",
-      "source": "layouts_viewporttransformer_viewporttransformer",
-      "target": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverride",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L479",
-      "weight": 1.0,
-      "_src": "layouts_viewporttransformer_viewporttransformer",
-      "_tgt": "layouts_viewporttransformer_viewporttransformer_resolvedimensionstylename",
-      "source": "layouts_viewporttransformer_viewporttransformer",
-      "target": "layouts_viewporttransformer_viewporttransformer_resolvedimensionstylename",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L498",
-      "weight": 1.0,
-      "_src": "layouts_viewporttransformer_viewporttransformer",
-      "_tgt": "layouts_viewporttransformer_viewporttransformer_isvaliddimensionscale",
-      "source": "layouts_viewporttransformer_viewporttransformer",
-      "target": "layouts_viewporttransformer_viewporttransformer_isvaliddimensionscale",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L503",
+      "source_location": "L412",
       "weight": 1.0,
       "_src": "layouts_viewporttransformer_viewporttransformer",
       "_tgt": "layouts_viewporttransformer_viewporttransformer_selectmodelinside",
@@ -6363,7 +6204,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L539",
+      "source_location": "L448",
       "weight": 1.0,
       "_src": "layouts_viewporttransformer_viewporttransformer",
       "_tgt": "layouts_viewporttransformer_viewporttransformer_eraseentitiesoutsidemainwindow",
@@ -6372,64 +6213,16 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "calls",
+      "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L47",
+      "source_location": "L497",
       "weight": 1.0,
-      "_src": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverrides",
-      "_tgt": "layouts_viewporttransformer_viewporttransformer_isvaliddimensionscale",
-      "source": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverrides",
-      "target": "layouts_viewporttransformer_viewporttransformer_isvaliddimensionscale",
+      "_src": "layouts_viewporttransformer_viewporttransformer",
+      "_tgt": "layouts_viewporttransformer_viewporttransformer_unlocktextstylesheight",
+      "source": "layouts_viewporttransformer_viewporttransformer",
+      "target": "layouts_viewporttransformer_viewporttransformer_unlocktextstylesheight",
       "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L75",
-      "weight": 1.0,
-      "_src": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverrides",
-      "_tgt": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverride",
-      "source": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverrides",
-      "target": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverride",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L42",
-      "weight": 1.0,
-      "_src": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverrides",
-      "_tgt": "operationlogger_operationlogger_warn",
-      "source": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverrides",
-      "target": "operationlogger_operationlogger_warn"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L77",
-      "weight": 1.0,
-      "_src": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverrides",
-      "_tgt": "operationlogger_operationlogger_info",
-      "source": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverrides",
-      "target": "operationlogger_operationlogger_info"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L81",
-      "weight": 1.0,
-      "_src": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverrides",
-      "_tgt": "operationlogger_operationlogger_debug",
-      "source": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverrides",
-      "target": "operationlogger_operationlogger_debug"
     },
     {
       "relation": "calls",
@@ -6565,18 +6358,6 @@
     },
     {
       "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L468",
-      "weight": 1.0,
-      "_src": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverride",
-      "_tgt": "layouts_viewporttransformer_viewporttransformer_resolvedimensionstylename",
-      "source": "layouts_viewporttransformer_viewporttransformer_applydimensionscaleoverride",
-      "target": "layouts_viewporttransformer_viewporttransformer_resolvedimensionstylename",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
@@ -6597,6 +6378,18 @@
       "_src": "layouts_viewporttransformer_viewporttransformer_eraseentitiesoutsidemainwindow",
       "_tgt": "operationlogger_operationlogger_info",
       "source": "layouts_viewporttransformer_viewporttransformer_eraseentitiesoutsidemainwindow",
+      "target": "operationlogger_operationlogger_info"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
+      "source_location": "L518",
+      "weight": 1.0,
+      "_src": "layouts_viewporttransformer_viewporttransformer_unlocktextstylesheight",
+      "_tgt": "operationlogger_operationlogger_info",
+      "source": "layouts_viewporttransformer_viewporttransformer_unlocktextstylesheight",
       "target": "operationlogger_operationlogger_info"
     },
     {
