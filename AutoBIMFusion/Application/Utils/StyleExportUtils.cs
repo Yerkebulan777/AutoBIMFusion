@@ -5,8 +5,22 @@ namespace AutoBIMFusion.Application.Utils;
 
 public static class StyleExportUtils
 {
-    public static void ExportSymbolTableToMd(Database db, ObjectId tableId, string fileName, string title, string itemLabel, Editor ed)
+    public static void ExportSymbolTableToMd(Database db, ObjectId tableId, string fileName, string title, string itemLabel, Editor ed, params string[] additionalStyleNamesToSkip)
     {
+        HashSet<string> stylesToSkip = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "Standard",
+            "Annotative"
+        };
+
+        foreach (string styleName in additionalStyleNamesToSkip)
+        {
+            if (!string.IsNullOrWhiteSpace(styleName))
+            {
+                stylesToSkip.Add(styleName);
+            }
+        }
+
         string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         string filePath = Path.Combine(desktopPath, fileName);
 
@@ -38,7 +52,7 @@ public static class StyleExportUtils
                     {
                         SymbolTableRecord record = (SymbolTableRecord)tr.GetObject(id, OpenMode.ForRead);
 
-                        if (string.Equals(record.Name, "Standard", StringComparison.OrdinalIgnoreCase))
+                        if (stylesToSkip.Contains(record.Name))
                         {
                             continue;
                         }
