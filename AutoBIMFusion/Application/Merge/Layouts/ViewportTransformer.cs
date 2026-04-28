@@ -30,6 +30,60 @@ internal static class ViewportTransformer
 {
     internal sealed record ModelEntitySnapshot(ObjectId Id, Extents3d Extents);
 
+    internal static int ApplyDimensionScaleOverrides(
+        Database db,
+        ObjectIdCollection entityIds,
+        double dimensionScale,
+        OperationLogger log,
+        string sourceName)
+    {
+        if (!IsValidDimensionScale(dimensionScale))
+        {
+            log.Warn($"ApplyDimensionScaleOverrides source={sourceName}: некорректный Dimscale={dimensionScale:F6}");
+            return 0;
+        }
+
+        int updated = 0;
+        int errors = 0;
+
+        using Transaction tr = db.TransactionManager.StartTransaction();
+
+        foreach (ObjectId id in entityIds)
+        {
+            if (id.IsErased || !id.ObjectClass.IsDerivedFrom(RXObject.GetClass(typeof(Dimension))))
+            {
+                continue;
+            }
+
+            try
+            {
+                if (tr.GetObject(id, OpenMode.ForWrite) is Dimension dim)
+                {
+                    ApplyDimensionScaleOverride(dim, dimensionScale);
+                    updated++;
+                }
+            }
+            catch (System.Exception ex)
+            {
+                errors++;
+                log.Warn(ex, $"Не удалось применить Dimscale={dimensionScale:F6} к размеру Handle={id.Handle}");
+            }
+        }
+
+        tr.Commit();
+
+        if (updated > 0 || errors > 0)
+        {
+            log.Info($"ApplyDimensionScaleOverrides source={sourceName}: Dimscale={dimensionScale:F6}, updated={updated}, errors={errors}");
+        }
+        else
+        {
+            log.Debug($"ApplyDimensionScaleOverrides source={sourceName}: размеры не найдены");
+        }
+
+        return updated;
+    }
+
     /// <summary>
     /// Матрица переноса «модель aux-VP → модель main-VP».
     /// </summary>
@@ -248,7 +302,7 @@ internal static class ViewportTransformer
     /// </remarks>
     internal static ObjectIdCollection DeepCloneAndTransform(
         Database db, ObjectIdCollection sourceIds, ObjectId sourceOwnerId, ObjectId ownerId,
-        Matrix3d matrix, OperationLogger log, string sourceName)
+        Matrix3d matrix, OperationLogger log, string sourceName, double? dimensionScale = null)
     {
         IReadOnlyList<ObjectId> sourceOrder = DrawOrderPreserver.Capture(db, sourceOwnerId, sourceIds, log);
 
@@ -309,6 +363,12 @@ internal static class ViewportTransformer
                     try
                     {
                         Extents3d? oldExt = ExtentsUtils.TryGetExtents(e);
+
+                        if (dimensionScale.HasValue && e is Dimension clonedDimension)
+                        {
+                            ApplyDimensionScaleOverride(clonedDimension, dimensionScale.Value);
+                        }
+
                         e.TransformBy(matrix);
 
                         // DeepCloneObjects разрывает ассоциацию Hatch ↔ контур —
@@ -350,6 +410,17 @@ internal static class ViewportTransformer
 
         log.Debug($"DeepCloneAndTransform source={sourceName}, input={sourceIds.Count}, mappedPrimary={mappedPrimary}, transformed={cloned.Count}");
         return cloned;
+    }
+
+    private static void ApplyDimensionScaleOverride(Dimension dim, double dimensionScale)
+    {
+        dim.Dimscale = dimensionScale;
+        dim.RecomputeDimensionBlock(true);
+    }
+
+    private static bool IsValidDimensionScale(double dimensionScale)
+    {
+        return dimensionScale > 0.0 && !double.IsNaN(dimensionScale) && !double.IsInfinity(dimensionScale);
     }
 
     internal static ObjectIdCollection SelectModelInside(
