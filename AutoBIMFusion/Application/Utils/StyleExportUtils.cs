@@ -38,6 +38,11 @@ public static class StyleExportUtils
                     {
                         SymbolTableRecord record = (SymbolTableRecord)tr.GetObject(id, OpenMode.ForRead);
 
+                        if (string.Equals(record.Name, "Standard", StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
                         writer.WriteLine($"## {itemLabel}: `{record.Name}`");
 
                         DumpProperties(record, writer);
