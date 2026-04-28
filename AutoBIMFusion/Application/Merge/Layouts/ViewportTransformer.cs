@@ -16,7 +16,7 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 ///
 /// [Hatch + DeepCloneObjects] После глубокого клонирования (<see cref="Database.DeepCloneObjects"/>)
 /// ассоциативные штриховки (<see cref="Hatch"/>) теряют привязку к своим граничным контурам.
-/// Вызов <see cref="Hatch.EvaluateHatch"/> ОБЯЗАТЕЛЕН сразу после <see cref="Entity.TransformBy"/>
+/// Вызов <see cref="Hatch.EvaluateHatch"/> ОБЯЗАТЕЛЬЕН сразу после <see cref="Entity.TransformBy"/>
 /// — иначе штриховка остаётся на старых координатах или отображается некорректно ("каша" линий).
 ///
 /// АНТИ-ПАТТЕРН (не вводить повторно!):
@@ -29,79 +29,6 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 internal static class ViewportTransformer
 {
     internal sealed record ModelEntitySnapshot(ObjectId Id, Extents3d Extents);
-
-    private readonly record struct DimensionOverrideResult(
-        double Before,
-        double After,
-        string StyleName,
-        string EntityType,
-        string LayerName);
-
-    internal static int ApplyDimensionScaleOverrides(
-        Database db,
-        ObjectIdCollection entityIds,
-        double dimensionScale,
-        OperationLogger log,
-        string sourceName)
-    {
-        if (!IsValidDimensionScale(dimensionScale))
-        {
-            log.Warn($"ApplyDimensionScaleOverrides source={sourceName}: некорректный Dimscale={dimensionScale:F6}");
-            return 0;
-        }
-
-        int candidates = 0;
-        int updated = 0;
-        int errors = 0;
-
-        log.Info(
-            $"DimscaleOverride start source={sourceName}: ids={entityIds.Count}, " +
-            $"targetDimscale={dimensionScale:F6}");
-
-        using Transaction tr = db.TransactionManager.StartTransaction();
-
-        foreach (ObjectId id in entityIds)
-        {
-            if (id.IsErased || !id.ObjectClass.IsDerivedFrom(RXObject.GetClass(typeof(Dimension))))
-            {
-                continue;
-            }
-
-            try
-            {
-                if (tr.GetObject(id, OpenMode.ForWrite) is Dimension dim)
-                {
-                    candidates++;
-                    DimensionOverrideResult result = ApplyDimensionScaleOverride(tr, dim, dimensionScale);
-                    log.Debug(
-                        $"DimscaleOverride source={sourceName}: Handle={dim.Handle}, Type={result.EntityType}, " +
-                        $"Layer=\"{result.LayerName}\", DimStyle=\"{result.StyleName}\", " +
-                        $"before={result.Before:F6}, target={dimensionScale:F6}, after={result.After:F6}");
-                    updated++;
-                }
-            }
-            catch (System.Exception ex)
-            {
-                errors++;
-                log.Warn(ex, $"Не удалось применить Dimscale={dimensionScale:F6} к размеру Handle={id.Handle}");
-            }
-        }
-
-        tr.Commit();
-
-        if (updated > 0 || errors > 0)
-        {
-            log.Info(
-                $"DimscaleOverride done source={sourceName}: targetDimscale={dimensionScale:F6}, " +
-                $"dimensionCandidates={candidates}, updated={updated}, errors={errors}");
-        }
-        else
-        {
-            log.Info($"DimscaleOverride done source={sourceName}: размеры не найдены среди ids={entityIds.Count}");
-        }
-
-        return updated;
-    }
 
     /// <summary>
     /// Матрица переноса «модель aux-VP → модель main-VP».
@@ -174,7 +101,6 @@ internal static class ViewportTransformer
 
         Dictionary<string, int> successTypes = [];
         Dictionary<string, int> errorTypes = [];
-        double scaleFactor = Vector3d.XAxis.TransformBy(matrix).Length;
 
         using Transaction tr = db.TransactionManager.StartTransaction();
         BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
@@ -211,20 +137,29 @@ internal static class ViewportTransformer
                 Extents3d? oldExt = ExtentsUtils.TryGetExtents(ent);
                 ent.TransformBy(matrix);
 
+                double scaleFactor = Vector3d.XAxis.TransformBy(matrix).Length;
+
                 if (ent is Dimension dimScale)
                 {
-                    dimScale.Dimscale *= scaleFactor;
-                    dimScale.Dimlfac /= scaleFactor;
+                    double currentDimscale = dimScale.Dimscale == 0.0 ? 1.0 : dimScale.Dimscale;
+                    dimScale.Dimscale = currentDimscale * scaleFactor;
+
+                    if (scaleFactor > 0.0001)
+                    {
+                        dimScale.Dimlfac = dimScale.Dimlfac / scaleFactor;
+                    }
+
                     dimScale.RecomputeDimensionBlock(true);
                 }
                 else if (ent is MLeader mleaderScale)
                 {
-                    mleaderScale.Scale *= scaleFactor;
+                    double currentScale = mleaderScale.Scale == 0.0 ? 1.0 : mleaderScale.Scale;
+                    mleaderScale.Scale = currentScale * scaleFactor;
                 }
                 else if (ent is Hatch hatchScale)
                 {
                     try { hatchScale.EvaluateHatch(true); }
-                    catch { /* Игнорируем ошибки EvaluateHatch на сложной/сломанной геометрии */ }
+                    catch { }
                 }
 
                 Extents3d? newExt = ExtentsUtils.TryGetExtents(ent);
@@ -236,8 +171,7 @@ internal static class ViewportTransformer
 
                     if (oldDiag > 0.001 && (newDiag / oldDiag) > (ratio * 5.0))
                     {
-                        log.Warn($"[АНОМАЛИЯ МАСШТАБА] Тип: {entType}, Handle: {handle}. " +
-                                 $"Диагональ ДО: {oldDiag:F2}, ПОСЛЕ: {newDiag:F2}");
+                        log.Warn($"[АНОМАЛИЯ МАСШТАБА] Тип: {entType}, Handle: {handle}. Диагональ ДО: {oldDiag:F2}, ПОСЛЕ: {newDiag:F2}");
                     }
                 }
 
@@ -403,8 +337,16 @@ internal static class ViewportTransformer
                         if (e is Dimension transformedDimension)
                         {
                             double originalDimscale = transformedDimension.Dimscale;
-                            transformedDimension.Dimscale *= scaleFactor;
-                            transformedDimension.Dimlfac /= scaleFactor;
+
+                            double safeDimscale = originalDimscale == 0.0 ? 1.0 : originalDimscale;
+
+                            transformedDimension.Dimscale = safeDimscale * scaleFactor;
+
+                            if (scaleFactor > 0.0001)
+                            {
+                                transformedDimension.Dimlfac = transformedDimension.Dimlfac / scaleFactor;
+                            }
+
                             transformedDimension.RecomputeDimensionBlock(true);
 
                             log.Debug(
@@ -415,7 +357,8 @@ internal static class ViewportTransformer
                         }
                         else if (e is MLeader clonedMLeader)
                         {
-                            clonedMLeader.Scale *= scaleFactor;
+                            double safeScale = clonedMLeader.Scale == 0.0 ? 1.0 : clonedMLeader.Scale;
+                            clonedMLeader.Scale = safeScale * scaleFactor;
                         }
 
                         // DeepCloneObjects разрывает ассоциацию Hatch ↔ контур —
@@ -460,44 +403,6 @@ internal static class ViewportTransformer
             $"mappedPrimary={mappedPrimary}, transformed={cloned.Count}, dimensionOverrides={dimensionOverrides}, " +
             $"scaleFactor={scaleFactor:F6}");
         return cloned;
-    }
-
-    private static DimensionOverrideResult ApplyDimensionScaleOverride(Transaction tr, Dimension dim, double dimensionScale)
-    {
-        double before = dim.Dimscale;
-        string styleName = ResolveDimensionStyleName(tr, dim.DimensionStyle);
-        dim.Dimscale = dimensionScale;
-        dim.RecomputeDimensionBlock(true);
-        return new DimensionOverrideResult(
-            before,
-            dim.Dimscale,
-            styleName,
-            dim.GetType().Name,
-            dim.Layer);
-    }
-
-    private static string ResolveDimensionStyleName(Transaction tr, ObjectId dimStyleId)
-    {
-        if (dimStyleId.IsNull)
-        {
-            return "<null>";
-        }
-
-        try
-        {
-            return tr.GetObject(dimStyleId, OpenMode.ForRead) is DimStyleTableRecord style
-                ? style.Name
-                : "<not DimStyleTableRecord>";
-        }
-        catch
-        {
-            return "<unavailable>";
-        }
-    }
-
-    private static bool IsValidDimensionScale(double dimensionScale)
-    {
-        return dimensionScale > 0.0 && !double.IsNaN(dimensionScale) && !double.IsInfinity(dimensionScale);
     }
 
     internal static ObjectIdCollection SelectModelInside(
