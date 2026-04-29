@@ -1,81 +1,89 @@
-# MERGEDWG Algorithm
+# Алгоритм работы команды MERGEDWG
 
-**Updated:** 2026-04-29
-**Primary code:** `Application/Commands/MergeCommands.cs`, `Application/Merge/MergeOrchestrator.cs`, `Application/Merge/BlockInserter.cs`, `Application/Merge/Layouts/*`
+**Обновлено:** 2026-04-29
+**Основные файлы кода:** `Application/Commands/MergeCommands.cs`, `Application/Merge/MergeOrchestrator.cs`, `Application/Merge/BlockInserter.cs`, `Application/Merge/Layouts/*`
 
-This document describes the actual merge path and only the decisions that affect correctness or stability.
+В данном документе подробно описан алгоритм объединения (merge) чертежей, а также ключевые решения, влияющие на корректность и стабильность работы плагина.
 
-## 1. Batch Entry
+## 1. Запуск и пакетная обработка (Batch Entry)
 
-1. `MERGEDWG` starts in `MergeCommands.MergeDwgFolderCommand`.
-2. A `SemaphoreSlim` prevents a second merge from running against the same AutoCAD session.
-3. The user selects a source folder.
-4. `FileEnumerator.GetFiles` returns sorted DWG files:
-   - recursive depth: 3
-   - skipped prefix: `#`
-   - max file size: 15 MB
-5. One `BlockInserter` instance is reused for the batch so placement state is preserved.
+1. Вызов команды `MERGEDWG` инициируется через `MergeCommands.MergeDwgFolderCommand`.
+2. Используется блокировка `SemaphoreSlim`, чтобы предотвратить параллельный запуск слияния в одном сеансе AutoCAD.
+3. Инициализируется логгер `OperationLogger` для вывода информации в редактор AutoCAD и записи логов через Serilog.
+4. С помощью `FolderSelector` пользователь выбирает исходную папку с файлами.
+5. `FileEnumerator.GetFiles` собирает пути к DWG-файлам и сортирует их в естественном (natural) порядке, соблюдая следующие условия:
+   - Максимальная глубина рекурсивного поиска: `3` (определяется константой `MaxRecursionDepth`).
+   - Пропускаются файлы, имена которых начинаются с префикса `#`.
+   - Пропускаются файлы, размер которых превышает `15 МБ` (константа `MaxFileSizeBytes`).
+6. Создается единственный экземпляр `BlockInserter`, который переиспользуется для всего пакета файлов. Это позволяет сохранять состояние (например, отступ при размещении каждого следующего чертежа) между файлами.
 
-## 2. Single DWG Processing
+## 2. Обработка отдельного DWG-файла
 
-`MergeCoordinator.MergeSingleFile` handles one file:
+Класс `MergeCoordinator.MergeSingleFile` отвечает за независимую обработку каждого найденного файла:
 
-1. `FileHelper.TryValidateFile` checks existence, read access, and non-zero size.
-2. `FileHelper.TryValidateDwgStructure` opens the DWG in a side database and closes input with `CloseInput(true)`.
-3. `ViewportLayoutExporter.ExportToTempAsync` exports the first Paper Space layout into a temporary DWG.
-4. Temporary DWG bounds are read from a side database.
-5. `BlockInserter.InsertNativeObjects` clones all temporary Model Space entities into the target drawing.
-6. The temporary file is deleted in `finally`.
+1. **Валидация файла:** `FileHelper.TryValidateFile` проверяет физическое существование файла, доступ на чтение и ненулевой размер.
+2. **Проверка структуры:** `FileHelper.TryValidateDwgStructure` открывает DWG в побочной базе данных (side database). Для предотвращения блокировки файла немедленно вызывается `CloseInput(true)`.
+3. **Экспорт:** Метод `ViewportLayoutExporter.ExportToTempAsync` экспортирует первый лист пространства листа (Paper Space) во временный DWG-файл.
+4. **Считывание границ:** Границы (bounds) временного DWG считываются из побочной базы данных.
+5. **Вставка:** `BlockInserter.InsertNativeObjects` клонирует все примитивы из временного пространства модели (Model Space) в целевой чертеж.
+6. **Очистка:** В блоке `finally` временный файл гарантированно удаляется.
 
-Failures at this level return `MergeResult.Warn` or `MergeResult.Fail`; the batch continues with the next file.
+Если на этом уровне происходят ошибки, метод возвращает `MergeResult.Warn` или `MergeResult.Fail`, а процесс объединения переходит к следующему файлу без прерывания всей пакетной задачи. Сбои на уровне трансформации отдельных объектов (Entity) логируются с указанием типа объекта и его handle (дескриптора), после чего обработка продолжается.
 
-## 3. Layout Export
+## 3. Экспорт листа (Layout Export)
 
-`ViewportLayoutExporter` opens the source DWG in a side `Database`, calls `CloseInput(true)`, finds the first non-model layout, then delegates to `LayoutProjectionProcessor`:
+Процесс экспорта управляется классом `ViewportLayoutExporter`. Он открывает исходный DWG в побочной базе (`Database`), вызывает `CloseInput(true)`, находит первый лист, отличный от "Model", и передает управление в `LayoutProjectionProcessor`:
 
-| Case | Path | Behavior |
+| Сценарий | Метод | Описание поведения |
 | :--- | :--- | :--- |
-| 0 viewports | `ProjectNoViewport` | Moves Paper Space entities to Model Space and scales by `MaxScaleMultiplier` (`100`). |
-| 1 viewport | `ProjectSingleViewport` | Clamps the viewport scale if needed, scales Model Space once, then maps Paper Space through the viewport. |
-| 2+ viewports | `ProjectMultipleViewports` | Picks the main viewport, clones auxiliary viewport model content into the main viewport coordinate system, erases aux-only originals, scales Model Space once, then maps Paper Space. |
+| **0 видовых экранов** | `ProjectNoViewport` | Перемещает объекты из пространства листа в пространство модели и масштабирует их с коэффициентом по умолчанию `MaxScaleMultiplier` (`100`). |
+| **1 видовой экран** | `ProjectSingleViewport` | При необходимости ограничивает масштаб видового экрана (clamp scale), однократно масштабирует пространство модели, а затем проецирует пространство листа с учетом видового экрана. |
+| **2+ видовых экрана** | `ProjectMultipleViewports` | Выбирает основной (main) видовой экран. Клонирует содержимое модели дополнительных (aux) видовых экранов в систему координат основного. Удаляет оригиналы, относящиеся только к aux. Однократно масштабирует модель, затем проецирует пространство листа. |
 
-After Paper Space is cloned into Model Space, `ModelSpaceTrimmer.TrimOutside` removes entities whose extents do not intersect the cloned frame bounds.
+После того как пространство листа клонировано в пространство модели, вызывается `ModelSpaceTrimmer.TrimOutside`. Этот метод удаляет объекты, габариты (extents) которых не пересекаются со спроецированными границами рамки.
 
-## 4. Viewport Math
+## 4. Математика и трансформации (Viewport Math)
 
-Main formulas live in `ViewportTransformer`:
+Основные геометрические преобразования и расчеты матриц реализованы в классе `ViewportTransformer`:
 
-- `BuildPaperToMainMatrix`: Paper Space to main viewport model coordinates.
-- `BuildMatrix`: auxiliary viewport model coordinates to main viewport model coordinates.
-- `ScaleModelSpaceObjects`: applies clamp scaling while compensating `Dimension.Dimscale`, `Dimension.Dimlfac`, and `MLeader.Scale`.
-- `EraseEntitiesOutsideMainWindow`: removes original aux viewport entities that are not visible in the main viewport after aux flattening.
+- `BuildPaperToMainMatrix`: Матрица трансформации из координат пространства листа в координаты пространства модели основного видового экрана.
+- `BuildMatrix`: Матрица трансформации из координат модели дополнительного (aux) видового экрана в координаты модели основного.
+- `ScaleModelSpaceObjects`: Применяет масштабирование с ограничением (clamp) и компенсирует связанные свойства, такие как `Dimension.Dimscale`, `Dimension.Dimlfac` и `MLeader.Scale`.
+- `EraseEntitiesOutsideMainWindow`: Удаляет оригинальные объекты aux-видовых экранов, которые не видны в основном видовом экране после объединения (flattening) систем координат.
 
-Associative hatches are skipped during direct scaling because their boundary entities update them. Non-associative hatches are transformed and then evaluated.
+*Важно:* Ассоциативные штриховки (hatches) пропускаются при прямом масштабировании, так как они автоматически обновляются вслед за своими граничными объектами (boundary entities). Неассоциативные штриховки трансформируются, после чего вызывается метод их пересчета (evaluate).
 
-## 5. Target Insertion
+## 5. Вставка в целевой чертеж (Target Insertion)
 
-`BlockInserter.InsertNativeObjects`:
+Алгоритм вставки реализуется в `BlockInserter.InsertNativeObjects`:
 
-1. Opens the temporary DWG in a side database and closes input with `CloseInput(true)`.
-2. Collects Model Space object IDs.
-3. Uses `WblockCloneObjects(..., DuplicateRecordCloning.Ignore, ...)` to clone native entities into target Model Space.
-4. Applies a displacement to every cloned entity.
-5. Computes resulting world bounds from cloned extents; if extents are unavailable, transforms the source bounds.
-6. Updates `_rightMax` for the next sheet placement.
+1. Временный DWG открывается в побочной базе данных (снова с `CloseInput(true)`).
+2. Собираются ID всех объектов пространства модели.
+3. Используется метод `WblockCloneObjects(..., DuplicateRecordCloning.Ignore, ...)` для глубокого клонирования нативных объектов в пространство модели целевого чертежа.
+4. К каждому клонированному объекту применяется вычисленное смещение (displacement) по оси X для расположения чертежей в один ряд.
+5. Вычисляются итоговые мировые границы (world bounds) на основе габаритов клонированных объектов; если габариты недоступны, трансформируются исходные границы.
+6. Обновляется переменная `_rightMax`, чтобы задать отступ (gap) для размещения следующего листа.
 
-The output is not wrapped in `BlockReference`; objects remain directly editable.
+Результат работы не оборачивается в ссылку на блок (`BlockReference`); все объекты остаются в виде отдельных примитивов, доступных для редактирования пользователем.
 
-## 6. Finalization
+## 6. Финализация и оптимизация (Finalization)
 
-After all files:
+После завершения обработки всех DWG-файлов:
 
-1. `RasterImagePathFixer.CopyImagesToTargetFolder` copies unresolved raster files next to the result DWG and reuses one copy for duplicate source paths.
-2. `DwgOptimizer.Optimize` purges unused symbols in bounded passes.
-3. `SaveMerged` writes `DwgVersion.AC1032`.
-4. AutoCAD runs `REGENALL` and `ZOOM EXTENTS`.
+1. **Исправление путей растров:** `RasterImagePathFixer.CopyImagesToTargetFolder` копирует неразрешенные растровые файлы (изображения) в папку рядом с итоговым DWG. При наличии дубликатов исходных путей переиспользуется одна и та же копия.
+2. **Очистка (Purge):** `DwgOptimizer.Optimize` удаляет неиспользуемые символы (слои, блоки, стили) с ограничением по количеству проходов (максимум `5` проходов — константа `MaxPurgePasses`).
+3. **Сохранение:** Вызывается `SaveMerged`, который сохраняет целевой файл в формате `DwgVersion.AC1032`.
+4. **Обновление экрана:** AutoCAD выполняет команды `REGENALL` (регенерация чертежа) и `ZOOM EXTENTS` (показать всё).
 
-## Contentious Points
+## 7. Управление ресурсами и транзакциями
 
-- Should source layer/style conflicts use `DuplicateRecordCloning.MangleName` instead of `Ignore` to preserve visual fidelity?
-- Should processing all layouts be added as a separate command mode?
-- Should file-size/recursion/scale limits remain fixed or become configurable?
+В рамках всего алгоритма соблюдаются строгие правила:
+- Любая `Transaction`, побочная `Database`, `DocumentLock`, `ProgressMeter`, а также объекты изображений и области подавления предупреждений (`AcadWarningSuppressScope`) всегда оборачиваются в блок `using` для автоматического освобождения.
+
+## 8. Спорные моменты и ограничения (Tradeoffs / Risks)
+
+- Использование `DuplicateRecordCloning.Ignore` обеспечивает стабильность целевого чертежа, однако может привести к искажению визуального стиля, если определения слоев/стилей в исходном и целевом файлах конфликтуют.
+- В текущей версии отсутствует поддержка токена отмены (cancellation token) для прерывания длительных операций объединения.
+- Обрабатывается только **первый** лист (Paper Space layout). Добавление обработки всех листов требует разработки отдельного режима работы.
+- Ограничения (размер файла, глубина рекурсии, масштабы) на данный момент жестко зашиты в коде (константы).
+
