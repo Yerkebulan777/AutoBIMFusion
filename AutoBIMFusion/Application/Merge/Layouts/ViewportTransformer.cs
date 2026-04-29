@@ -150,12 +150,14 @@ internal static class ViewportTransformer
                 catch (System.Exception ex)
                 {
                     log.Error(ex, $"[ОШИБКА ТРАНСФОРМАЦИИ] Тип: {entType}, Handle: {handle}. Сообщение: {ex.Message}");
-                    if (!errorTypes.ContainsKey(entType))
+
+                    if (!errorTypes.TryGetValue(entType, out int value))
                     {
-                        errorTypes[entType] = 0;
+                        value = 0;
+                        errorTypes[entType] = value;
                     }
 
-                    errorTypes[entType]++;
+                    errorTypes[entType] = ++value;
                 }
             }
             else
