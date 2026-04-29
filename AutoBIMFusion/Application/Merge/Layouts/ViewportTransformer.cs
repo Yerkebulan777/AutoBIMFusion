@@ -231,13 +231,20 @@ internal static class ViewportTransformer
     /// Type-specific transform compensation is delegated to <see cref="EntityTransformUtils"/>.
     /// </remarks>
     internal static ObjectIdCollection DeepCloneAndTransform(
-        Database db, ObjectIdCollection sourceIds, ObjectId sourceOwnerId, ObjectId ownerId,
-        Matrix3d matrix, AILog log, string sourceName)
+        Database db,
+        ObjectIdCollection sourceIds,
+        ObjectId sourceOwnerId,
+        ObjectId ownerId,
+        Matrix3d matrix,
+        AILog log,
+        string sourceName)
     {
         IReadOnlyList<ObjectId> sourceOrder = DrawOrderPreserver.Capture(db, sourceOwnerId, sourceIds, log);
 
-        ObjectIdCollection validIds = [];
         int skippedErased = 0;
+
+        ObjectIdCollection validIds = [];
+
         foreach (ObjectId id in sourceIds)
         {
             if (id.IsErased)
@@ -271,6 +278,7 @@ internal static class ViewportTransformer
         using (Transaction tr = db.TransactionManager.StartTransaction())
         {
             db.DeepCloneObjects(validIds, ownerId, map, false);
+
             foreach (IdPair pair in map)
             {
                 if (!pair.IsCloned || !pair.IsPrimary)
