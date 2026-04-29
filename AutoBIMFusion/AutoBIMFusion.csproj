@@ -28,15 +28,29 @@
         <DeployForAllUsers>false</DeployForAllUsers>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(CoreConsoleDiagnostics)' == 'true'">
+        <DefineConstants>$(DefineConstants);CORECONSOLE_DIAGNOSTICS</DefineConstants>
+    </PropertyGroup>
+
     <ItemGroup>
-        <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
+        <FrameworkReference Include="Microsoft.WindowsDesktop.App" Condition="'$(CoreConsoleDiagnostics)' != 'true'" />
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="Resources\*.png">
+        <Compile Remove="Application\AutoBIMFusionExtension.cs" Condition="'$(CoreConsoleDiagnostics)' == 'true'" />
+        <Compile Remove="Application\Ribbon\**\*.cs" Condition="'$(CoreConsoleDiagnostics)' == 'true'" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="Resources\*.png" Condition="'$(CoreConsoleDiagnostics)' != 'true'">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <TargetPath>Resources\%(Filename)%(Extension)</TargetPath>
         </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PluginRuntimeDependency Include="$(NuGetPackageRoot)serilog\4.0.0\lib\net8.0\Serilog.dll" Condition="Exists('$(NuGetPackageRoot)serilog\4.0.0\lib\net8.0\Serilog.dll')" />
+        <PluginRuntimeDependency Include="$(NuGetPackageRoot)serilog.sinks.file\6.0.0\lib\net8.0\Serilog.Sinks.File.dll" Condition="Exists('$(NuGetPackageRoot)serilog.sinks.file\6.0.0\lib\net8.0\Serilog.Sinks.File.dll')" />
     </ItemGroup>
 
     <ItemGroup>
@@ -56,6 +70,10 @@
         <PackageReference Include="Serilog.Sinks.File" />
         <PackageReference Include="Serilog" />
     </ItemGroup>
+
+    <Target Name="CopyPluginRuntimeDependencies" BeforeTargets="CreateAutoCADBundle">
+        <Copy SourceFiles="@(PluginRuntimeDependency)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" Condition="'@(PluginRuntimeDependency)' != ''" />
+    </Target>
 
 
     <Target Name="CreateAutoCADBundle" AfterTargets="Build">
@@ -90,6 +108,8 @@
 
         <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BundleOutputContentsDir)" />
         <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DeployBundleContentsDir)" />
+        <Copy SourceFiles="@(PluginRuntimeDependency)" DestinationFolder="$(BundleOutputContentsDir)" SkipUnchangedFiles="true" Condition="'@(PluginRuntimeDependency)' != ''" />
+        <Copy SourceFiles="@(PluginRuntimeDependency)" DestinationFolder="$(DeployBundleContentsDir)" SkipUnchangedFiles="true" Condition="'@(PluginRuntimeDependency)' != ''" />
         <Copy SourceFiles="@(ReferenceCopyLocalPaths)" DestinationFolder="$(BundleOutputContentsDir)" SkipUnchangedFiles="true" />
         <Copy SourceFiles="@(ReferenceCopyLocalPaths)" DestinationFolder="$(DeployBundleContentsDir)" SkipUnchangedFiles="true" />
         <Copy SourceFiles="@(ResourceIcons)" DestinationFolder="$(BundleOutputContentsDir)\Resources" SkipUnchangedFiles="true" Condition="'@(ResourceIcons)' != ''" />

@@ -40,11 +40,13 @@ These are intentionally conservative, but they are not user-configurable.
 
 **Where:** `EntityTransformUtils`, `ViewportTransformer.ScaleModelSpaceObjects`, `LayoutProjectionProcessor`
 
-`MERGEDWG` currently applies generic dimension compensation during layout flattening: `Dimension.Dimscale` is multiplied by the transform scale factor and `Dimension.Dimlfac` is divided by the same factor. This may mix two different goals: preserving the visual size of dimension text/arrows and preserving the displayed dimension value after viewport/model transformations.
+`MERGEDWG` previously applied generic dimension compensation during layout flattening: `Dimension.Dimscale` was multiplied by the transform scale factor and `Dimension.Dimlfac` was divided by the same factor. Diagnostics confirmed that this mixed two different goals: preserving the visual size of dimension text/arrows and preserving the displayed dimension value after viewport/model transformations.
 
 **Risk:** dimensions may change text height, arrow size, extension-line geometry, or displayed numeric value after model clamp scaling, Paper Space cloning, or auxiliary viewport flattening.
 
-**Status:** root-cause investigation required before changing the algorithm. Dimension diagnostic logging is available through `[DIM-DIAG]` debug entries and records scenario, stage, handle, type, scale factor, scale order, measurement, override text, `Dimscale`, `Dimlfac`, extents, and bounding-box height.
+**Status:** root cause confirmed and first fix applied. `Dimscale` is no longer multiplied by the geometric transform scale; `Dimlfac` remains the numeric-value compensation. Dimension diagnostic logging is available through `[DIM-DIAG]` debug entries and records scenario, stage, handle, type, scale factor, scale order, measurement, measurement ratio, override text, entity dimension values, linked dimension style values, visual text height, visual arrow size, extents, and bounding-box height. `MERGEDWG_DIAG_TEST` also emits `[DIM-STYLE]` snapshots and `[DIM-DIAG-SUMMARY]` grouped by scenario, scale factor, and stage.
+
+**Residual verification:** manual visual QA in AutoCAD is still required for representative production sheets, because full dimension extents may include scaled extension-line geometry even when text and arrow visual metrics are preserved.
 
 **Diagnostic scenarios:** verify one viewport at 1:50, one viewport at 1:200, a Model Space dimension visible through a viewport, a Paper Space dimension, and a dimension in an auxiliary viewport. The merged output must preserve the original layout appearance: displayed value, dimension text height, arrows, and extension lines.
 

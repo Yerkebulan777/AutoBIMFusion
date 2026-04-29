@@ -15,13 +15,17 @@ internal static class LoggerFactory
         return SharedLogger.Value;
     }
 
+    public static string GetCurrentLogFilePath()
+    {
+        return Path.Combine(GetLogsDirectory(), $"merge-{DateTime.Today:yyyy-MM-dd}.log");
+    }
+
     private static Logger CreateFileLogger()
     {
         try
         {
-            string baseDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
-            string logsDir = Path.Combine(baseDir, "Logs");
-            string logFile = Path.Combine(logsDir, $"merge-{DateTime.Today:yyyy-MM-dd}.log");
+            string logsDir = GetLogsDirectory();
+            string logFile = GetCurrentLogFilePath();
 
             _ = Directory.CreateDirectory(logsDir);
 
@@ -37,6 +41,12 @@ internal static class LoggerFactory
             Debug.WriteLine($"Failed to create file logger: {ex}");
             return new LoggerConfiguration().CreateLogger();
         }
+    }
+
+    private static string GetLogsDirectory()
+    {
+        string baseDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+        return Path.Combine(baseDir, "Logs");
     }
 
     private sealed class DiagnosticSink : ILogEventSink

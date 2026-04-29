@@ -7,6 +7,7 @@ AutoBIMFusion is a .NET 8 plugin for AutoCAD 2025-2027. Its main command, `MERGE
 | Command | Purpose |
 | :--- | :--- |
 | `MERGEDWG` | Recursively finds DWG files, exports the first Paper Space layout of each file, and inserts the result into the active drawing. |
+| `MERGEDWG_DIAG_TEST` | Diagnostic-only merge run for `C:\Users\y.zhumabayev\Desktop\TEST`, without folder picker or final summary dialog. |
 | `SMART_MERGE_TEXT` | Groups nearby `TEXT` / `MTEXT` objects in Model Space and replaces each group with one `MText`. |
 | `MergeTextStyles` | Finds duplicate text styles, reassigns text and attributes to a master style, then removes duplicates. |
 | `CreateETransmitZip` | Creates an AutoCAD eTransmit package for the current saved drawing and writes a ZIP archive. |
@@ -31,7 +32,7 @@ AutoBIMFusion is a .NET 8 plugin for AutoCAD 2025-2027. Its main command, `MERGE
 - Command classes own AutoCAD UI entry points; utility classes contain file, layout, geometry, and logging helpers.
 - Geometry helpers stay small and only expose methods used by the merge pipeline.
 - Per-entity debug logging is kept limited; high-volume operations log counts and critical failures.
-- AutoCAD API exceptions are caught at command/file boundaries and reported through `OperationLogger`.
+- AutoCAD API exceptions are caught at command/file boundaries and reported through `AILog`.
 
 ## Known Tradeoffs
 
@@ -47,6 +48,15 @@ dotnet build AutoBIMFusion.slnx -c ReleaseA26
 ```
 
 The MSBuild target creates and deploys an AutoCAD bundle under `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle` by default.
+
+## Diagnostic Merge Run
+
+```powershell
+dotnet build AutoBIMFusion.slnx -c DebugA26
+.\tools\Run-MergeDwgDiagTest.ps1 -Configuration DebugA26
+```
+
+The diagnostic runner builds a Core Console-safe plugin variant and invokes `MERGEDWG_DIAG_TEST` against `C:\Users\y.zhumabayev\Desktop\TEST`. It loads the DLL from `AutoBIMFusion\bin\DebugA26-core\AutoBIMFusion.bundle\Contents`, writes Core Console stdout/stderr to `AutoBIMFusion\bin\DebugA26-core\diag`, and writes plugin logs next to the loaded bundle DLL under `Contents\Logs\merge-YYYY-MM-DD.log`. Dimension runs emit `[DIM-STYLE]` style-table snapshots, `[DIM-DIAG]` per entity, and `[DIM-DIAG-SUMMARY]` grouped by scenario/scale/stage.
 
 ## Documentation
 

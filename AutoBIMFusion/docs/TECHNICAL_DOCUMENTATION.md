@@ -32,11 +32,14 @@ AutoBIMFusion/
         LayoutProjectionProcessor.cs
         ViewportTransformer.cs
         ViewportCollector.cs
+        DimensionStyleDiagnosticUtils.cs
         ModelSpaceTrimmer.cs
         DrawOrderPreserver.cs
         ExtentsUtils.cs
-        EntityTransformUtils.cs
         LayoutViewportInfo.cs
+        Transforms/
+          EntityTransformUtils.cs
+          DimensionTransformUtils.cs
       Models/
         MergeResult.cs
         MergeStatistics.cs
@@ -72,6 +75,34 @@ AutoBIMFusion/
 8. `BlockInserter` clones temporary Model Space objects into the target database.
 9. Final pass fixes raster paths, purges unused database objects, saves, and regenerates the drawing.
 
+### MERGEDWG_DIAG_TEST
+
+`MERGEDWG_DIAG_TEST` is a diagnostic-only entry point for repeatable dimension scaling debugging. It bypasses `FolderSelector` and always processes `C:\Users\y.zhumabayev\Desktop\TEST`.
+
+Behavior:
+
+- uses the same merge pipeline as `MERGEDWG`;
+- suppresses the final summary `MessageBox`;
+- saves to `C:\Users\y.zhumabayev\Desktop\TEST.dwg`;
+- logs the source folder, save path, and active Serilog file path;
+- preserves `[DIM-DIAG]` debug output from `DimensionTransformUtils`;
+- logs compact `[DIM-STYLE]` snapshots from the target `DimStyleTable` before merge, after each file, and before save.
+
+Recommended AutoCAD script flow:
+
+```text
+FILEDIA
+0
+CMDDIA
+0
+(command "_.NETLOAD" "C:/path/to/AutoBIMFusion.dll")
+MERGEDWG_DIAG_TEST
+```
+
+When running iterative diagnostics, close AutoCAD before rebuilding if the loaded plugin DLL is locked. The log file is expected under the loaded bundle or DLL folder: `Contents\Logs\merge-YYYY-MM-DD.log` or `Logs\merge-YYYY-MM-DD.log`.
+
+For background runs, prefer `tools\Run-MergeDwgDiagTest.ps1`. It builds a `CoreConsoleDiagnostics` variant without Ribbon/UI startup code, loads the DLL from `AutoBIMFusion\bin\<Configuration>-core\AutoBIMFusion.bundle\Contents`, generates the script, sets `FILEDIA=0`, `CMDDIA=0`, `SECURELOAD=0` for that diagnostic process, discards the temporary drawing on `QUIT` with `_Y`, runs `accoreconsole.exe` with a timeout, and writes Core Console stdout/stderr under `AutoBIMFusion\bin\<Configuration>-core\diag`.
+
 ### SMART_MERGE_TEXT
 
 1. Collects non-empty `TEXT` and `MTEXT` from Model Space.
@@ -105,7 +136,7 @@ AutoBIMFusion/
 
 ## 5. Error Handling and Logging
 
-`OperationLogger` writes non-debug messages to the AutoCAD editor and all levels to Serilog.
+`AILog` writes non-debug messages to the AutoCAD editor and all levels to Serilog.
 
 Logging policy:
 
@@ -113,6 +144,12 @@ Logging policy:
 - expected recoverable skips: `Warn`
 - AutoCAD API failures that affect a command or file: `Error`
 - high-volume diagnostics: `Debug`
+
+Dimension scaling diagnostics use `[DIM-DIAG]` debug entries. Each entry records `scenario`, `stage`, `handle`, entity type, `scaleFactor`, scale order, `measurement`, `measurementRatio`, override text, entity dimension values, linked `DimStyleTableRecord` values, `entityDiffersFromStyle`, visual text height, visual arrow size, dimension geometry points, bounding-box height, and extents.
+
+`MERGEDWG_DIAG_TEST` also writes `[DIM-STYLE]` snapshots for the target dimension style table. These lines are compact, machine-readable equivalents of the manual `ExportDimStylesToMd` report and allow the diagnostic log to distinguish entity overrides from style-table conflicts caused by style cloning.
+
+The root cause found during `MERGEDWG_DIAG_TEST` was double visual scaling: `TransformBy()` already scales dimension geometry, while the previous `Dimscale *= scaleFactor` made recomputed text/arrows grow again. The current compensation keeps `Dimscale` visually neutral and uses `Dimlfac /= scaleFactor` only for numeric value compensation. `MERGEDWG_DIAG_TEST` emits `[DIM-DIAG-SUMMARY]` lines grouped by `scenario`, `scaleFactor`, and `stage`; use `visualSizePreserved` to judge text/arrow stability and `bboxScaledLikeTransform` to identify full-extents growth from extension-line geometry.
 
 The main command catches startup failures outside the async task body so users see a clear editor message instead of an unobserved task exception.
 
