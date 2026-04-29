@@ -105,7 +105,7 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 internal static class ViewportLayoutExporter
 {
     /// <summary>
-    /// Максимальный коэффициент зажатия масштаба (1:100).
+    /// Максимальный масштаб зажатия (1:100).
     /// </summary>
     private const double MaxScaleMultiplier = 100.0;
     /// <summary>
