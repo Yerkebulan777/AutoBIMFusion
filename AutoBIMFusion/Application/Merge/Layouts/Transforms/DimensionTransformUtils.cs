@@ -61,7 +61,7 @@ internal static class DimensionTransformUtils
         if (order == EntityTransformUtils.DimensionScaleOrder.BeforeTransform)
         {
             LogDimensionDiagnostic(log, scenario, "before-transform", dimension, scaleFactor, order, baseline, previous);
-            AdjustDimensionScale(dimension, scaleFactor);
+            AdjustDimensionScale(dimension);
             previous = LogDimensionDiagnostic(log, scenario, "after-adjust-before-transform", dimension, scaleFactor, order, baseline, previous);
             scaleAdjusted = true;
         }
@@ -75,7 +75,7 @@ internal static class DimensionTransformUtils
 
         if (order == EntityTransformUtils.DimensionScaleOrder.AfterTransform)
         {
-            AdjustDimensionScale(dimension, scaleFactor);
+            AdjustDimensionScale(dimension);
             previous = LogDimensionDiagnostic(log, scenario, "after-adjust-after-transform", dimension, scaleFactor, order, baseline, previous);
             scaleAdjusted = true;
         }
@@ -86,17 +86,22 @@ internal static class DimensionTransformUtils
         return scaleAdjusted;
     }
 
-    private static void AdjustDimensionScale(Dimension dimension, double scaleFactor)
+    private static void AdjustDimensionScale(Dimension dimension)
     {
-        // Dimscale управляет визуальным размером текста/стрелок. TransformBy уже масштабирует
-        // размерный блок геометрически, поэтому дополнительное Dimscale *= scaleFactor давало
-        // повторное визуальное увеличение после RecomputeDimensionBlock.
-        // Dimlfac влияет только на отображаемое числовое значение. Его меняем отдельно и
-        // осторожно, чтобы геометрическое масштабирование не исказило текст размера.
-        if (scaleFactor > 0.0001)
+        // Bake Dimscale into Dimtxt/Dimasz to preserve visual output, then reset to 1.
+        // Source drawing set Dimscale for its own viewport; after TransformBy the geometry
+        // is already in target units, so Dimscale must be 1 going forward.
+        double dimscale = dimension.Dimscale == 0.0 ? 1.0 : dimension.Dimscale;
+        if (Math.Abs(dimscale - 1.0) > 1e-9)
         {
-            dimension.Dimlfac /= scaleFactor;
+            dimension.Dimtxt *= dimscale;
+            dimension.Dimasz *= dimscale;
+            dimension.Dimscale = 1.0;
         }
+
+        // Geometry is now in target units after TransformBy; Dimlfac=1 means displayed
+        // value equals the geometric distance in those units.
+        dimension.Dimlfac = 1.0;
     }
 
     private static DimensionDiagnosticSnapshot LogDimensionDiagnostic(
