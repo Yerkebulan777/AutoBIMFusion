@@ -156,12 +156,7 @@ internal static class LayoutProjectionProcessor
         return viewport;
     }
 
-    private static Extents3d? MovePaperToModelSpace(
-        Database db,
-        string layoutName,
-        Matrix3d matrix,
-        AILog log,
-        string tag = "paper")
+    private static Extents3d? MovePaperToModelSpace(Database db, string layoutName, Matrix3d matrix, AILog log, string tag = "paper")
     {
         ObjectId paperBtrId = LayoutUtil.GetLayoutBtrId(db, layoutName);
         ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
@@ -181,22 +176,20 @@ internal static class LayoutProjectionProcessor
 
     private static void EraseBlockContents(Database db, ObjectId btrId)
     {
-        if (btrId.IsNull)
+        if (!btrId.IsNull)
         {
-            return;
-        }
+            using Transaction tr = db.TransactionManager.StartTransaction();
+            BlockTableRecord btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForRead);
 
-        using Transaction tr = db.TransactionManager.StartTransaction();
-        BlockTableRecord btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForRead);
-
-        foreach (ObjectId id in btr)
-        {
-            if (tr.GetObject(id, OpenMode.ForWrite) is Entity entity && !entity.IsErased)
+            foreach (ObjectId id in btr)
             {
-                entity.Erase();
+                if (tr.GetObject(id, OpenMode.ForWrite) is Entity entity && !entity.IsErased)
+                {
+                    entity.Erase();
+                }
             }
-        }
 
-        tr.Commit();
+            tr.Commit();
+        }
     }
 }
