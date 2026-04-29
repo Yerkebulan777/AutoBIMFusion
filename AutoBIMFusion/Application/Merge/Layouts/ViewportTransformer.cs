@@ -12,6 +12,7 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 /// MainModelFromPaper(p) = ViewCenter_main + Rot(+twist_main) * (p - CenterPaper_main) / scale_main
 /// </summary>
 /// <remarks>
+///
 /// ИЗВЕСТНЫЕ ОСОБЕННОСТИ AutoCAD API:
 ///
 /// [Hatch + DeepCloneObjects] После глубокого клонирования (<see cref="Database.DeepCloneObjects"/>)
@@ -25,7 +26,9 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 /// ПРАВИЛЬНЫЙ ПАТТЕРН:
 ///   ent.TransformBy(matrix);
 ///   if (ent is Hatch h) { try { h.EvaluateHatch(true); } catch { /* сломанная геометрия */ } }
+///
 /// </remarks>
+
 internal static class ViewportTransformer
 {
     internal sealed record ModelEntitySnapshot(ObjectId Id, Extents3d Extents);
