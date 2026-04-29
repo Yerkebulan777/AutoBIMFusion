@@ -4,7 +4,7 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 
 /// <summary>
 /// Переводит содержимое вспомогательного viewport'а (узла) в модельные координаты
-/// главного viewport'а и клонирует объекты на новом месте.
+/// главного viewport'а и выполняет операции над наборами объектов Model Space.
 ///
 /// Математика: MainModelFromAuxModel = MainModelFromPaper ∘ PaperFromAuxModel.
 ///
@@ -12,21 +12,8 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 /// MainModelFromPaper(p) = ViewCenter_main + Rot(+twist_main) * (p - CenterPaper_main) / scale_main
 /// </summary>
 /// <remarks>
-///
-/// ИЗВЕСТНЫЕ ОСОБЕННОСТИ AutoCAD API:
-///
-/// [Hatch + DeepCloneObjects] После глубокого клонирования (<see cref="Database.DeepCloneObjects"/>)
-/// ассоциативные штриховки (<see cref="Hatch"/>) теряют привязку к своим граничным контурам.
-/// Вызов <see cref="Hatch.EvaluateHatch"/> ОБЯЗАТЕЛЬЕН сразу после <see cref="Entity.TransformBy"/>
-/// — иначе штриховка остаётся на старых координатах или отображается некорректно ("каша" линий).
-///
-/// АНТИ-ПАТТЕРН (не вводить повторно!):
-///   if (ent is Hatch) continue;  // ← пропускает трансформацию штриховок → рассинхронизация
-///
-/// ПРАВИЛЬНЫЙ ПАТТЕРН:
-///   ent.TransformBy(matrix);
-///   if (ent is Hatch h) { try { h.EvaluateHatch(true); } catch { /* сломанная геометрия */ } }
-///
+/// Entity-specific post-processing after transforms is centralized in
+/// <see cref="EntityTransformUtils"/>.
 /// </remarks>
 
 internal static class ViewportTransformer
@@ -86,8 +73,8 @@ internal static class ViewportTransformer
 
     /// <summary>
     /// Применяет матрицу трансформации ко всем объектам модели в базе данных.
-    /// Viewport'ы пропускаются. Штриховки трансформируются и немедленно переоцениваются
-    /// через <see cref="Hatch.EvaluateHatch"/>, чтобы избежать рассинхронизации контуров.
+    /// Viewport'ы пропускаются; особенности конкретных типов сущностей обрабатывает
+    /// <see cref="EntityTransformUtils"/>.
     /// </summary>
     internal static void ScaleModelSpaceObjects(
         Database db,
@@ -104,7 +91,7 @@ internal static class ViewportTransformer
 
         Dictionary<string, int> successTypes = [];
         Dictionary<string, int> errorTypes = [];
-        double scaleFactor = Vector3d.XAxis.TransformBy(matrix).Length;
+        double scaleFactor = EntityTransformUtils.GetScaleFactor(matrix);
 
         using Transaction tr = db.TransactionManager.StartTransaction();
         BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
@@ -125,14 +112,6 @@ internal static class ViewportTransformer
                 continue;
             }
 
-            // Associative hatches self-update when their boundary entities are transformed.
-            // Applying TransformBy to the hatch itself would cause double transformation (scale²).
-            if (ent is Hatch hatch && hatch.Associative)
-            {
-                skippedAssociative++;
-                continue;
-            }
-
             string entType = ent.GetType().Name;
             string handle = ent.Handle.ToString();
 
@@ -140,33 +119,16 @@ internal static class ViewportTransformer
             {
                 Extents3d? oldExt = ExtentsUtils.TryGetExtents(ent);
 
-                if (ent is Dimension dimScale)
+                EntityTransformUtils.TransformResult transformResult = EntityTransformUtils.TransformEntity(
+                    ent,
+                    matrix,
+                    scaleFactor,
+                    EntityTransformUtils.DimensionScaleOrder.BeforeTransform);
+
+                if (transformResult.SkippedAssociativeHatch)
                 {
-                    double currentDimscale = dimScale.Dimscale == 0.0 ? 1.0 : dimScale.Dimscale;
-                    dimScale.Dimscale = currentDimscale * scaleFactor;
-
-                    if (scaleFactor > 0.0001)
-                    {
-                        dimScale.Dimlfac = dimScale.Dimlfac / scaleFactor;
-                    }
-
-                    dimScale.TransformBy(matrix);
-                    dimScale.RecomputeDimensionBlock(true);
-                }
-                else
-                {
-                    ent.TransformBy(matrix);
-
-                    if (ent is MLeader mleaderScale)
-                    {
-                        double currentScale = mleaderScale.Scale == 0.0 ? 1.0 : mleaderScale.Scale;
-                        mleaderScale.Scale = currentScale * scaleFactor;
-                    }
-                    else if (ent is Hatch hatchScale)
-                    {
-                        try { hatchScale.EvaluateHatch(true); }
-                        catch { }
-                    }
+                    skippedAssociative++;
+                    continue;
                 }
 
                 Extents3d? newExt = ExtentsUtils.TryGetExtents(ent);
@@ -264,10 +226,7 @@ internal static class ViewportTransformer
     /// Глубоко клонирует набор объектов и применяет матрицу трансформации к каждому клону.
     /// </summary>
     /// <remarks>
-    /// Штриховки (<see cref="Hatch"/>) требуют особой обработки: после
-    /// <see cref="Database.DeepCloneObjects"/> они теряют привязку к граничным контурам.
-    /// Вызов <see cref="Hatch.EvaluateHatch"/> сразу после <see cref="Entity.TransformBy"/>
-    /// восстанавливает корректное отображение заливки на новых координатах.
+    /// Type-specific transform compensation is delegated to <see cref="EntityTransformUtils"/>.
     /// </remarks>
     internal static ObjectIdCollection DeepCloneAndTransform(
         Database db, ObjectIdCollection sourceIds, ObjectId sourceOwnerId, ObjectId ownerId,
@@ -305,8 +264,7 @@ internal static class ViewportTransformer
         int mappedPrimary = 0;
         int dimensionOverrides = 0;
 
-        // Извлекаем коэффициент масштабирования из матрицы для корректного расчета Dimscale
-        double scaleFactor = Vector3d.XAxis.TransformBy(matrix).Length;
+        double scaleFactor = EntityTransformUtils.GetScaleFactor(matrix);
 
         using (Transaction tr = db.TransactionManager.StartTransaction())
         {
@@ -322,14 +280,6 @@ internal static class ViewportTransformer
 
                 if (tr.GetObject(pair.Value, OpenMode.ForWrite) is Entity e)
                 {
-                    // Associative hatches self-update when their boundary entities are transformed.
-                    // Applying TransformBy to the hatch itself would cause double transformation (scale²).
-                    if (e is Hatch clonedHatch && clonedHatch.Associative)
-                    {
-                        _ = cloned.Add(pair.Value);
-                        continue;
-                    }
-
                     string entType = e.GetType().Name;
                     string handle = e.Handle.ToString();
 
@@ -337,44 +287,21 @@ internal static class ViewportTransformer
                     {
                         Extents3d? oldExt = ExtentsUtils.TryGetExtents(e);
 
-                        // 1. Сначала трансформируем геометрию (точки привязки изменят координаты)
-                        e.TransformBy(matrix);
+                        EntityTransformUtils.TransformResult transformResult = EntityTransformUtils.TransformEntity(
+                            e,
+                            matrix,
+                            scaleFactor,
+                            EntityTransformUtils.DimensionScaleOrder.AfterTransform);
 
-                        // 2. Если это размер, пропорционально меняем его масштаб и пересчитываем
-                        if (e is Dimension transformedDimension)
+                        if (transformResult.SkippedAssociativeHatch)
                         {
-                            double originalDimscale = transformedDimension.Dimscale;
+                            _ = cloned.Add(pair.Value);
+                            continue;
+                        }
 
-                            double safeDimscale = originalDimscale == 0.0 ? 1.0 : originalDimscale;
-
-                            transformedDimension.Dimscale = safeDimscale * scaleFactor;
-
-                            if (scaleFactor > 0.0001)
-                            {
-                                transformedDimension.Dimlfac = transformedDimension.Dimlfac / scaleFactor;
-                            }
-
-                            transformedDimension.RecomputeDimensionBlock(true);
-
-                            log.Debug(
-                                $"[DBG] DimscaleOverride clone source={sourceName}: CloneHandle={transformedDimension.Handle}, " +
-                                $"scaleFactor={scaleFactor:F6}, originalDimscale={originalDimscale:F6}, " +
-                                $"newDimscale={transformedDimension.Dimscale:F6}");
+                        if (transformResult.DimensionScaleAdjusted)
+                        {
                             dimensionOverrides++;
-                        }
-                        else if (e is MLeader clonedMLeader)
-                        {
-                            double safeScale = clonedMLeader.Scale == 0.0 ? 1.0 : clonedMLeader.Scale;
-                            clonedMLeader.Scale = safeScale * scaleFactor;
-                        }
-
-                        // DeepCloneObjects разрывает ассоциацию Hatch ↔ контур —
-                        // EvaluateHatch принудительно пересчитывает геометрию заливки
-                        // по актуальным (уже трансформированным) координатам.
-                        if (e is Hatch hatchClone)
-                        {
-                            try { hatchClone.EvaluateHatch(true); }
-                            catch { /* Игнорируем ошибки EvaluateHatch на сложной/сломанной геометрии */ }
                         }
 
                         Extents3d? newExt = ExtentsUtils.TryGetExtents(e);
@@ -493,8 +420,8 @@ internal static class ViewportTransformer
 
     /// <summary>
     /// Обнуляет фиксированную высоту текста во всех текстовых стилях базы данных.
-    /// Если высота задана жёстко (TextSize > 0), AutoCAD игнорирует Dimscale размерных стилей —
-    /// обнуление «отвязывает» высоту и позволяет масштабированию работать корректно.
+    /// Если высота задана жёстко (TextSize > 0), AutoCAD не применяет масштаб
+    /// размерных стилей ожидаемым образом. Обнуление «отвязывает» высоту.
     /// Вызывается перед масштабированием объектов Model Space.
     /// </summary>
     internal static void UnlockTextStylesHeight(Database db, OperationLogger log)
