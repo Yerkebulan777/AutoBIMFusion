@@ -48,9 +48,12 @@ internal static class LayoutProjectionProcessor
                 continue;
             }
 
-            // Aux geometry must use the original main scale. Using the clamped main here
-            // moves and scales aux clones by clampRatio twice.
+            // Вспомогательная геометрия должна использовать исходный основной масштаб.
+            // Использование здесь ограниченного основного масштаба приводит к тому,
+            // что клоны вспомогательной геометрии перемещаются и масштабируются в два раза по коэффициенту clampRatio.
+
             Matrix3d matrix = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
+
             ObjectIdCollection toClone = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, log);
 
             if (toClone.Count == 0)
