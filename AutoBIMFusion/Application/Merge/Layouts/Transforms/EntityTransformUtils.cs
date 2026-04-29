@@ -1,6 +1,6 @@
 using AutoBIMFusion.Infrastructure.Logging;
 
-namespace AutoBIMFusion.Application.Merge.Layouts;
+namespace AutoBIMFusion.Application.Merge.Layouts.Transforms;
 
 /// <summary>
 /// Applies AutoCAD entity transforms with the required post-processing for

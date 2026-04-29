@@ -18,7 +18,7 @@ internal static class StyleExportUtils
         {
             if (!string.IsNullOrWhiteSpace(styleName))
             {
-                stylesToSkip.Add(styleName);
+                _ = stylesToSkip.Add(styleName);
             }
         }
 

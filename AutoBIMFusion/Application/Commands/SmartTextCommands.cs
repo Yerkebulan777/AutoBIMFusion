@@ -193,7 +193,7 @@ public sealed class SmartTextCommands
 
             for (int i = 0; i < sortedCandidates.Count; i++)
             {
-                var startItem = sortedCandidates[i];
+                TextCandidate startItem = sortedCandidates[i];
                 if (!visited.Add(startItem.Text.ObjectId))
                 {
                     continue;

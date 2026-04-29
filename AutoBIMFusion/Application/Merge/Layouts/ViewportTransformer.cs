@@ -1,3 +1,4 @@
+using AutoBIMFusion.Application.Merge.Layouts.Transforms;
 using AutoBIMFusion.Infrastructure.Logging;
 
 namespace AutoBIMFusion.Application.Merge.Layouts;
@@ -348,17 +349,9 @@ internal static class ViewportTransformer
 
     private static string GetDimensionDiagnosticScenario(string sourceName)
     {
-        if (sourceName.StartsWith("aux-VP", StringComparison.OrdinalIgnoreCase))
-        {
-            return "aux-clone";
-        }
-
-        if (sourceName.StartsWith("paper", StringComparison.OrdinalIgnoreCase))
-        {
-            return "paper-clone";
-        }
-
-        return sourceName;
+        return sourceName.StartsWith("aux-VP", StringComparison.OrdinalIgnoreCase)
+            ? "aux-clone"
+            : sourceName.StartsWith("paper", StringComparison.OrdinalIgnoreCase) ? "paper-clone" : sourceName;
     }
 
     internal static ObjectIdCollection SelectModelInside(IReadOnlyList<ModelEntitySnapshot> modelEntities, Extents3d window, AILog log)

@@ -1,7 +1,7 @@
 using AutoBIMFusion.Infrastructure.Logging;
 using System.Globalization;
 
-namespace AutoBIMFusion.Application.Merge.Layouts;
+namespace AutoBIMFusion.Application.Merge.Layouts.Transforms;
 
 /// <summary>
 /// Изолирует всю специальную обработку AutoCAD Dimension при геометрических
@@ -60,14 +60,14 @@ internal static class DimensionTransformUtils
         // Это сохраняет текущий алгоритм и позволяет диагностировать, где именно ломается размер.
         if (order == EntityTransformUtils.DimensionScaleOrder.BeforeTransform)
         {
-            LogDimensionDiagnostic(log, scenario, "before-transform", dimension, scaleFactor, order, baseline, previous);
+            _ = LogDimensionDiagnostic(log, scenario, "before-transform", dimension, scaleFactor, order, baseline, previous);
             AdjustDimensionScale(dimension);
             previous = LogDimensionDiagnostic(log, scenario, "after-adjust-before-transform", dimension, scaleFactor, order, baseline, previous);
             scaleAdjusted = true;
         }
         else
         {
-            LogDimensionDiagnostic(log, scenario, "before-transform", dimension, scaleFactor, order, baseline, previous);
+            _ = LogDimensionDiagnostic(log, scenario, "before-transform", dimension, scaleFactor, order, baseline, previous);
         }
 
         dimension.TransformBy(matrix);
@@ -311,22 +311,12 @@ internal static class DimensionTransformUtils
 
     private static string FormatRatio(double? current, double? baseline)
     {
-        if (!current.HasValue || !baseline.HasValue || Abs(baseline.Value) < 1e-9)
-        {
-            return "n/a";
-        }
-
-        return FormatDouble(current.Value / baseline.Value);
+        return !current.HasValue || !baseline.HasValue || Abs(baseline.Value) < 1e-9 ? "n/a" : FormatDouble(current.Value / baseline.Value);
     }
 
     private static bool IsRatioNear(double? current, double? baseline, double expected)
     {
-        if (!current.HasValue || !baseline.HasValue || Abs(baseline.Value) < 1e-9)
-        {
-            return false;
-        }
-
-        return Abs((current.Value / baseline.Value) - expected) <= RatioTolerance;
+        return current.HasValue && baseline.HasValue && Abs(baseline.Value) >= 1e-9 && Abs((current.Value / baseline.Value) - expected) <= RatioTolerance;
     }
 
     private static bool HasChanged(DimensionDiagnosticSnapshot current, DimensionDiagnosticSnapshot previous)
@@ -336,12 +326,9 @@ internal static class DimensionTransformUtils
 
     private static bool IsSame(double? left, double? right)
     {
-        if (!left.HasValue || !right.HasValue)
-        {
-            return left.HasValue == right.HasValue;
-        }
-
-        return Abs(left.Value - right.Value) <= Max(1e-6, Abs(right.Value) * 1e-6);
+        return !left.HasValue || !right.HasValue
+            ? left.HasValue == right.HasValue
+            : Abs(left.Value - right.Value) <= Max(1e-6, Abs(right.Value) * 1e-6);
     }
 
     private static double RoundScaleFactor(double scaleFactor)
