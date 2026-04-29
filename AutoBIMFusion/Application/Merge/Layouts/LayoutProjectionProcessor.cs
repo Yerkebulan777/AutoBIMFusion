@@ -48,10 +48,6 @@ internal static class LayoutProjectionProcessor
                 continue;
             }
 
-            // Вспомогательная геометрия должна использовать исходный основной масштаб.
-            // Использование здесь ограниченного основного масштаба приводит к тому,
-            // что клоны вспомогательной геометрии перемещаются и масштабируются в два раза по коэффициенту clampRatio.
-
             Matrix3d matrix = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
 
             ObjectIdCollection toClone = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, log);
@@ -76,11 +72,7 @@ internal static class LayoutProjectionProcessor
         return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainClamped, log), log);
     }
 
-    private static Extents3d? ProjectSingleViewport(
-        Database db,
-        string layoutName,
-        LayoutViewportInfo viewport,
-        AILog log)
+    private static Extents3d? ProjectSingleViewport(Database db, string layoutName, LayoutViewportInfo viewport, AILog log)
     {
         log.Info($"Выбранный метод масштабирования: ProcessSingleVp (VP #{viewport.Number})");
 
@@ -102,10 +94,7 @@ internal static class LayoutProjectionProcessor
         return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(clamped, log), log);
     }
 
-    private static Extents3d? ProjectNoViewport(
-        Database db,
-        string layoutName,
-        AILog log)
+    private static Extents3d? ProjectNoViewport(Database db, string layoutName, AILog log)
     {
         log.Info($"Выбранный метод масштабирования: ProcessNoVp (масштаб по умолчанию 1:100)");
 
@@ -136,20 +125,21 @@ internal static class LayoutProjectionProcessor
         return MovePaperToModelSpace(db, layoutName, matrix, log, "paper-no-vp");
     }
 
+
+    /// <summary>
+    /// Масштабирует объекты Model Space вокруг указанного центра, если clampRatio превышает 1.0.
+    /// </summary>
     private static void ScaleModelSpaceWhenClamped(Database db, double clampRatio, Point3d center, AILog log)
     {
-        if (clampRatio <= 1.0 + 1e-9)
+        if (clampRatio > 1.0 + 1e-9)
         {
-            return;
+            Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, center);
+
+            log.Info($"Применяем clampRatio={clampRatio:F6} к Model Space вокруг {ExtentsUtils.FormatPoint(center)}");
+
+            ViewportTransformer.UnlockTextStylesHeight(db, log);
+            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
         }
-
-        Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, center);
-        log.Info(
-            $"Применяем clampRatio={clampRatio:F6} к Model Space вокруг " +
-            $"{ExtentsUtils.FormatPoint(center)}");
-
-        ViewportTransformer.UnlockTextStylesHeight(db, log);
-        ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
     }
 
     private static LayoutViewportInfo ClampMainViewportScale(LayoutViewportInfo viewport, AILog log)

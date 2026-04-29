@@ -126,15 +126,10 @@ internal static class ViewportTransformer
 
                     Extents3d? newExt = ExtentsUtils.TryGetExtents(ent);
 
-                    if (oldExt.HasValue && newExt.HasValue)
+                    if (ExtentsUtils.TryGetScaleRatio(oldExt, newExt, out double oldDiag, out double newDiag, out double diagRatio)
+                        && diagRatio > (ratio * 5.0))
                     {
-                        double oldDig = oldExt.Value.MaxPoint.DistanceTo(oldExt.Value.MinPoint);
-                        double newDig = newExt.Value.MaxPoint.DistanceTo(newExt.Value.MinPoint);
-
-                        if (oldDig > 0.001 && (newDig / oldDig) > (ratio * 5.0))
-                        {
-                            log.Warn($"[АНОМАЛИЯ МАСШТАБА] Тип: {entType}, Handle: {handle}. Диагональ ДО: {oldDig:F2}, ПОСЛЕ: {newDig:F2}");
-                        }
+                        log.Warn($"[АНОМАЛИЯ МАСШТАБА] Тип: {entType}, Handle: {handle}. Диагональ ДО: {oldDiag:F2}, ПОСЛЕ: {newDiag:F2}");
                     }
 
                     scaled++;
@@ -279,12 +274,15 @@ internal static class ViewportTransformer
 
         double scaleFactor = EntityTransformUtils.GetScaleFactor(matrix);
 
+        EntityTransformUtils.DimensionScaleOrder dimensionScaleOrder = EntityTransformUtils.DimensionScaleOrder.AfterTransform;
+
         using (Transaction tr = db.TransactionManager.StartTransaction())
         {
             db.DeepCloneObjects(validIds, ownerId, map, false);
 
             foreach (IdPair pair in map)
             {
+                // Для исходных объектов значение IdPair.IsPrimary равно true.
                 if (pair.IsCloned && pair.IsPrimary)
                 {
                     mappedPrimary++;
@@ -302,7 +300,7 @@ internal static class ViewportTransformer
                                 e,
                                 matrix,
                                 scaleFactor,
-                                EntityTransformUtils.DimensionScaleOrder.AfterTransform);
+                                dimensionScaleOrder);
 
                             if (transformResult.SkippedAssociativeHatch)
                             {
@@ -317,16 +315,9 @@ internal static class ViewportTransformer
 
                             Extents3d? newExt = ExtentsUtils.TryGetExtents(e);
 
-                            if (oldExt.HasValue && newExt.HasValue)
+                            if (ExtentsUtils.TryGetScaleRatio(oldExt, newExt, out double oldDig, out double newDig, out double ratio) && ratio > 1000.0)
                             {
-                                double oldDiag = oldExt.Value.MaxPoint.DistanceTo(oldExt.Value.MinPoint);
-                                double newDiag = newExt.Value.MaxPoint.DistanceTo(newExt.Value.MinPoint);
-
-                                if (oldDiag > 0.001 && (newDiag / oldDiag) > 1000.0)
-                                {
-                                    log.Warn($"[АНОМАЛИЯ КЛОНА] Тип: {entType}, Handle: {handle}. " +
-                                             $"Диагональ ДО: {oldDiag:F2}, ПОСЛЕ: {newDiag:F2}");
-                                }
+                                log.Warn($"[АНОМАЛИЯ КЛОНА] Тип: {entType}, Handle: {handle}. Диагональ ДО: {oldDig:F2}, ПОСЛЕ: {newDig:F2}");
                             }
 
                             _ = cloned.Add(pair.Value);
@@ -351,13 +342,10 @@ internal static class ViewportTransformer
         return cloned;
     }
 
-    internal static ObjectIdCollection SelectModelInside(
-        IReadOnlyList<ModelEntitySnapshot> modelEntities,
-        Extents3d window,
-        AILog log)
+    internal static ObjectIdCollection SelectModelInside(IReadOnlyList<ModelEntitySnapshot> modelEntities, Extents3d window, AILog log)
     {
-        ObjectIdCollection result = [];
         int outsideWindow = 0;
+        ObjectIdCollection result = [];
 
         foreach (ModelEntitySnapshot entity in modelEntities)
         {

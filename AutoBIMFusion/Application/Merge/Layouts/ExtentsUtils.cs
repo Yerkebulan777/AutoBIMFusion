@@ -5,6 +5,8 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 /// </summary>
 internal static class ExtentsUtils
 {
+    private const double MinValidDiagonal = 0.001;
+
     /// <summary>
     /// Безопасно получает геометрические габариты сущности.
     /// Перехватывает исключения при расчёте габаритов некорректных геометрий.
@@ -21,6 +23,36 @@ internal static class ExtentsUtils
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Пытается вычислить отношение диагоналей габаритов после трансформации к габаритам до неё.
+    /// </summary>
+    /// <returns>
+    /// True, если оба набора габаритов доступны и исходная диагональ достаточно велика;
+    /// иначе false.
+    /// </returns>
+    internal static bool TryGetScaleRatio(Extents3d? before, Extents3d? after, out double beforeDiagonal, out double afterDiagonal, out double ratio)
+    {
+        ratio = 0.0;
+        beforeDiagonal = 0.0;
+        afterDiagonal = 0.0;
+
+        if (!before.HasValue || !after.HasValue)
+        {
+            return false;
+        }
+
+        beforeDiagonal = before.Value.MaxPoint.DistanceTo(before.Value.MinPoint);
+        afterDiagonal = after.Value.MaxPoint.DistanceTo(after.Value.MinPoint);
+
+        if (beforeDiagonal <= MinValidDiagonal)
+        {
+            return false;
+        }
+
+        ratio = afterDiagonal / beforeDiagonal;
+        return true;
     }
 
     /// <summary>
