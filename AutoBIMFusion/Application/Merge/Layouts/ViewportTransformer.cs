@@ -269,9 +269,11 @@ internal static class ViewportTransformer
         }
 
         IdMapping map = [];
-        ObjectIdCollection cloned = [];
+
         int mappedPrimary = 0;
         int dimensionOverrides = 0;
+
+        ObjectIdCollection cloned = [];
 
         double scaleFactor = EntityTransformUtils.GetScaleFactor(matrix);
 
