@@ -9,7 +9,7 @@
       "source_file": "Application\\AutoBIMFusionExtension.cs",
       "source_location": "L1",
       "id": "application_autobimfusionextension_cs",
-      "community": 3,
+      "community": 2,
       "norm_label": "autobimfusionextension.cs"
     },
     {
@@ -18,7 +18,7 @@
       "source_file": "Application\\AutoBIMFusionExtension.cs",
       "source_location": "L10",
       "id": "application_autobimfusionextension_autobimfusionextension",
-      "community": 3,
+      "community": 2,
       "norm_label": "autobimfusionextension"
     },
     {
@@ -27,7 +27,7 @@
       "source_file": "",
       "source_location": "",
       "id": "iextensionapplication",
-      "community": 3,
+      "community": 2,
       "norm_label": "iextensionapplication"
     },
     {
@@ -36,7 +36,7 @@
       "source_file": "Application\\AutoBIMFusionExtension.cs",
       "source_location": "L13",
       "id": "application_autobimfusionextension_autobimfusionextension_initialize",
-      "community": 3,
+      "community": 2,
       "norm_label": ".initialize()"
     },
     {
@@ -45,7 +45,7 @@
       "source_file": "Application\\AutoBIMFusionExtension.cs",
       "source_location": "L18",
       "id": "application_autobimfusionextension_autobimfusionextension_terminate",
-      "community": 3,
+      "community": 2,
       "norm_label": ".terminate()"
     },
     {
@@ -54,7 +54,7 @@
       "source_file": "Application\\AutoBIMFusionExtension.cs",
       "source_location": "L23",
       "id": "application_autobimfusionextension_autobimfusionextension_onidle",
-      "community": 3,
+      "community": 2,
       "norm_label": ".onidle()"
     },
     {
@@ -135,7 +135,7 @@
       "source_file": "Application\\Commands\\JoinCommands.cs",
       "source_location": "L1",
       "id": "application_commands_joincommands_cs",
-      "community": 16,
+      "community": 14,
       "norm_label": "joincommands.cs"
     },
     {
@@ -144,7 +144,7 @@
       "source_file": "Application\\Commands\\JoinCommands.cs",
       "source_location": "L9",
       "id": "commands_joincommands_joincommands",
-      "community": 16,
+      "community": 14,
       "norm_label": "joincommands"
     },
     {
@@ -153,7 +153,7 @@
       "source_file": "Application\\Commands\\JoinCommands.cs",
       "source_location": "L17",
       "id": "commands_joincommands_joincommands_joinlinescommand",
-      "community": 16,
+      "community": 14,
       "norm_label": ".joinlinescommand()"
     },
     {
@@ -162,7 +162,7 @@
       "source_file": "Application\\Commands\\JoinCommands.cs",
       "source_location": "L141",
       "id": "commands_joincommands_joincommands_mergegroup",
-      "community": 16,
+      "community": 14,
       "norm_label": ".mergegroup()"
     },
     {
@@ -171,7 +171,7 @@
       "source_file": "Application\\Commands\\JoinCommands.cs",
       "source_location": "L188",
       "id": "commands_joincommands_lineinfo",
-      "community": 16,
+      "community": 14,
       "norm_label": "lineinfo"
     },
     {
@@ -225,7 +225,7 @@
       "source_file": "Application\\Commands\\MergeCommands.cs",
       "source_location": "L108",
       "id": "commands_mergecommands_mergecommands_mergefiles",
-      "community": 1,
+      "community": 4,
       "norm_label": ".mergefiles()"
     },
     {
@@ -378,7 +378,7 @@
       "source_file": "Application\\Commands\\StyleExportCommands.cs",
       "source_location": "L1",
       "id": "application_commands_styleexportcommands_cs",
-      "community": 10,
+      "community": 4,
       "norm_label": "styleexportcommands.cs"
     },
     {
@@ -387,7 +387,7 @@
       "source_file": "Application\\Commands\\StyleExportCommands.cs",
       "source_location": "L8",
       "id": "commands_styleexportcommands_styleexportcommands",
-      "community": 10,
+      "community": 4,
       "norm_label": "styleexportcommands"
     },
     {
@@ -396,7 +396,7 @@
       "source_file": "Application\\Commands\\StyleExportCommands.cs",
       "source_location": "L10",
       "id": "commands_styleexportcommands_styleexportcommands_exporttextstyles",
-      "community": 10,
+      "community": 4,
       "norm_label": ".exporttextstyles()"
     },
     {
@@ -405,7 +405,7 @@
       "source_file": "Application\\Commands\\StyleExportCommands.cs",
       "source_location": "L27",
       "id": "commands_styleexportcommands_styleexportcommands_exportdimstyles",
-      "community": 10,
+      "community": 4,
       "norm_label": ".exportdimstyles()"
     },
     {
@@ -513,7 +513,7 @@
       "source_file": "Application\\Commands\\TransmittalCommands.cs",
       "source_location": "L1",
       "id": "application_commands_transmittalcommands_cs",
-      "community": 8,
+      "community": 3,
       "norm_label": "transmittalcommands.cs"
     },
     {
@@ -522,7 +522,7 @@
       "source_file": "Application\\Commands\\TransmittalCommands.cs",
       "source_location": "L12",
       "id": "commands_transmittalcommands_transmittalcommands",
-      "community": 8,
+      "community": 3,
       "norm_label": "transmittalcommands"
     },
     {
@@ -531,7 +531,7 @@
       "source_file": "Application\\Commands\\TransmittalCommands.cs",
       "source_location": "L19",
       "id": "commands_transmittalcommands_transmittalcommands_createetransmitzip",
-      "community": 8,
+      "community": 3,
       "norm_label": ".createetransmitzip()"
     },
     {
@@ -540,7 +540,7 @@
       "source_file": "Application\\Commands\\TransmittalCommands.cs",
       "source_location": "L89",
       "id": "commands_transmittalcommands_transmittalcommands_trycreatetransmittaloperation",
-      "community": 8,
+      "community": 3,
       "norm_label": ".trycreatetransmittaloperation()"
     },
     {
@@ -549,7 +549,7 @@
       "source_file": "Application\\Commands\\TransmittalCommands.cs",
       "source_location": "L126",
       "id": "commands_transmittalcommands_transmittalcommands_configuretransmittalinfo",
-      "community": 8,
+      "community": 3,
       "norm_label": ".configuretransmittalinfo()"
     },
     {
@@ -558,7 +558,7 @@
       "source_file": "Application\\Commands\\TransmittalCommands.cs",
       "source_location": "L158",
       "id": "commands_transmittalcommands_transmittalcommands_setmembervalue",
-      "community": 8,
+      "community": 3,
       "norm_label": ".setmembervalue()"
     },
     {
@@ -567,7 +567,7 @@
       "source_file": "Application\\Commands\\TransmittalCommands.cs",
       "source_location": "L186",
       "id": "commands_transmittalcommands_transmittalcommands_convertmembervalue",
-      "community": 8,
+      "community": 3,
       "norm_label": ".convertmembervalue()"
     },
     {
@@ -576,7 +576,7 @@
       "source_file": "Application\\Commands\\TransmittalCommands.cs",
       "source_location": "L201",
       "id": "commands_transmittalcommands_transmittalcommands_safegettypes",
-      "community": 8,
+      "community": 3,
       "norm_label": ".safegettypes()"
     },
     {
@@ -585,7 +585,7 @@
       "source_file": "Application\\Commands\\TransmittalCommands.cs",
       "source_location": "L217",
       "id": "commands_transmittalcommands_transmittalcommands_tryloadassemblybyname",
-      "community": 8,
+      "community": 3,
       "norm_label": ".tryloadassemblybyname()"
     },
     {
@@ -594,7 +594,7 @@
       "source_file": "Application\\Commands\\TransmittalCommands.cs",
       "source_location": "L229",
       "id": "commands_transmittalcommands_transmittalcommands_tryloadassemblybypath",
-      "community": 8,
+      "community": 3,
       "norm_label": ".tryloadassemblybypath()"
     },
     {
@@ -603,7 +603,7 @@
       "source_file": "Application\\Commands\\TransmittalCommands.cs",
       "source_location": "L244",
       "id": "commands_transmittalcommands_transmittalcommands_prepareoutputfolders",
-      "community": 8,
+      "community": 3,
       "norm_label": ".prepareoutputfolders()"
     },
     {
@@ -612,7 +612,7 @@
       "source_file": "Application\\Commands\\TransmittalCommands.cs",
       "source_location": "L261",
       "id": "commands_transmittalcommands_transmittalcommands_trydeletetempfolder",
-      "community": 8,
+      "community": 3,
       "norm_label": ".trydeletetempfolder()"
     },
     {
@@ -621,7 +621,7 @@
       "source_file": "Application\\Merge\\BlockInserter.cs",
       "source_location": "L1",
       "id": "application_merge_blockinserter_cs",
-      "community": 5,
+      "community": 10,
       "norm_label": "blockinserter.cs"
     },
     {
@@ -630,7 +630,7 @@
       "source_file": "Application\\Merge\\BlockInserter.cs",
       "source_location": "L14",
       "id": "merge_blockinserter_blockinserter",
-      "community": 5,
+      "community": 10,
       "norm_label": "blockinserter"
     },
     {
@@ -639,7 +639,7 @@
       "source_file": "Application\\Merge\\BlockInserter.cs",
       "source_location": "L24",
       "id": "merge_blockinserter_blockinserter_insertnativeobjects",
-      "community": 5,
+      "community": 10,
       "norm_label": ".insertnativeobjects()"
     },
     {
@@ -648,7 +648,7 @@
       "source_file": "Application\\Merge\\BlockInserter.cs",
       "source_location": "L137",
       "id": "merge_blockinserter_blockinserter_calcinsertionpoint",
-      "community": 5,
+      "community": 10,
       "norm_label": ".calcinsertionpoint()"
     },
     {
@@ -657,7 +657,7 @@
       "source_file": "Application\\Merge\\DwgOptimizer.cs",
       "source_location": "L1",
       "id": "application_merge_dwgoptimizer_cs",
-      "community": 15,
+      "community": 1,
       "norm_label": "dwgoptimizer.cs"
     },
     {
@@ -666,7 +666,7 @@
       "source_file": "Application\\Merge\\DwgOptimizer.cs",
       "source_location": "L10",
       "id": "merge_dwgoptimizer_dwgoptimizer",
-      "community": 15,
+      "community": 1,
       "norm_label": "dwgoptimizer"
     },
     {
@@ -675,7 +675,7 @@
       "source_file": "Application\\Merge\\DwgOptimizer.cs",
       "source_location": "L18",
       "id": "merge_dwgoptimizer_dwgoptimizer_optimize",
-      "community": 15,
+      "community": 1,
       "norm_label": ".optimize()"
     },
     {
@@ -684,7 +684,7 @@
       "source_file": "Application\\Merge\\DwgOptimizer.cs",
       "source_location": "L47",
       "id": "merge_dwgoptimizer_dwgoptimizer_purgepass",
-      "community": 15,
+      "community": 1,
       "norm_label": ".purgepass()"
     },
     {
@@ -693,7 +693,7 @@
       "source_file": "Application\\Merge\\DwgOptimizer.cs",
       "source_location": "L117",
       "id": "merge_dwgoptimizer_dwgoptimizer_addtableids",
-      "community": 15,
+      "community": 1,
       "norm_label": ".addtableids()"
     },
     {
@@ -702,7 +702,7 @@
       "source_file": "Application\\Merge\\DwgOptimizer.cs",
       "source_location": "L141",
       "id": "merge_dwgoptimizer_dwgoptimizer_adddictionaryids",
-      "community": 15,
+      "community": 1,
       "norm_label": ".adddictionaryids()"
     },
     {
@@ -711,7 +711,7 @@
       "source_file": "Application\\Merge\\MergeOrchestrator.cs",
       "source_location": "L1",
       "id": "application_merge_mergeorchestrator_cs",
-      "community": 4,
+      "community": 5,
       "norm_label": "mergeorchestrator.cs"
     },
     {
@@ -720,7 +720,7 @@
       "source_file": "Application\\Merge\\MergeOrchestrator.cs",
       "source_location": "L14",
       "id": "merge_mergeorchestrator_mergecoordinator",
-      "community": 4,
+      "community": 5,
       "norm_label": "mergecoordinator"
     },
     {
@@ -729,7 +729,7 @@
       "source_file": "Application\\Merge\\MergeOrchestrator.cs",
       "source_location": "L17",
       "id": "merge_mergeorchestrator_mergecoordinator_mergesinglefile",
-      "community": 4,
+      "community": 5,
       "norm_label": ".mergesinglefile()"
     },
     {
@@ -738,7 +738,7 @@
       "source_file": "Application\\Merge\\MergeOrchestrator.cs",
       "source_location": "L87",
       "id": "merge_mergeorchestrator_mergecoordinator_readbounds",
-      "community": 4,
+      "community": 5,
       "norm_label": ".readbounds()"
     },
     {
@@ -747,7 +747,7 @@
       "source_file": "Application\\Merge\\RasterImagePathFixer.cs",
       "source_location": "L1",
       "id": "application_merge_rasterimagepathfixer_cs",
-      "community": 3,
+      "community": 2,
       "norm_label": "rasterimagepathfixer.cs"
     },
     {
@@ -756,7 +756,7 @@
       "source_file": "Application\\Merge\\RasterImagePathFixer.cs",
       "source_location": "L9",
       "id": "merge_rasterimagepathfixer_rasterimagepathfixer",
-      "community": 3,
+      "community": 2,
       "norm_label": "rasterimagepathfixer"
     },
     {
@@ -765,7 +765,7 @@
       "source_file": "Application\\Merge\\RasterImagePathFixer.cs",
       "source_location": "L11",
       "id": "merge_rasterimagepathfixer_rasterimagepathfixer_copyimagestotargetfolder",
-      "community": 3,
+      "community": 2,
       "norm_label": ".copyimagestotargetfolder()"
     },
     {
@@ -774,7 +774,7 @@
       "source_file": "Application\\Merge\\RasterImagePathFixer.cs",
       "source_location": "L103",
       "id": "merge_rasterimagepathfixer_rasterimagepathfixer_builduniquedestination",
-      "community": 3,
+      "community": 2,
       "norm_label": ".builduniquedestination()"
     },
     {
@@ -783,80 +783,8 @@
       "source_file": "Application\\Merge\\RasterImagePathFixer.cs",
       "source_location": "L131",
       "id": "merge_rasterimagepathfixer_rasterimagepathfixer_tryresolveimagepath",
-      "community": 3,
+      "community": 2,
       "norm_label": ".tryresolveimagepath()"
-    },
-    {
-      "label": "DimensionTransformUtils.cs",
-      "file_type": "code",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L1",
-      "id": "application_merge_layouts_dimensiontransformutils_cs",
-      "community": 12,
-      "norm_label": "dimensiontransformutils.cs"
-    },
-    {
-      "label": "DimensionTransformUtils",
-      "file_type": "code",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L10",
-      "id": "layouts_dimensiontransformutils_dimensiontransformutils",
-      "community": 12,
-      "norm_label": "dimensiontransformutils"
-    },
-    {
-      "label": ".TransformDimension()",
-      "file_type": "code",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L12",
-      "id": "layouts_dimensiontransformutils_dimensiontransformutils_transformdimension",
-      "community": 12,
-      "norm_label": ".transformdimension()"
-    },
-    {
-      "label": ".AdjustDimensionScale()",
-      "file_type": "code",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L52",
-      "id": "layouts_dimensiontransformutils_dimensiontransformutils_adjustdimensionscale",
-      "community": 12,
-      "norm_label": ".adjustdimensionscale()"
-    },
-    {
-      "label": ".LogDimensionDiagnostic()",
-      "file_type": "code",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L65",
-      "id": "layouts_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
-      "community": 12,
-      "norm_label": ".logdimensiondiagnostic()"
-    },
-    {
-      "label": ".ReadDouble()",
-      "file_type": "code",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L95",
-      "id": "layouts_dimensiontransformutils_dimensiontransformutils_readdouble",
-      "community": 12,
-      "norm_label": ".readdouble()"
-    },
-    {
-      "label": ".FormatDouble()",
-      "file_type": "code",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L107",
-      "id": "layouts_dimensiontransformutils_dimensiontransformutils_formatdouble",
-      "community": 12,
-      "norm_label": ".formatdouble()"
-    },
-    {
-      "label": ".EscapeDiagnosticText()",
-      "file_type": "code",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L114",
-      "id": "layouts_dimensiontransformutils_dimensiontransformutils_escapediagnostictext",
-      "community": 12,
-      "norm_label": ".escapediagnostictext()"
     },
     {
       "label": "DrawOrderPreserver.cs",
@@ -864,7 +792,7 @@
       "source_file": "Application\\Merge\\Layouts\\DrawOrderPreserver.cs",
       "source_location": "L1",
       "id": "application_merge_layouts_draworderpreserver_cs",
-      "community": 2,
+      "community": 0,
       "norm_label": "draworderpreserver.cs"
     },
     {
@@ -873,7 +801,7 @@
       "source_file": "Application\\Merge\\Layouts\\DrawOrderPreserver.cs",
       "source_location": "L10",
       "id": "layouts_draworderpreserver_draworderpreserver",
-      "community": 2,
+      "community": 0,
       "norm_label": "draworderpreserver"
     },
     {
@@ -882,7 +810,7 @@
       "source_file": "Application\\Merge\\Layouts\\DrawOrderPreserver.cs",
       "source_location": "L12",
       "id": "layouts_draworderpreserver_draworderpreserver_capture",
-      "community": 2,
+      "community": 0,
       "norm_label": ".capture()"
     },
     {
@@ -891,62 +819,8 @@
       "source_file": "Application\\Merge\\Layouts\\DrawOrderPreserver.cs",
       "source_location": "L51",
       "id": "layouts_draworderpreserver_draworderpreserver_restore",
-      "community": 2,
+      "community": 0,
       "norm_label": ".restore()"
-    },
-    {
-      "label": "EntityTransformUtils.cs",
-      "file_type": "code",
-      "source_file": "Application\\Merge\\Layouts\\EntityTransformUtils.cs",
-      "source_location": "L1",
-      "id": "application_merge_layouts_entitytransformutils_cs",
-      "community": 2,
-      "norm_label": "entitytransformutils.cs"
-    },
-    {
-      "label": "EntityTransformUtils",
-      "file_type": "code",
-      "source_file": "Application\\Merge\\Layouts\\EntityTransformUtils.cs",
-      "source_location": "L9",
-      "id": "layouts_entitytransformutils_entitytransformutils",
-      "community": 2,
-      "norm_label": "entitytransformutils"
-    },
-    {
-      "label": ".GetScaleFactor()",
-      "file_type": "code",
-      "source_file": "Application\\Merge\\Layouts\\EntityTransformUtils.cs",
-      "source_location": "L22",
-      "id": "layouts_entitytransformutils_entitytransformutils_getscalefactor",
-      "community": 2,
-      "norm_label": ".getscalefactor()"
-    },
-    {
-      "label": ".TransformEntity()",
-      "file_type": "code",
-      "source_file": "Application\\Merge\\Layouts\\EntityTransformUtils.cs",
-      "source_location": "L27",
-      "id": "layouts_entitytransformutils_entitytransformutils_transformentity",
-      "community": 2,
-      "norm_label": ".transformentity()"
-    },
-    {
-      "label": ".AdjustMLeaderScale()",
-      "file_type": "code",
-      "source_file": "Application\\Merge\\Layouts\\EntityTransformUtils.cs",
-      "source_location": "L69",
-      "id": "layouts_entitytransformutils_entitytransformutils_adjustmleaderscale",
-      "community": 2,
-      "norm_label": ".adjustmleaderscale()"
-    },
-    {
-      "label": ".EvaluateHatch()",
-      "file_type": "code",
-      "source_file": "Application\\Merge\\Layouts\\EntityTransformUtils.cs",
-      "source_location": "L75",
-      "id": "layouts_entitytransformutils_entitytransformutils_evaluatehatch",
-      "community": 2,
-      "norm_label": ".evaluatehatch()"
     },
     {
       "label": "ExtentsUtils.cs",
@@ -954,7 +828,7 @@
       "source_file": "Application\\Merge\\Layouts\\ExtentsUtils.cs",
       "source_location": "L1",
       "id": "application_merge_layouts_extentsutils_cs",
-      "community": 5,
+      "community": 10,
       "norm_label": "extentsutils.cs"
     },
     {
@@ -963,7 +837,7 @@
       "source_file": "Application\\Merge\\Layouts\\ExtentsUtils.cs",
       "source_location": "L6",
       "id": "layouts_extentsutils_extentsutils",
-      "community": 5,
+      "community": 10,
       "norm_label": "extentsutils"
     },
     {
@@ -972,7 +846,7 @@
       "source_file": "Application\\Merge\\Layouts\\ExtentsUtils.cs",
       "source_location": "L16",
       "id": "layouts_extentsutils_extentsutils_trygetextents",
-      "community": 5,
+      "community": 0,
       "norm_label": ".trygetextents()"
     },
     {
@@ -981,7 +855,7 @@
       "source_file": "Application\\Merge\\Layouts\\ExtentsUtils.cs",
       "source_location": "L35",
       "id": "layouts_extentsutils_extentsutils_trygetscaleratio",
-      "community": 2,
+      "community": 0,
       "norm_label": ".trygetscaleratio()"
     },
     {
@@ -990,7 +864,7 @@
       "source_file": "Application\\Merge\\Layouts\\ExtentsUtils.cs",
       "source_location": "L64",
       "id": "layouts_extentsutils_extentsutils_ispointin",
-      "community": 5,
+      "community": 10,
       "norm_label": ".ispointin()"
     },
     {
@@ -999,7 +873,7 @@
       "source_file": "Application\\Merge\\Layouts\\ExtentsUtils.cs",
       "source_location": "L78",
       "id": "layouts_extentsutils_extentsutils_isentitypointin",
-      "community": 5,
+      "community": 10,
       "norm_label": ".isentitypointin()"
     },
     {
@@ -1017,7 +891,7 @@
       "source_file": "Application\\Merge\\Layouts\\ExtentsUtils.cs",
       "source_location": "L112",
       "id": "layouts_extentsutils_extentsutils_union",
-      "community": 5,
+      "community": 10,
       "norm_label": ".union()"
     },
     {
@@ -1026,7 +900,7 @@
       "source_file": "Application\\Merge\\Layouts\\ExtentsUtils.cs",
       "source_location": "L132",
       "id": "layouts_extentsutils_extentsutils_getdatabaseextents",
-      "community": 4,
+      "community": 5,
       "norm_label": ".getdatabaseextents()"
     },
     {
@@ -1035,7 +909,7 @@
       "source_file": "Application\\Merge\\Layouts\\ExtentsUtils.cs",
       "source_location": "L155",
       "id": "layouts_extentsutils_extentsutils_transform",
-      "community": 5,
+      "community": 10,
       "norm_label": ".transform()"
     },
     {
@@ -1170,7 +1044,7 @@
       "source_file": "Application\\Merge\\Layouts\\ModelSpaceTrimmer.cs",
       "source_location": "L1",
       "id": "application_merge_layouts_modelspacetrimmer_cs",
-      "community": 5,
+      "community": 0,
       "norm_label": "modelspacetrimmer.cs"
     },
     {
@@ -1179,7 +1053,7 @@
       "source_file": "Application\\Merge\\Layouts\\ModelSpaceTrimmer.cs",
       "source_location": "L10",
       "id": "layouts_modelspacetrimmer_modelspacetrimmer",
-      "community": 5,
+      "community": 0,
       "norm_label": "modelspacetrimmer"
     },
     {
@@ -1188,7 +1062,7 @@
       "source_file": "Application\\Merge\\Layouts\\ModelSpaceTrimmer.cs",
       "source_location": "L16",
       "id": "layouts_modelspacetrimmer_modelspacetrimmer_computebounds",
-      "community": 5,
+      "community": 0,
       "norm_label": ".computebounds()"
     },
     {
@@ -1197,7 +1071,7 @@
       "source_file": "Application\\Merge\\Layouts\\ModelSpaceTrimmer.cs",
       "source_location": "L67",
       "id": "layouts_modelspacetrimmer_modelspacetrimmer_trimoutside",
-      "community": 5,
+      "community": 0,
       "norm_label": ".trimoutside()"
     },
     {
@@ -1341,14 +1215,14 @@
       "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
       "source_location": "L79",
       "id": "layouts_viewporttransformer_viewporttransformer_scalemodelspaceobjects",
-      "community": 2,
+      "community": 0,
       "norm_label": ".scalemodelspaceobjects()"
     },
     {
       "label": ".CollectModelEntitiesWithExtents()",
       "file_type": "code",
       "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L185",
+      "source_location": "L184",
       "id": "layouts_viewporttransformer_viewporttransformer_collectmodelentitieswithextents",
       "community": 0,
       "norm_label": ".collectmodelentitieswithextents()"
@@ -1357,25 +1231,25 @@
       "label": ".DeepCloneAndTransform()",
       "file_type": "code",
       "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L232",
+      "source_location": "L231",
       "id": "layouts_viewporttransformer_viewporttransformer_deepcloneandtransform",
-      "community": 2,
+      "community": 0,
       "norm_label": ".deepcloneandtransform()"
     },
     {
       "label": ".GetDimensionDiagnosticScenario()",
       "file_type": "code",
       "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L350",
+      "source_location": "L349",
       "id": "layouts_viewporttransformer_viewporttransformer_getdimensiondiagnosticscenario",
-      "community": 2,
+      "community": 0,
       "norm_label": ".getdimensiondiagnosticscenario()"
     },
     {
       "label": ".SelectModelInside()",
       "file_type": "code",
       "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L365",
+      "source_location": "L364",
       "id": "layouts_viewporttransformer_viewporttransformer_selectmodelinside",
       "community": 0,
       "norm_label": ".selectmodelinside()"
@@ -1384,7 +1258,7 @@
       "label": ".EraseEntitiesOutsideMainWindow()",
       "file_type": "code",
       "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L398",
+      "source_location": "L397",
       "id": "layouts_viewporttransformer_viewporttransformer_eraseentitiesoutsidemainwindow",
       "community": 0,
       "norm_label": ".eraseentitiesoutsidemainwindow()"
@@ -1393,10 +1267,136 @@
       "label": ".UnlockTextStylesHeight()",
       "file_type": "code",
       "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L443",
+      "source_location": "L442",
       "id": "layouts_viewporttransformer_viewporttransformer_unlocktextstylesheight",
       "community": 0,
       "norm_label": ".unlocktextstylesheight()"
+    },
+    {
+      "label": "DimensionTransformUtils.cs",
+      "file_type": "code",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L1",
+      "id": "application_merge_layouts_transforms_dimensiontransformutils_cs",
+      "community": 8,
+      "norm_label": "dimensiontransformutils.cs"
+    },
+    {
+      "label": "DimensionTransformUtils",
+      "file_type": "code",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L10",
+      "id": "transforms_dimensiontransformutils_dimensiontransformutils",
+      "community": 8,
+      "norm_label": "dimensiontransformutils"
+    },
+    {
+      "label": ".TransformDimension()",
+      "file_type": "code",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L12",
+      "id": "transforms_dimensiontransformutils_dimensiontransformutils_transformdimension",
+      "community": 8,
+      "norm_label": ".transformdimension()"
+    },
+    {
+      "label": ".AdjustDimensionScale()",
+      "file_type": "code",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L52",
+      "id": "transforms_dimensiontransformutils_dimensiontransformutils_adjustdimensionscale",
+      "community": 8,
+      "norm_label": ".adjustdimensionscale()"
+    },
+    {
+      "label": ".LogDimensionDiagnostic()",
+      "file_type": "code",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L65",
+      "id": "transforms_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
+      "community": 8,
+      "norm_label": ".logdimensiondiagnostic()"
+    },
+    {
+      "label": ".ReadDouble()",
+      "file_type": "code",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L95",
+      "id": "transforms_dimensiontransformutils_dimensiontransformutils_readdouble",
+      "community": 8,
+      "norm_label": ".readdouble()"
+    },
+    {
+      "label": ".FormatDouble()",
+      "file_type": "code",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L107",
+      "id": "transforms_dimensiontransformutils_dimensiontransformutils_formatdouble",
+      "community": 8,
+      "norm_label": ".formatdouble()"
+    },
+    {
+      "label": ".EscapeDiagnosticText()",
+      "file_type": "code",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L114",
+      "id": "transforms_dimensiontransformutils_dimensiontransformutils_escapediagnostictext",
+      "community": 8,
+      "norm_label": ".escapediagnostictext()"
+    },
+    {
+      "label": "EntityTransformUtils.cs",
+      "file_type": "code",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\EntityTransformUtils.cs",
+      "source_location": "L1",
+      "id": "application_merge_layouts_transforms_entitytransformutils_cs",
+      "community": 8,
+      "norm_label": "entitytransformutils.cs"
+    },
+    {
+      "label": "EntityTransformUtils",
+      "file_type": "code",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\EntityTransformUtils.cs",
+      "source_location": "L9",
+      "id": "transforms_entitytransformutils_entitytransformutils",
+      "community": 8,
+      "norm_label": "entitytransformutils"
+    },
+    {
+      "label": ".GetScaleFactor()",
+      "file_type": "code",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\EntityTransformUtils.cs",
+      "source_location": "L22",
+      "id": "transforms_entitytransformutils_entitytransformutils_getscalefactor",
+      "community": 0,
+      "norm_label": ".getscalefactor()"
+    },
+    {
+      "label": ".TransformEntity()",
+      "file_type": "code",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\EntityTransformUtils.cs",
+      "source_location": "L27",
+      "id": "transforms_entitytransformutils_entitytransformutils_transformentity",
+      "community": 8,
+      "norm_label": ".transformentity()"
+    },
+    {
+      "label": ".AdjustMLeaderScale()",
+      "file_type": "code",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\EntityTransformUtils.cs",
+      "source_location": "L69",
+      "id": "transforms_entitytransformutils_entitytransformutils_adjustmleaderscale",
+      "community": 8,
+      "norm_label": ".adjustmleaderscale()"
+    },
+    {
+      "label": ".EvaluateHatch()",
+      "file_type": "code",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\EntityTransformUtils.cs",
+      "source_location": "L75",
+      "id": "transforms_entitytransformutils_entitytransformutils_evaluatehatch",
+      "community": 8,
+      "norm_label": ".evaluatehatch()"
     },
     {
       "label": "MergeResult.cs",
@@ -1404,7 +1404,7 @@
       "source_file": "Application\\Merge\\Models\\MergeResult.cs",
       "source_location": "L1",
       "id": "application_merge_models_mergeresult_cs",
-      "community": 4,
+      "community": 5,
       "norm_label": "mergeresult.cs"
     },
     {
@@ -1413,7 +1413,7 @@
       "source_file": "Application\\Merge\\Models\\MergeResult.cs",
       "source_location": "L17",
       "id": "models_mergeresult_ok",
-      "community": 4,
+      "community": 5,
       "norm_label": "ok()"
     },
     {
@@ -1422,7 +1422,7 @@
       "source_file": "Application\\Merge\\Models\\MergeResult.cs",
       "source_location": "L22",
       "id": "models_mergeresult_fail",
-      "community": 4,
+      "community": 5,
       "norm_label": "fail()"
     },
     {
@@ -1431,7 +1431,7 @@
       "source_file": "Application\\Merge\\Models\\MergeResult.cs",
       "source_location": "L27",
       "id": "models_mergeresult_warn",
-      "community": 4,
+      "community": 5,
       "norm_label": "warn()"
     },
     {
@@ -1440,7 +1440,7 @@
       "source_file": "Application\\Merge\\Models\\MergeStatistics.cs",
       "source_location": "L1",
       "id": "application_merge_models_mergestatistics_cs",
-      "community": 1,
+      "community": 4,
       "norm_label": "mergestatistics.cs"
     },
     {
@@ -1449,7 +1449,7 @@
       "source_file": "Application\\Merge\\Models\\MergeStatistics.cs",
       "source_location": "L6",
       "id": "models_mergestatistics_mergestatistics",
-      "community": 1,
+      "community": 4,
       "norm_label": "mergestatistics"
     },
     {
@@ -1458,7 +1458,7 @@
       "source_file": "Application\\Merge\\Models\\MergeStatistics.cs",
       "source_location": "L13",
       "id": "models_mergestatistics_mergestatistics_recordtotal",
-      "community": 1,
+      "community": 4,
       "norm_label": ".recordtotal()"
     },
     {
@@ -1467,7 +1467,7 @@
       "source_file": "Application\\Merge\\Models\\MergeStatistics.cs",
       "source_location": "L18",
       "id": "models_mergestatistics_mergestatistics_recordsuccess",
-      "community": 1,
+      "community": 4,
       "norm_label": ".recordsuccess()"
     },
     {
@@ -1476,7 +1476,7 @@
       "source_file": "Application\\Merge\\Models\\MergeStatistics.cs",
       "source_location": "L23",
       "id": "models_mergestatistics_mergestatistics_recordfailed",
-      "community": 1,
+      "community": 4,
       "norm_label": ".recordfailed()"
     },
     {
@@ -1485,7 +1485,7 @@
       "source_file": "Application\\Merge\\Models\\MergeStatistics.cs",
       "source_location": "L28",
       "id": "models_mergestatistics_mergestatistics_recordskipped",
-      "community": 1,
+      "community": 4,
       "norm_label": ".recordskipped()"
     },
     {
@@ -1494,7 +1494,7 @@
       "source_file": "Application\\Merge\\Models\\MergeStatistics.cs",
       "source_location": "L34",
       "id": "models_mergestatistics_mergestatistics_tostring",
-      "community": 10,
+      "community": 4,
       "norm_label": ".tostring()"
     },
     {
@@ -1503,7 +1503,7 @@
       "source_file": "Application\\Ribbon\\ButtonCommandHandler.cs",
       "source_location": "L1",
       "id": "application_ribbon_buttoncommandhandler_cs",
-      "community": 17,
+      "community": 15,
       "norm_label": "buttoncommandhandler.cs"
     },
     {
@@ -1512,7 +1512,7 @@
       "source_file": "Application\\Ribbon\\ButtonCommandHandler.cs",
       "source_location": "L12",
       "id": "ribbon_buttoncommandhandler_buttoncommandhandler",
-      "community": 17,
+      "community": 15,
       "norm_label": "buttoncommandhandler"
     },
     {
@@ -1521,7 +1521,7 @@
       "source_file": "",
       "source_location": "",
       "id": "icommand",
-      "community": 17,
+      "community": 15,
       "norm_label": "icommand"
     },
     {
@@ -1530,7 +1530,7 @@
       "source_file": "Application\\Ribbon\\ButtonCommandHandler.cs",
       "source_location": "L19",
       "id": "ribbon_buttoncommandhandler_buttoncommandhandler_canexecute",
-      "community": 17,
+      "community": 15,
       "norm_label": ".canexecute()"
     },
     {
@@ -1539,7 +1539,7 @@
       "source_file": "Application\\Ribbon\\ButtonCommandHandler.cs",
       "source_location": "L24",
       "id": "ribbon_buttoncommandhandler_buttoncommandhandler_execute",
-      "community": 17,
+      "community": 15,
       "norm_label": ".execute()"
     },
     {
@@ -1548,7 +1548,7 @@
       "source_file": "Application\\Ribbon\\RibbonBuilder.cs",
       "source_location": "L1",
       "id": "application_ribbon_ribbonbuilder_cs",
-      "community": 3,
+      "community": 2,
       "norm_label": "ribbonbuilder.cs"
     },
     {
@@ -1557,7 +1557,7 @@
       "source_file": "Application\\Ribbon\\RibbonBuilder.cs",
       "source_location": "L10",
       "id": "ribbon_ribbonbuilder_ribbonbuilder",
-      "community": 3,
+      "community": 2,
       "norm_label": "ribbonbuilder"
     },
     {
@@ -1566,7 +1566,7 @@
       "source_file": "Application\\Ribbon\\RibbonBuilder.cs",
       "source_location": "L13",
       "id": "ribbon_ribbonbuilder_ribbonbuilder_createtab",
-      "community": 3,
+      "community": 2,
       "norm_label": ".createtab()"
     },
     {
@@ -1575,7 +1575,7 @@
       "source_file": "Application\\Ribbon\\RibbonBuilder.cs",
       "source_location": "L40",
       "id": "ribbon_ribbonbuilder_ribbonbuilder_createlargebutton",
-      "community": 3,
+      "community": 2,
       "norm_label": ".createlargebutton()"
     },
     {
@@ -1584,7 +1584,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Ribbon\\RibbonIconLoader.cs",
       "source_location": "L1",
       "id": "c_users_yerkebulan_yandexdisk_repository_autobimfusion_autobimfusion_application_ribbon_ribboniconloader_cs",
-      "community": 3,
+      "community": 2,
       "norm_label": "ribboniconloader.cs"
     },
     {
@@ -1593,7 +1593,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Ribbon\\RibbonIconLoader.cs",
       "source_location": "L10",
       "id": "ribboniconloader_ribboniconloader",
-      "community": 3,
+      "community": 2,
       "norm_label": "ribboniconloader"
     },
     {
@@ -1602,7 +1602,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Ribbon\\RibbonIconLoader.cs",
       "source_location": "L17",
       "id": "ribboniconloader_ribboniconloader_load",
-      "community": 3,
+      "community": 2,
       "norm_label": ".load()"
     },
     {
@@ -1611,7 +1611,7 @@
       "source_file": "Application\\Utils\\FileEnumerator.cs",
       "source_location": "L1",
       "id": "application_utils_fileenumerator_cs",
-      "community": 13,
+      "community": 12,
       "norm_label": "fileenumerator.cs"
     },
     {
@@ -1620,7 +1620,7 @@
       "source_file": "Application\\Utils\\FileEnumerator.cs",
       "source_location": "L8",
       "id": "utils_fileenumerator_fileenumerator",
-      "community": 13,
+      "community": 12,
       "norm_label": "fileenumerator"
     },
     {
@@ -1629,7 +1629,7 @@
       "source_file": "Application\\Utils\\FileEnumerator.cs",
       "source_location": "L18",
       "id": "utils_fileenumerator_fileenumerator_getfiles",
-      "community": 13,
+      "community": 12,
       "norm_label": ".getfiles()"
     },
     {
@@ -1638,7 +1638,7 @@
       "source_file": "Application\\Utils\\FileHelper.cs",
       "source_location": "L1",
       "id": "application_utils_filehelper_cs",
-      "community": 4,
+      "community": 5,
       "norm_label": "filehelper.cs"
     },
     {
@@ -1647,7 +1647,7 @@
       "source_file": "Application\\Utils\\FileHelper.cs",
       "source_location": "L3",
       "id": "utils_filehelper_filehelper",
-      "community": 4,
+      "community": 5,
       "norm_label": "filehelper"
     },
     {
@@ -1656,7 +1656,7 @@
       "source_file": "Application\\Utils\\FileHelper.cs",
       "source_location": "L11",
       "id": "utils_filehelper_filehelper_tryvalidatefile",
-      "community": 4,
+      "community": 5,
       "norm_label": ".tryvalidatefile()"
     },
     {
@@ -1665,7 +1665,7 @@
       "source_file": "Application\\Utils\\FileHelper.cs",
       "source_location": "L49",
       "id": "utils_filehelper_filehelper_tryvalidatedwgstructure",
-      "community": 4,
+      "community": 5,
       "norm_label": ".tryvalidatedwgstructure()"
     },
     {
@@ -1746,7 +1746,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\StringUtils.cs",
       "source_location": "L1",
       "id": "c_users_yerkebulan_yandexdisk_repository_autobimfusion_autobimfusion_application_utils_stringutils_cs",
-      "community": 4,
+      "community": 5,
       "norm_label": "stringutils.cs"
     },
     {
@@ -1755,7 +1755,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\StringUtils.cs",
       "source_location": "L6",
       "id": "stringutils_stringutils",
-      "community": 4,
+      "community": 5,
       "norm_label": "stringutils"
     },
     {
@@ -1764,7 +1764,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\StringUtils.cs",
       "source_location": "L13",
       "id": "stringutils_stringutils_truncate",
-      "community": 4,
+      "community": 5,
       "norm_label": ".truncate()"
     },
     {
@@ -1773,7 +1773,7 @@
       "source_file": "Application\\Utils\\StyleExportUtils.cs",
       "source_location": "L1",
       "id": "application_utils_styleexportutils_cs",
-      "community": 10,
+      "community": 4,
       "norm_label": "styleexportutils.cs"
     },
     {
@@ -1782,7 +1782,7 @@
       "source_file": "Application\\Utils\\StyleExportUtils.cs",
       "source_location": "L6",
       "id": "utils_styleexportutils_styleexportutils",
-      "community": 10,
+      "community": 4,
       "norm_label": "styleexportutils"
     },
     {
@@ -1791,7 +1791,7 @@
       "source_file": "Application\\Utils\\StyleExportUtils.cs",
       "source_location": "L8",
       "id": "utils_styleexportutils_styleexportutils_exportsymboltabletomd",
-      "community": 10,
+      "community": 4,
       "norm_label": ".exportsymboltabletomd()"
     },
     {
@@ -1800,7 +1800,7 @@
       "source_file": "Application\\Utils\\StyleExportUtils.cs",
       "source_location": "L80",
       "id": "utils_styleexportutils_styleexportutils_dumpproperties",
-      "community": 10,
+      "community": 4,
       "norm_label": ".dumpproperties()"
     },
     {
@@ -1809,7 +1809,7 @@
       "source_file": "Application\\Utils\\StyleExportUtils.cs",
       "source_location": "L108",
       "id": "utils_styleexportutils_styleexportutils_getpropertydisplayname",
-      "community": 10,
+      "community": 4,
       "norm_label": ".getpropertydisplayname()"
     },
     {
@@ -1818,7 +1818,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\WindowsNaturalComparer.cs",
       "source_location": "L1",
       "id": "c_users_yerkebulan_yandexdisk_repository_autobimfusion_autobimfusion_application_utils_windowsnaturalcomparer_cs",
-      "community": 13,
+      "community": 12,
       "norm_label": "windowsnaturalcomparer.cs"
     },
     {
@@ -1827,7 +1827,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\WindowsNaturalComparer.cs",
       "source_location": "L9",
       "id": "windowsnaturalcomparer_windowsnaturalcomparer",
-      "community": 13,
+      "community": 12,
       "norm_label": "windowsnaturalcomparer"
     },
     {
@@ -1836,7 +1836,7 @@
       "source_file": "",
       "source_location": "",
       "id": "icomparer",
-      "community": 13,
+      "community": 12,
       "norm_label": "icomparer"
     },
     {
@@ -1845,7 +1845,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\WindowsNaturalComparer.cs",
       "source_location": "L11",
       "id": "windowsnaturalcomparer_windowsnaturalcomparer_compare",
-      "community": 13,
+      "community": 12,
       "norm_label": ".compare()"
     },
     {
@@ -1854,7 +1854,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\WindowsNaturalComparer.cs",
       "source_location": "L16",
       "id": "windowsnaturalcomparer_windowsnaturalcomparer_strcmplogicalw",
-      "community": 13,
+      "community": 12,
       "norm_label": ".strcmplogicalw()"
     },
     {
@@ -1863,7 +1863,7 @@
       "source_file": "Infrastructure\\Logging\\AILog.cs",
       "source_location": "L1",
       "id": "infrastructure_logging_ailog_cs",
-      "community": 2,
+      "community": 3,
       "norm_label": "ailog.cs"
     },
     {
@@ -1872,7 +1872,7 @@
       "source_file": "Infrastructure\\Logging\\AILog.cs",
       "source_location": "L8",
       "id": "logging_ailog_ailog",
-      "community": 2,
+      "community": 3,
       "norm_label": "ailog"
     },
     {
@@ -1890,7 +1890,7 @@
       "source_file": "Infrastructure\\Logging\\AILog.cs",
       "source_location": "L20",
       "id": "logging_ailog_ailog_debug",
-      "community": 2,
+      "community": 0,
       "norm_label": ".debug()"
     },
     {
@@ -1899,7 +1899,7 @@
       "source_file": "Infrastructure\\Logging\\AILog.cs",
       "source_location": "L25",
       "id": "logging_ailog_ailog_warn",
-      "community": 8,
+      "community": 3,
       "norm_label": ".warn()"
     },
     {
@@ -1917,7 +1917,7 @@
       "source_file": "Infrastructure\\Logging\\AILog.cs",
       "source_location": "L40",
       "id": "logging_ailog_ailog_log",
-      "community": 2,
+      "community": 3,
       "norm_label": ".log()"
     },
     {
@@ -1926,7 +1926,7 @@
       "source_file": "Infrastructure\\Logging\\AILog.cs",
       "source_location": "L66",
       "id": "logging_ailog_ailog_trywritetoeditor",
-      "community": 2,
+      "community": 3,
       "norm_label": ".trywritetoeditor()"
     },
     {
@@ -1935,7 +1935,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\LoggerFactory.cs",
       "source_location": "L1",
       "id": "c_users_yerkebulan_yandexdisk_repository_autobimfusion_autobimfusion_infrastructure_logging_loggerfactory_cs",
-      "community": 14,
+      "community": 13,
       "norm_label": "loggerfactory.cs"
     },
     {
@@ -1944,7 +1944,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\LoggerFactory.cs",
       "source_location": "L9",
       "id": "loggerfactory_loggerfactory",
-      "community": 14,
+      "community": 13,
       "norm_label": "loggerfactory"
     },
     {
@@ -1953,7 +1953,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\LoggerFactory.cs",
       "source_location": "L13",
       "id": "loggerfactory_loggerfactory_getsharedlogger",
-      "community": 14,
+      "community": 13,
       "norm_label": ".getsharedlogger()"
     },
     {
@@ -1962,7 +1962,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\LoggerFactory.cs",
       "source_location": "L18",
       "id": "loggerfactory_loggerfactory_createfilelogger",
-      "community": 14,
+      "community": 13,
       "norm_label": ".createfilelogger()"
     },
     {
@@ -1971,7 +1971,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\LoggerFactory.cs",
       "source_location": "L42",
       "id": "loggerfactory_diagnosticsink",
-      "community": 14,
+      "community": 13,
       "norm_label": "diagnosticsink"
     },
     {
@@ -1980,7 +1980,7 @@
       "source_file": "",
       "source_location": "",
       "id": "ilogeventsink",
-      "community": 14,
+      "community": 13,
       "norm_label": "ilogeventsink"
     },
     {
@@ -1989,7 +1989,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Infrastructure\\Logging\\LoggerFactory.cs",
       "source_location": "L44",
       "id": "loggerfactory_diagnosticsink_emit",
-      "community": 14,
+      "community": 13,
       "norm_label": ".emit()"
     },
     {
@@ -1998,7 +1998,7 @@
       "source_file": "obj\\Debug\\net8.0\\AutoBIMFusion.AssemblyInfo.cs",
       "source_location": "L1",
       "id": "obj_debug_net8_0_autobimfusion_assemblyinfo_cs",
-      "community": 18,
+      "community": 16,
       "norm_label": "autobimfusion.assemblyinfo.cs"
     },
     {
@@ -2007,7 +2007,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\Debug\\net8.0\\AutoBIMFusion.GlobalUsings.g.cs",
       "source_location": "L1",
       "id": "c_users_yerkebulan_yandexdisk_repository_autobimfusion_autobimfusion_obj_debug_net8_0_autobimfusion_globalusings_g_cs",
-      "community": 19,
+      "community": 17,
       "norm_label": "autobimfusion.globalusings.g.cs"
     },
     {
@@ -2016,7 +2016,7 @@
       "source_file": "obj\\DebugA25\\net8.0\\AutoBIMFusion.AssemblyInfo.cs",
       "source_location": "L1",
       "id": "obj_debuga25_net8_0_autobimfusion_assemblyinfo_cs",
-      "community": 20,
+      "community": 18,
       "norm_label": "autobimfusion.assemblyinfo.cs"
     },
     {
@@ -2025,7 +2025,7 @@
       "source_file": "C:\\Users\\Yerkebulan\\YandexDisk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\DebugA25\\net8.0\\AutoBIMFusion.GlobalUsings.g.cs",
       "source_location": "L1",
       "id": "c_users_yerkebulan_yandexdisk_repository_autobimfusion_autobimfusion_obj_debuga25_net8_0_autobimfusion_globalusings_g_cs",
-      "community": 21,
+      "community": 19,
       "norm_label": "autobimfusion.globalusings.g.cs"
     },
     {
@@ -2034,7 +2034,7 @@
       "source_file": "obj\\DebugA26\\net8.0\\AutoBIMFusion.AssemblyInfo.cs",
       "source_location": "L1",
       "id": "obj_debuga26_net8_0_autobimfusion_assemblyinfo_cs",
-      "community": 22,
+      "community": 20,
       "norm_label": "autobimfusion.assemblyinfo.cs"
     },
     {
@@ -2043,7 +2043,7 @@
       "source_file": "obj\\DebugA26\\net8.0\\AutoBIMFusion.GlobalUsings.g.cs",
       "source_location": "L1",
       "id": "obj_debuga26_net8_0_autobimfusion_globalusings_g_cs",
-      "community": 23,
+      "community": 21,
       "norm_label": "autobimfusion.globalusings.g.cs"
     },
     {
@@ -2052,7 +2052,7 @@
       "source_file": "obj\\DebugA26\\net8.0-windows8.0\\AutoBIMFusion.AssemblyInfo.cs",
       "source_location": "L1",
       "id": "obj_debuga26_net8_0_windows8_0_autobimfusion_assemblyinfo_cs",
-      "community": 24,
+      "community": 22,
       "norm_label": "autobimfusion.assemblyinfo.cs"
     },
     {
@@ -2061,7 +2061,7 @@
       "source_file": "obj\\DebugA26\\net8.0-windows8.0\\AutoBIMFusion.GlobalUsings.g.cs",
       "source_location": "L1",
       "id": "obj_debuga26_net8_0_windows8_0_autobimfusion_globalusings_g_cs",
-      "community": 25,
+      "community": 23,
       "norm_label": "autobimfusion.globalusings.g.cs"
     },
     {
@@ -2070,7 +2070,7 @@
       "source_file": "obj\\ReleaseA25\\net8.0\\AutoBIMFusion.AssemblyInfo.cs",
       "source_location": "L1",
       "id": "obj_releasea25_net8_0_autobimfusion_assemblyinfo_cs",
-      "community": 26,
+      "community": 24,
       "norm_label": "autobimfusion.assemblyinfo.cs"
     },
     {
@@ -2079,7 +2079,7 @@
       "source_file": "obj\\ReleaseA25\\net8.0\\AutoBIMFusion.GlobalUsings.g.cs",
       "source_location": "L1",
       "id": "obj_releasea25_net8_0_autobimfusion_globalusings_g_cs",
-      "community": 27,
+      "community": 25,
       "norm_label": "autobimfusion.globalusings.g.cs"
     }
   ],
@@ -4283,222 +4283,6 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L10",
-      "weight": 1.0,
-      "_src": "application_merge_layouts_dimensiontransformutils_cs",
-      "_tgt": "layouts_dimensiontransformutils_dimensiontransformutils",
-      "source": "application_merge_layouts_dimensiontransformutils_cs",
-      "target": "layouts_dimensiontransformutils_dimensiontransformutils",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L12",
-      "weight": 1.0,
-      "_src": "layouts_dimensiontransformutils_dimensiontransformutils",
-      "_tgt": "layouts_dimensiontransformutils_dimensiontransformutils_transformdimension",
-      "source": "layouts_dimensiontransformutils_dimensiontransformutils",
-      "target": "layouts_dimensiontransformutils_dimensiontransformutils_transformdimension",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L52",
-      "weight": 1.0,
-      "_src": "layouts_dimensiontransformutils_dimensiontransformutils",
-      "_tgt": "layouts_dimensiontransformutils_dimensiontransformutils_adjustdimensionscale",
-      "source": "layouts_dimensiontransformutils_dimensiontransformutils",
-      "target": "layouts_dimensiontransformutils_dimensiontransformutils_adjustdimensionscale",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L65",
-      "weight": 1.0,
-      "_src": "layouts_dimensiontransformutils_dimensiontransformutils",
-      "_tgt": "layouts_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
-      "source": "layouts_dimensiontransformutils_dimensiontransformutils",
-      "target": "layouts_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L95",
-      "weight": 1.0,
-      "_src": "layouts_dimensiontransformutils_dimensiontransformutils",
-      "_tgt": "layouts_dimensiontransformutils_dimensiontransformutils_readdouble",
-      "source": "layouts_dimensiontransformutils_dimensiontransformutils",
-      "target": "layouts_dimensiontransformutils_dimensiontransformutils_readdouble",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L107",
-      "weight": 1.0,
-      "_src": "layouts_dimensiontransformutils_dimensiontransformutils",
-      "_tgt": "layouts_dimensiontransformutils_dimensiontransformutils_formatdouble",
-      "source": "layouts_dimensiontransformutils_dimensiontransformutils",
-      "target": "layouts_dimensiontransformutils_dimensiontransformutils_formatdouble",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L114",
-      "weight": 1.0,
-      "_src": "layouts_dimensiontransformutils_dimensiontransformutils",
-      "_tgt": "layouts_dimensiontransformutils_dimensiontransformutils_escapediagnostictext",
-      "source": "layouts_dimensiontransformutils_dimensiontransformutils",
-      "target": "layouts_dimensiontransformutils_dimensiontransformutils_escapediagnostictext",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L26",
-      "weight": 1.0,
-      "_src": "layouts_dimensiontransformutils_dimensiontransformutils_transformdimension",
-      "_tgt": "layouts_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
-      "source": "layouts_dimensiontransformutils_dimensiontransformutils_transformdimension",
-      "target": "layouts_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L27",
-      "weight": 1.0,
-      "_src": "layouts_dimensiontransformutils_dimensiontransformutils_transformdimension",
-      "_tgt": "layouts_dimensiontransformutils_dimensiontransformutils_adjustdimensionscale",
-      "source": "layouts_dimensiontransformutils_dimensiontransformutils_transformdimension",
-      "target": "layouts_dimensiontransformutils_dimensiontransformutils_adjustdimensionscale",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "Application\\Merge\\Layouts\\EntityTransformUtils.cs",
-      "source_location": "L44",
-      "weight": 1.0,
-      "_src": "layouts_entitytransformutils_entitytransformutils_transformentity",
-      "_tgt": "layouts_dimensiontransformutils_dimensiontransformutils_transformdimension",
-      "source": "layouts_dimensiontransformutils_dimensiontransformutils_transformdimension",
-      "target": "layouts_entitytransformutils_entitytransformutils_transformentity"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L81",
-      "weight": 1.0,
-      "_src": "layouts_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
-      "_tgt": "layouts_dimensiontransformutils_dimensiontransformutils_formatdouble",
-      "source": "layouts_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
-      "target": "layouts_dimensiontransformutils_dimensiontransformutils_formatdouble",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L89",
-      "weight": 1.0,
-      "_src": "layouts_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
-      "_tgt": "layouts_dimensiontransformutils_dimensiontransformutils_readdouble",
-      "source": "layouts_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
-      "target": "layouts_dimensiontransformutils_dimensiontransformutils_readdouble",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L90",
-      "weight": 1.0,
-      "_src": "layouts_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
-      "_tgt": "layouts_dimensiontransformutils_dimensiontransformutils_escapediagnostictext",
-      "source": "layouts_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
-      "target": "layouts_dimensiontransformutils_dimensiontransformutils_escapediagnostictext",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L78",
-      "weight": 1.0,
-      "_src": "layouts_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
-      "_tgt": "layouts_extentsutils_extentsutils_trygetextents",
-      "source": "layouts_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
-      "target": "layouts_extentsutils_extentsutils_trygetextents"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L79",
-      "weight": 1.0,
-      "_src": "layouts_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
-      "_tgt": "layouts_extentsutils_extentsutils_formatextents",
-      "source": "layouts_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
-      "target": "layouts_extentsutils_extentsutils_formatextents"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L85",
-      "weight": 1.0,
-      "_src": "layouts_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
-      "_tgt": "logging_ailog_ailog_debug",
-      "source": "layouts_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
-      "target": "logging_ailog_ailog_debug"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L99",
-      "weight": 1.0,
-      "_src": "layouts_dimensiontransformutils_dimensiontransformutils_readdouble",
-      "_tgt": "layouts_dimensiontransformutils_dimensiontransformutils_formatdouble",
-      "source": "layouts_dimensiontransformutils_dimensiontransformutils_readdouble",
-      "target": "layouts_dimensiontransformutils_dimensiontransformutils_formatdouble",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "Application\\Merge\\Layouts\\DimensionTransformUtils.cs",
-      "source_location": "L110",
-      "weight": 1.0,
-      "_src": "layouts_dimensiontransformutils_dimensiontransformutils_formatdouble",
-      "_tgt": "models_mergestatistics_mergestatistics_tostring",
-      "source": "layouts_dimensiontransformutils_dimensiontransformutils_formatdouble",
-      "target": "models_mergestatistics_mergestatistics_tostring"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "Application\\Merge\\Layouts\\DrawOrderPreserver.cs",
       "source_location": "L10",
       "weight": 1.0,
@@ -4578,138 +4362,6 @@
       "_src": "layouts_draworderpreserver_draworderpreserver_restore",
       "_tgt": "layouts_viewporttransformer_viewporttransformer_deepcloneandtransform",
       "source": "layouts_draworderpreserver_draworderpreserver_restore",
-      "target": "layouts_viewporttransformer_viewporttransformer_deepcloneandtransform"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\EntityTransformUtils.cs",
-      "source_location": "L9",
-      "weight": 1.0,
-      "_src": "application_merge_layouts_entitytransformutils_cs",
-      "_tgt": "layouts_entitytransformutils_entitytransformutils",
-      "source": "application_merge_layouts_entitytransformutils_cs",
-      "target": "layouts_entitytransformutils_entitytransformutils",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\EntityTransformUtils.cs",
-      "source_location": "L22",
-      "weight": 1.0,
-      "_src": "layouts_entitytransformutils_entitytransformutils",
-      "_tgt": "layouts_entitytransformutils_entitytransformutils_getscalefactor",
-      "source": "layouts_entitytransformutils_entitytransformutils",
-      "target": "layouts_entitytransformutils_entitytransformutils_getscalefactor",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\EntityTransformUtils.cs",
-      "source_location": "L27",
-      "weight": 1.0,
-      "_src": "layouts_entitytransformutils_entitytransformutils",
-      "_tgt": "layouts_entitytransformutils_entitytransformutils_transformentity",
-      "source": "layouts_entitytransformutils_entitytransformutils",
-      "target": "layouts_entitytransformutils_entitytransformutils_transformentity",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\EntityTransformUtils.cs",
-      "source_location": "L69",
-      "weight": 1.0,
-      "_src": "layouts_entitytransformutils_entitytransformutils",
-      "_tgt": "layouts_entitytransformutils_entitytransformutils_adjustmleaderscale",
-      "source": "layouts_entitytransformutils_entitytransformutils",
-      "target": "layouts_entitytransformutils_entitytransformutils_adjustmleaderscale",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\EntityTransformUtils.cs",
-      "source_location": "L75",
-      "weight": 1.0,
-      "_src": "layouts_entitytransformutils_entitytransformutils",
-      "_tgt": "layouts_entitytransformutils_entitytransformutils_evaluatehatch",
-      "source": "layouts_entitytransformutils_entitytransformutils",
-      "target": "layouts_entitytransformutils_entitytransformutils_evaluatehatch",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L91",
-      "weight": 1.0,
-      "_src": "layouts_entitytransformutils_entitytransformutils_getscalefactor",
-      "_tgt": "layouts_viewporttransformer_viewporttransformer_scalemodelspaceobjects",
-      "source": "layouts_entitytransformutils_entitytransformutils_getscalefactor",
-      "target": "layouts_viewporttransformer_viewporttransformer_scalemodelspaceobjects"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L277",
-      "weight": 1.0,
-      "_src": "layouts_entitytransformutils_entitytransformutils_getscalefactor",
-      "_tgt": "layouts_viewporttransformer_viewporttransformer_deepcloneandtransform",
-      "source": "layouts_entitytransformutils_entitytransformutils_getscalefactor",
-      "target": "layouts_viewporttransformer_viewporttransformer_deepcloneandtransform"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\EntityTransformUtils.cs",
-      "source_location": "L58",
-      "weight": 1.0,
-      "_src": "layouts_entitytransformutils_entitytransformutils_transformentity",
-      "_tgt": "layouts_entitytransformutils_entitytransformutils_adjustmleaderscale",
-      "source": "layouts_entitytransformutils_entitytransformutils_transformentity",
-      "target": "layouts_entitytransformutils_entitytransformutils_adjustmleaderscale",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "Application\\Merge\\Layouts\\EntityTransformUtils.cs",
-      "source_location": "L62",
-      "weight": 1.0,
-      "_src": "layouts_entitytransformutils_entitytransformutils_transformentity",
-      "_tgt": "layouts_entitytransformutils_entitytransformutils_evaluatehatch",
-      "source": "layouts_entitytransformutils_entitytransformutils_transformentity",
-      "target": "layouts_entitytransformutils_entitytransformutils_evaluatehatch",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L115",
-      "weight": 1.0,
-      "_src": "layouts_entitytransformutils_entitytransformutils_transformentity",
-      "_tgt": "layouts_viewporttransformer_viewporttransformer_scalemodelspaceobjects",
-      "source": "layouts_entitytransformutils_entitytransformutils_transformentity",
-      "target": "layouts_viewporttransformer_viewporttransformer_scalemodelspaceobjects"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L302",
-      "weight": 1.0,
-      "_src": "layouts_entitytransformutils_entitytransformutils_transformentity",
-      "_tgt": "layouts_viewporttransformer_viewporttransformer_deepcloneandtransform",
-      "source": "layouts_entitytransformutils_entitytransformutils_transformentity",
       "target": "layouts_viewporttransformer_viewporttransformer_deepcloneandtransform"
     },
     {
@@ -4908,6 +4560,18 @@
       "relation": "calls",
       "confidence": "INFERRED",
       "confidence_score": 0.8,
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L78",
+      "weight": 1.0,
+      "_src": "transforms_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
+      "_tgt": "layouts_extentsutils_extentsutils_trygetextents",
+      "source": "layouts_extentsutils_extentsutils_trygetextents",
+      "target": "transforms_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
       "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
       "source_location": "L131",
       "weight": 1.0,
@@ -5071,6 +4735,18 @@
       "_tgt": "layouts_viewporttransformer_viewporttransformer_selectmodelinside",
       "source": "layouts_extentsutils_extentsutils_formatextents",
       "target": "layouts_viewporttransformer_viewporttransformer_selectmodelinside"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L79",
+      "weight": 1.0,
+      "_src": "transforms_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
+      "_tgt": "layouts_extentsutils_extentsutils_formatextents",
+      "source": "layouts_extentsutils_extentsutils_formatextents",
+      "target": "transforms_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic"
     },
     {
       "relation": "calls",
@@ -6048,7 +5724,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L185",
+      "source_location": "L184",
       "weight": 1.0,
       "_src": "layouts_viewporttransformer_viewporttransformer",
       "_tgt": "layouts_viewporttransformer_viewporttransformer_collectmodelentitieswithextents",
@@ -6060,7 +5736,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L232",
+      "source_location": "L231",
       "weight": 1.0,
       "_src": "layouts_viewporttransformer_viewporttransformer",
       "_tgt": "layouts_viewporttransformer_viewporttransformer_deepcloneandtransform",
@@ -6072,7 +5748,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L350",
+      "source_location": "L349",
       "weight": 1.0,
       "_src": "layouts_viewporttransformer_viewporttransformer",
       "_tgt": "layouts_viewporttransformer_viewporttransformer_getdimensiondiagnosticscenario",
@@ -6084,7 +5760,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L365",
+      "source_location": "L364",
       "weight": 1.0,
       "_src": "layouts_viewporttransformer_viewporttransformer",
       "_tgt": "layouts_viewporttransformer_viewporttransformer_selectmodelinside",
@@ -6096,7 +5772,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L398",
+      "source_location": "L397",
       "weight": 1.0,
       "_src": "layouts_viewporttransformer_viewporttransformer",
       "_tgt": "layouts_viewporttransformer_viewporttransformer_eraseentitiesoutsidemainwindow",
@@ -6108,7 +5784,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L443",
+      "source_location": "L442",
       "weight": 1.0,
       "_src": "layouts_viewporttransformer_viewporttransformer",
       "_tgt": "layouts_viewporttransformer_viewporttransformer_unlocktextstylesheight",
@@ -6144,6 +5820,18 @@
       "relation": "calls",
       "confidence": "INFERRED",
       "confidence_score": 0.8,
+      "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
+      "source_location": "L91",
+      "weight": 1.0,
+      "_src": "layouts_viewporttransformer_viewporttransformer_scalemodelspaceobjects",
+      "_tgt": "transforms_entitytransformutils_entitytransformutils_getscalefactor",
+      "source": "layouts_viewporttransformer_viewporttransformer_scalemodelspaceobjects",
+      "target": "transforms_entitytransformutils_entitytransformutils_getscalefactor"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
       "source_location": "L133",
       "weight": 1.0,
@@ -6151,6 +5839,18 @@
       "_tgt": "models_mergestatistics_mergestatistics_tostring",
       "source": "layouts_viewporttransformer_viewporttransformer_scalemodelspaceobjects",
       "target": "models_mergestatistics_mergestatistics_tostring"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
+      "source_location": "L115",
+      "weight": 1.0,
+      "_src": "layouts_viewporttransformer_viewporttransformer_scalemodelspaceobjects",
+      "_tgt": "transforms_entitytransformutils_entitytransformutils_transformentity",
+      "source": "layouts_viewporttransformer_viewporttransformer_scalemodelspaceobjects",
+      "target": "transforms_entitytransformutils_entitytransformutils_transformentity"
     },
     {
       "relation": "calls",
@@ -6216,7 +5916,7 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
-      "source_location": "L280",
+      "source_location": "L279",
       "weight": 1.0,
       "_src": "layouts_viewporttransformer_viewporttransformer_deepcloneandtransform",
       "_tgt": "layouts_viewporttransformer_viewporttransformer_getdimensiondiagnosticscenario",
@@ -6252,6 +5952,18 @@
       "relation": "calls",
       "confidence": "INFERRED",
       "confidence_score": 0.8,
+      "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
+      "source_location": "L276",
+      "weight": 1.0,
+      "_src": "layouts_viewporttransformer_viewporttransformer_deepcloneandtransform",
+      "_tgt": "transforms_entitytransformutils_entitytransformutils_getscalefactor",
+      "source": "layouts_viewporttransformer_viewporttransformer_deepcloneandtransform",
+      "target": "transforms_entitytransformutils_entitytransformutils_getscalefactor"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\ViewportTransformer.cs",
       "source_location": "L307",
       "weight": 1.0,
@@ -6259,6 +5971,18 @@
       "_tgt": "models_mergestatistics_mergestatistics_tostring",
       "source": "layouts_viewporttransformer_viewporttransformer_deepcloneandtransform",
       "target": "models_mergestatistics_mergestatistics_tostring"
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Application\\Merge\\Layouts\\ViewportTransformer.cs",
+      "source_location": "L301",
+      "weight": 1.0,
+      "_src": "layouts_viewporttransformer_viewporttransformer_deepcloneandtransform",
+      "_tgt": "transforms_entitytransformutils_entitytransformutils_transformentity",
+      "source": "layouts_viewporttransformer_viewporttransformer_deepcloneandtransform",
+      "target": "transforms_entitytransformutils_entitytransformutils_transformentity"
     },
     {
       "relation": "calls",
@@ -6295,6 +6019,282 @@
       "_tgt": "logging_ailog_ailog_info",
       "source": "layouts_viewporttransformer_viewporttransformer_unlocktextstylesheight",
       "target": "logging_ailog_ailog_info"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L10",
+      "weight": 1.0,
+      "_src": "application_merge_layouts_transforms_dimensiontransformutils_cs",
+      "_tgt": "transforms_dimensiontransformutils_dimensiontransformutils",
+      "source": "application_merge_layouts_transforms_dimensiontransformutils_cs",
+      "target": "transforms_dimensiontransformutils_dimensiontransformutils",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L12",
+      "weight": 1.0,
+      "_src": "transforms_dimensiontransformutils_dimensiontransformutils",
+      "_tgt": "transforms_dimensiontransformutils_dimensiontransformutils_transformdimension",
+      "source": "transforms_dimensiontransformutils_dimensiontransformutils",
+      "target": "transforms_dimensiontransformutils_dimensiontransformutils_transformdimension",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L52",
+      "weight": 1.0,
+      "_src": "transforms_dimensiontransformutils_dimensiontransformutils",
+      "_tgt": "transforms_dimensiontransformutils_dimensiontransformutils_adjustdimensionscale",
+      "source": "transforms_dimensiontransformutils_dimensiontransformutils",
+      "target": "transforms_dimensiontransformutils_dimensiontransformutils_adjustdimensionscale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L65",
+      "weight": 1.0,
+      "_src": "transforms_dimensiontransformutils_dimensiontransformutils",
+      "_tgt": "transforms_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
+      "source": "transforms_dimensiontransformutils_dimensiontransformutils",
+      "target": "transforms_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L95",
+      "weight": 1.0,
+      "_src": "transforms_dimensiontransformutils_dimensiontransformutils",
+      "_tgt": "transforms_dimensiontransformutils_dimensiontransformutils_readdouble",
+      "source": "transforms_dimensiontransformutils_dimensiontransformutils",
+      "target": "transforms_dimensiontransformutils_dimensiontransformutils_readdouble",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L107",
+      "weight": 1.0,
+      "_src": "transforms_dimensiontransformutils_dimensiontransformutils",
+      "_tgt": "transforms_dimensiontransformutils_dimensiontransformutils_formatdouble",
+      "source": "transforms_dimensiontransformutils_dimensiontransformutils",
+      "target": "transforms_dimensiontransformutils_dimensiontransformutils_formatdouble",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L114",
+      "weight": 1.0,
+      "_src": "transforms_dimensiontransformutils_dimensiontransformutils",
+      "_tgt": "transforms_dimensiontransformutils_dimensiontransformutils_escapediagnostictext",
+      "source": "transforms_dimensiontransformutils_dimensiontransformutils",
+      "target": "transforms_dimensiontransformutils_dimensiontransformutils_escapediagnostictext",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L26",
+      "weight": 1.0,
+      "_src": "transforms_dimensiontransformutils_dimensiontransformutils_transformdimension",
+      "_tgt": "transforms_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
+      "source": "transforms_dimensiontransformutils_dimensiontransformutils_transformdimension",
+      "target": "transforms_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L27",
+      "weight": 1.0,
+      "_src": "transforms_dimensiontransformutils_dimensiontransformutils_transformdimension",
+      "_tgt": "transforms_dimensiontransformutils_dimensiontransformutils_adjustdimensionscale",
+      "source": "transforms_dimensiontransformutils_dimensiontransformutils_transformdimension",
+      "target": "transforms_dimensiontransformutils_dimensiontransformutils_adjustdimensionscale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\EntityTransformUtils.cs",
+      "source_location": "L44",
+      "weight": 1.0,
+      "_src": "transforms_entitytransformutils_entitytransformutils_transformentity",
+      "_tgt": "transforms_dimensiontransformutils_dimensiontransformutils_transformdimension",
+      "source": "transforms_dimensiontransformutils_dimensiontransformutils_transformdimension",
+      "target": "transforms_entitytransformutils_entitytransformutils_transformentity"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L81",
+      "weight": 1.0,
+      "_src": "transforms_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
+      "_tgt": "transforms_dimensiontransformutils_dimensiontransformutils_formatdouble",
+      "source": "transforms_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
+      "target": "transforms_dimensiontransformutils_dimensiontransformutils_formatdouble",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L89",
+      "weight": 1.0,
+      "_src": "transforms_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
+      "_tgt": "transforms_dimensiontransformutils_dimensiontransformutils_readdouble",
+      "source": "transforms_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
+      "target": "transforms_dimensiontransformutils_dimensiontransformutils_readdouble",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L90",
+      "weight": 1.0,
+      "_src": "transforms_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
+      "_tgt": "transforms_dimensiontransformutils_dimensiontransformutils_escapediagnostictext",
+      "source": "transforms_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
+      "target": "transforms_dimensiontransformutils_dimensiontransformutils_escapediagnostictext",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L85",
+      "weight": 1.0,
+      "_src": "transforms_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
+      "_tgt": "logging_ailog_ailog_debug",
+      "source": "transforms_dimensiontransformutils_dimensiontransformutils_logdimensiondiagnostic",
+      "target": "logging_ailog_ailog_debug"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L99",
+      "weight": 1.0,
+      "_src": "transforms_dimensiontransformutils_dimensiontransformutils_readdouble",
+      "_tgt": "transforms_dimensiontransformutils_dimensiontransformutils_formatdouble",
+      "source": "transforms_dimensiontransformutils_dimensiontransformutils_readdouble",
+      "target": "transforms_dimensiontransformutils_dimensiontransformutils_formatdouble",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\DimensionTransformUtils.cs",
+      "source_location": "L110",
+      "weight": 1.0,
+      "_src": "transforms_dimensiontransformutils_dimensiontransformutils_formatdouble",
+      "_tgt": "models_mergestatistics_mergestatistics_tostring",
+      "source": "transforms_dimensiontransformutils_dimensiontransformutils_formatdouble",
+      "target": "models_mergestatistics_mergestatistics_tostring"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\EntityTransformUtils.cs",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_src": "application_merge_layouts_transforms_entitytransformutils_cs",
+      "_tgt": "transforms_entitytransformutils_entitytransformutils",
+      "source": "application_merge_layouts_transforms_entitytransformutils_cs",
+      "target": "transforms_entitytransformutils_entitytransformutils",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\EntityTransformUtils.cs",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_src": "transforms_entitytransformutils_entitytransformutils",
+      "_tgt": "transforms_entitytransformutils_entitytransformutils_getscalefactor",
+      "source": "transforms_entitytransformutils_entitytransformutils",
+      "target": "transforms_entitytransformutils_entitytransformutils_getscalefactor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\EntityTransformUtils.cs",
+      "source_location": "L27",
+      "weight": 1.0,
+      "_src": "transforms_entitytransformutils_entitytransformutils",
+      "_tgt": "transforms_entitytransformutils_entitytransformutils_transformentity",
+      "source": "transforms_entitytransformutils_entitytransformutils",
+      "target": "transforms_entitytransformutils_entitytransformutils_transformentity",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\EntityTransformUtils.cs",
+      "source_location": "L69",
+      "weight": 1.0,
+      "_src": "transforms_entitytransformutils_entitytransformutils",
+      "_tgt": "transforms_entitytransformutils_entitytransformutils_adjustmleaderscale",
+      "source": "transforms_entitytransformutils_entitytransformutils",
+      "target": "transforms_entitytransformutils_entitytransformutils_adjustmleaderscale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\EntityTransformUtils.cs",
+      "source_location": "L75",
+      "weight": 1.0,
+      "_src": "transforms_entitytransformutils_entitytransformutils",
+      "_tgt": "transforms_entitytransformutils_entitytransformutils_evaluatehatch",
+      "source": "transforms_entitytransformutils_entitytransformutils",
+      "target": "transforms_entitytransformutils_entitytransformutils_evaluatehatch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\EntityTransformUtils.cs",
+      "source_location": "L58",
+      "weight": 1.0,
+      "_src": "transforms_entitytransformutils_entitytransformutils_transformentity",
+      "_tgt": "transforms_entitytransformutils_entitytransformutils_adjustmleaderscale",
+      "source": "transforms_entitytransformutils_entitytransformutils_transformentity",
+      "target": "transforms_entitytransformutils_entitytransformutils_adjustmleaderscale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "Application\\Merge\\Layouts\\Transforms\\EntityTransformUtils.cs",
+      "source_location": "L62",
+      "weight": 1.0,
+      "_src": "transforms_entitytransformutils_entitytransformutils_transformentity",
+      "_tgt": "transforms_entitytransformutils_entitytransformutils_evaluatehatch",
+      "source": "transforms_entitytransformutils_entitytransformutils_transformentity",
+      "target": "transforms_entitytransformutils_entitytransformutils_evaluatehatch",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
