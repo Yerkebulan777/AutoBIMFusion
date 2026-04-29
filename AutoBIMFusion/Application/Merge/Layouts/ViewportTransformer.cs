@@ -283,58 +283,56 @@ internal static class ViewportTransformer
 
             foreach (IdPair pair in map)
             {
-                if (!pair.IsCloned || !pair.IsPrimary)
+                if (pair.IsCloned && pair.IsPrimary)
                 {
-                    continue;
-                }
+                    mappedPrimary++;
 
-                mappedPrimary++;
-
-                if (tr.GetObject(pair.Value, OpenMode.ForWrite) is Entity e)
-                {
-                    string entType = e.GetType().Name;
-                    string handle = e.Handle.ToString();
-
-                    try
+                    if (tr.GetObject(pair.Value, OpenMode.ForWrite) is Entity e)
                     {
-                        Extents3d? oldExt = ExtentsUtils.TryGetExtents(e);
+                        string entType = e.GetType().Name;
+                        string handle = e.Handle.ToString();
 
-                        EntityTransformUtils.TransformResult transformResult = EntityTransformUtils.TransformEntity(
-                            e,
-                            matrix,
-                            scaleFactor,
-                            EntityTransformUtils.DimensionScaleOrder.AfterTransform);
-
-                        if (transformResult.SkippedAssociativeHatch)
+                        try
                         {
-                            _ = cloned.Add(pair.Value);
-                            continue;
-                        }
+                            Extents3d? oldExt = ExtentsUtils.TryGetExtents(e);
 
-                        if (transformResult.DimensionScaleAdjusted)
-                        {
-                            dimensionOverrides++;
-                        }
+                            EntityTransformUtils.TransformResult transformResult = EntityTransformUtils.TransformEntity(
+                                e,
+                                matrix,
+                                scaleFactor,
+                                EntityTransformUtils.DimensionScaleOrder.AfterTransform);
 
-                        Extents3d? newExt = ExtentsUtils.TryGetExtents(e);
-
-                        if (oldExt.HasValue && newExt.HasValue)
-                        {
-                            double oldDiag = oldExt.Value.MaxPoint.DistanceTo(oldExt.Value.MinPoint);
-                            double newDiag = newExt.Value.MaxPoint.DistanceTo(newExt.Value.MinPoint);
-
-                            if (oldDiag > 0.001 && (newDiag / oldDiag) > 1000.0)
+                            if (transformResult.SkippedAssociativeHatch)
                             {
-                                log.Warn($"[АНОМАЛИЯ КЛОНА] Тип: {entType}, Handle: {handle}. " +
-                                         $"Диагональ ДО: {oldDiag:F2}, ПОСЛЕ: {newDiag:F2}");
+                                _ = cloned.Add(pair.Value);
+                                continue;
                             }
-                        }
 
-                        _ = cloned.Add(pair.Value);
-                    }
-                    catch (System.Exception ex)
-                    {
-                        log.Warn($"[ОШИБКА КЛОНА] Тип: {entType}, Handle: {handle}. Ошибка: {ex.Message}");
+                            if (transformResult.DimensionScaleAdjusted)
+                            {
+                                dimensionOverrides++;
+                            }
+
+                            Extents3d? newExt = ExtentsUtils.TryGetExtents(e);
+
+                            if (oldExt.HasValue && newExt.HasValue)
+                            {
+                                double oldDiag = oldExt.Value.MaxPoint.DistanceTo(oldExt.Value.MinPoint);
+                                double newDiag = newExt.Value.MaxPoint.DistanceTo(newExt.Value.MinPoint);
+
+                                if (oldDiag > 0.001 && (newDiag / oldDiag) > 1000.0)
+                                {
+                                    log.Warn($"[АНОМАЛИЯ КЛОНА] Тип: {entType}, Handle: {handle}. " +
+                                             $"Диагональ ДО: {oldDiag:F2}, ПОСЛЕ: {newDiag:F2}");
+                                }
+                            }
+
+                            _ = cloned.Add(pair.Value);
+                        }
+                        catch (System.Exception ex)
+                        {
+                            log.Warn($"[ОШИБКА КЛОНА] Тип: {entType}, Handle: {handle}. Ошибка: {ex.Message}");
+                        }
                     }
                 }
             }

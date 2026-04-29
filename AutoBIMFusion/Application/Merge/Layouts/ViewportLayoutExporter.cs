@@ -22,6 +22,7 @@ internal static class ViewportLayoutExporter
         using (Database db = new(false, true))
         {
             db.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
+
             db.CloseInput(true);
 
             if (!LayoutUtil.TryFindFirstLayout(db, out string layoutName))
@@ -31,9 +32,10 @@ internal static class ViewportLayoutExporter
             }
 
             List<LayoutViewportInfo> vps = ViewportCollector.Collect(db, layoutName);
-            log.Info($"VP: найдено {vps.Count}");
 
             Extents3d? frameBounds = LayoutProjectionProcessor.ProjectLayoutToModelSpace(db, layoutName, vps, log);
+
+            log.Info($"VP: найдено {vps.Count}");
 
             if (frameBounds.HasValue)
             {
