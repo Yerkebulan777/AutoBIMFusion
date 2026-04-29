@@ -37,7 +37,18 @@ internal static class LayoutUtil
     internal static ObjectId GetLayoutBtrId(Database db, string layoutName)
     {
         using Transaction tr = db.TransactionManager.StartTransaction();
-        ObjectId btrId = GetLayoutBtrId(db, layoutName, tr);
+        DBDictionary dict = (DBDictionary)tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+
+        if (!dict.Contains(layoutName))
+        {
+            tr.Commit();
+            return ObjectId.Null;
+        }
+
+        ObjectId layoutId = dict.GetAt(layoutName);
+        Layout layout = (Layout)tr.GetObject(layoutId, OpenMode.ForRead);
+        ObjectId btrId = layout.BlockTableRecordId;
+        
         tr.Commit();
         return btrId;
     }
@@ -53,7 +64,7 @@ internal static class LayoutUtil
         ObjectIdCollection result = [];
 
         using Transaction tr = db.TransactionManager.StartTransaction();
-        ObjectId btrId = GetLayoutBtrId(db, layoutName, tr);
+        ObjectId btrId = GetLayoutBtrId(db, layoutName);
 
         if (btrId.IsNull)
         {
@@ -75,19 +86,5 @@ internal static class LayoutUtil
 
         tr.Commit();
         return result;
-    }
-
-    private static ObjectId GetLayoutBtrId(Database db, string layoutName, Transaction tr)
-    {
-        DBDictionary dict = (DBDictionary)tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
-
-        if (!dict.Contains(layoutName))
-        {
-            return ObjectId.Null;
-        }
-
-        ObjectId layoutId = dict.GetAt(layoutName);
-        Layout layout = (Layout)tr.GetObject(layoutId, OpenMode.ForRead);
-        return layout.BlockTableRecordId;
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace AutoBIMFusion.Application.Merge.Layouts;
+﻿using static System.Math;
+
+namespace AutoBIMFusion.Application.Merge.Layouts;
 
 /// <summary>
 /// Перечисляет активные Viewport'ы указанного листа и собирает LayoutViewportInfo.
@@ -117,12 +119,12 @@ internal static class ViewportCollector
 
         foreach (Point3d p in corners)
         {
-            minX = Math.Min(minX, p.X);
-            maxX = Math.Max(maxX, p.X);
-            minY = Math.Min(minY, p.Y);
-            maxY = Math.Max(maxY, p.Y);
-            minZ = Math.Min(minZ, p.Z);
-            maxZ = Math.Max(maxZ, p.Z);
+            minX = Min(minX, p.X);
+            maxX = Max(maxX, p.X);
+            minY = Min(minY, p.Y);
+            maxY = Max(maxY, p.Y);
+            minZ = Min(minZ, p.Z);
+            maxZ = Max(maxZ, p.Z);
         }
 
         return new Extents3d(new Point3d(minX, minY, minZ), new Point3d(maxX, maxY, maxZ));
