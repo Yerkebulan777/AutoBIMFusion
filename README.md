@@ -17,9 +17,13 @@ AutoBIMFusion is a .NET 8 plugin for AutoCAD 2025-2027. Its main command, `MERGE
 1. `MergeCommands` guards against parallel `MERGEDWG` runs with `SemaphoreSlim`.
 2. `FileEnumerator` collects DWG files up to 3 folder levels deep, skipping names prefixed with `#` and files larger than 15 MB.
 3. `MergeCoordinator.MergeSingleFile` validates each DWG, exports the first layout via `ViewportLayoutExporter`, then inserts the temporary result via `BlockInserter`.
-4. `ViewportLayoutExporter` handles 0 / 1 / multi-viewport layouts, moves Paper Space content into Model Space, trims objects outside the frame, and embeds eligible model rasters as `OLE2FRAME`.
-5. `BlockInserter` clones native entities into the target Model Space with `WblockCloneObjects` and places each sheet along X with a calculated gap.
-6. The final drawing copies remaining raster files next to the target DWG, purges unused database objects, saves as `AC1032`, then runs `REGENALL` and `ZOOM EXTENTS`.
+4. `ViewportLayoutExporter` delegates viewport math and layout projection to `LayoutProjectionProcessor`:
+   - 0 viewport: move Paper Space to Model Space with default 1:100 scaling,
+   - 1 viewport: clamp scale if needed, scale Model Space once, then project Paper Space,
+   - multi viewport: flatten aux viewport content to main viewport coordinates, remove aux-only originals, then project Paper Space.
+5. `ModelSpaceTrimmer.TrimOutside` removes objects outside the projected frame bounds.
+6. `BlockInserter` clones native entities into the target Model Space with `WblockCloneObjects` and places each sheet along X with a calculated gap.
+7. The final drawing normalizes raster file paths next to the target DWG (`RasterImagePathFixer`), purges unused database objects, saves as `AC1032`, then runs `REGENALL` and `ZOOM EXTENTS`.
 
 ## Current Design Rules
 
@@ -32,7 +36,6 @@ AutoBIMFusion is a .NET 8 plugin for AutoCAD 2025-2027. Its main command, `MERGE
 ## Known Tradeoffs
 
 - `DuplicateRecordCloning.Ignore` keeps the target drawing stable but may reuse existing layers/styles instead of preserving conflicting source definitions.
-- Raster embedding still depends on Clipboard + `PASTECLIP`; the plugin now preserves/restores Clipboard data, but direct OLE creation would be more robust.
 - Only the first Paper Space layout is processed.
 - Long merge operations do not yet support cancellation.
 

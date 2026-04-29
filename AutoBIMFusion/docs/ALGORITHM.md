@@ -1,6 +1,6 @@
 # MERGEDWG Algorithm
 
-**Updated:** 2026-04-28
+**Updated:** 2026-04-29
 **Primary code:** `Application/Commands/MergeCommands.cs`, `Application/Merge/MergeOrchestrator.cs`, `Application/Merge/BlockInserter.cs`, `Application/Merge/Layouts/*`
 
 This document describes the actual merge path and only the decisions that affect correctness or stability.
@@ -31,13 +31,13 @@ Failures at this level return `MergeResult.Warn` or `MergeResult.Fail`; the batc
 
 ## 3. Layout Export
 
-`ViewportLayoutExporter` opens the source DWG in a side `Database`, calls `CloseInput(true)`, finds the first non-model layout, then chooses one of three paths:
+`ViewportLayoutExporter` opens the source DWG in a side `Database`, calls `CloseInput(true)`, finds the first non-model layout, then delegates to `LayoutProjectionProcessor`:
 
 | Case | Path | Behavior |
 | :--- | :--- | :--- |
-| 0 viewports | `ProcessNoVp` | Moves Paper Space entities to Model Space and scales by `MaxScaleMultiplier` (`100`). |
-| 1 viewport | `ProcessSingleVp` | Clamps the viewport scale if needed, scales Model Space, then maps Paper Space through the viewport. |
-| 2+ viewports | `ProcessMultiVp` | Picks the main viewport, clones auxiliary viewport model content into the main viewport coordinate system, scales Model Space once, then maps Paper Space. |
+| 0 viewports | `ProjectNoViewport` | Moves Paper Space entities to Model Space and scales by `MaxScaleMultiplier` (`100`). |
+| 1 viewport | `ProjectSingleViewport` | Clamps the viewport scale if needed, scales Model Space once, then maps Paper Space through the viewport. |
+| 2+ viewports | `ProjectMultipleViewports` | Picks the main viewport, clones auxiliary viewport model content into the main viewport coordinate system, erases aux-only originals, scales Model Space once, then maps Paper Space. |
 
 After Paper Space is cloned into Model Space, `ModelSpaceTrimmer.TrimOutside` removes entities whose extents do not intersect the cloned frame bounds.
 
@@ -48,23 +48,11 @@ Main formulas live in `ViewportTransformer`:
 - `BuildPaperToMainMatrix`: Paper Space to main viewport model coordinates.
 - `BuildMatrix`: auxiliary viewport model coordinates to main viewport model coordinates.
 - `ScaleModelSpaceObjects`: applies clamp scaling while compensating `Dimension.Dimscale`, `Dimension.Dimlfac`, and `MLeader.Scale`.
+- `EraseEntitiesOutsideMainWindow`: removes original aux viewport entities that are not visible in the main viewport after aux flattening.
 
 Associative hatches are skipped during direct scaling because their boundary entities update them. Non-associative hatches are transformed and then evaluated.
 
-## 5. Raster Handling
-
-Eligible `RasterImage` entities originally in Model Space are embedded into the temporary DWG as `OLE2FRAME` objects:
-
-1. The code snapshots Model Space object IDs.
-2. It copies the image to Clipboard and calls `._PASTECLIP`.
-3. The new `OLE2FRAME` is found by comparing the post-insert object set with the snapshot.
-4. Size is applied through `WcsWidth` / `WcsHeight`; if that is unreliable, `Position3d` is used.
-5. The source `RasterImage` is erased only after a new OLE object is found.
-6. The previous Clipboard content is restored in `finally`.
-
-Images larger than 5 MB are not converted to OLE.
-
-## 6. Target Insertion
+## 5. Target Insertion
 
 `BlockInserter.InsertNativeObjects`:
 
@@ -77,7 +65,7 @@ Images larger than 5 MB are not converted to OLE.
 
 The output is not wrapped in `BlockReference`; objects remain directly editable.
 
-## 7. Finalization
+## 6. Finalization
 
 After all files:
 
@@ -89,5 +77,5 @@ After all files:
 ## Contentious Points
 
 - Should source layer/style conflicts use `DuplicateRecordCloning.MangleName` instead of `Ignore` to preserve visual fidelity?
-- Should raster embedding be replaced with direct OLE API creation or should large/problematic images remain as external `RasterImage` references?
 - Should processing all layouts be added as a separate command mode?
+- Should file-size/recursion/scale limits remain fixed or become configurable?

@@ -76,21 +76,18 @@ internal static class ViewportTransformer
     /// Viewport'ы пропускаются; особенности конкретных типов сущностей обрабатывает
     /// <see cref="EntityTransformUtils"/>.
     /// </summary>
-    internal static void ScaleModelSpaceObjects(
-        Database db,
-        Matrix3d matrix,
-        double ratio,
-        OperationLogger log)
+    internal static void ScaleModelSpaceObjects(Database db, Matrix3d matrix, double ratio, OperationLogger log)
     {
-        int scaled = 0;
         int total = 0;
+        int scaled = 0;
         int skippedViewport = 0;
         int skippedNonEntity = 0;
         int skippedAssociative = 0;
-        ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
-        Dictionary<string, int> successTypes = [];
         Dictionary<string, int> errorTypes = [];
+        Dictionary<string, int> successTypes = [];
+
+        ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
         double scaleFactor = EntityTransformUtils.GetScaleFactor(matrix);
 
         using Transaction tr = db.TransactionManager.StartTransaction();
@@ -135,22 +132,23 @@ internal static class ViewportTransformer
 
                 if (oldExt.HasValue && newExt.HasValue)
                 {
-                    double oldDiag = oldExt.Value.MaxPoint.DistanceTo(oldExt.Value.MinPoint);
-                    double newDiag = newExt.Value.MaxPoint.DistanceTo(newExt.Value.MinPoint);
+                    double oldDig = oldExt.Value.MaxPoint.DistanceTo(oldExt.Value.MinPoint);
+                    double newDig = newExt.Value.MaxPoint.DistanceTo(newExt.Value.MinPoint);
 
-                    if (oldDiag > 0.001 && (newDiag / oldDiag) > (ratio * 5.0))
+                    if (oldDig > 0.001 && (newDig / oldDig) > (ratio * 5.0))
                     {
-                        log.Warn($"[АНОМАЛИЯ МАСШТАБА] Тип: {entType}, Handle: {handle}. Диагональ ДО: {oldDiag:F2}, ПОСЛЕ: {newDiag:F2}");
+                        log.Warn($"[АНОМАЛИЯ МАСШТАБА] Тип: {entType}, Handle: {handle}. Диагональ ДО: {oldDig:F2}, ПОСЛЕ: {newDig:F2}");
                     }
                 }
 
                 scaled++;
-                if (!successTypes.ContainsKey(entType))
+                if (!successTypes.TryGetValue(entType, out int value))
                 {
-                    successTypes[entType] = 0;
+                    value = 0;
+                    successTypes[entType] = value;
                 }
 
-                successTypes[entType]++;
+                successTypes[entType] = ++value;
             }
             catch (System.Exception ex)
             {

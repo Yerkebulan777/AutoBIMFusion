@@ -1,6 +1,6 @@
 # AutoBIMFusion Technical Documentation
 
-**Updated:** 2026-04-28
+**Updated:** 2026-04-29
 
 ## 1. Overview
 
@@ -29,11 +29,13 @@ AutoBIMFusion/
       RasterImagePathFixer.cs     # Raster path normalization for final DWG
       Layouts/
         ViewportLayoutExporter.cs
+        LayoutProjectionProcessor.cs
         ViewportTransformer.cs
         ViewportCollector.cs
         ModelSpaceTrimmer.cs
         DrawOrderPreserver.cs
         ExtentsUtils.cs
+        EntityTransformUtils.cs
         LayoutViewportInfo.cs
       Models/
         MergeResult.cs
@@ -64,9 +66,11 @@ AutoBIMFusion/
 2. `FolderSelector` gets the source folder.
 3. `FileEnumerator` collects and naturally sorts DWG paths.
 4. `MergeCoordinator.MergeSingleFile` processes each file independently.
-5. `ViewportLayoutExporter` exports the first layout to a temporary DWG.
-6. `BlockInserter` clones temporary Model Space objects into the target database.
-7. Final pass fixes raster paths, purges unused database objects, saves, and regenerates the drawing.
+5. `ViewportLayoutExporter` exports the first layout to a temporary DWG and delegates projection logic to `LayoutProjectionProcessor`.
+6. `LayoutProjectionProcessor` handles 0 / 1 / multi-viewport strategies, including scale clamp, aux-viewport flattening, and Paper Space transfer.
+7. `ModelSpaceTrimmer.TrimOutside` removes Model Space entities outside projected frame bounds.
+8. `BlockInserter` clones temporary Model Space objects into the target database.
+9. Final pass fixes raster paths, purges unused database objects, saves, and regenerates the drawing.
 
 ### SMART_MERGE_TEXT
 
@@ -118,13 +122,11 @@ The main command catches startup failures outside the async task body so users s
 | :--- | :--- | :--- | :--- |
 | `MaxFileSizeBytes` | `FileEnumerator` | 15 MB | Skip large source DWGs. |
 | `MaxRecursionDepth` | `FileEnumerator` | 3 | Limit folder traversal. |
-| `MaxScaleMultiplier` | `ViewportLayoutExporter` | 100 | Target clamp scale, equivalent to 1:100. |
-| `MaxOleFileSizeBytes` | `ViewportLayoutExporter` | 5 MB | Skip OLE conversion for large images. |
+| `MaxScaleMultiplier` | `LayoutProjectionProcessor` | 100 | Clamp viewport scale and no-viewport default scale, equivalent to 1:100. |
 | `MaxPurgePasses` | `DwgOptimizer` | 5 | Bound purge iterations. |
 
 ## 7. Remaining Risks
 
-- Clipboard-based OLE embedding can still race with other processes even though user Clipboard content is restored.
 - `DuplicateRecordCloning.Ignore` is stable for the target database but can change visual style fidelity if source and target definitions conflict.
 - Long operations have no cancellation token.
 - Only the first Paper Space layout is processed.
