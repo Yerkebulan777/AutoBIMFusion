@@ -77,8 +77,8 @@ internal static class LayoutProjectionProcessor
 
         ScaleModelSpaceWhenClamped(db, clampRatio, mainOriginal.ViewCenter, log);
 
-        // Paper content is projected through the clamped main viewport because Model Space
-        // has already been brought into the clamped scale above.
+        // Содержимое бумаги проецируется через ограниченную основную область просмотра, поскольку пространство модели
+        // уже было приведено к указанному выше ограниченному масштабу.
         return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainClamped, log), log);
     }
 
