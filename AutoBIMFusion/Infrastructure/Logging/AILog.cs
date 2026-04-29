@@ -70,8 +70,7 @@ internal sealed class AILog(Editor ed)
             Editor? activeEd = AcadApp.DocumentManager.MdiActiveDocument?.Editor;
             (activeEd ?? ed).WriteMessage(msg);
         }
-        catch (Autodesk.AutoCAD.Runtime.Exception ex)
-            when (ex.ErrorStatus == Autodesk.AutoCAD.Runtime.ErrorStatus.NotApplicable)
+        catch (Autodesk.AutoCAD.Runtime.Exception ex) when (ex.ErrorStatus == ErrorStatus.NotApplicable)
         {
             // Игнорируем вывод в невалидном UI-контексте
         }

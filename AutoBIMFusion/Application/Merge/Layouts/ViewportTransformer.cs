@@ -377,14 +377,10 @@ internal static class ViewportTransformer
     /// Без этого шага объекты aux VP, чьи модельные координаты попадают в пределы листа
     /// (frameBounds), не удаляются TrimOutside и остаются как «мусор» в результирующем файле.
     /// </summary>
-    internal static int EraseEntitiesOutsideMainWindow(
-        Database db,
-        ObjectIdCollection auxEntities,
-        IReadOnlyList<ModelEntitySnapshot> modelSnapshots,
-        Extents3d mainWindow,
-        AILog log)
+    internal static int EraseEntitiesOutsideMainWindow(Database db, ObjectIdCollection auxEntities, IReadOnlyList<ModelEntitySnapshot> modelSnapshots, Extents3d mainWindow, AILog log)
     {
         HashSet<ObjectId> inMain = [];
+
         foreach (ModelEntitySnapshot s in modelSnapshots)
         {
             if (ExtentsUtils.AabbIntersect(mainWindow, s.Extents))

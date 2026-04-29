@@ -62,16 +62,10 @@ internal static class LayoutProjectionProcessor
                 continue;
             }
 
-            ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(
-                db,
-                toClone,
-                msId,
-                msId,
-                matrix,
-                log,
-                $"aux-VP #{aux.Number}");
+            ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log, $"aux-VP #{aux.Number}");
 
             _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow, log);
+
             log.Info($"aux-VP #{aux.Number}: обработано {cloned.Count} объектов");
         }
 
