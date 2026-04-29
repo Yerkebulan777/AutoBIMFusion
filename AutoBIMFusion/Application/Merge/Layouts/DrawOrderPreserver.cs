@@ -10,7 +10,7 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 internal static class DrawOrderPreserver
 {
     internal static IReadOnlyList<ObjectId> Capture(
-        Database db, ObjectId sourceBtrId, ObjectIdCollection filterIds, OperationLogger log)
+        Database db, ObjectId sourceBtrId, ObjectIdCollection filterIds, AILog log)
     {
         ArgumentNullException.ThrowIfNull(filterIds);
 
@@ -50,7 +50,7 @@ internal static class DrawOrderPreserver
 
     internal static void Restore(
         Database db, ObjectId targetBtrId, IReadOnlyList<ObjectId> sourceOrder,
-        IdMapping map, OperationLogger log)
+        IdMapping map, AILog log)
     {
         ArgumentNullException.ThrowIfNull(sourceOrder);
         ArgumentNullException.ThrowIfNull(map);

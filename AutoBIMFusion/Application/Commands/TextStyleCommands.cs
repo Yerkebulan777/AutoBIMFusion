@@ -18,7 +18,7 @@ public sealed class TextStyleCommands
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
-        OperationLogger log = new(doc.Editor);
+        AILog log = new(doc.Editor);
         log.Info("Запуск команды MergeTextStyles...");
         Database db = doc.Database;
 
@@ -235,7 +235,7 @@ public sealed class TextStyleCommands
         return updated;
     }
 
-    private static int DeleteStyles(Transaction tr, HashSet<ObjectId> duplicateStyleIds, OperationLogger log)
+    private static int DeleteStyles(Transaction tr, HashSet<ObjectId> duplicateStyleIds, AILog log)
     {
         int deleted = 0;
 

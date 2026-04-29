@@ -14,7 +14,7 @@ namespace AutoBIMFusion.Application.Merge;
 [SupportedOSPlatform("windows")]
 internal static class MergeCoordinator
 {
-    public static async Task<MergeResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc, OperationLogger log)
+    public static async Task<MergeResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc, AILog log)
     {
         string fileName = Path.GetFileName(filePath);
         string layoutName = Path.GetFileNameWithoutExtension(filePath);
@@ -84,7 +84,7 @@ internal static class MergeCoordinator
         }
     }
 
-    private static Extents3d? ReadBounds(string tempPath, OperationLogger log)
+    private static Extents3d? ReadBounds(string tempPath, AILog log)
     {
         try
         {

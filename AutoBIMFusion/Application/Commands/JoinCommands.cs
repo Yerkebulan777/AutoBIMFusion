@@ -20,7 +20,7 @@ public sealed class JoinCommands
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
-        OperationLogger log = new(doc.Editor);
+        AILog log = new(doc.Editor);
         log.Info("Запуск команды JOIN_LINES...");
 
         try

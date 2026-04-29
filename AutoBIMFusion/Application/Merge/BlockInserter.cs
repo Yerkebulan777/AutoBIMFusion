@@ -11,7 +11,7 @@ namespace AutoBIMFusion.Application.Merge;
 /// ВАЖНО: объекты вставляются как нативные сущности (не в блоке), чтобы сохранить
 /// исходный вид и структуру объектов такими же, как в исходном файле.
 /// </summary>
-internal sealed class BlockInserter(double gapPercent, OperationLogger log)
+internal sealed class BlockInserter(double gapPercent, AILog log)
 {
     private double _rightMax;
     private bool _hasPlacedObjects;

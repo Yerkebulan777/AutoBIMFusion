@@ -19,7 +19,7 @@ public sealed class SmartTextCommands
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
-        OperationLogger log = new(doc.Editor);
+        AILog log = new(doc.Editor);
         log.Info("Запуск команды SMART_MERGE_TEXT...");
         Database db = doc.Database;
         int mergedGroupsCount = 0;
@@ -92,7 +92,7 @@ public sealed class SmartTextCommands
         }
     }
 
-    private static List<TextElement> CollectTextElements(BlockTableRecord modelSpace, Transaction tr, OperationLogger log)
+    private static List<TextElement> CollectTextElements(BlockTableRecord modelSpace, Transaction tr, AILog log)
     {
         List<TextElement> result = [];
         int textCount = 0;

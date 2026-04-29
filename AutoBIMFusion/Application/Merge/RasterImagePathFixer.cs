@@ -8,7 +8,7 @@ namespace AutoBIMFusion.Application.Merge;
 /// </summary>
 internal static class RasterImagePathFixer
 {
-    public static void CopyImagesToTargetFolder(Database db, string targetFilePath, OperationLogger log)
+    public static void CopyImagesToTargetFolder(Database db, string targetFilePath, AILog log)
     {
         string? targetDir = Path.GetDirectoryName(targetFilePath);
         if (string.IsNullOrEmpty(targetDir))

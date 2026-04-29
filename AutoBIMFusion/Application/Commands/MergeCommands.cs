@@ -29,7 +29,7 @@ public sealed class MergeCommands
             Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
             if (doc is not null)
             {
-                new OperationLogger(doc.Editor).Error(ex, "Критическая ошибка запуска MERGEDWG");
+                new AILog(doc.Editor).Error(ex, "Критическая ошибка запуска MERGEDWG");
             }
         }
     }
@@ -39,7 +39,7 @@ public sealed class MergeCommands
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
-        OperationLogger log = new(doc.Editor);
+        AILog log = new(doc.Editor);
         log.Info("Запуск команды MERGEDWG...");
 
         if (!await _mergeGate.WaitAsync(0))
@@ -64,7 +64,7 @@ public sealed class MergeCommands
         }
     }
 
-    private static async Task ExecuteMerge(Document doc, OperationLogger log)
+    private static async Task ExecuteMerge(Document doc, AILog log)
     {
         if (FolderSelector.TrySelectFolder(out string? folderPath))
         {
@@ -105,7 +105,7 @@ public sealed class MergeCommands
         }
     }
 
-    private static async Task MergeFiles(string[] files, BlockInserter inserter, Document doc, MergeStatistics stats, OperationLogger log)
+    private static async Task MergeFiles(string[] files, BlockInserter inserter, Document doc, MergeStatistics stats, AILog log)
     {
         using ProgressMeter pm = new();
         pm.Start("Объединение файлов DWG...");
@@ -160,7 +160,7 @@ public sealed class MergeCommands
         return Path.Combine(parent.FullName, $"{dir.Name}.dwg");
     }
 
-    private static void SaveMerged(Database db, string savePath, OperationLogger log)
+    private static void SaveMerged(Database db, string savePath, AILog log)
     {
         try
         {

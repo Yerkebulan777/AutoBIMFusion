@@ -13,7 +13,7 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 [SupportedOSPlatform("Windows")]
 internal static class ViewportLayoutExporter
 {
-    public static Task<string> ExportToTempAsync(string sourceFilePath, string fileName, OperationLogger log)
+    public static Task<string> ExportToTempAsync(string sourceFilePath, string fileName, AILog log)
     {
         ArgumentNullException.ThrowIfNull(sourceFilePath);
 
@@ -33,8 +33,7 @@ internal static class ViewportLayoutExporter
             List<LayoutViewportInfo> vps = ViewportCollector.Collect(db, layoutName);
             log.Info($"VP: найдено {vps.Count}");
 
-            (Extents3d? frameBounds, _) =
-                LayoutProjectionProcessor.ProjectLayoutToModelSpace(db, layoutName, vps, log);
+            Extents3d? frameBounds = LayoutProjectionProcessor.ProjectLayoutToModelSpace(db, layoutName, vps, log);
 
             if (frameBounds.HasValue)
             {

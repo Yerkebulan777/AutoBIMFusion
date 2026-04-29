@@ -4,18 +4,14 @@ using AutoBIMFusion.Infrastructure.Logging;
 namespace AutoBIMFusion.Application.Merge.Layouts;
 
 /// <summary>
-/// Projects layout content into Model Space before the temporary DWG is merged.
-/// Handles viewport scale clamping, aux viewport flattening, and Paper Space transfer.
+/// Размещает содержимое проекта в пространстве модели до объединения временного файла DWG.
+/// Обеспечивает ограничение масштаба окна просмотра, сглаживание вспомогательных окон просмотра и перенос в пространство листа.
 /// </summary>
 internal static class LayoutProjectionProcessor
 {
     private const double MaxScaleMultiplier = 100.0;
 
-    internal static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProjectLayoutToModelSpace(
-        Database db,
-        string layoutName,
-        IReadOnlyList<LayoutViewportInfo> viewports,
-        OperationLogger log)
+    internal static Extents3d? ProjectLayoutToModelSpace(Database db, string layoutName, IReadOnlyList<LayoutViewportInfo> viewports, AILog log)
     {
         return viewports.Count switch
         {
@@ -25,11 +21,7 @@ internal static class LayoutProjectionProcessor
         };
     }
 
-    private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProjectMultipleViewports(
-        Database db,
-        string layoutName,
-        IReadOnlyList<LayoutViewportInfo> viewports,
-        OperationLogger log)
+    private static Extents3d? ProjectMultipleViewports(Database db, string layoutName, IReadOnlyList<LayoutViewportInfo> viewports, AILog log)
     {
         log.Info($"Выбранный метод масштабирования: ProcessMultiVp ({viewports.Count} viewport'ов)");
 
@@ -43,8 +35,8 @@ internal static class LayoutProjectionProcessor
             $"центр={ExtentsUtils.FormatPoint(mainOriginal.ViewCenter)}");
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
-        IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities =
-            ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
+
+        IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
 
         ObjectIdCollection mainIds = ViewportTransformer.SelectModelInside(modelEntities, mainOriginal.ModelWindow, log);
         log.Debug($"main-VP #{mainOriginal.Number}: selected={mainIds.Count}, dimension scale overrides skipped");
@@ -87,11 +79,11 @@ internal static class LayoutProjectionProcessor
         return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainClamped, log), log);
     }
 
-    private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProjectSingleViewport(
+    private static Extents3d? ProjectSingleViewport(
         Database db,
         string layoutName,
         LayoutViewportInfo viewport,
-        OperationLogger log)
+        AILog log)
     {
         log.Info($"Выбранный метод масштабирования: ProcessSingleVp (VP #{viewport.Number})");
 
@@ -113,10 +105,10 @@ internal static class LayoutProjectionProcessor
         return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(clamped, log), log);
     }
 
-    private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) ProjectNoViewport(
+    private static Extents3d? ProjectNoViewport(
         Database db,
         string layoutName,
-        OperationLogger log)
+        AILog log)
     {
         log.Info($"Выбранный метод масштабирования: ProcessNoVp (масштаб по умолчанию 1:100)");
 
@@ -124,14 +116,14 @@ internal static class LayoutProjectionProcessor
 
         if (paperIds.Count == 0)
         {
-            return (null, []);
+            return null;
         }
 
         Extents3d? paperBounds = ModelSpaceTrimmer.ComputeBounds(db, paperIds, log);
 
         if (!paperBounds.HasValue)
         {
-            return (null, []);
+            return null;
         }
 
         Point3d minPt = paperBounds.Value.MinPoint;
@@ -147,7 +139,7 @@ internal static class LayoutProjectionProcessor
         return MovePaperToModelSpace(db, layoutName, matrix, log, "paper-no-vp");
     }
 
-    private static void ScaleModelSpaceWhenClamped(Database db, double clampRatio, Point3d center, OperationLogger log)
+    private static void ScaleModelSpaceWhenClamped(Database db, double clampRatio, Point3d center, AILog log)
     {
         if (clampRatio <= 1.0 + 1e-9)
         {
@@ -163,7 +155,7 @@ internal static class LayoutProjectionProcessor
         ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
     }
 
-    private static LayoutViewportInfo ClampMainViewportScale(LayoutViewportInfo viewport, OperationLogger log)
+    private static LayoutViewportInfo ClampMainViewportScale(LayoutViewportInfo viewport, AILog log)
     {
         double multiplier = 1.0 / viewport.CustomScale;
 
@@ -177,11 +169,11 @@ internal static class LayoutProjectionProcessor
         return viewport;
     }
 
-    private static (Extents3d? Bounds, HashSet<ObjectId> PaperClonedIds) MovePaperToModelSpace(
+    private static Extents3d? MovePaperToModelSpace(
         Database db,
         string layoutName,
         Matrix3d matrix,
-        OperationLogger log,
+        AILog log,
         string tag = "paper")
     {
         ObjectId paperBtrId = LayoutUtil.GetLayoutBtrId(db, layoutName);
@@ -189,21 +181,15 @@ internal static class LayoutProjectionProcessor
 
         if (paperIds.Count == 0)
         {
-            return (null, []);
+            return null;
         }
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
         ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, paperIds, paperBtrId, msId, matrix, log, tag);
 
-        HashSet<ObjectId> clonedSet = [];
-        foreach (ObjectId id in cloned)
-        {
-            _ = clonedSet.Add(id);
-        }
-
         EraseBlockContents(db, paperBtrId);
 
-        return (ModelSpaceTrimmer.ComputeBounds(db, cloned, log), clonedSet);
+        return ModelSpaceTrimmer.ComputeBounds(db, cloned, log);
     }
 
     private static void EraseBlockContents(Database db, ObjectId btrId)

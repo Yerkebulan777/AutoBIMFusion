@@ -15,7 +15,7 @@ internal static class DwgOptimizer
     /// </summary>
     private const int MaxPurgePasses = 5;
 
-    public static void Optimize(Database db, OperationLogger log)
+    public static void Optimize(Database db, AILog log)
     {
         log.Info("Очистка (Purge)...");
 
@@ -44,7 +44,7 @@ internal static class DwgOptimizer
         }
     }
 
-    private static int PurgePass(Database db, OperationLogger log)
+    private static int PurgePass(Database db, AILog log)
     {
         ObjectIdCollection candidates = [];
 
@@ -114,7 +114,7 @@ internal static class DwgOptimizer
         return erased;
     }
 
-    private static void AddTableIds(Transaction tr, ObjectId tableId, ObjectIdCollection target, OperationLogger log)
+    private static void AddTableIds(Transaction tr, ObjectId tableId, ObjectIdCollection target, AILog log)
     {
         if (tableId.IsNull)
         {
@@ -138,7 +138,7 @@ internal static class DwgOptimizer
         }
     }
 
-    private static void AddDictionaryIds(Transaction tr, ObjectId dictId, ObjectIdCollection target, OperationLogger log)
+    private static void AddDictionaryIds(Transaction tr, ObjectId dictId, ObjectIdCollection target, AILog log)
     {
         if (dictId.IsNull)
         {

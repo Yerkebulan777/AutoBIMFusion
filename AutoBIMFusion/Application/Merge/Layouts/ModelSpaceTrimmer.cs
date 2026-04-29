@@ -13,7 +13,7 @@ internal static class ModelSpaceTrimmer
     /// Считает bounding-box указанных объектов (обычно — клонированный paper content).
     /// Возвращает null, если ни один объект не имеет валидных extents.
     /// </summary>
-    internal static Extents3d? ComputeBounds(Database db, ObjectIdCollection entityIds, OperationLogger log)
+    internal static Extents3d? ComputeBounds(Database db, ObjectIdCollection entityIds, AILog log)
     {
         if (entityIds.Count == 0)
         {
@@ -64,7 +64,7 @@ internal static class ModelSpaceTrimmer
     /// весь лист), не будут удалены здесь. Основная очистка выполняется в
     /// ViewportTransformer.EraseEntitiesOutsideMainWindow непосредственно после клонирования.
     /// </summary>
-    internal static int TrimOutside(Database db, Extents3d frameBounds, OperationLogger log)
+    internal static int TrimOutside(Database db, Extents3d frameBounds, AILog log)
     {
         int erased = 0;
         int total = 0;

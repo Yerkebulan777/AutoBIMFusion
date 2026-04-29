@@ -5,7 +5,7 @@ using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Infrastructure.Logging;
 
-internal sealed class OperationLogger(Editor ed)
+internal sealed class AILog(Editor ed)
 {
     private readonly Logger _fileLogger = LoggerFactory.GetSharedLogger();
 

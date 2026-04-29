@@ -22,7 +22,7 @@ public sealed class TransmittalCommands
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
-        OperationLogger log = new(doc.Editor);
+        AILog log = new(doc.Editor);
         log.Info("Запуск команды CreateETransmitZip...");
 
         if (!doc.IsNamedDrawing || string.IsNullOrWhiteSpace(doc.Name))
@@ -123,7 +123,7 @@ public sealed class TransmittalCommands
         return true;
     }
 
-    private static void ConfigureTransmittalInfo(dynamic transmittalInfo, string tempFolder, OperationLogger log)
+    private static void ConfigureTransmittalInfo(dynamic transmittalInfo, string tempFolder, AILog log)
     {
         // AutoCAD версии могут использовать разные имена для поля назначения
         bool destinationSet = false;
@@ -155,7 +155,7 @@ public sealed class TransmittalCommands
         SetMemberValue(transmittalInfo, "includeDataLinkFile", 1, log);
     }
 
-    private static void SetMemberValue(object target, string memberName, object value, OperationLogger log, bool required = false)
+    private static void SetMemberValue(object target, string memberName, object value, AILog log, bool required = false)
     {
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase;
 
@@ -258,7 +258,7 @@ public sealed class TransmittalCommands
         }
     }
 
-    private static void TryDeleteTempFolder(string tempFolder, OperationLogger log)
+    private static void TryDeleteTempFolder(string tempFolder, AILog log)
     {
         try
         {

@@ -23,7 +23,7 @@ internal static class ViewportTransformer
     /// <summary>
     /// Матрица переноса «модель aux-VP → модель main-VP».
     /// </summary>
-    internal static Matrix3d BuildMatrix(LayoutViewportInfo main, LayoutViewportInfo aux, OperationLogger log)
+    internal static Matrix3d BuildMatrix(LayoutViewportInfo main, LayoutViewportInfo aux, AILog log)
     {
         Vector3d z = Vector3d.ZAxis;
         Point3d origin = Point3d.Origin;
@@ -51,7 +51,7 @@ internal static class ViewportTransformer
     /// Матрица переноса «бумага → модель main-VP». Используется для содержимого Paper Space
     /// (рамка, штамп, тексты) когда его пересаживают в Model Space через главный VP.
     /// </summary>
-    internal static Matrix3d BuildPaperToMainMatrix(LayoutViewportInfo main, OperationLogger log)
+    internal static Matrix3d BuildPaperToMainMatrix(LayoutViewportInfo main, AILog log)
     {
         Vector3d z = Vector3d.ZAxis;
         Point3d origin = Point3d.Origin;
@@ -76,7 +76,7 @@ internal static class ViewportTransformer
     /// Viewport'ы пропускаются; особенности конкретных типов сущностей обрабатывает
     /// <see cref="EntityTransformUtils"/>.
     /// </summary>
-    internal static void ScaleModelSpaceObjects(Database db, Matrix3d matrix, double ratio, OperationLogger log)
+    internal static void ScaleModelSpaceObjects(Database db, Matrix3d matrix, double ratio, AILog log)
     {
         int total = 0;
         int scaled = 0;
@@ -90,79 +90,82 @@ internal static class ViewportTransformer
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
         double scaleFactor = EntityTransformUtils.GetScaleFactor(matrix);
 
-        using Transaction tr = db.TransactionManager.StartTransaction();
-        BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
+        using Transaction trx = db.TransactionManager.StartTransaction();
+        BlockTableRecord modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
 
-        foreach (ObjectId id in ms)
+        foreach (ObjectId id in modelSpace)
         {
-            total++;
+            if (trx.GetObject(id, OpenMode.ForWrite) is Entity ent)
+            {
+                total++;
 
-            if (tr.GetObject(id, OpenMode.ForWrite) is not Entity ent)
+                if (ent is Viewport)
+                {
+                    skippedViewport++;
+                    continue;
+                }
+
+                string entType = ent.GetType().Name;
+                string handle = ent.Handle.ToString();
+
+                try
+                {
+                    Extents3d? oldExt = ExtentsUtils.TryGetExtents(ent);
+
+                    EntityTransformUtils.TransformResult transformResult = EntityTransformUtils.TransformEntity(
+                        ent,
+                        matrix,
+                        scaleFactor,
+                        EntityTransformUtils.DimensionScaleOrder.BeforeTransform);
+
+                    if (transformResult.SkippedAssociativeHatch)
+                    {
+                        skippedAssociative++;
+                        continue;
+                    }
+
+                    Extents3d? newExt = ExtentsUtils.TryGetExtents(ent);
+
+                    if (oldExt.HasValue && newExt.HasValue)
+                    {
+                        double oldDig = oldExt.Value.MaxPoint.DistanceTo(oldExt.Value.MinPoint);
+                        double newDig = newExt.Value.MaxPoint.DistanceTo(newExt.Value.MinPoint);
+
+                        if (oldDig > 0.001 && (newDig / oldDig) > (ratio * 5.0))
+                        {
+                            log.Warn($"[АНОМАЛИЯ МАСШТАБА] Тип: {entType}, Handle: {handle}. Диагональ ДО: {oldDig:F2}, ПОСЛЕ: {newDig:F2}");
+                        }
+                    }
+
+                    scaled++;
+
+                    if (!successTypes.TryGetValue(entType, out int value))
+                    {
+                        value = 0;
+                        successTypes[entType] = value;
+                    }
+
+                    successTypes[entType] = ++value;
+                }
+                catch (System.Exception ex)
+                {
+                    log.Error(ex, $"[ОШИБКА ТРАНСФОРМАЦИИ] Тип: {entType}, Handle: {handle}. Сообщение: {ex.Message}");
+                    if (!errorTypes.ContainsKey(entType))
+                    {
+                        errorTypes[entType] = 0;
+                    }
+
+                    errorTypes[entType]++;
+                }
+            }
+            else
             {
                 skippedNonEntity++;
                 continue;
             }
-
-            if (ent is Viewport)
-            {
-                skippedViewport++;
-                continue;
-            }
-
-            string entType = ent.GetType().Name;
-            string handle = ent.Handle.ToString();
-
-            try
-            {
-                Extents3d? oldExt = ExtentsUtils.TryGetExtents(ent);
-
-                EntityTransformUtils.TransformResult transformResult = EntityTransformUtils.TransformEntity(
-                    ent,
-                    matrix,
-                    scaleFactor,
-                    EntityTransformUtils.DimensionScaleOrder.BeforeTransform);
-
-                if (transformResult.SkippedAssociativeHatch)
-                {
-                    skippedAssociative++;
-                    continue;
-                }
-
-                Extents3d? newExt = ExtentsUtils.TryGetExtents(ent);
-
-                if (oldExt.HasValue && newExt.HasValue)
-                {
-                    double oldDig = oldExt.Value.MaxPoint.DistanceTo(oldExt.Value.MinPoint);
-                    double newDig = newExt.Value.MaxPoint.DistanceTo(newExt.Value.MinPoint);
-
-                    if (oldDig > 0.001 && (newDig / oldDig) > (ratio * 5.0))
-                    {
-                        log.Warn($"[АНОМАЛИЯ МАСШТАБА] Тип: {entType}, Handle: {handle}. Диагональ ДО: {oldDig:F2}, ПОСЛЕ: {newDig:F2}");
-                    }
-                }
-
-                scaled++;
-                if (!successTypes.TryGetValue(entType, out int value))
-                {
-                    value = 0;
-                    successTypes[entType] = value;
-                }
-
-                successTypes[entType] = ++value;
-            }
-            catch (System.Exception ex)
-            {
-                log.Error(ex, $"[ОШИБКА ТРАНСФОРМАЦИИ] Тип: {entType}, Handle: {handle}. Сообщение: {ex.Message}");
-                if (!errorTypes.ContainsKey(entType))
-                {
-                    errorTypes[entType] = 0;
-                }
-
-                errorTypes[entType]++;
-            }
         }
 
-        tr.Commit();
+        trx.Commit();
 
         log.Info($"ScaleModelSpaceObjects завершен: ratio={ratio:F6}, total={total}, scaled={scaled}, " +
                  $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}, skippedAssociative={skippedAssociative}");
@@ -180,21 +183,22 @@ internal static class ViewportTransformer
         }
     }
 
-    internal static IReadOnlyList<ModelEntitySnapshot> CollectModelEntitiesWithExtents(Database db, ObjectId msId, OperationLogger log)
+    internal static IReadOnlyList<ModelEntitySnapshot> CollectModelEntitiesWithExtents(Database db, ObjectId msId, AILog log)
     {
-        List<ModelEntitySnapshot> result = [];
         int total = 0;
         int skippedViewport = 0;
         int skippedNoExtents = 0;
 
-        using Transaction tr = db.TransactionManager.StartTransaction();
-        BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
+        List<ModelEntitySnapshot> result = [];
 
-        foreach (ObjectId id in ms)
+        using Transaction trx = db.TransactionManager.StartTransaction();
+        BlockTableRecord modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
+
+        foreach (ObjectId id in modelSpace)
         {
             total++;
 
-            if (tr.GetObject(id, OpenMode.ForRead) is not Entity ent)
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent)
             {
                 continue;
             }
@@ -215,7 +219,7 @@ internal static class ViewportTransformer
             result.Add(new ModelEntitySnapshot(id, ext.Value));
         }
 
-        tr.Commit();
+        trx.Commit();
         log.Debug($"CollectModelEntitiesWithExtents total={total}, cached={result.Count}, skippedViewport={skippedViewport}, skippedNoExtents={skippedNoExtents}");
         return result;
     }
@@ -228,7 +232,7 @@ internal static class ViewportTransformer
     /// </remarks>
     internal static ObjectIdCollection DeepCloneAndTransform(
         Database db, ObjectIdCollection sourceIds, ObjectId sourceOwnerId, ObjectId ownerId,
-        Matrix3d matrix, OperationLogger log, string sourceName)
+        Matrix3d matrix, AILog log, string sourceName)
     {
         IReadOnlyList<ObjectId> sourceOrder = DrawOrderPreserver.Capture(db, sourceOwnerId, sourceIds, log);
 
@@ -340,7 +344,7 @@ internal static class ViewportTransformer
     internal static ObjectIdCollection SelectModelInside(
         IReadOnlyList<ModelEntitySnapshot> modelEntities,
         Extents3d window,
-        OperationLogger log)
+        AILog log)
     {
         ObjectIdCollection result = [];
         int outsideWindow = 0;
@@ -378,7 +382,7 @@ internal static class ViewportTransformer
         ObjectIdCollection auxEntities,
         IReadOnlyList<ModelEntitySnapshot> modelSnapshots,
         Extents3d mainWindow,
-        OperationLogger log)
+        AILog log)
     {
         HashSet<ObjectId> inMain = [];
         foreach (ModelEntitySnapshot s in modelSnapshots)
@@ -422,7 +426,7 @@ internal static class ViewportTransformer
     /// размерных стилей ожидаемым образом. Обнуление «отвязывает» высоту.
     /// Вызывается перед масштабированием объектов Model Space.
     /// </summary>
-    internal static void UnlockTextStylesHeight(Database db, OperationLogger log)
+    internal static void UnlockTextStylesHeight(Database db, AILog log)
     {
         int unlocked = 0;
 
