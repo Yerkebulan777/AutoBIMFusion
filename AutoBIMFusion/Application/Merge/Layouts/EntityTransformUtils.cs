@@ -1,3 +1,5 @@
+using AutoBIMFusion.Infrastructure.Logging;
+
 namespace AutoBIMFusion.Application.Merge.Layouts;
 
 /// <summary>
@@ -26,7 +28,9 @@ internal static class EntityTransformUtils
         Entity entity,
         Matrix3d matrix,
         double scaleFactor,
-        DimensionScaleOrder dimensionScaleOrder)
+        DimensionScaleOrder dimensionScaleOrder,
+        AILog? log = null,
+        string diagnosticScenario = "unknown")
     {
         if (entity is Hatch { Associative: true })
         {
@@ -35,45 +39,31 @@ internal static class EntityTransformUtils
 
         bool dimensionScaleAdjusted = false;
 
-        if (entity is Dimension dimension && dimensionScaleOrder == DimensionScaleOrder.BeforeTransform)
+        if (entity is Dimension dimension)
         {
-            AdjustDimensionScale(dimension, scaleFactor);
-            dimensionScaleAdjusted = true;
+            dimensionScaleAdjusted = DimensionTransformUtils.TransformDimension(
+                dimension,
+                matrix,
+                scaleFactor,
+                dimensionScaleOrder,
+                log,
+                diagnosticScenario);
         }
-
-        entity.TransformBy(matrix);
-
-        if (entity is Dimension transformedDimension)
+        else
         {
-            if (dimensionScaleOrder == DimensionScaleOrder.AfterTransform)
+            entity.TransformBy(matrix);
+
+            if (entity is MLeader mleader)
             {
-                AdjustDimensionScale(transformedDimension, scaleFactor);
-                dimensionScaleAdjusted = true;
+                AdjustMLeaderScale(mleader, scaleFactor);
             }
-
-            transformedDimension.RecomputeDimensionBlock(true);
-        }
-        else if (entity is MLeader mleader)
-        {
-            AdjustMLeaderScale(mleader, scaleFactor);
-        }
-        else if (entity is Hatch hatch)
-        {
-            EvaluateHatch(hatch);
+            else if (entity is Hatch hatch)
+            {
+                EvaluateHatch(hatch);
+            }
         }
 
         return new TransformResult(true, false, dimensionScaleAdjusted);
-    }
-
-    private static void AdjustDimensionScale(Dimension dimension, double scaleFactor)
-    {
-        double currentDimscale = dimension.Dimscale == 0.0 ? 1.0 : dimension.Dimscale;
-        dimension.Dimscale = currentDimscale * scaleFactor;
-
-        if (scaleFactor > 0.0001)
-        {
-            dimension.Dimlfac /= scaleFactor;
-        }
     }
 
     private static void AdjustMLeaderScale(MLeader mleader, double scaleFactor)

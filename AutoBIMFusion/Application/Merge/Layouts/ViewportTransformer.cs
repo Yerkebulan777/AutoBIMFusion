@@ -116,7 +116,9 @@ internal static class ViewportTransformer
                         ent,
                         matrix,
                         scaleFactor,
-                        EntityTransformUtils.DimensionScaleOrder.BeforeTransform);
+                        EntityTransformUtils.DimensionScaleOrder.BeforeTransform,
+                        log,
+                        "model-clamp");
 
                     if (transformResult.SkippedAssociativeHatch)
                     {
@@ -126,10 +128,9 @@ internal static class ViewportTransformer
 
                     Extents3d? newExt = ExtentsUtils.TryGetExtents(ent);
 
-                    if (ExtentsUtils.TryGetScaleRatio(oldExt, newExt, out double oldDiag, out double newDiag, out double diagRatio)
-                        && diagRatio > (ratio * 5.0))
+                    if (ExtentsUtils.TryGetScaleRatio(oldExt, newExt, out double oldDig, out double newDig, out double digRatio) && digRatio > (ratio * 5.0))
                     {
-                        log.Warn($"[АНОМАЛИЯ МАСШТАБА] Тип: {entType}, Handle: {handle}. Диагональ ДО: {oldDiag:F2}, ПОСЛЕ: {newDiag:F2}");
+                        log.Warn($"[АНОМАЛИЯ МАСШТАБА] Тип: {entType}, Handle: {handle}. Диагональ ДО: {oldDig:F2}, ПОСЛЕ: {newDig:F2}");
                     }
 
                     scaled++;
@@ -275,6 +276,7 @@ internal static class ViewportTransformer
         double scaleFactor = EntityTransformUtils.GetScaleFactor(matrix);
 
         EntityTransformUtils.DimensionScaleOrder dimensionScaleOrder = EntityTransformUtils.DimensionScaleOrder.AfterTransform;
+        string dimensionDiagnosticScenario = GetDimensionDiagnosticScenario(sourceName);
 
         using (Transaction tr = db.TransactionManager.StartTransaction())
         {
@@ -300,7 +302,9 @@ internal static class ViewportTransformer
                                 e,
                                 matrix,
                                 scaleFactor,
-                                dimensionScaleOrder);
+                                dimensionScaleOrder,
+                                log,
+                                dimensionDiagnosticScenario);
 
                             if (transformResult.SkippedAssociativeHatch)
                             {
@@ -340,6 +344,21 @@ internal static class ViewportTransformer
             $"mappedPrimary={mappedPrimary}, transformed={cloned.Count}, dimensionOverrides={dimensionOverrides}, " +
             $"scaleFactor={scaleFactor:F6}");
         return cloned;
+    }
+
+    private static string GetDimensionDiagnosticScenario(string sourceName)
+    {
+        if (sourceName.StartsWith("aux-VP", StringComparison.OrdinalIgnoreCase))
+        {
+            return "aux-clone";
+        }
+
+        if (sourceName.StartsWith("paper", StringComparison.OrdinalIgnoreCase))
+        {
+            return "paper-clone";
+        }
+
+        return sourceName;
     }
 
     internal static ObjectIdCollection SelectModelInside(IReadOnlyList<ModelEntitySnapshot> modelEntities, Extents3d window, AILog log)
