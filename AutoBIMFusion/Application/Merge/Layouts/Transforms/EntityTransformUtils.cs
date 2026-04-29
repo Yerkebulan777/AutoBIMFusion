@@ -3,21 +3,12 @@ using AutoBIMFusion.Infrastructure.Logging;
 namespace AutoBIMFusion.Application.Merge.Layouts.Transforms;
 
 /// <summary>
-/// Applies AutoCAD entity transforms with the required post-processing for
-/// dimensions, multileaders, and hatches.
+/// Применяет преобразования объектов AutoCAD с необходимой постобработкой для
+/// размеров, многолинейных линеек и штриховки.
 /// </summary>
 internal static class EntityTransformUtils
 {
-    internal enum DimensionScaleOrder
-    {
-        BeforeTransform,
-        AfterTransform
-    }
-
-    internal readonly record struct TransformResult(
-        bool Transformed,
-        bool SkippedAssociativeHatch,
-        bool DimensionScaleAdjusted);
+    internal readonly record struct TransformResult(bool Transformed, bool SkippedAssociativeHatch);
 
     internal static double GetScaleFactor(Matrix3d matrix)
     {
@@ -28,42 +19,26 @@ internal static class EntityTransformUtils
         Entity entity,
         Matrix3d matrix,
         double scaleFactor,
-        DimensionScaleOrder dimensionScaleOrder,
         AILog? log = null,
         string diagnosticScenario = "unknown")
     {
         if (entity is Hatch { Associative: true })
         {
-            return new TransformResult(false, true, false);
+            return new TransformResult(false, true);
         }
 
-        bool dimensionScaleAdjusted = false;
+        entity.TransformBy(matrix);
 
-        if (entity is Dimension dimension)
+        if (entity is MLeader mleader)
         {
-            dimensionScaleAdjusted = DimensionTransformUtils.TransformDimension(
-                dimension,
-                matrix,
-                scaleFactor,
-                dimensionScaleOrder,
-                log,
-                diagnosticScenario);
+            AdjustMLeaderScale(mleader, scaleFactor);
         }
-        else
+        else if (entity is Hatch hatch)
         {
-            entity.TransformBy(matrix);
-
-            if (entity is MLeader mleader)
-            {
-                AdjustMLeaderScale(mleader, scaleFactor);
-            }
-            else if (entity is Hatch hatch)
-            {
-                EvaluateHatch(hatch);
-            }
+            EvaluateHatch(hatch);
         }
 
-        return new TransformResult(true, false, dimensionScaleAdjusted);
+        return new TransformResult(true, false);
     }
 
     private static void AdjustMLeaderScale(MLeader mleader, double scaleFactor)
