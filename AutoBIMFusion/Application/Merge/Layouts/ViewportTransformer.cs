@@ -245,13 +245,13 @@ internal static class ViewportTransformer
 
         foreach (ObjectId id in sourceIds)
         {
-            if (id.IsErased)
+            if (!id.IsErased)
             {
-                skippedErased++;
+                _ = validIds.Add(id);
             }
             else
             {
-                _ = validIds.Add(id);
+                skippedErased++;
             }
         }
 
