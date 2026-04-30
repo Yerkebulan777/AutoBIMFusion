@@ -26,20 +26,24 @@ node_modules/
 
 # Editors
 .vs/
+.vshost/
+.user
+.suo
+.ReSharper/
+_ReSharper.*/
 *.user
-*.suo
-*.userosscache
-*.sln.docstates
+*.userprefs
+*.vscode/
 
 # OS generated files
 .DS_Store
 Thumbs.db
+ehthumbs.db
+Icon?
 desktop.ini
-
-# Visual Studio Code
-.vscode/
 
 # Temporary files
 *.tmp
 *.temp
+[Tt]emp/
 ```

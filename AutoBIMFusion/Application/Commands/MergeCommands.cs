@@ -66,7 +66,6 @@ public sealed class MergeCommands
 
         AILog log = new(doc.Editor);
         log.Info($"Запуск команды {commandName}...");
-        bool dimensionDiagnostics = string.Equals(commandName, "MERGEDWG_DIAG_TEST", StringComparison.Ordinal);
 
         if (!await _mergeGate.WaitAsync(0))
         {
@@ -77,12 +76,7 @@ public sealed class MergeCommands
 
         try
         {
-            if (dimensionDiagnostics)
-            {
-                DimensionTransformUtils.BeginDiagnosticRun();
-            }
-
-            await ExecuteMerge(doc, log, folderPath, showDialogs, dimensionDiagnostics);
+            await ExecuteMerge(doc, log, folderPath, showDialogs);
         }
         catch (System.Exception ex)
         {
@@ -90,17 +84,12 @@ public sealed class MergeCommands
         }
         finally
         {
-            if (dimensionDiagnostics)
-            {
-                DimensionTransformUtils.LogDiagnosticSummary(log);
-            }
-
             _ = _mergeGate.Release();
             log.Info($"Завершение команды {commandName}.");
         }
     }
 
-    private static async Task ExecuteMerge(Document doc, AILog log, string? folderPath, bool showDialogs, bool dimensionDiagnostics)
+    private static async Task ExecuteMerge(Document doc, AILog log, string? folderPath, bool showDialogs)
     {
         string? sourceFolder = folderPath;
 
@@ -141,22 +130,12 @@ public sealed class MergeCommands
 
         BlockInserter inserter = new(gapPercent, log);
 
-        if (dimensionDiagnostics)
-        {
-            DimensionStyleDiagnosticUtils.LogDimensionStyleSnapshot(doc.Database, log, "before-merge");
-        }
-
-        await MergeFiles(dwgFiles, inserter, doc, stats, log, dimensionDiagnostics);
+        await MergeFiles(dwgFiles, inserter, doc, stats, log, dimensionDiagnostics: false);
 
         using (doc.LockDocument())
         {
             RasterImagePathFixer.CopyImagesToTargetFolder(doc.Database, savePath, log);
             DwgOptimizer.Optimize(doc.Database, log);
-
-            if (dimensionDiagnostics)
-            {
-                DimensionStyleDiagnosticUtils.LogDimensionStyleSnapshot(doc.Database, log, "before-save");
-            }
 
             SaveMerged(doc.Database, savePath, log);
 
