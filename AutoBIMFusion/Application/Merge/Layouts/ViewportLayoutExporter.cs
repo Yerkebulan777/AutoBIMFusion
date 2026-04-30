@@ -13,9 +13,10 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 [SupportedOSPlatform("Windows")]
 internal static class ViewportLayoutExporter
 {
-    public static Task<string> ExportToTempAsync(string sourceFilePath, string fileName, AILog log)
+    public static Task<string> ExportToTempAsync(string sourceFilePath, string fileName, Database targetDb, AILog log)
     {
         ArgumentNullException.ThrowIfNull(sourceFilePath);
+        ArgumentNullException.ThrowIfNull(targetDb);
 
         string tempPath = BuildTempPath(fileName);
 
@@ -43,6 +44,8 @@ internal static class ViewportLayoutExporter
                 log.Info($"VP: очищено {erased} объектов");
             }
 
+            SyncUnitsWithTarget(db, targetDb, fileName, log);
+
             using (new AcadWarningSuppressScope())
             {
                 db.SaveAs(tempPath, DwgVersion.AC1032);
@@ -57,6 +60,24 @@ internal static class ViewportLayoutExporter
     {
         string name = Path.GetFileNameWithoutExtension(fileName);
         return Path.Combine(Path.GetTempPath(), $"{name}-{Guid.NewGuid()}.dwg");
+    }
+
+    private static void SyncUnitsWithTarget(Database tempDb, Database targetDb, string fileName, AILog log)
+    {
+        UnitsValue targetInsunits = targetDb.Insunits;
+        MeasurementValue targetMeasurement = targetDb.Measurement;
+
+        if (tempDb.Insunits != targetInsunits)
+        {
+            tempDb.Insunits = targetInsunits;
+        }
+
+        if (tempDb.Measurement != targetMeasurement)
+        {
+            tempDb.Measurement = targetMeasurement;
+        }
+
+        log.Info($"VP: синхронизация единиц ({fileName}) INSUNITS={targetInsunits}, MEASUREMENT={targetMeasurement}");
     }
 
 }

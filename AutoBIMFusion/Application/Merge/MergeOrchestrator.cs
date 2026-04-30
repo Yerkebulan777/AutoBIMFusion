@@ -35,7 +35,7 @@ internal static class MergeCoordinator
         {
             log.Info($"Файл: {fileName}");
 
-            tempPath = await ViewportLayoutExporter.ExportToTempAsync(filePath, fileName, log);
+            tempPath = await ViewportLayoutExporter.ExportToTempAsync(filePath, fileName, targetDoc.Database, log);
 
             if (string.IsNullOrEmpty(tempPath))
             {
@@ -53,6 +53,10 @@ internal static class MergeCoordinator
             using (targetDoc.LockDocument())
             {
                 worldBounds = inserter.InsertNativeObjects(targetDoc.Database, tempPath, layoutName, bounds.Value);
+                if (worldBounds.HasValue)
+                {
+                    DimensionStyleDiagnosticUtils.ClearDimensionOverrides(targetDoc.Database, log);
+                }
             }
 
             if (worldBounds is null)

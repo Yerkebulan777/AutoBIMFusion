@@ -11,8 +11,8 @@ internal static class DimensionStyleDiagnosticUtils
 
     private static readonly HashSet<string> StandardStyleNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        "Standard",
         "ISO-25",
+        "Standard",
         "Annotative"
     };
 
@@ -154,7 +154,7 @@ internal static class DimensionStyleDiagnosticUtils
         }
 
         dimension.UpgradeOpen();
-        dimension.XData = cleanedValues.Count == 0 ? null : new ResultBuffer(cleanedValues.ToArray());
+        dimension.XData = cleanedValues.Count == 0 ? null : [.. cleanedValues.ToArray()];
         return true;
     }
 
