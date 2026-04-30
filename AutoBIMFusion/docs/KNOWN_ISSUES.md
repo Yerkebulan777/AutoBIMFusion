@@ -44,7 +44,7 @@ These are intentionally conservative, but they are not user-configurable.
 
 **Risk:** dimensions may change text height, arrow size, extension-line geometry, or displayed numeric value after model clamp scaling, Paper Space cloning, or auxiliary viewport flattening.
 
-**Status:** active diagnostics are compact style snapshots only. `MERGEDWG` and `MERGEDWG_DIAG_TEST` log `before-merge` and `after-merge` snapshots for user dimension/text styles, plus `[DIM-OVERRIDES]` warnings only for concrete dimension override cleanup failures.
+**Status:** active diagnostics log new per-file source styles as `before-merge`, the final target style snapshot as `after-merge`, and `[DIM-OVERRIDES]` warnings only for concrete dimension override cleanup failures.
 
 **Residual verification:** manual visual QA in AutoCAD is still required for representative production sheets, because full dimension extents may include scaled extension-line geometry even when text and arrow visual metrics are preserved.
 

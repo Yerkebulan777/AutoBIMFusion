@@ -58,6 +58,49 @@ internal static class DimensionStyleDiagnosticUtils
         }
     }
 
+    internal static void LogNewStylesBeforeMerge(Database sourceDb, Database targetDb, AILog log)
+    {
+        HashSet<string> targetDimStyleNames = CollectDimensionStyleNames(targetDb);
+        HashSet<string> targetTextStyleNames = CollectTextStyleNames(targetDb);
+
+        List<string> newDimStyles = [];
+        List<string> newTextStyles = [];
+
+        using Transaction tr = sourceDb.TransactionManager.StartTransaction();
+
+        DimStyleTable dimStyleTable = (DimStyleTable)tr.GetObject(sourceDb.DimStyleTableId, OpenMode.ForRead);
+        foreach (ObjectId id in dimStyleTable)
+        {
+            DimStyleTableRecord style = (DimStyleTableRecord)tr.GetObject(id, OpenMode.ForRead);
+            if (IsUserStyle(style) && !targetDimStyleNames.Contains(style.Name))
+            {
+                newDimStyles.Add(FormatDimensionStyle(style));
+            }
+        }
+
+        TextStyleTable textStyleTable = (TextStyleTable)tr.GetObject(sourceDb.TextStyleTableId, OpenMode.ForRead);
+        foreach (ObjectId id in textStyleTable)
+        {
+            TextStyleTableRecord style = (TextStyleTableRecord)tr.GetObject(id, OpenMode.ForRead);
+            if (IsUserStyle(style) && !targetTextStyleNames.Contains(style.Name))
+            {
+                newTextStyles.Add(FormatTextStyle(style));
+            }
+        }
+
+        tr.Commit();
+
+        foreach (string style in newDimStyles.Order(StringComparer.OrdinalIgnoreCase))
+        {
+            log.Info($"[DIM-STYLE] stage=before-merge, {style}");
+        }
+
+        foreach (string style in newTextStyles.Order(StringComparer.OrdinalIgnoreCase))
+        {
+            log.Info($"[TEXT-STYLE] stage=before-merge, {style}");
+        }
+    }
+
     internal static void ClearDimensionOverrides(Database db, AILog log)
     {
         using Transaction tr = db.TransactionManager.StartTransaction();
@@ -213,6 +256,38 @@ internal static class DimensionStyleDiagnosticUtils
         }
 
         return sectionValues.Count - 1;
+    }
+
+    private static HashSet<string> CollectDimensionStyleNames(Database db)
+    {
+        HashSet<string> names = new(StringComparer.OrdinalIgnoreCase);
+
+        using Transaction tr = db.TransactionManager.StartTransaction();
+        DimStyleTable table = (DimStyleTable)tr.GetObject(db.DimStyleTableId, OpenMode.ForRead);
+        foreach (ObjectId id in table)
+        {
+            DimStyleTableRecord style = (DimStyleTableRecord)tr.GetObject(id, OpenMode.ForRead);
+            _ = names.Add(style.Name);
+        }
+
+        tr.Commit();
+        return names;
+    }
+
+    private static HashSet<string> CollectTextStyleNames(Database db)
+    {
+        HashSet<string> names = new(StringComparer.OrdinalIgnoreCase);
+
+        using Transaction tr = db.TransactionManager.StartTransaction();
+        TextStyleTable table = (TextStyleTable)tr.GetObject(db.TextStyleTableId, OpenMode.ForRead);
+        foreach (ObjectId id in table)
+        {
+            TextStyleTableRecord style = (TextStyleTableRecord)tr.GetObject(id, OpenMode.ForRead);
+            _ = names.Add(style.Name);
+        }
+
+        tr.Commit();
+        return names;
     }
 
     private static DimensionStyleSnapshot CreateSnapshot(DimStyleTableRecord style)

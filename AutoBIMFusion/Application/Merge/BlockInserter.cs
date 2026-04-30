@@ -35,6 +35,8 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
             sourceDb.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
             sourceDb.CloseInput(true);
 
+            DimensionStyleDiagnosticUtils.LogNewStylesBeforeMerge(sourceDb, targetDb, log);
+
             ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
             int sourceDimensionCount = 0;
 

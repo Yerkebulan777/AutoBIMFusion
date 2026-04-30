@@ -129,11 +129,6 @@ public sealed class MergeCommands
 
         BlockInserter inserter = new(gapPercent, log);
 
-        using (doc.LockDocument())
-        {
-            DimensionStyleDiagnosticUtils.LogStyleSnapshot(doc.Database, log, "before-merge");
-        }
-
         await MergeFiles(dwgFiles, inserter, doc, stats, log);
 
         using (doc.LockDocument())
