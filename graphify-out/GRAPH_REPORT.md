@@ -1,7 +1,7 @@
 # Graph Report - AutoBIMFusion  (2026-04-30)
 
 ## Corpus Check
-- 48 files · ~18,975 words
+- 48 files · ~19,023 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary

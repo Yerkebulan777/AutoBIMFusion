@@ -30,31 +30,49 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
         {
             ObjectIdCollection sourceIds = [];
 
+            UnitsValue normalizedInsunits = UnitsValue.Millimeters;
+            MeasurementValue normalizedMeasurement = MeasurementValue.Metric;
+            UnitsValue targetInsunitsBefore = targetDb.Insunits;
+            MeasurementValue targetMeasurementBefore = targetDb.Measurement;
+            bool targetInsunitsChanged = targetInsunitsBefore != normalizedInsunits;
+            bool targetMeasurementChanged = targetMeasurementBefore != normalizedMeasurement;
+            if (targetInsunitsChanged)
+            {
+                targetDb.Insunits = normalizedInsunits;
+            }
+
+            if (targetMeasurementChanged)
+            {
+                targetDb.Measurement = normalizedMeasurement;
+            }
+
             using Database sourceDb = new(false, true);
 
             sourceDb.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
             UnitsValue sourceInsunitsBefore = sourceDb.Insunits;
-            UnitsValue targetInsunits = targetDb.Insunits;
-            bool insunitsChanged = sourceInsunitsBefore != targetInsunits;
-            if (insunitsChanged)
-            {
-                sourceDb.Insunits = targetInsunits;
-            }
-
             MeasurementValue sourceMeasurementBefore = sourceDb.Measurement;
-            MeasurementValue targetMeasurement = targetDb.Measurement;
-            bool measurementChanged = sourceMeasurementBefore != targetMeasurement;
-            if (measurementChanged)
+            bool sourceInsunitsChanged = sourceInsunitsBefore != normalizedInsunits;
+            bool sourceMeasurementChanged = sourceMeasurementBefore != normalizedMeasurement;
+            if (sourceInsunitsChanged)
             {
-                sourceDb.Measurement = targetMeasurement;
+                sourceDb.Insunits = normalizedInsunits;
+            }
+
+            if (sourceMeasurementChanged)
+            {
+                sourceDb.Measurement = normalizedMeasurement;
             }
 
             log.Info(
-                $"[INSUNITS] source={sourceName}, sourceBefore={sourceInsunitsBefore}, " +
-                $"target={targetInsunits}, sourceAfter={sourceDb.Insunits}, synced={insunitsChanged}");
+                $"[INSUNITS] source={sourceName}, targetBefore={targetInsunitsBefore}, " +
+                $"sourceBefore={sourceInsunitsBefore}, targetAfter={targetDb.Insunits}, " +
+                $"sourceAfter={sourceDb.Insunits}, targetSynced={targetInsunitsChanged}, " +
+                $"sourceSynced={sourceInsunitsChanged}");
             log.Info(
-                $"[MEASUREMENT] source={sourceName}, sourceBefore={sourceMeasurementBefore}, " +
-                $"target={targetMeasurement}, sourceAfter={sourceDb.Measurement}, synced={measurementChanged}");
+                $"[MEASUREMENT] source={sourceName}, targetBefore={targetMeasurementBefore}, " +
+                $"sourceBefore={sourceMeasurementBefore}, targetAfter={targetDb.Measurement}, " +
+                $"sourceAfter={sourceDb.Measurement}, targetSynced={targetMeasurementChanged}, " +
+                $"sourceSynced={sourceMeasurementChanged}");
 
             sourceDb.CloseInput(true);
 
