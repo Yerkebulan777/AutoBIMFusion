@@ -38,6 +38,10 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
             ExtentsUtils.SyncUnits(sourceDb);
             sourceDb.CloseInput(true);
 
+            // Принудительная синхронизация единиц измерения, чтобы избежать авто-масштабирования размеров (например, x304.8 из футов в мм)
+            sourceDb.Insunits = targetDb.Insunits;
+            sourceDb.Measurement = targetDb.Measurement;
+
             ObjectIdCollection sourceIds = [];
             ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
 

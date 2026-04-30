@@ -55,6 +55,7 @@ These are intentionally conservative, but they are not user-configurable.
 | Item | Fix |
 | :--- | :--- |
 | Aux viewport double-scaling drift | Aux-to-main transform now uses original main viewport scale before global clamp scaling. |
+| Dimension property auto-scaling ×304.8 on imperial source DWGs | After `CloseInput(true)`, `sourceDb.Insunits` and `sourceDb.Measurement` are now forced to match `targetDb` before `WblockCloneObjects`. Syncing before `CloseInput` was insufficient: AutoCAD restores file-header metadata when the input stream is closed, so the sync must happen strictly after `CloseInput`. |
 | Aux viewport residual originals | Added `EraseEntitiesOutsideMainWindow` cleanup after aux cloning. |
 | Fire-and-forget startup failure | `MergeDwgFolderCommand` catches startup exceptions around the awaited task. |
 | ProgressMeter cleanup | `MergeFiles` stops `ProgressMeter` in `finally`. |

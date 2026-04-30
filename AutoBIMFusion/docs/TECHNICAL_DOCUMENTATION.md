@@ -1,6 +1,6 @@
 # AutoBIMFusion Technical Documentation
 
-**Updated:** 2026-04-30
+**Updated:** 2026-05-01
 
 ## 1. Overview
 
@@ -128,7 +128,7 @@ For background runs, prefer `tools\Run-MergeDwgDiagTest.ps1`. It builds a `CoreC
 ## 4. Resource and Transaction Rules
 
 - Every `Transaction`, side `Database`, `DocumentLock`, `ProgressMeter`, image, and warning scope is wrapped in `using`.
-- Side databases call `ReadDwgFile` followed by `CloseInput(true)` where the file must not remain locked.
+- Side databases call `ReadDwgFile` followed by `CloseInput(true)` where the file must not remain locked. After `CloseInput(true)`, unit properties (`Insunits`, `Measurement`) of the source database are immediately forced to match the target database. This is required because AutoCAD restores file-header metadata (including `INSUNITS`) when the input stream is closed, which would otherwise cause `WblockCloneObjects` to auto-scale dimension style properties such as `Dimscale` and `Dimlfac` by the unit conversion factor (e.g. ×304.8 from feet to millimetres).
 - Temporary DWG files and temporary eTransmit folders are deleted in `finally`.
 - Long-running per-file failures return `MergeResult` instead of aborting the whole batch.
 - Entity-level transform failures are logged with type and handle, then processing continues.
