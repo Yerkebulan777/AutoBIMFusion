@@ -67,10 +67,6 @@ internal static class ModelSpaceTrimmer
     internal static int TrimOutside(Database db, Extents3d frameBounds, AILog log)
     {
         int erased = 0;
-        int total = 0;
-        int skippedNoExtents = 0;
-        int inside = 0;
-        int outside = 0;
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
         using Transaction tr = db.TransactionManager.StartTransaction();
@@ -82,8 +78,6 @@ internal static class ModelSpaceTrimmer
 
         foreach (ObjectId id in ms)
         {
-            total++;
-
             if (tr.GetObject(id, OpenMode.ForRead) is not Entity ent)
             {
                 continue;
@@ -94,7 +88,6 @@ internal static class ModelSpaceTrimmer
             // и мы можем пропустить дорогой вызов GeometricExtents.
             if (ExtentsUtils.IsEntityPointIn(ent, frameBounds))
             {
-                inside++;
                 continue;
             }
 
@@ -102,27 +95,19 @@ internal static class ModelSpaceTrimmer
 
             if (ext is null)
             {
-                skippedNoExtents++;
                 continue;
             }
 
             if (!ExtentsUtils.AabbIntersect(frameBounds, ext.Value))
             {
-                outside++;
                 ent.UpgradeOpen();
                 ent.Erase();
                 erased++;
             }
-            else
-            {
-                inside++;
-            }
         }
 
         tr.Commit();
-        log.Debug(
-            $"ModelSpaceTrimmer.TrimOutside frame={ExtentsUtils.FormatExtents(frameBounds)}, total={total}, inside={inside}, " +
-            $"outside={outside}, skippedNoExtents={skippedNoExtents}, erased={erased}");
+        log.Debug($"ModelSpaceTrimmer.TrimOutside erased={erased}");
         return erased;
     }
 

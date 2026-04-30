@@ -81,12 +81,8 @@ internal static class ViewportTransformer
     {
         int total = 0;
         int scaled = 0;
-        int skippedViewport = 0;
-        int skippedNonEntity = 0;
-        int skippedAssociative = 0;
 
         Dictionary<string, int> errorTypes = [];
-        Dictionary<string, int> successTypes = [];
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
         double scaleFactor = EntityTransformUtils.GetScaleFactor(matrix);
@@ -102,7 +98,6 @@ internal static class ViewportTransformer
 
                 if (ent is Viewport)
                 {
-                    skippedViewport++;
                     continue;
                 }
 
@@ -122,7 +117,6 @@ internal static class ViewportTransformer
 
                     if (transformResult.SkippedAssociativeHatch)
                     {
-                        skippedAssociative++;
                         continue;
                     }
 
@@ -134,14 +128,6 @@ internal static class ViewportTransformer
                     }
 
                     scaled++;
-
-                    if (!successTypes.TryGetValue(entType, out int value))
-                    {
-                        value = 0;
-                        successTypes[entType] = value;
-                    }
-
-                    successTypes[entType] = ++value;
                 }
                 catch (System.Exception ex)
                 {
@@ -158,21 +144,13 @@ internal static class ViewportTransformer
             }
             else
             {
-                skippedNonEntity++;
                 continue;
             }
         }
 
         trx.Commit();
 
-        log.Info($"ScaleModelSpaceObjects завершен: ratio={ratio:F6}, total={total}, scaled={scaled}, " +
-                 $"skippedViewport={skippedViewport}, skippedNonEntity={skippedNonEntity}, skippedAssociative={skippedAssociative}");
-
-        if (successTypes.Count > 0)
-        {
-            string successStr = string.Join(", ", successTypes.Select(kv => $"{kv.Key}({kv.Value})"));
-            log.Debug($"Успешные типы (Scale): {successStr}");
-        }
+        log.Info($"ScaleModelSpaceObjects завершен: ratio={ratio:F6}, total={total}, scaled={scaled}");
 
         if (errorTypes.Count > 0)
         {
@@ -184,8 +162,6 @@ internal static class ViewportTransformer
     internal static IReadOnlyList<ModelEntitySnapshot> CollectModelEntitiesWithExtents(Database db, ObjectId msId, AILog log)
     {
         int total = 0;
-        int skippedViewport = 0;
-        int skippedNoExtents = 0;
 
         List<ModelEntitySnapshot> result = [];
 
@@ -203,14 +179,12 @@ internal static class ViewportTransformer
 
             if (ent is Viewport)
             {
-                skippedViewport++;
                 continue;
             }
 
             Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
             if (ext is null)
             {
-                skippedNoExtents++;
                 continue;
             }
 
@@ -218,7 +192,7 @@ internal static class ViewportTransformer
         }
 
         trx.Commit();
-        log.Debug($"CollectModelEntitiesWithExtents total={total}, cached={result.Count}, skippedViewport={skippedViewport}, skippedNoExtents={skippedNoExtents}");
+        log.Debug($"CollectModelEntitiesWithExtents total={total}, cached={result.Count}");
         return result;
     }
 
@@ -239,8 +213,6 @@ internal static class ViewportTransformer
     {
         IReadOnlyList<ObjectId> sourceOrder = DrawOrderPreserver.Capture(db, sourceOwnerId, sourceIds, log);
 
-        int skippedErased = 0;
-
         ObjectIdCollection validIds = [];
 
         foreach (ObjectId id in sourceIds)
@@ -251,13 +223,8 @@ internal static class ViewportTransformer
             }
             else
             {
-                skippedErased++;
+                continue;
             }
-        }
-
-        if (skippedErased > 0)
-        {
-            log.Warn($"DeepCloneAndTransform source={sourceName}: пропущено {skippedErased} стёртых объектов");
         }
 
         if (validIds.Count == 0)

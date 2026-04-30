@@ -60,10 +60,6 @@ internal static class DimensionStyleDiagnosticUtils
 
     internal static void ClearDimensionOverrides(Database db, AILog log)
     {
-        int checkedDimensions = 0;
-        int cleanedDimensions = 0;
-        int failedDimensions = 0;
-
         using Transaction tr = db.TransactionManager.StartTransaction();
         BlockTable blockTable = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
 
@@ -81,27 +77,18 @@ internal static class DimensionStyleDiagnosticUtils
                     continue;
                 }
 
-                checkedDimensions++;
-
                 try
                 {
-                    if (TryRemoveDimensionStyleOverrides(dimension))
-                    {
-                        cleanedDimensions++;
-                    }
+                    _ = TryRemoveDimensionStyleOverrides(dimension);
                 }
                 catch (System.Exception ex)
                 {
-                    failedDimensions++;
                     log.Warn($"[DIM-OVERRIDES] handle={dimension.Handle}: не удалось очистить overrides: {ex.Message}");
                 }
             }
         }
 
         tr.Commit();
-
-        log.Info(
-            $"[DIM-OVERRIDES] checked={checkedDimensions}, cleaned={cleanedDimensions}, failed={failedDimensions}");
     }
 
     private static bool TryRemoveDimensionStyleOverrides(Dimension dimension)

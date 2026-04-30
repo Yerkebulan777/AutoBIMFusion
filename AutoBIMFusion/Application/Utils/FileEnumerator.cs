@@ -25,8 +25,6 @@ internal static class FileEnumerator
             MatchCasing = MatchCasing.CaseInsensitive
         };
 
-        int skippedPrefix = 0;
-        int skippedSize = 0;
         List<string> files = [];
 
         foreach (string path in Directory.EnumerateFiles(rootPath, "*.dwg", opts))
@@ -34,14 +32,12 @@ internal static class FileEnumerator
             string fileName = Path.GetFileName(path);
             if (fileName.StartsWith(excludePrefix, StringComparison.OrdinalIgnoreCase))
             {
-                skippedPrefix++;
                 continue;
             }
 
             FileInfo fileInfo = new(path);
             if (fileInfo.Length > MaxFileSizeBytes)
             {
-                skippedSize++;
                 continue;
             }
 
@@ -50,7 +46,7 @@ internal static class FileEnumerator
 
         files.Sort((x, y) => NaturalComparer.Compare(Path.GetRelativePath(rootPath, x), Path.GetRelativePath(rootPath, y)));
 
-        log?.Info($"Найдено DWG: {files.Count} (пропущено по префиксу: {skippedPrefix}, по размеру: {skippedSize})");
+        log?.Info($"Найдено DWG: {files.Count}");
         return [.. files];
     }
 }

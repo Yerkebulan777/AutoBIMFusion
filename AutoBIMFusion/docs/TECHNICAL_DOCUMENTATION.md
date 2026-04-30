@@ -85,7 +85,7 @@ Behavior:
 - saves to `C:\Users\y.zhumabayev\Desktop\TEST.dwg`;
 - logs the source folder, save path, and active Serilog file path;
 - uses the same two style snapshots as `MERGEDWG`: `before-merge` and `after-merge`;
-- logs user dimension styles as `[DIM-STYLE]`, user text styles as `[TEXT-STYLE]`, and dimension override cleanup as `[DIM-OVERRIDES]`.
+- logs user dimension styles as `[DIM-STYLE]`, user text styles as `[TEXT-STYLE]`, and dimension override cleanup failures as `[DIM-OVERRIDES]` warnings.
 
 Recommended AutoCAD script flow:
 
@@ -146,7 +146,7 @@ Logging policy:
 
 Style diagnostics are intentionally low-volume. `MERGEDWG` and `MERGEDWG_DIAG_TEST` write exactly two style snapshots: `before-merge` before processing the DWG batch and `after-merge` after all source files are inserted. `DimensionStyleDiagnosticUtils` logs a `[STYLE-SNAPSHOT]` summary plus `[DIM-STYLE]` and `[TEXT-STYLE]` lines for user styles only; standard styles (`Standard`, `ISO-25`, `Annotative`) are skipped.
 
-Before the final snapshot, `DimensionStyleDiagnosticUtils.ClearDimensionOverrides` removes per-entity dimension style overrides stored in the `ACAD` xdata `DSTYLE` section. The log line `[DIM-OVERRIDES]` reports checked, cleaned, and failed dimension counts. Other xdata sections are preserved.
+Before the final snapshot, `DimensionStyleDiagnosticUtils.ClearDimensionOverrides` removes per-entity dimension style overrides stored in the `ACAD` xdata `DSTYLE` section. Cleanup warnings are logged as `[DIM-OVERRIDES]` only when a specific dimension cannot be cleaned. Other xdata sections are preserved.
 
 The main command catches startup failures outside the async task body so users see a clear editor message instead of an unobserved task exception.
 
