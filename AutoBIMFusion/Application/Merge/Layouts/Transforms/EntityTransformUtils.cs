@@ -43,8 +43,9 @@ internal static class EntityTransformUtils
 
     private static void AdjustMLeaderScale(MLeader mleader, double scaleFactor)
     {
-        double currentScale = mleader.Scale == 0.0 ? 1.0 : mleader.Scale;
-        mleader.Scale = currentScale * scaleFactor;
+        //double currentScale = mleader.Scale == 0.0 ? 1.0 : mleader.Scale;
+        //mleader.Scale = currentScale * scaleFactor;
+
     }
 
     private static void EvaluateHatch(Hatch hatch)
