@@ -637,7 +637,7 @@
       "label": ".CalcInsertionPoint()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\BlockInserter.cs",
-      "source_location": "L139",
+      "source_location": "L144",
       "id": "merge_blockinserter_blockinserter_calcinsertionpoint",
       "community": 15,
       "norm_label": ".calcinsertionpoint()"
@@ -3993,7 +3993,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\BlockInserter.cs",
-      "source_location": "L139",
+      "source_location": "L144",
       "weight": 1.0,
       "_src": "merge_blockinserter_blockinserter",
       "_tgt": "merge_blockinserter_blockinserter_calcinsertionpoint",
