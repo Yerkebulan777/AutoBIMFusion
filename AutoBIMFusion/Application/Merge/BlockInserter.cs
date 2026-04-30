@@ -41,9 +41,20 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                 sourceDb.Insunits = targetInsunits;
             }
 
+            MeasurementValue sourceMeasurementBefore = sourceDb.Measurement;
+            MeasurementValue targetMeasurement = targetDb.Measurement;
+            bool measurementChanged = sourceMeasurementBefore != targetMeasurement;
+            if (measurementChanged)
+            {
+                sourceDb.Measurement = targetMeasurement;
+            }
+
             log.Info(
                 $"[INSUNITS] source={sourceName}, sourceBefore={sourceInsunitsBefore}, " +
                 $"target={targetInsunits}, sourceAfter={sourceDb.Insunits}, synced={insunitsChanged}");
+            log.Info(
+                $"[MEASUREMENT] source={sourceName}, sourceBefore={sourceMeasurementBefore}, " +
+                $"target={targetMeasurement}, sourceAfter={sourceDb.Measurement}, synced={measurementChanged}");
 
             sourceDb.CloseInput(true);
 
