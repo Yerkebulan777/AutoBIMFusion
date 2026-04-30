@@ -47,7 +47,7 @@ public sealed class TransmittalCommands
 
             log.Info("Сбор файлов eTransmit...");
 
-            if (!TryCreateTransmittalOperation(out object? operation, out string reason))
+            if (!TryCreateTransmittalOperation(out object? operation, out string reason, log))
             {
                 log.Warn(reason);
                 return;
@@ -208,9 +208,9 @@ public sealed class TransmittalCommands
         {
             return ex.Types.Where(type => type is not null)!;
         }
-        catch (System.Exception ex)
+        catch (System.Exception)
         {
-            log.Debug($"GetTypesSafe: ошибка загрузки ассембли — {ex.GetType().Name}: {ex.Message}");
+            //log.Debug($"GetTypesSafe: ошибка загрузки ассембли — {ex.GetType().Name}: {ex.Message}");
             return [];
         }
     }
