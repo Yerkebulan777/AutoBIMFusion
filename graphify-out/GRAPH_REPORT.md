@@ -1,8 +1,7 @@
-# Graph Report - AutoBIMFusion  (2026-04-30)
+# Graph Report - .  (2026-04-30)
 
 ## Corpus Check
-- 48 files · ~18,962 words
-- Verdict: corpus is large enough that graph structure adds value.
+- cluster-only mode — file stats not available
 
 ## Summary
 - 253 nodes · 477 edges · 19 communities detected

@@ -31,11 +31,11 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
 
         try
         {
-            SyncUnits(targetDb);
+            ExtentsUtils.SyncUnits(targetDb);
 
             using Database sourceDb = new(false, true);
             sourceDb.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
-            SyncUnits(sourceDb);
+            ExtentsUtils.SyncUnits(sourceDb);
             sourceDb.CloseInput(true);
 
             ObjectIdCollection sourceIds = [];
@@ -119,23 +119,6 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
         {
             log.Error(ex, $"Ошибка вставки: {sourceName}");
             return null;
-        }
-    }
-
-    /// <summary>
-    /// Нормализует единицы измерения базы данных к миллиметрам и метрической системе.
-    /// </summary>
-    /// <param name="db">База данных AutoCAD, для которой синхронизируются единицы.</param>
-    internal static void SyncUnits(Database db)
-    {
-        if (db.Insunits != UnitsValue.Millimeters)
-        {
-            db.Insunits = UnitsValue.Millimeters;
-        }
-
-        if (db.Measurement != MeasurementValue.Metric)
-        {
-            db.Measurement = MeasurementValue.Metric;
         }
     }
 

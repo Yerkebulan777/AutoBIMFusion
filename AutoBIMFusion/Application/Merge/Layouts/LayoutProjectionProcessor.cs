@@ -38,9 +38,6 @@ internal static class LayoutProjectionProcessor
 
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
 
-        ObjectIdCollection mainIds = ViewportTransformer.SelectModelInside(modelEntities, mainOriginal.ModelWindow, log);
-        log.Debug($"main-VP #{mainOriginal.Number}: selected={mainIds.Count}, dimension scale overrides skipped");
-
         foreach (LayoutViewportInfo aux in viewports)
         {
             if (aux.VpId == mainOriginal.VpId)
@@ -82,12 +79,6 @@ internal static class LayoutProjectionProcessor
         log.Info(
             $"VP #{viewport.Number}: исходный scale={viewport.CustomScale:F6}, рабочий scale={clamped.CustomScale:F6}, " +
             $"clampRatio={clampRatio:F6}, центр={ExtentsUtils.FormatPoint(clamped.ViewCenter)}");
-
-        ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
-        IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities =
-            ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
-        ObjectIdCollection visibleIds = ViewportTransformer.SelectModelInside(modelEntities, viewport.ModelWindow, log);
-        log.Debug($"VP #{viewport.Number}: selected={visibleIds.Count}, dimension scale overrides skipped");
 
         ScaleModelSpaceWhenClamped(db, clampRatio, viewport.ViewCenter, log);
 

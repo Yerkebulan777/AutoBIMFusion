@@ -209,4 +209,22 @@ internal static class ExtentsUtils
     {
         return $"({p.X:F3}, {p.Y:F3}, {p.Z:F3})";
     }
+
+    /// <summary>
+    /// Нормализует единицы измерения базы данных к миллиметрам и метрической системе.
+    /// Единая точка синхронизации единиц для всего пайплайна слияния.
+    /// </summary>
+    /// <param name="db">База данных AutoCAD.</param>
+    internal static void SyncUnits(Database db)
+    {
+        if (db.Insunits != UnitsValue.Millimeters)
+        {
+            db.Insunits = UnitsValue.Millimeters;
+        }
+
+        if (db.Measurement != MeasurementValue.Metric)
+        {
+            db.Measurement = MeasurementValue.Metric;
+        }
+    }
 }

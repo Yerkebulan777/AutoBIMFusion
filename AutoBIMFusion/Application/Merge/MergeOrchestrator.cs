@@ -35,7 +35,7 @@ internal static class MergeCoordinator
         {
             log.Info($"Файл: {fileName}");
 
-            tempPath = await ViewportLayoutExporter.ExportToTempAsync(filePath, fileName, targetDoc.Database, log);
+            tempPath = await ViewportLayoutExporter.ExportToTempAsync(filePath, fileName, log);
 
             if (string.IsNullOrEmpty(tempPath))
             {

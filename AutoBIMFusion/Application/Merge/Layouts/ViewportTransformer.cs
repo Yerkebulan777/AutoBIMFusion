@@ -85,7 +85,6 @@ internal static class ViewportTransformer
         Dictionary<string, int> errorTypes = [];
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
-        double scaleFactor = EntityTransformUtils.GetScaleFactor(matrix);
 
         using Transaction trx = db.TransactionManager.StartTransaction();
         BlockTableRecord modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
@@ -108,12 +107,7 @@ internal static class ViewportTransformer
                 {
                     Extents3d? oldExt = ExtentsUtils.TryGetExtents(ent);
 
-                    EntityTransformUtils.TransformResult transformResult = EntityTransformUtils.TransformEntity(
-                        ent,
-                        matrix,
-                        scaleFactor,
-                        log,
-                        "model-clamp");
+                    EntityTransformUtils.TransformResult transformResult = EntityTransformUtils.TransformEntity(ent, matrix);
 
                     if (transformResult.SkippedAssociativeHatch)
                     {
@@ -141,10 +135,6 @@ internal static class ViewportTransformer
 
                     errorTypes[entType] = ++value;
                 }
-            }
-            else
-            {
-                continue;
             }
         }
 
@@ -221,10 +211,6 @@ internal static class ViewportTransformer
             {
                 _ = validIds.Add(id);
             }
-            else
-            {
-                continue;
-            }
         }
 
         if (validIds.Count == 0)
@@ -238,10 +224,6 @@ internal static class ViewportTransformer
         int mappedPrimary = 0;
 
         ObjectIdCollection cloned = [];
-
-        double scaleFactor = EntityTransformUtils.GetScaleFactor(matrix);
-
-        string dimensionDiagnosticScenario = GetDimensionDiagnosticScenario(sourceName);
 
         using (Transaction tr = db.TransactionManager.StartTransaction())
         {
@@ -263,12 +245,7 @@ internal static class ViewportTransformer
                         {
                             Extents3d? oldExt = ExtentsUtils.TryGetExtents(e);
 
-                            EntityTransformUtils.TransformResult transformResult = EntityTransformUtils.TransformEntity(
-                                e,
-                                matrix,
-                                scaleFactor,
-                                log,
-                                dimensionDiagnosticScenario);
+                            EntityTransformUtils.TransformResult transformResult = EntityTransformUtils.TransformEntity(e, matrix);
 
                             if (transformResult.SkippedAssociativeHatch)
                             {
@@ -300,16 +277,8 @@ internal static class ViewportTransformer
 
         log.Debug(
             $"DeepCloneAndTransform source={sourceName}, input={sourceIds.Count}, " +
-            $"mappedPrimary={mappedPrimary}, transformed={cloned.Count}, " +
-            $"scaleFactor={scaleFactor:F6}");
+            $"mappedPrimary={mappedPrimary}, transformed={cloned.Count}");
         return cloned;
-    }
-
-    private static string GetDimensionDiagnosticScenario(string sourceName)
-    {
-        return sourceName.StartsWith("aux-VP", StringComparison.OrdinalIgnoreCase)
-            ? "aux-clone"
-            : sourceName.StartsWith("paper", StringComparison.OrdinalIgnoreCase) ? "paper-clone" : sourceName;
     }
 
     internal static ObjectIdCollection SelectModelInside(IReadOnlyList<ModelEntitySnapshot> modelEntities, Extents3d window, AILog log)
