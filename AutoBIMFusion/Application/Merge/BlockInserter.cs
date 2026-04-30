@@ -31,6 +31,8 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
 
         try
         {
+            SyncUnits(targetDb);
+
             using Database sourceDb = new(false, true);
             sourceDb.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
             SyncUnits(sourceDb);
