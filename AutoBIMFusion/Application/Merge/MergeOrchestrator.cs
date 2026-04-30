@@ -1,3 +1,4 @@
+using AutoBIMFusion.Application.AcadSupport;
 using AutoBIMFusion.Application.Merge.Layouts;
 using AutoBIMFusion.Application.Merge.Models;
 using AutoBIMFusion.Application.Utils;
@@ -51,6 +52,7 @@ internal static class MergeCoordinator
 
             Extents3d? worldBounds;
             using (targetDoc.LockDocument())
+            using (new AcadUnitScalingOverrideScope())
             {
                 worldBounds = inserter.InsertNativeObjects(targetDoc.Database, tempPath, layoutName, bounds.Value);
                 if (worldBounds.HasValue)

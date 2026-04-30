@@ -26,6 +26,18 @@ internal sealed class AcadWarningSuppressScope : IDisposable
     }
 }
 
+internal sealed class AcadUnitScalingOverrideScope : IDisposable
+{
+    private readonly ManagedSystemVariable _source = new("INSUNITSDEFSOURCE", 4);
+    private readonly ManagedSystemVariable _target = new("INSUNITSDEFTARGET", 4);
+
+    public void Dispose()
+    {
+        _target.Dispose();
+        _source.Dispose();
+    }
+}
+
 // Устанавливает TILEMODE=0, сохраняет CTAB/CVPORT/TILEMODE для восстановления при Dispose.
 // ПРИМЕЧАНИЕ: Класс LayoutEditScope был удалён как неиспользуемый (dead code).
 // Если потребуется работа с layout-контекстом, используйте прямое управление системными переменными.
