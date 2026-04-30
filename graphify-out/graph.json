@@ -637,7 +637,7 @@
       "label": ".CalcInsertionPoint()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\BlockInserter.cs",
-      "source_location": "L144",
+      "source_location": "L151",
       "id": "merge_blockinserter_blockinserter_calcinsertionpoint",
       "community": 15,
       "norm_label": ".calcinsertionpoint()"
@@ -3993,7 +3993,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\BlockInserter.cs",
-      "source_location": "L144",
+      "source_location": "L151",
       "weight": 1.0,
       "_src": "merge_blockinserter_blockinserter",
       "_tgt": "merge_blockinserter_blockinserter_calcinsertionpoint",
@@ -4012,6 +4012,18 @@
       "source": "merge_blockinserter_blockinserter_insertnativeobjects",
       "target": "merge_blockinserter_blockinserter_calcinsertionpoint",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Application\\Merge\\BlockInserter.cs",
+      "source_location": "L120",
+      "weight": 1.0,
+      "_src": "merge_blockinserter_blockinserter_insertnativeobjects",
+      "_tgt": "logging_ailog_ailog_info",
+      "source": "merge_blockinserter_blockinserter_insertnativeobjects",
+      "target": "logging_ailog_ailog_info"
     },
     {
       "relation": "calls",
@@ -4072,18 +4084,6 @@
       "_tgt": "layouts_extentsutils_extentsutils_transform",
       "source": "merge_blockinserter_blockinserter_insertnativeobjects",
       "target": "layouts_extentsutils_extentsutils_transform"
-    },
-    {
-      "relation": "calls",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "Application\\Merge\\BlockInserter.cs",
-      "source_location": "L120",
-      "weight": 1.0,
-      "_src": "merge_blockinserter_blockinserter_insertnativeobjects",
-      "_tgt": "logging_ailog_ailog_info",
-      "source": "merge_blockinserter_blockinserter_insertnativeobjects",
-      "target": "logging_ailog_ailog_info"
     },
     {
       "relation": "calls",

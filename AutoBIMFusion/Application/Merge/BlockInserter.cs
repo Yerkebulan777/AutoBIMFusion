@@ -33,10 +33,17 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
             using Database sourceDb = new(false, true);
 
             sourceDb.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
-            if (sourceDb.Insunits != targetDb.Insunits)
+            UnitsValue sourceInsunitsBefore = sourceDb.Insunits;
+            UnitsValue targetInsunits = targetDb.Insunits;
+            bool insunitsChanged = sourceInsunitsBefore != targetInsunits;
+            if (insunitsChanged)
             {
-                sourceDb.Insunits = targetDb.Insunits;
+                sourceDb.Insunits = targetInsunits;
             }
+
+            log.Info(
+                $"[INSUNITS] source={sourceName}, sourceBefore={sourceInsunitsBefore}, " +
+                $"target={targetInsunits}, sourceAfter={sourceDb.Insunits}, synced={insunitsChanged}");
 
             sourceDb.CloseInput(true);
 
