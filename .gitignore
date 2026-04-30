@@ -2,15 +2,27 @@
 # Build artifacts
 bin/
 obj/
-*.dll
 *.exe
+*.dll
 *.pdb
 *.userprefs
-*.log
+*.cache
+*.tmp
 
 # Dependencies
 packages/
 node_modules/
+*.nupkg
+*.snupkg
+
+# Logs
+*.log
+*.userlog
+
+# Environment
+.env
+.env.local
+*.env.*
 
 # Editors
 .vs/
@@ -19,7 +31,9 @@ node_modules/
 .suo
 .ReSharper/
 _ReSharper.*/
+*.user
 *.userprefs
+*.vscode/
 
 # OS generated files
 .DS_Store

@@ -86,19 +86,19 @@ public sealed class TransmittalCommands
         }
     }
 
-    private static bool TryCreateTransmittalOperation(out object? operation, out string reason)
+    private static bool TryCreateTransmittalOperation(out object? operation, out string reason, AILog log)
     {
         operation = null;
         reason = string.Empty;
 
-        TryLoadAssemblyByName("AcETransmitMgd");
-        TryLoadAssemblyByName("Autodesk.AutoCAD.Transmittal");
+        TryLoadAssemblyByName("AcETransmitMgd", log);
+        TryLoadAssemblyByName("Autodesk.AutoCAD.Transmittal", log);
 
         string? acadDirectory = Path.GetDirectoryName(Environment.ProcessPath);
         if (!string.IsNullOrWhiteSpace(acadDirectory))
         {
-            TryLoadAssemblyByPath(Path.Combine(acadDirectory, "AcETransmitMgd.dll"));
-            TryLoadAssemblyByPath(Path.Combine(acadDirectory, "AcETransmit.dll"));
+            TryLoadAssemblyByPath(Path.Combine(acadDirectory, "AcETransmitMgd.dll"), log);
+            TryLoadAssemblyByPath(Path.Combine(acadDirectory, "AcETransmit.dll"), log);
         }
 
         Type? transmittalOperationType = AppDomain.CurrentDomain
@@ -208,25 +208,26 @@ public sealed class TransmittalCommands
         {
             return ex.Types.Where(type => type is not null)!;
         }
-        catch
+        catch (System.Exception ex)
         {
+            log.Debug($"GetTypesSafe: ошибка загрузки ассембли — {ex.GetType().Name}: {ex.Message}");
             return [];
         }
     }
 
-    private static void TryLoadAssemblyByName(string assemblyName)
+    private static void TryLoadAssemblyByName(string assemblyName, AILog log)
     {
         try
         {
             _ = Assembly.Load(assemblyName);
         }
-        catch
+        catch (System.Exception ex)
         {
-            // Ассембли может отсутствовать для некоторых AutoCAD сборок.
+            log.Debug($"TryLoadAssemblyByName: {assemblyName} — {ex.GetType().Name}: {ex.Message}");
         }
     }
 
-    private static void TryLoadAssemblyByPath(string assemblyPath)
+    private static void TryLoadAssemblyByPath(string assemblyPath, AILog log)
     {
         try
         {
@@ -235,9 +236,9 @@ public sealed class TransmittalCommands
                 _ = Assembly.LoadFrom(assemblyPath);
             }
         }
-        catch
+        catch (System.Exception ex)
         {
-            // Игнорируем: сборка может быть unmanaged или несовместимой для прямой загрузки.
+            log.Debug($"TryLoadAssemblyByPath: {assemblyPath} — {ex.GetType().Name}: {ex.Message}");
         }
     }
 
