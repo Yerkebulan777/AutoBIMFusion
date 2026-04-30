@@ -4,12 +4,8 @@ using AutoBIMFusion.Infrastructure.Logging;
 namespace AutoBIMFusion.Application.Merge;
 
 /// <summary>
-/// Вставляет содержимое временных DWG как нативные объекты в Model Space целевого чертежа,
-/// располагая их вдоль оси X с заданным зазором. Использует DuplicateRecordCloning.Ignore
-/// для предотвращения перезаписи стилей и слоёв.
-///
-/// ВАЖНО: объекты вставляются как нативные сущности (не в блоке), чтобы сохранить
-/// исходный вид и структуру объектов такими же, как в исходном файле.
+/// Вставляет содержимое DWG как нативные объекты в Model Space целевого чертежа,
+/// располагая их вдоль оси X с заданным зазором.
 /// </summary>
 internal sealed class BlockInserter(double gapPercent, AILog log)
 {
@@ -17,10 +13,17 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
     private bool _hasPlacedObjects;
 
     /// <summary>
-    /// Открывает временный DWG, клонирует все объекты из его Model Space
-    /// в целевой чертёж как нативные сущности с учётом смещения.
-    /// Возвращает мировые границы вставленных объектов или null при ошибке.
+    /// Клонирует все сущности из Model Space исходного DWG в Model Space целевой базы,
+    /// затем смещает их в рассчитанную позицию для последовательной раскладки по оси X.
     /// </summary>
+    /// <param name="targetDb">Целевая база данных чертежа, в которую выполняется вставка.</param>
+    /// <param name="sourceFilePath">Полный путь к исходному DWG-файлу.</param>
+    /// <param name="sourceName">Человекочитаемое имя источника для логирования.</param>
+    /// <param name="sourceBounds">Границы исходного содержимого, используемые для расчёта смещения.</param>
+    /// <returns>
+    /// Границы вставленных объектов в мировой системе координат,
+    /// либо <see langword="null"/>, если вставка не выполнена.
+    /// </returns>
     public Extents3d? InsertNativeObjects(Database targetDb, string sourceFilePath, string sourceName, Extents3d sourceBounds)
     {
         Point3d insertPt = CalcInsertionPoint(sourceBounds);
@@ -28,29 +31,15 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
 
         try
         {
-            ObjectIdCollection sourceIds = [];
+            SyncUnits(targetDb);
 
             using Database sourceDb = new(false, true);
-
             sourceDb.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
-            UnitsValue sourceInsunitsBefore = sourceDb.Insunits;
-            UnitsValue targetInsunits = targetDb.Insunits;
-            bool insunitsChanged = sourceInsunitsBefore != targetInsunits;
-            if (insunitsChanged)
-            {
-                sourceDb.Insunits = targetInsunits;
-            }
-
-            log.Info(
-                $"[INSUNITS] source={sourceName}, sourceBefore={sourceInsunitsBefore}, " +
-                $"target={targetInsunits}, sourceAfter={sourceDb.Insunits}, synced={insunitsChanged}");
-
+            SyncUnits(sourceDb);
             sourceDb.CloseInput(true);
 
-            DimensionStyleDiagnosticUtils.LogNewStylesBeforeMerge(sourceDb, targetDb, log);
-
+            ObjectIdCollection sourceIds = [];
             ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
-            int sourceDimensionCount = 0;
 
             using (Transaction tr = sourceDb.TransactionManager.StartTransaction())
             {
@@ -61,10 +50,6 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                     if (!id.IsNull && !id.IsErased)
                     {
                         _ = sourceIds.Add(id);
-                        if (id.ObjectClass.DxfName == "DIMENSION")
-                        {
-                            sourceDimensionCount++;
-                        }
                     }
                 }
 
@@ -81,11 +66,9 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
             IdMapping map = [];
             Extents3d? worldBounds = null;
             int clonedCount = 0;
-            int targetDimensionCount = 0;
 
             using (Transaction tr = targetDb.TransactionManager.StartTransaction())
             {
-                // Клонируем объекты из временной базы в целевую
                 targetDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Ignore, false);
 
                 foreach (IdPair pair in map)
@@ -97,11 +80,6 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
 
                     if (tr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
                     {
-                        if (ent is Dimension)
-                        {
-                            targetDimensionCount++;
-                        }
-
                         ent.TransformBy(displacement);
                         clonedCount++;
 
@@ -124,16 +102,12 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                 return null;
             }
 
-            if (!worldBounds.HasValue)
-            {
-                worldBounds = ExtentsUtils.Transform(sourceBounds, displacement);
-            }
+            worldBounds ??= ExtentsUtils.Transform(sourceBounds, displacement);
 
             _rightMax = worldBounds.Value.MaxPoint.X;
             _hasPlacedObjects = true;
-            log.Info(
-                $"{sourceName}: вставлено {clonedCount} нативных объектов, " +
-                $"sourceDimensions={sourceDimensionCount}, targetDimensions={targetDimensionCount}");
+
+            log.Info($"{sourceName}: вставлено {clonedCount} объектов");
             return worldBounds;
         }
         catch (Autodesk.AutoCAD.Runtime.Exception ex)
@@ -148,19 +122,38 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
         }
     }
 
+    /// <summary>
+    /// Нормализует единицы измерения базы данных к миллиметрам и метрической системе.
+    /// </summary>
+    /// <param name="db">База данных AutoCAD, для которой синхронизируются единицы.</param>
+    internal static void SyncUnits(Database db)
+    {
+        if (db.Insunits != UnitsValue.Millimeters)
+        {
+            db.Insunits = UnitsValue.Millimeters;
+        }
+
+        if (db.Measurement != MeasurementValue.Metric)
+        {
+            db.Measurement = MeasurementValue.Metric;
+        }
+    }
+
+    /// <summary>
+    /// Вычисляет точку вставки следующего блока с учётом уже размещённых объектов и заданного зазора.
+    /// </summary>
+    /// <param name="bounds">Границы вставляемого содержимого в локальных координатах.</param>
+    /// <returns>Точка смещения для приведения содержимого в целевые координаты.</returns>
     private Point3d CalcInsertionPoint(Extents3d bounds)
     {
         double width = Max(0, bounds.MaxPoint.X - bounds.MinPoint.X);
         double height = Max(0, bounds.MaxPoint.Y - bounds.MinPoint.Y);
-        double maxDimension = Max(width, height);
-        double gap = Max(1.0, Round(maxDimension * gapPercent, 0));
+        double gap = Max(1.0, Round(Max(width, height) * gapPercent, 0));
 
         double insertX = _hasPlacedObjects
             ? _rightMax + gap - bounds.MinPoint.X
             : -bounds.MinPoint.X;
-        Point3d insertPt = new(insertX, -bounds.MinPoint.Y, 0);
 
-        log.Debug($"Позиция вставки: X={insertPt.X:F2}, Y={insertPt.Y:F2}, gap={gap:F0}");
-        return insertPt;
+        return new Point3d(insertX, -bounds.MinPoint.Y, 0);
     }
 }

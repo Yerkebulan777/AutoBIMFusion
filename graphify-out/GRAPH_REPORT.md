@@ -1,11 +1,11 @@
 # Graph Report - AutoBIMFusion  (2026-04-30)
 
 ## Corpus Check
-- 48 files · ~18,947 words
+- 48 files · ~18,962 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 252 nodes · 475 edges · 19 communities detected
+- 253 nodes · 477 edges · 19 communities detected
 - Extraction: 65% EXTRACTED · 35% INFERRED · 0% AMBIGUOUS · INFERRED: 167 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
@@ -48,8 +48,8 @@
 ## Communities
 
 ### Community 0 - "Community 0"
-Cohesion: 0.12
-Nodes (6): DrawOrderPreserver, ExtentsUtils, LayoutProjectionProcessor, ModelSpaceTrimmer, ViewportTransformer, PickMainViewport()
+Cohesion: 0.13
+Nodes (5): DrawOrderPreserver, LayoutProjectionProcessor, ModelSpaceTrimmer, ViewportTransformer, PickMainViewport()
 
 ### Community 1 - "Community 1"
 Cohesion: 0.18
@@ -80,36 +80,36 @@ Cohesion: 0.28
 Nodes (1): SmartTextCommands
 
 ### Community 8 - "Community 8"
+Cohesion: 0.23
+Nodes (2): ExtentsUtils, BlockInserter
+
+### Community 9 - "Community 9"
 Cohesion: 0.33
 Nodes (1): TextStyleCommands
 
-### Community 9 - "Community 9"
+### Community 10 - "Community 10"
 Cohesion: 0.31
 Nodes (2): StyleExportCommands, StyleExportUtils
 
-### Community 10 - "Community 10"
+### Community 11 - "Community 11"
 Cohesion: 0.31
 Nodes (3): ILogEventSink, DiagnosticSink, LoggerFactory
 
-### Community 11 - "Community 11"
+### Community 12 - "Community 12"
 Cohesion: 0.29
 Nodes (3): IComparer, FileEnumerator, WindowsNaturalComparer
 
-### Community 12 - "Community 12"
+### Community 13 - "Community 13"
 Cohesion: 0.47
 Nodes (3): AcadWarningSuppressScope, ManagedSystemVariable, IDisposable
 
-### Community 13 - "Community 13"
+### Community 14 - "Community 14"
 Cohesion: 0.53
 Nodes (1): DwgOptimizer
 
-### Community 14 - "Community 14"
+### Community 15 - "Community 15"
 Cohesion: 0.47
 Nodes (1): EntityTransformUtils
-
-### Community 15 - "Community 15"
-Cohesion: 0.4
-Nodes (1): BlockInserter
 
 ### Community 16 - "Community 16"
 Cohesion: 0.5
@@ -132,15 +132,15 @@ Nodes (1): FolderSelector
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 7`** (13 nodes): `SmartTextCommands.cs`, `SmartTextCommands`, `.AreHeightsClose()`, `.AreTextsClose()`, `.CollectTextElements()`, `.CombineGroupText()`, `.EscapeMTextContent()`, `.EstimateTextWidth()`, `.GetTextBoundsAlongAxis()`, `.LowerBoundByPerp()`, `.ProjectPerpendicular()`, `.SmartGroupText()`, `.SmartMergeModelText()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 8`** (11 nodes): `TextStyleCommands.cs`, `TextStyleCommands`, `.BuildSignature()`, `.ChooseMasterStyle()`, `.CollectStyles()`, `.DeleteStyles()`, `.MergeTextStyles()`, `.Normalize()`, `.ReassignBlockAttributes()`, `.ReassignStyles()`, `.ReassignStylesInBlock()`
+- **Thin community `Community 8`** (12 nodes): `BlockInserter.cs`, `ExtentsUtils.cs`, `ExtentsUtils`, `.IsEntityPointIn()`, `.IsPointIn()`, `.Transform()`, `.TryGetScaleRatio()`, `.Union()`, `BlockInserter`, `.CalcInsertionPoint()`, `.InsertNativeObjects()`, `.SyncUnits()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 9`** (9 nodes): `StyleExportCommands.cs`, `StyleExportUtils.cs`, `StyleExportCommands`, `.ExportDimStyles()`, `.ExportTextStyles()`, `StyleExportUtils`, `.DumpProperties()`, `.ExportSymbolTableToMd()`, `.GetPropertyDisplayName()`
+- **Thin community `Community 9`** (11 nodes): `TextStyleCommands.cs`, `TextStyleCommands`, `.BuildSignature()`, `.ChooseMasterStyle()`, `.CollectStyles()`, `.DeleteStyles()`, `.MergeTextStyles()`, `.Normalize()`, `.ReassignBlockAttributes()`, `.ReassignStyles()`, `.ReassignStylesInBlock()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 13`** (6 nodes): `DwgOptimizer.cs`, `DwgOptimizer`, `.AddDictionaryIds()`, `.AddTableIds()`, `.Optimize()`, `.PurgePass()`
+- **Thin community `Community 10`** (9 nodes): `StyleExportCommands.cs`, `StyleExportUtils.cs`, `StyleExportCommands`, `.ExportDimStyles()`, `.ExportTextStyles()`, `StyleExportUtils`, `.DumpProperties()`, `.ExportSymbolTableToMd()`, `.GetPropertyDisplayName()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 14`** (6 nodes): `EntityTransformUtils.cs`, `EntityTransformUtils`, `.AdjustMLeaderScale()`, `.EvaluateHatch()`, `.GetScaleFactor()`, `.TransformEntity()`
+- **Thin community `Community 14`** (6 nodes): `DwgOptimizer.cs`, `DwgOptimizer`, `.AddDictionaryIds()`, `.AddTableIds()`, `.Optimize()`, `.PurgePass()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 15`** (6 nodes): `BlockInserter.cs`, `.Transform()`, `.Union()`, `BlockInserter`, `.CalcInsertionPoint()`, `.InsertNativeObjects()`
+- **Thin community `Community 15`** (6 nodes): `EntityTransformUtils.cs`, `EntityTransformUtils`, `.AdjustMLeaderScale()`, `.EvaluateHatch()`, `.GetScaleFactor()`, `.TransformEntity()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 16`** (5 nodes): `JoinCommands.cs`, `JoinCommands`, `.JoinLinesCommand()`, `.MergeGroup()`, `LineInfo`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -155,6 +155,6 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `LineInfo` to the rest of the system?**
   _1 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.12 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.13 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
   _Cohesion score 0.13 - nodes in this community are weakly interconnected._
