@@ -1,3 +1,5 @@
+using static System.Math;
+
 namespace AutoBIMFusion.Application.Merge.Layouts;
 
 /// <summary>
@@ -112,14 +114,14 @@ internal static class ExtentsUtils
     internal static Extents3d Union(Extents3d a, Extents3d b)
     {
         Point3d min = new(
-            Math.Min(a.MinPoint.X, b.MinPoint.X),
-            Math.Min(a.MinPoint.Y, b.MinPoint.Y),
-            Math.Min(a.MinPoint.Z, b.MinPoint.Z));
+            Min(a.MinPoint.X, b.MinPoint.X),
+            Min(a.MinPoint.Y, b.MinPoint.Y),
+            Min(a.MinPoint.Z, b.MinPoint.Z));
 
         Point3d max = new(
-            Math.Max(a.MaxPoint.X, b.MaxPoint.X),
-            Math.Max(a.MaxPoint.Y, b.MaxPoint.Y),
-            Math.Max(a.MaxPoint.Z, b.MaxPoint.Z));
+            Max(a.MaxPoint.X, b.MaxPoint.X),
+            Max(a.MaxPoint.Y, b.MaxPoint.Y),
+            Max(a.MaxPoint.Z, b.MaxPoint.Z));
 
         return new Extents3d(min, max);
     }
@@ -177,12 +179,12 @@ internal static class ExtentsUtils
         for (int i = 1; i < corners.Length; i++)
         {
             Point3d p = corners[i].TransformBy(mat);
-            minX = Math.Min(minX, p.X);
-            minY = Math.Min(minY, p.Y);
-            minZ = Math.Min(minZ, p.Z);
-            maxX = Math.Max(maxX, p.X);
-            maxY = Math.Max(maxY, p.Y);
-            maxZ = Math.Max(maxZ, p.Z);
+            minX = Min(minX, p.X);
+            minY = Min(minY, p.Y);
+            minZ = Min(minZ, p.Z);
+            maxX = Max(maxX, p.X);
+            maxY = Max(maxY, p.Y);
+            maxZ = Max(maxZ, p.Z);
         }
 
         return new Extents3d(new Point3d(minX, minY, minZ), new Point3d(maxX, maxY, maxZ));

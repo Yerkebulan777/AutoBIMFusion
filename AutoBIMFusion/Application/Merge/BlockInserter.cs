@@ -1,5 +1,6 @@
 using AutoBIMFusion.Application.Merge.Layouts;
 using AutoBIMFusion.Infrastructure.Logging;
+using static System.Math;
 
 namespace AutoBIMFusion.Application.Merge;
 
@@ -136,10 +137,10 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
 
     private Point3d CalcInsertionPoint(Extents3d bounds)
     {
-        double width = Math.Max(0, bounds.MaxPoint.X - bounds.MinPoint.X);
-        double height = Math.Max(0, bounds.MaxPoint.Y - bounds.MinPoint.Y);
-        double maxDimension = Math.Max(width, height);
-        double gap = Math.Max(1.0, Math.Round(maxDimension * gapPercent, 0));
+        double width = Max(0, bounds.MaxPoint.X - bounds.MinPoint.X);
+        double height = Max(0, bounds.MaxPoint.Y - bounds.MinPoint.Y);
+        double maxDimension = Max(width, height);
+        double gap = Max(1.0, Round(maxDimension * gapPercent, 0));
 
         double insertX = _hasPlacedObjects
             ? _rightMax + gap - bounds.MinPoint.X

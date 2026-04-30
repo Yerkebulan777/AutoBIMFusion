@@ -1,5 +1,6 @@
 using AutoBIMFusion.Infrastructure.Logging;
 using System.Globalization;
+using static System.Math;
 
 namespace AutoBIMFusion.Application.Merge.Layouts.Transforms;
 
@@ -92,7 +93,7 @@ internal static class DimensionTransformUtils
         // Source drawing set Dimscale for its own viewport; after TransformBy the geometry
         // is already in target units, so Dimscale must be 1 going forward.
         double dimscale = dimension.Dimscale == 0.0 ? 1.0 : dimension.Dimscale;
-        if (Math.Abs(dimscale - 1.0) > 1e-9)
+        if (Abs(dimscale - 1.0) > 1e-9)
         {
             dimension.Dimtxt *= dimscale;
             dimension.Dimasz *= dimscale;

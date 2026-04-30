@@ -27,25 +27,8 @@ internal sealed class AcadWarningSuppressScope : IDisposable
 }
 
 // Устанавливает TILEMODE=0, сохраняет CTAB/CVPORT/TILEMODE для восстановления при Dispose.
-internal sealed class LayoutEditScope : IDisposable
-{
-    private readonly ManagedSystemVariable _tileMode = new("TILEMODE", 0);
-    private readonly ManagedSystemVariable _cTab;
-    private readonly ManagedSystemVariable _cvPort;
-
-    public LayoutEditScope()
-    {
-        _cTab = new ManagedSystemVariable("CTAB", AcadApp.GetSystemVariable("CTAB"));
-        _cvPort = new ManagedSystemVariable("CVPORT", AcadApp.GetSystemVariable("CVPORT"));
-    }
-
-    public void Dispose()
-    {
-        _cvPort.Dispose();
-        _cTab.Dispose();
-        _tileMode.Dispose();
-    }
-}
+// ПРИМЕЧАНИЕ: Класс LayoutEditScope был удалён как неиспользуемый (dead code).
+// Если потребуется работа с layout-контекстом, используйте прямое управление системными переменными.
 
 internal sealed class ManagedSystemVariable : IDisposable
 {
