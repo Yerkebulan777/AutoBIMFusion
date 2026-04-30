@@ -129,6 +129,11 @@ public sealed class MergeCommands
 
         BlockInserter inserter = new(gapPercent, log);
 
+        using (doc.LockDocument())
+        {
+            BlockInserter.SyncUnits(doc.Database);
+        }
+
         await MergeFiles(dwgFiles, inserter, doc, stats, log);
 
         using (doc.LockDocument())
