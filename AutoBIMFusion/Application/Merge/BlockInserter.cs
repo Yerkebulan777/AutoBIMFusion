@@ -1,6 +1,5 @@
 using AutoBIMFusion.Application.Merge.Layouts;
 using AutoBIMFusion.Infrastructure.Logging;
-using static System.Math;
 
 namespace AutoBIMFusion.Application.Merge;
 

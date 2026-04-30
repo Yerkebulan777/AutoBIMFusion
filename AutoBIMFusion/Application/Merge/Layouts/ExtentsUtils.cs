@@ -1,5 +1,3 @@
-using static System.Math;
-
 namespace AutoBIMFusion.Application.Merge.Layouts;
 
 /// <summary>

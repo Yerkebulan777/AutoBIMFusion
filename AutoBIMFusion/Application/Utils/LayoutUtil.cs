@@ -48,7 +48,7 @@ internal static class LayoutUtil
         ObjectId layoutId = dict.GetAt(layoutName);
         Layout layout = (Layout)tr.GetObject(layoutId, OpenMode.ForRead);
         ObjectId btrId = layout.BlockTableRecordId;
-        
+
         tr.Commit();
         return btrId;
     }

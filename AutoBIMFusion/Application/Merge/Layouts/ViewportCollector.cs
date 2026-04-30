@@ -1,6 +1,4 @@
-﻿using static System.Math;
-
-namespace AutoBIMFusion.Application.Merge.Layouts;
+﻿namespace AutoBIMFusion.Application.Merge.Layouts;
 
 /// <summary>
 /// Перечисляет активные Viewport'ы указанного листа и собирает LayoutViewportInfo.
