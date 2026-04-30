@@ -1,6 +1,6 @@
 # AutoBIMFusion Technical Documentation
 
-**Updated:** 2026-04-29
+**Updated:** 2026-04-30
 
 ## 1. Overview
 
@@ -39,7 +39,6 @@ AutoBIMFusion/
         LayoutViewportInfo.cs
         Transforms/
           EntityTransformUtils.cs
-          DimensionTransformUtils.cs
       Models/
         MergeResult.cs
         MergeStatistics.cs
@@ -85,8 +84,8 @@ Behavior:
 - suppresses the final summary `MessageBox`;
 - saves to `C:\Users\y.zhumabayev\Desktop\TEST.dwg`;
 - logs the source folder, save path, and active Serilog file path;
-- preserves `[DIM-DIAG]` debug output from `DimensionTransformUtils`;
-- logs compact `[DIM-STYLE]` snapshots from the target `DimStyleTable` before merge, after each file, and before save.
+- uses the same two style snapshots as `MERGEDWG`: `before-merge` and `after-merge`;
+- logs user dimension styles as `[DIM-STYLE]`, user text styles as `[TEXT-STYLE]`, and dimension override cleanup as `[DIM-OVERRIDES]`.
 
 Recommended AutoCAD script flow:
 
@@ -145,11 +144,9 @@ Logging policy:
 - AutoCAD API failures that affect a command or file: `Error`
 - high-volume diagnostics: `Debug`
 
-Dimension scaling diagnostics use `[DIM-DIAG]` debug entries. Each entry records `scenario`, `stage`, `handle`, entity type, `scaleFactor`, scale order, `measurement`, `measurementRatio`, override text, entity dimension values, linked `DimStyleTableRecord` values, `entityDiffersFromStyle`, visual text height, visual arrow size, dimension geometry points, bounding-box height, and extents.
+Style diagnostics are intentionally low-volume. `MERGEDWG` and `MERGEDWG_DIAG_TEST` write exactly two style snapshots: `before-merge` before processing the DWG batch and `after-merge` after all source files are inserted. `DimensionStyleDiagnosticUtils` logs a `[STYLE-SNAPSHOT]` summary plus `[DIM-STYLE]` and `[TEXT-STYLE]` lines for user styles only; standard styles (`Standard`, `ISO-25`, `Annotative`) are skipped.
 
-`MERGEDWG_DIAG_TEST` also writes `[DIM-STYLE]` snapshots for the target dimension style table. These lines are compact, machine-readable equivalents of the manual `ExportDimStylesToMd` report and allow the diagnostic log to distinguish entity overrides from style-table conflicts caused by style cloning.
-
-The root cause found during `MERGEDWG_DIAG_TEST` was double visual scaling: `TransformBy()` already scales dimension geometry, while the previous `Dimscale *= scaleFactor` made recomputed text/arrows grow again. The current compensation keeps `Dimscale` visually neutral and uses `Dimlfac /= scaleFactor` only for numeric value compensation. `MERGEDWG_DIAG_TEST` emits `[DIM-DIAG-SUMMARY]` lines grouped by `scenario`, `scaleFactor`, and `stage`; use `visualSizePreserved` to judge text/arrow stability and `bboxScaledLikeTransform` to identify full-extents growth from extension-line geometry.
+Before the final snapshot, `DimensionStyleDiagnosticUtils.ClearDimensionOverrides` removes per-entity dimension style overrides stored in the `ACAD` xdata `DSTYLE` section. The log line `[DIM-OVERRIDES]` reports checked, cleaned, and failed dimension counts. Other xdata sections are preserved.
 
 The main command catches startup failures outside the async task body so users see a clear editor message instead of an unobserved task exception.
 

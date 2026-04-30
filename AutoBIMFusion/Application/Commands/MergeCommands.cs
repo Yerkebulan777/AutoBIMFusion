@@ -129,11 +129,18 @@ public sealed class MergeCommands
 
         BlockInserter inserter = new(gapPercent, log);
 
-        await MergeFiles(dwgFiles, inserter, doc, stats, log, dimensionDiagnostics: false);
+        using (doc.LockDocument())
+        {
+            DimensionStyleDiagnosticUtils.LogStyleSnapshot(doc.Database, log, "before-merge");
+        }
+
+        await MergeFiles(dwgFiles, inserter, doc, stats, log);
 
         using (doc.LockDocument())
         {
             RasterImagePathFixer.CopyImagesToTargetFolder(doc.Database, savePath, log);
+            DimensionStyleDiagnosticUtils.ClearDimensionOverrides(doc.Database, log);
+            DimensionStyleDiagnosticUtils.LogStyleSnapshot(doc.Database, log, "after-merge");
             DwgOptimizer.Optimize(doc.Database, log);
 
             SaveMerged(doc.Database, savePath, log);
@@ -157,8 +164,7 @@ public sealed class MergeCommands
         BlockInserter inserter,
         Document doc,
         MergeStatistics stats,
-        AILog log,
-        bool dimensionDiagnostics)
+        AILog log)
     {
         using ProgressMeter pm = new();
         pm.Start("Объединение файлов DWG...");
@@ -175,11 +181,6 @@ public sealed class MergeCommands
                 MergeResult result = await MergeCoordinator.MergeSingleFile(files[idx], inserter, doc, log);
 
                 log.Info($"[{(result.Success ? "OK" : result.IsSkipped ? "SKIP" : "FAIL")}] {result.Message}");
-
-                if (dimensionDiagnostics)
-                {
-                    DimensionStyleDiagnosticUtils.LogDimensionStyleSnapshot(doc.Database, log, $"after-file-{idx + 1}");
-                }
 
                 if (result.Success)
                 {

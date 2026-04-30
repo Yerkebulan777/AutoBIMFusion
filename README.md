@@ -56,7 +56,7 @@ dotnet build AutoBIMFusion.slnx -c DebugA26
 .\tools\Run-MergeDwgDiagTest.ps1 -Configuration DebugA26
 ```
 
-The diagnostic runner builds a Core Console-safe plugin variant and invokes `MERGEDWG_DIAG_TEST` against `C:\Users\y.zhumabayev\Desktop\TEST`. It loads the DLL from `AutoBIMFusion\bin\DebugA26-core\AutoBIMFusion.bundle\Contents`, writes Core Console stdout/stderr to `AutoBIMFusion\bin\DebugA26-core\diag`, and writes plugin logs next to the loaded bundle DLL under `Contents\Logs\merge-YYYY-MM-DD.log`. Dimension runs emit `[DIM-STYLE]` style-table snapshots, `[DIM-DIAG]` per entity, and `[DIM-DIAG-SUMMARY]` grouped by scenario/scale/stage.
+The diagnostic runner builds a Core Console-safe plugin variant and invokes `MERGEDWG_DIAG_TEST` against `C:\Users\y.zhumabayev\Desktop\TEST`. It loads the DLL from `AutoBIMFusion\bin\DebugA26-core\AutoBIMFusion.bundle\Contents`, writes Core Console stdout/stderr to `AutoBIMFusion\bin\DebugA26-core\diag`, and writes plugin logs next to the loaded bundle DLL under `Contents\Logs\merge-YYYY-MM-DD.log`. Merge runs emit two compact style snapshots: `before-merge` and `after-merge`. Each snapshot logs user dimension styles as `[DIM-STYLE]`, user text styles as `[TEXT-STYLE]`, and the final pass logs `[DIM-OVERRIDES]` after removing per-entity dimension style overrides.
 
 ## Documentation
 

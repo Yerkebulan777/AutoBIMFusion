@@ -6,64 +6,226 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 
 internal static class DimensionStyleDiagnosticUtils
 {
-    internal static void LogDimensionStyleSnapshot(Database db, AILog log, string stage)
+    private const string AcadRegAppName = "ACAD";
+    private const string DimensionStyleOverrideMarker = "DSTYLE";
+
+    private static readonly HashSet<string> StandardStyleNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Standard",
+        "ISO-25",
+        "Annotative"
+    };
+
+    internal static void LogStyleSnapshot(Database db, AILog log, string stage)
     {
         using Transaction tr = db.TransactionManager.StartTransaction();
-        DimStyleTable table = (DimStyleTable)tr.GetObject(db.DimStyleTableId, OpenMode.ForRead);
 
-        foreach (ObjectId id in table)
+        DimStyleTable dimStyleTable = (DimStyleTable)tr.GetObject(db.DimStyleTableId, OpenMode.ForRead);
+        TextStyleTable textStyleTable = (TextStyleTable)tr.GetObject(db.TextStyleTableId, OpenMode.ForRead);
+
+        List<string> dimStyles = [];
+        foreach (ObjectId id in dimStyleTable)
         {
             DimStyleTableRecord style = (DimStyleTableRecord)tr.GetObject(id, OpenMode.ForRead);
-            log.Info($"[DIM-STYLE] stage={stage}, {FormatStyle(style)}");
+            if (IsUserStyle(style))
+            {
+                dimStyles.Add(FormatDimensionStyle(style));
+            }
+        }
+
+        List<string> textStyles = [];
+        foreach (ObjectId id in textStyleTable)
+        {
+            TextStyleTableRecord style = (TextStyleTableRecord)tr.GetObject(id, OpenMode.ForRead);
+            if (IsUserStyle(style))
+            {
+                textStyles.Add(FormatTextStyle(style));
+            }
         }
 
         tr.Commit();
+
+        log.Info($"[STYLE-SNAPSHOT] stage={stage}, dimStyles={dimStyles.Count}, textStyles={textStyles.Count}");
+
+        foreach (string style in dimStyles.Order(StringComparer.OrdinalIgnoreCase))
+        {
+            log.Info($"[DIM-STYLE] stage={stage}, {style}");
+        }
+
+        foreach (string style in textStyles.Order(StringComparer.OrdinalIgnoreCase))
+        {
+            log.Info($"[TEXT-STYLE] stage={stage}, {style}");
+        }
     }
 
-    internal static DimensionStyleSnapshot? TryReadStyleSnapshot(Dimension dimension)
+    internal static void ClearDimensionOverrides(Database db, AILog log)
     {
-        try
+        int checkedDimensions = 0;
+        int cleanedDimensions = 0;
+        int failedDimensions = 0;
+
+        using Transaction tr = db.TransactionManager.StartTransaction();
+        BlockTable blockTable = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+
+        foreach (ObjectId blockId in blockTable)
         {
-            ObjectId styleId = dimension.DimensionStyle;
-            if (styleId.IsNull)
+            if (tr.GetObject(blockId, OpenMode.ForRead, false) is not BlockTableRecord block)
             {
-                return null;
+                continue;
             }
 
-            using Transaction tr = styleId.Database.TransactionManager.StartTransaction();
-            DimStyleTableRecord style = (DimStyleTableRecord)tr.GetObject(styleId, OpenMode.ForRead);
-            DimensionStyleSnapshot snapshot = CreateSnapshot(style);
-            tr.Commit();
-            return snapshot;
+            foreach (ObjectId id in block)
+            {
+                if (tr.GetObject(id, OpenMode.ForRead, false) is not Dimension dimension)
+                {
+                    continue;
+                }
+
+                checkedDimensions++;
+
+                try
+                {
+                    if (TryRemoveDimensionStyleOverrides(dimension))
+                    {
+                        cleanedDimensions++;
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    failedDimensions++;
+                    log.Warn($"[DIM-OVERRIDES] handle={dimension.Handle}: не удалось очистить overrides: {ex.Message}");
+                }
+            }
         }
-        catch
-        {
-            return null;
-        }
+
+        tr.Commit();
+
+        log.Info(
+            $"[DIM-OVERRIDES] checked={checkedDimensions}, cleaned={cleanedDimensions}, failed={failedDimensions}");
     }
 
-    internal static string FormatStyleSnapshot(DimensionStyleSnapshot? snapshot)
+    private static bool TryRemoveDimensionStyleOverrides(Dimension dimension)
     {
-        return !snapshot.HasValue ? "styleSnapshot=none" : FormatSnapshot("style", snapshot.Value);
-    }
-
-    internal static bool EntityDiffersFromStyle(Dimension dimension, DimensionStyleSnapshot? style)
-    {
-        if (!style.HasValue)
+        ResultBuffer? xdata = dimension.XData;
+        if (xdata is null)
         {
             return false;
         }
 
-        DimensionStyleSnapshot value = style.Value;
-        return !Near(dimension.Dimtxt, value.Dimtxt)
-            || !Near(dimension.Dimasz, value.Dimasz)
-            || !Near(dimension.Dimscale, value.Dimscale)
-            || !Near(dimension.Dimlfac, value.Dimlfac);
+        TypedValue[] values;
+        using (xdata)
+        {
+            values = xdata.AsArray();
+        }
+
+        if (!TryRemoveDimensionStyleOverrideSection(values, out List<TypedValue> cleanedValues))
+        {
+            return false;
+        }
+
+        dimension.UpgradeOpen();
+        dimension.XData = cleanedValues.Count == 0 ? null : new ResultBuffer(cleanedValues.ToArray());
+        return true;
     }
 
-    internal static string FormatStyle(DimStyleTableRecord style)
+    private static bool TryRemoveDimensionStyleOverrideSection(TypedValue[] values, out List<TypedValue> cleanedValues)
     {
-        return FormatSnapshot("style", CreateSnapshot(style));
+        cleanedValues = [];
+        bool changed = false;
+
+        for (int i = 0; i < values.Length;)
+        {
+            if (!IsRegApp(values[i], out string? appName))
+            {
+                cleanedValues.Add(values[i]);
+                i++;
+                continue;
+            }
+
+            int sectionStart = i;
+            i++;
+
+            List<TypedValue> sectionValues = [];
+            while (i < values.Length && !IsRegApp(values[i], out _))
+            {
+                sectionValues.Add(values[i]);
+                i++;
+            }
+
+            List<TypedValue> cleanedSection = sectionValues;
+            bool sectionChanged = appName is not null
+                && appName.Equals(AcadRegAppName, StringComparison.OrdinalIgnoreCase)
+                && TryRemoveAcadDimensionStyleOverrideSection(sectionValues, out cleanedSection);
+
+            if (sectionChanged)
+            {
+                changed = true;
+                if (cleanedSection.Count == 0)
+                {
+                    continue;
+                }
+
+                cleanedValues.Add(values[sectionStart]);
+                cleanedValues.AddRange(cleanedSection);
+                continue;
+            }
+
+            cleanedValues.Add(values[sectionStart]);
+            cleanedValues.AddRange(sectionValues);
+        }
+
+        return changed;
+    }
+
+    private static bool TryRemoveAcadDimensionStyleOverrideSection(
+        List<TypedValue> sectionValues,
+        out List<TypedValue> cleanedSection)
+    {
+        cleanedSection = [];
+        bool changed = false;
+
+        for (int i = 0; i < sectionValues.Count; i++)
+        {
+            TypedValue value = sectionValues[i];
+            if (!IsDimensionStyleOverrideMarker(value))
+            {
+                cleanedSection.Add(value);
+                continue;
+            }
+
+            changed = true;
+            i = SkipOverridePayload(sectionValues, i);
+        }
+
+        return changed;
+    }
+
+    private static int SkipOverridePayload(List<TypedValue> sectionValues, int markerIndex)
+    {
+        int i = markerIndex + 1;
+        if (i >= sectionValues.Count || !IsControlString(sectionValues[i], "{"))
+        {
+            return markerIndex;
+        }
+
+        int depth = 0;
+        for (; i < sectionValues.Count; i++)
+        {
+            if (IsControlString(sectionValues[i], "{"))
+            {
+                depth++;
+            }
+            else if (IsControlString(sectionValues[i], "}"))
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    return i;
+                }
+            }
+        }
+
+        return sectionValues.Count - 1;
     }
 
     private static DimensionStyleSnapshot CreateSnapshot(DimStyleTableRecord style)
@@ -89,6 +251,45 @@ internal static class DimensionStyleDiagnosticUtils
             style.Annotative.ToString());
     }
 
+    private static TextStyleSnapshot CreateSnapshot(TextStyleTableRecord style)
+    {
+        Autodesk.AutoCAD.GraphicsInterface.FontDescriptor font = style.Font;
+
+        return new TextStyleSnapshot(
+            style.Name,
+            style.Handle.ToString(),
+            style.FileName ?? string.Empty,
+            style.BigFontFileName ?? string.Empty,
+            font.TypeFace ?? string.Empty,
+            font.Bold,
+            font.Italic,
+            font.CharacterSet,
+            font.PitchAndFamily,
+            style.IsShapeFile,
+            style.IsVertical,
+            style.TextSize,
+            style.XScale,
+            style.ObliquingAngle);
+    }
+
+    private static string FormatDimensionStyle(DimStyleTableRecord style)
+    {
+        return FormatSnapshot("style", CreateSnapshot(style));
+    }
+
+    private static string FormatTextStyle(TextStyleTableRecord style)
+    {
+        TextStyleSnapshot snapshot = CreateSnapshot(style);
+        return
+            $"styleName=\"{Escape(snapshot.Name)}\", styleHandle={snapshot.Handle}, " +
+            $"styleFile=\"{Escape(snapshot.FileName)}\", styleBigFont=\"{Escape(snapshot.BigFontFileName)}\", " +
+            $"styleTypeface=\"{Escape(snapshot.TypeFace)}\", styleBold={snapshot.Bold}, styleItalic={snapshot.Italic}, " +
+            $"styleCharacterSet={snapshot.CharacterSet}, stylePitchAndFamily={snapshot.PitchAndFamily}, " +
+            $"styleIsShapeFile={snapshot.IsShapeFile}, styleIsVertical={snapshot.IsVertical}, " +
+            $"styleTextSize={FormatDouble(snapshot.TextSize)}, styleXScale={FormatDouble(snapshot.XScale)}, " +
+            $"styleObliquingAngle={FormatDouble(snapshot.ObliquingAngle)}";
+    }
+
     private static string FormatSnapshot(string prefix, DimensionStyleSnapshot snapshot)
     {
         return
@@ -105,6 +306,13 @@ internal static class DimensionStyleDiagnosticUtils
             $"{prefix}VisualArrow={FormatDouble(snapshot.Dimasz * snapshot.Dimscale)}";
     }
 
+    private static bool IsUserStyle(SymbolTableRecord style)
+    {
+        return !style.IsDependent
+            && !style.IsErased
+            && !StandardStyleNames.Contains(style.Name);
+    }
+
     private static string FormatColor(Color color)
     {
         return $"{color.ColorMethod}:{color.ColorIndex}";
@@ -117,9 +325,25 @@ internal static class DimensionStyleDiagnosticUtils
             : "n/a";
     }
 
-    private static bool Near(double left, double right)
+    private static bool IsRegApp(TypedValue value, out string? appName)
     {
-        return Abs(left - right) <= Max(1e-9, Abs(right) * 1e-6);
+        appName = value.Value as string;
+        return value.TypeCode == (int)DxfCode.ExtendedDataRegAppName
+            && appName is not null;
+    }
+
+    private static bool IsDimensionStyleOverrideMarker(TypedValue value)
+    {
+        return value.TypeCode == (int)DxfCode.ExtendedDataAsciiString
+            && value.Value is string marker
+            && marker.Equals(DimensionStyleOverrideMarker, StringComparison.Ordinal);
+    }
+
+    private static bool IsControlString(TypedValue value, string expected)
+    {
+        return value.TypeCode == (int)DxfCode.ExtendedDataControlString
+            && value.Value is string control
+            && control.Equals(expected, StringComparison.Ordinal);
     }
 
     private static string Escape(string? value)
@@ -150,4 +374,20 @@ internal static class DimensionStyleDiagnosticUtils
         string Dimclre,
         string Dimclrt,
         string Annotative);
+
+    private readonly record struct TextStyleSnapshot(
+        string Name,
+        string Handle,
+        string FileName,
+        string BigFontFileName,
+        string TypeFace,
+        bool Bold,
+        bool Italic,
+        int CharacterSet,
+        int PitchAndFamily,
+        bool IsShapeFile,
+        bool IsVertical,
+        double TextSize,
+        double XScale,
+        double ObliquingAngle);
 }

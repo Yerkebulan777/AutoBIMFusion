@@ -1,6 +1,6 @@
 # Known Issues
 
-**Updated:** 2026-04-29
+**Updated:** 2026-04-30
 
 This file tracks only active risks and contentious design decisions. Fixed stale items were removed.
 
@@ -34,17 +34,17 @@ These are intentionally conservative, but they are not user-configurable.
 
 **Preferred fix:** Add a small options model or config file only if real projects require different thresholds.
 
-### KI-4. Critical: dimension text scaling logic may distort merged layouts
+### KI-4. Dimension appearance still requires production visual QA
 
-**Severity:** Critical
+**Severity:** Medium
 
-**Where:** `EntityTransformUtils`, `ViewportTransformer.ScaleModelSpaceObjects`, `LayoutProjectionProcessor`
+**Where:** `EntityTransformUtils`, `DimensionStyleDiagnosticUtils`, `LayoutProjectionProcessor`
 
-`MERGEDWG` previously applied generic dimension compensation during layout flattening: `Dimension.Dimscale` was multiplied by the transform scale factor and `Dimension.Dimlfac` was divided by the same factor. Diagnostics confirmed that this mixed two different goals: preserving the visual size of dimension text/arrows and preserving the displayed dimension value after viewport/model transformations.
+`MERGEDWG` no longer applies per-entity dimension compensation during layout flattening, and finalization now removes per-entity dimension style overrides from the `ACAD` xdata `DSTYLE` section. The goal is for dimensions in the merged DWG to rely on shared project styles instead of local overrides.
 
 **Risk:** dimensions may change text height, arrow size, extension-line geometry, or displayed numeric value after model clamp scaling, Paper Space cloning, or auxiliary viewport flattening.
 
-**Status:** root cause confirmed and first fix applied. `Dimscale` is no longer multiplied by the geometric transform scale; `Dimlfac` remains the numeric-value compensation. Dimension diagnostic logging is available through `[DIM-DIAG]` debug entries and records scenario, stage, handle, type, scale factor, scale order, measurement, measurement ratio, override text, entity dimension values, linked dimension style values, visual text height, visual arrow size, extents, and bounding-box height. `MERGEDWG_DIAG_TEST` also emits `[DIM-STYLE]` snapshots and `[DIM-DIAG-SUMMARY]` grouped by scenario, scale factor, and stage.
+**Status:** active diagnostics are compact style snapshots only. `MERGEDWG` and `MERGEDWG_DIAG_TEST` log `before-merge` and `after-merge` snapshots for user dimension/text styles, plus `[DIM-OVERRIDES]` counts for checked, cleaned, and failed dimensions.
 
 **Residual verification:** manual visual QA in AutoCAD is still required for representative production sheets, because full dimension extents may include scaled extension-line geometry even when text and arrow visual metrics are preserved.
 
