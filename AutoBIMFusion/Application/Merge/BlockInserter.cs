@@ -33,96 +33,106 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
         {
             ExtentsUtils.SyncUnits(targetDb);
 
+            // 1. Читаем исходную базу (БЕЗ попыток изменить ее единицы)
             using Database sourceDb = new(false, true);
             sourceDb.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
-            ExtentsUtils.SyncUnits(sourceDb);
             sourceDb.CloseInput(true);
 
-            // Запоминаем исходные единицы целевого чертежа
-            UnitsValue originalTargetUnits = targetDb.Insunits;
-
-            // ПРИНУДИТЕЛЬНО отключаем единицы в ОБЕИХ базах, чтобы WblockCloneObjects
-            // не пытался конвертировать размеры (304.8)
-            sourceDb.Insunits = UnitsValue.Undefined;
-            targetDb.Insunits = UnitsValue.Undefined;
-
-            ObjectIdCollection sourceIdsCollection = new ObjectIdCollection();
             ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
             ObjectId targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
+            ObjectIdCollection sourceIds = [];
 
-            // Настраиваем исходный ModelSpace
+            // 2. Читаем единицы пространства модели источника
+            UnitsValue sourceMsUnits;
             using (Transaction tr = sourceDb.TransactionManager.StartTransaction())
             {
-                // 1. Открываем таблицу блоков и жестко фиксируем метрические единицы для ВСЕХ блоков.
-                // Это необходимо, чтобы анонимные блоки размеров (*D) не сохранили исходные футы
-                // и WblockCloneObjects не применил к ним коэффициент масштабирования 304.8.
-                BlockTable bt = (BlockTable)tr.GetObject(sourceDb.BlockTableId, OpenMode.ForRead);
-                foreach (ObjectId btrId in bt)
-                {
-                    BlockTableRecord btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForWrite);
-                    btr.Units = targetDb.Insunits;
-                }
-
-                // 2. Собираем ID объектов из Model Space для последующего клонирования
                 BlockTableRecord ms = (BlockTableRecord)tr.GetObject(sourceMsId, OpenMode.ForRead);
+                sourceMsUnits = ms.Units;
+
                 foreach (ObjectId id in ms)
                 {
                     if (!id.IsNull && !id.IsErased)
                     {
-                        _ = sourceIdsCollection.Add(id);
+                        _ = sourceIds.Add(id);
                     }
                 }
-
                 tr.Commit();
             }
 
-            if (sourceIdsCollection.Count == 0)
+            if (sourceIds.Count == 0)
             {
                 log.Warn($"{sourceName}: пустой Model Space");
-                targetDb.Insunits = originalTargetUnits; // Восстанавливаем
                 return null;
             }
 
-            IdMapping map = new IdMapping();
-            Extents3d? worldBounds = null;
-            int clonedCount = 0;
+            // 3. Сохраняем исходные метрические настройки целевой базы
+            UnitsValue originalTargetDbUnits = targetDb.Insunits;
+            MeasurementValue originalTargetDbMeasurement = targetDb.Measurement;
+            UnitsValue originalTargetMsUnits;
 
-            // Клонирование и настройка целевого ModelSpace
             using (Transaction tr = targetDb.TransactionManager.StartTransaction())
             {
-                BlockTableRecord targetMs = (BlockTableRecord)tr.GetObject(targetMsId, OpenMode.ForWrite);
-                UnitsValue originalTargetMsUnits = targetMs.Units;
-                targetMs.Units = UnitsValue.Undefined; // Временно отключаем
-
-                // Теперь клонирование пройдет без конвертации размерных стилей 1 к 304.8
-                targetDb.WblockCloneObjects(sourceIdsCollection, targetMsId, map, DuplicateRecordCloning.Ignore, false);
-
-                foreach (IdPair pair in map)
-                {
-                    if (!pair.IsCloned || !pair.IsPrimary) continue;
-
-                    if (tr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
-                    {
-                        ent.TransformBy(displacement);
-                        clonedCount++;
-
-                        Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
-                        if (ext.HasValue)
-                        {
-                            worldBounds = worldBounds.HasValue
-                                ? ExtentsUtils.Union(worldBounds.Value, ext.Value)
-                                : ext.Value;
-                        }
-                    }
-                }
-
-                // Восстанавливаем единицы ModelSpace
-                targetMs.Units = originalTargetMsUnits;
+                BlockTableRecord targetMs = (BlockTableRecord)tr.GetObject(targetMsId, OpenMode.ForRead);
+                originalTargetMsUnits = targetMs.Units;
                 tr.Commit();
             }
 
-            // Восстанавливаем глобальные единицы целевой базы
-            targetDb.Insunits = originalTargetUnits;
+            IdMapping map = [];
+            Extents3d? worldBounds = null;
+            int clonedCount = 0;
+
+            try
+            {
+                // 4. ВРЕМЕННО приравниваем единицы целевой базы к исходной.
+                // Это полностью отключает встроенную логику WblockCloneObjects по авто-масштабированию (304.8).
+                targetDb.Insunits = sourceDb.Insunits;
+                targetDb.Measurement = sourceDb.Measurement;
+                using (Transaction tr = targetDb.TransactionManager.StartTransaction())
+                {
+                    BlockTableRecord targetMs = (BlockTableRecord)tr.GetObject(targetMsId, OpenMode.ForWrite);
+                    targetMs.Units = sourceMsUnits;
+                    tr.Commit();
+                }
+
+                // 5. Выполняем клонирование 1:1
+                using (Transaction tr = targetDb.TransactionManager.StartTransaction())
+                {
+                    targetDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Ignore, false);
+
+                    foreach (IdPair pair in map)
+                    {
+                        if (!pair.IsCloned || !pair.IsPrimary) continue;
+
+                        if (tr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
+                        {
+                            ent.TransformBy(displacement);
+                            clonedCount++;
+
+                            Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
+                            if (ext.HasValue)
+                            {
+                                worldBounds = worldBounds.HasValue
+                                    ? ExtentsUtils.Union(worldBounds.Value, ext.Value)
+                                    : ext.Value;
+                            }
+                        }
+                    }
+                    tr.Commit();
+                }
+            }
+            finally
+            {
+                // 6. ОБЯЗАТЕЛЬНО возвращаем целевой базе ее правильные метрические единицы
+                targetDb.Insunits = originalTargetDbUnits;
+                targetDb.Measurement = originalTargetDbMeasurement;
+                using (Transaction tr = targetDb.TransactionManager.StartTransaction())
+                {
+                    BlockTableRecord targetMs = (BlockTableRecord)tr.GetObject(targetMsId, OpenMode.ForWrite);
+                    targetMs.Units = originalTargetMsUnits;
+                    tr.Commit();
+                }
+                ExtentsUtils.SyncUnits(targetDb);
+            }
 
             if (clonedCount == 0)
             {
