@@ -90,6 +90,12 @@ public sealed class MergeCommands
 
     private static async Task ExecuteMerge(Document doc, AILog log, string? folderPath, bool showDialogs)
     {
+        if (doc.Database == null)
+        {
+            log.Warn("Целевая база данных недоступна.");
+            return;
+        }
+
         string? sourceFolder = folderPath;
 
         if (string.IsNullOrWhiteSpace(sourceFolder) && !FolderSelector.TrySelectFolder(out sourceFolder))
@@ -217,6 +223,17 @@ public sealed class MergeCommands
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(savePath))
+            {
+                throw new ArgumentException("Путь для сохранения не может быть пустым.", nameof(savePath));
+            }
+
+            string? dir = Path.GetDirectoryName(savePath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
             if (File.Exists(savePath))
             {
                 File.Delete(savePath);

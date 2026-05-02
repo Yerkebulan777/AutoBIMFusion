@@ -35,7 +35,7 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
 
             ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
             ObjectId targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
-            ObjectIdCollection sourceIds = [];
+            using ObjectIdCollection sourceIds = [];
 
             using (Transaction tr = sourceDb.TransactionManager.StartTransaction())
             {
@@ -75,45 +75,35 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
             // 3. Сохраняем исходные метрические настройки целевой базы
             UnitsValue originalTargetDbUnits = targetDb.Insunits;
             MeasurementValue originalTargetDbMeasurement = targetDb.Measurement;
-            UnitsValue originalTargetMsUnits;
-
-            using (Transaction tr = targetDb.TransactionManager.StartTransaction())
-            {
-                BlockTableRecord targetMs = (BlockTableRecord)tr.GetObject(targetMsId, OpenMode.ForRead);
-                originalTargetMsUnits = targetMs.Units;
-                tr.Commit();
-            }
-
             IdMapping map = [];
             Extents3d? worldBounds = null;
             int clonedCount = 0;
 
             try
             {
-                // 4. ВРЕМЕННО приравниваем единицы целевой базы к исходной.
-                // Это полностью отключает встроенную логику WblockCloneObjects по авто-масштабированию (304.8).
+                using Transaction targetTr = targetDb.TransactionManager.StartTransaction();
+                
+                // 3. Получаем исходные единицы Model Space и ВРЕМЕННО приравниваем
+                BlockTableRecord targetMs = (BlockTableRecord)targetTr.GetObject(targetMsId, OpenMode.ForWrite);
+                UnitsValue originalTargetMsUnits = targetMs.Units;
+
                 targetDb.Insunits = sourceDb.Insunits;
                 targetDb.Measurement = sourceDb.Measurement;
-                using (Transaction tr = targetDb.TransactionManager.StartTransaction())
-                {
-                    BlockTableRecord targetMs = (BlockTableRecord)tr.GetObject(targetMsId, OpenMode.ForWrite);
-                    targetMs.Units = targetDb.Insunits;
-                    tr.Commit();
-                }
+                targetMs.Units = targetDb.Insunits;
 
-                // 5. Выполняем клонирование 1:1
-                using (Transaction tr = targetDb.TransactionManager.StartTransaction())
-                {
-                    targetDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Ignore, false);
+                // 4. Выполняем клонирование 1:1
+                targetDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Ignore, false);
 
-                    foreach (IdPair pair in map)
+                foreach (IdPair pair in map)
+                {
+                    if (!pair.IsCloned || !pair.IsPrimary)
                     {
-                        if (!pair.IsCloned || !pair.IsPrimary)
-                        {
-                            continue;
-                        }
+                        continue;
+                    }
 
-                        if (tr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
+                    try
+                    {
+                        if (targetTr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
                         {
                             // Оптимизация Phase 2: Объединяем трансформацию и очистку
                             ent.TransformBy(displacement);
@@ -133,24 +123,27 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                             }
                         }
                     }
-
-                    // Лечим стили размеров в той же транзакции
-                    _ = DimensionHealer.HealDimensionStyles(targetDb, tr, []);
-
-                    tr.Commit();
+                    catch (System.Exception ex)
+                    {
+                        log.Warn(ex, $"Ошибка обработки клонированного объекта {pair.Value}");
+                    }
                 }
+
+                // Лечим стили размеров в той же транзакции
+                _ = DimensionHealer.HealDimensionStyles(targetDb, targetTr, []);
+
+                // 5. ОБЯЗАТЕЛЬНО возвращаем целевой базе ее правильные метрические единицы
+                targetDb.Insunits = originalTargetDbUnits;
+                targetDb.Measurement = originalTargetDbMeasurement;
+                targetMs.Units = originalTargetMsUnits;
+
+                targetTr.Commit();
             }
             finally
             {
-                // 6. ОБЯЗАТЕЛЬНО возвращаем целевой базе ее правильные метрические единицы
+                // На случай падения транзакции, гарантируем восстановление уровня базы
                 targetDb.Insunits = originalTargetDbUnits;
                 targetDb.Measurement = originalTargetDbMeasurement;
-                using (Transaction tr = targetDb.TransactionManager.StartTransaction())
-                {
-                    BlockTableRecord targetMs = (BlockTableRecord)tr.GetObject(targetMsId, OpenMode.ForWrite);
-                    targetMs.Units = originalTargetMsUnits;
-                    tr.Commit();
-                }
                 ExtentsUtils.SyncUnits(targetDb);
             }
 

@@ -46,7 +46,7 @@ internal static class DwgOptimizer
 
     private static int PurgePass(Database db, AILog log)
     {
-        ObjectIdCollection candidates = [];
+        using ObjectIdCollection candidates = [];
 
         using Transaction tr = db.TransactionManager.StartTransaction();
 

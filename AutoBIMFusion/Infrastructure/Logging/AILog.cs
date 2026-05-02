@@ -40,7 +40,10 @@ internal sealed class AILog(Editor ed)
     private void Log(LogEventLevel level, string message, System.Exception? ex = null)
     {
         string full = Prefix.Length > 0 ? $"{Prefix} {message}" : message;
+        full = MaskSensitivePaths(full);
+
         string editorMsg = ex == null ? full : $"{full} ({ex.GetType().Name}: {StringUtils.Truncate(ex.Message, "Ошибка", 200)})";
+        editorMsg = MaskSensitivePaths(editorMsg);
 
         if (EchoToEditor && level != LogEventLevel.Debug)
         {
@@ -61,6 +64,19 @@ internal sealed class AILog(Editor ed)
         {
             _fileLogger.Write(level, ex, full);
         }
+
+        System.Diagnostics.Trace.WriteLine($"[{level}] {full}");
+        if (ex != null)
+        {
+            System.Diagnostics.Trace.WriteLine(ex.ToString());
+        }
+    }
+
+    private static string MaskSensitivePaths(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return input;
+        // Простое скрытие абсолютных путей для безопасности
+        return System.Text.RegularExpressions.Regex.Replace(input, @"[A-Za-z]:\\[^:\*\?\""<>\|]*", "[PATH_HIDDEN]");
     }
 
     private void TryWriteToEditor(string msg)

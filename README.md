@@ -34,6 +34,14 @@ AutoBIMFusion is a .NET 8 plugin for AutoCAD 2025-2027. Its main command, `MERGE
 - Per-entity debug logging is kept limited; high-volume operations log counts and critical failures.
 - AutoCAD API exceptions are caught at command/file boundaries and reported through `AILog`.
 
+## Performance & Architecture Guidelines
+
+1. **Memory Management**: All database objects, including `ObjectIdCollection`, must be properly disposed using `using` statements or explicit disposal to prevent memory leaks during batch operations.
+2. **Transaction Optimization**: Related database operations should be grouped into single transactions where possible to improve performance, while being careful not to make them excessively large.
+3. **Error Handling and Logging**: Critical operations must be wrapped in `try-catch` blocks. The logging system utilizes `System.Diagnostics.Trace` for flexible system-level tracing. Error messages should never expose sensitive information like full file paths or credentials.
+4. **Input Validation**: All user inputs, file paths, and external database queries must be validated before processing to prevent invalid data errors.
+5. **Threading Considerations**: Due to AutoCAD’s COM architecture, all API calls must occur on the main application thread.
+
 ## Known Tradeoffs
 
 - `DuplicateRecordCloning.Ignore` keeps the target drawing stable but may reuse existing layers/styles instead of preserving conflicting source definitions.
