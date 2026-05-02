@@ -8,7 +8,7 @@ internal static class DimensionHealer
     private const double ImperialOverrideFactor = 304.8;
     private const double TextVisualRoundStep = 10.0;
     private const double ObjectOffsetRoundStep = 50.0;
-    private const double DimensionRoundScale = 100.0;
+    private const double ObjectOffsetScale = 100.0;
     private const int MaxDebugSamples = 5;
 
     private sealed record StyleHealSample(
@@ -32,9 +32,19 @@ internal static class DimensionHealer
         double BeforeTextRotation,
         double AfterTextRotation);
 
-    internal static int Heal(Database targetDb)
+    internal readonly record struct DimensionHealResult(
+        int OverridesCleared,
+        int TextRotationsReset,
+        int DimensionsScanned,
+        int DimensionsOpenedForWrite,
+        int DimlfacHealed,
+        int DimscaleNormalized,
+        int VisualPropsRescaled);
+
+    internal static DimensionHealResult Heal(Database targetDb, IReadOnlyCollection<ObjectId> dimensionIds)
     {
         ArgumentNullException.ThrowIfNull(targetDb);
+        ArgumentNullException.ThrowIfNull(dimensionIds);
 
         int dimensionsScanned = 0;
         int dimensionsOpenedForWrite = 0;
@@ -45,82 +55,50 @@ internal static class DimensionHealer
 
         using Transaction tr = targetDb.TransactionManager.StartTransaction();
 
-        (int healedStyleDimlfacCount, int normalizedStyleDimscaleCount, int styleVisualPropsRescaled, int dimrndScaledCount) =
+        (int healedStyleDimlfacCount, int normalizedStyleDimscaleCount, int styleVisualPropsRescaled) =
             HealDimensionStyles(targetDb, tr, styleSamples);
 
-        DBDictionary layoutDictionary = (DBDictionary)tr.GetObject(targetDb.LayoutDictionaryId, OpenMode.ForRead);
-
-        HashSet<ObjectId> visitedBlocks = [];
-
-        foreach (DBDictionaryEntry entry in layoutDictionary)
+        foreach (ObjectId id in dimensionIds)
         {
-            if (tr.GetObject(entry.Value, OpenMode.ForRead, false) is not Layout layout)
+            if (id.IsNull || id.IsErased)
             {
                 continue;
             }
 
-            ObjectId blockId = layout.BlockTableRecordId;
-            if (blockId.IsNull || !visitedBlocks.Add(blockId))
+            if (tr.GetObject(id, OpenMode.ForRead, false) is not Dimension dimension)
             {
                 continue;
             }
 
-            if (tr.GetObject(blockId, OpenMode.ForRead, false) is not BlockTableRecord block)
+            dimensionsScanned++;
+            bool wasOpenedForWrite = dimension.IsWriteEnabled;
+
+            (bool overridesWereCleared, bool textRotationWasReset, double beforeTextRotation) = HealDimension(dimension);
+
+            if (overridesWereCleared || textRotationWasReset)
             {
-                continue;
-            }
-
-            foreach (ObjectId id in block)
-            {
-                if (tr.GetObject(id, OpenMode.ForRead, false) is not Dimension dimension)
+                if (!wasOpenedForWrite && dimension.IsWriteEnabled)
                 {
-                    continue;
+                    dimensionsOpenedForWrite++;
                 }
 
-                dimensionsScanned++;
-                bool hasAcadOverrides = HasAcadOverrideXData(dimension);
-                double beforeTextRotation = dimension.TextRotation;
-                bool hasTextRotation = !AreClose(beforeTextRotation, 0.0);
-                if (!hasAcadOverrides && !hasTextRotation)
+                if (overridesWereCleared)
                 {
-                    continue;
+                    overridesCleared++;
                 }
 
-                ObjectId styleId = dimension.DimensionStyle;
-                dimension.UpgradeOpen();
-                dimensionsOpenedForWrite++;
-
-                if (hasAcadOverrides)
+                if (textRotationWasReset)
                 {
-                    try
-                    {
-                        using ResultBuffer clearAcadXData = new(new TypedValue((int)DxfCode.ExtendedDataRegAppName, "ACAD"));
-                        dimension.XData = clearAcadXData;
-                        overridesCleared++;
-                    }
-                    catch (System.Exception)
-                    {
-                        hasAcadOverrides = false;
-                    }
-                }
-
-                if (hasTextRotation)
-                {
-                    dimension.TextRotation = 0.0;
                     textRotationsReset++;
-                }
-
-                if (hasAcadOverrides && !styleId.IsNull)
-                {
-                    dimension.DimensionStyle = styleId;
                 }
 
                 if (dimensionSamples.Count < MaxDebugSamples)
                 {
+                    ObjectId styleId = dimension.DimensionStyle;
                     dimensionSamples.Add(new DimensionOverrideSample(
                         dimension.Handle.ToString(),
                         styleId.IsNull ? "<null>" : styleId.Handle.ToString(),
-                        hasAcadOverrides,
+                        overridesWereCleared,
                         beforeTextRotation,
                         dimension.TextRotation));
                 }
@@ -131,11 +109,10 @@ internal static class DimensionHealer
 
         Serilog.Core.Logger logger = LoggerFactory.GetSharedLogger();
         logger.Information(
-            "Dimension style healer summary: dimlfacHealed={DimlfacHealed}, dimscaleNormalized={DimscaleNormalized}, visualPropsRescaled={VisualPropsRescaled}, dimrndScaled={DimrndScaled}.",
+            "Dimension style healer summary: dimlfacHealed={DimlfacHealed}, dimscaleNormalized={DimscaleNormalized}, visualPropsRescaled={VisualPropsRescaled}.",
             healedStyleDimlfacCount,
             normalizedStyleDimscaleCount,
-            styleVisualPropsRescaled,
-            dimrndScaledCount);
+            styleVisualPropsRescaled);
 
         foreach (StyleHealSample sample in styleSamples)
         {
@@ -175,10 +152,54 @@ internal static class DimensionHealer
 
         logger.Information("Healed {Count} dimensions infected with imperial overrides.", overridesCleared);
 
-        return overridesCleared;
+        return new DimensionHealResult(
+            overridesCleared,
+            textRotationsReset,
+            dimensionsScanned,
+            dimensionsOpenedForWrite,
+            healedStyleDimlfacCount,
+            normalizedStyleDimscaleCount,
+            styleVisualPropsRescaled);
     }
 
-    private static (int DimlfacHealedCount, int DimscaleNormalizedCount, int VisualPropsRescaledCount, int DimrndScaledCount) HealDimensionStyles(
+    private static (bool OverridesCleared, bool TextRotationReset, double BeforeTextRotation) HealDimension(Dimension dimension)
+    {
+        ObjectId styleId = dimension.DimensionStyle;
+        double beforeTextRotation = dimension.TextRotation;
+        bool hasTextRotation = !AreClose(beforeTextRotation, 0.0);
+        bool overridesCleared = false;
+
+        try
+        {
+            overridesCleared = DimensionStyleDiagnosticUtils.TryRemoveDimensionStyleOverrides(dimension);
+        }
+        catch (System.Exception ex)
+        {
+            LoggerFactory.GetSharedLogger().Warning(
+                ex,
+                "Dimension healer could not clear overrides for handle={Handle}.",
+                dimension.Handle.ToString());
+        }
+
+        if (hasTextRotation && !dimension.IsWriteEnabled)
+        {
+            dimension.UpgradeOpen();
+        }
+
+        if (hasTextRotation)
+        {
+            dimension.TextRotation = 0.0;
+        }
+
+        if (overridesCleared && !styleId.IsNull)
+        {
+            dimension.DimensionStyle = styleId;
+        }
+
+        return (overridesCleared, hasTextRotation, beforeTextRotation);
+    }
+
+    private static (int DimlfacHealedCount, int DimscaleNormalizedCount, int VisualPropsRescaledCount) HealDimensionStyles(
         Database targetDb,
         Transaction tr,
         List<StyleHealSample> samples)
@@ -186,7 +207,6 @@ internal static class DimensionHealer
         int dimlfacHealedCount = 0;
         int dimscaleNormalizedCount = 0;
         int visualPropsRescaledCount = 0;
-        int dimrndScaledCount = 0;
 
         DimStyleTable dimStyleTable = (DimStyleTable)tr.GetObject(targetDb.DimStyleTableId, OpenMode.ForRead);
         foreach (ObjectId styleId in dimStyleTable)
@@ -212,13 +232,7 @@ internal static class DimensionHealer
 
             if (hasVisualScaleOverride)
             {
-                (int visualPropsRescaled, bool dimrndScaled) = NormalizeStyleVisualScale(style, beforeDimscale);
-                visualPropsRescaledCount += visualPropsRescaled;
-                if (dimrndScaled)
-                {
-                    dimrndScaledCount++;
-                }
-
+                visualPropsRescaledCount += NormalizeStyleVisualScale(style, beforeDimscale);
                 dimscaleNormalizedCount++;
             }
 
@@ -246,10 +260,10 @@ internal static class DimensionHealer
             }
         }
 
-        return (dimlfacHealedCount, dimscaleNormalizedCount, visualPropsRescaledCount, dimrndScaledCount);
+        return (dimlfacHealedCount, dimscaleNormalizedCount, visualPropsRescaledCount);
     }
 
-    private static (int VisualPropsRescaledCount, bool DimrndScaled) NormalizeStyleVisualScale(DimStyleTableRecord style, double scale)
+    private static int NormalizeStyleVisualScale(DimStyleTableRecord style, double scale)
     {
         int changed = 0;
         style.Dimtxt = ScaleVisualValue(style.Dimtxt, scale, ref changed);
@@ -263,13 +277,11 @@ internal static class DimensionHealer
         style.Dimtsz = ScaleVisualValue(style.Dimtsz, scale, ref changed);
         style.Dimtvp = ScaleVisualValue(style.Dimtvp, scale, ref changed);
         style.Dimfxlen = ScaleVisualValue(style.Dimfxlen, scale, ref changed);
-        double oldDimrnd = style.Dimrnd;
-        style.Dimrnd = ScaleDimensionRoundValue(style.Dimrnd);
         style.Dimtxt = RoundTextVisualValue(style.Dimtxt);
         style.Dimgap = RoundTextVisualValue(style.Dimgap);
-        style.Dimexo = RoundObjectOffsetValue(ScaleDimensionRoundValue(style.Dimexo));
+        style.Dimexo = RoundObjectOffsetValue(ScaleObjectOffsetValue(style.Dimexo));
         style.Dimscale = 1.0;
-        return (changed, !AreClose(oldDimrnd, style.Dimrnd));
+        return changed;
     }
 
     private static double RoundTextVisualValue(double value)
@@ -291,9 +303,9 @@ internal static class DimensionHealer
         return sign * Max(ObjectOffsetRoundStep, roundedMagnitude);
     }
 
-    private static double ScaleDimensionRoundValue(double value)
+    private static double ScaleObjectOffsetValue(double value)
     {
-        return !double.IsFinite(value) || value == 0.0 ? value : value * DimensionRoundScale;
+        return !double.IsFinite(value) || value == 0.0 ? value : value * ObjectOffsetScale;
     }
 
     private static double ScaleVisualValue(double value, double scale, ref int changedCount)
@@ -311,30 +323,6 @@ internal static class DimensionHealer
     {
         return double.IsFinite(value)
             && Abs(value - ImperialOverrideFactor) <= Tolerance;
-    }
-
-    private static bool HasAcadOverrideXData(Dimension dimension)
-    {
-        ResultBuffer? xdata = dimension.XData;
-        if (xdata is null)
-        {
-            return false;
-        }
-
-        using (xdata)
-        {
-            foreach (TypedValue value in xdata)
-            {
-                if (value.TypeCode == (int)DxfCode.ExtendedDataRegAppName
-                    && value.Value is string appName
-                    && appName.Equals("ACAD", StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     private static bool AreClose(double left, double right)

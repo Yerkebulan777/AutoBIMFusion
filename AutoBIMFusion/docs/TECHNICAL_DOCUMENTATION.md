@@ -31,6 +31,7 @@ AutoBIMFusion/
         LayoutProjectionProcessor.cs
         ViewportTransformer.cs
         ViewportCollector.cs
+        DimensionHealer.cs
         DimensionStyleDiagnosticUtils.cs
         ModelSpaceTrimmer.cs
         DrawOrderPreserver.cs
@@ -69,8 +70,8 @@ AutoBIMFusion/
 5. `ViewportLayoutExporter` exports the first layout to a temporary DWG and delegates projection logic to `LayoutProjectionProcessor`.
 6. `LayoutProjectionProcessor` handles 0 / 1 / multi-viewport strategies, including scale clamp, aux-viewport flattening, and Paper Space transfer.
 7. `ModelSpaceTrimmer.TrimOutside` removes Model Space entities outside projected frame bounds.
-8. `BlockInserter` clones temporary Model Space objects into the target database.
-9. Final pass fixes raster paths, purges unused database objects, saves, and regenerates the drawing.
+8. `BlockInserter` clones temporary Model Space objects into the target database, translates them into place, and passes only newly cloned dimension IDs to `DimensionHealer`.
+9. Final pass fixes raster paths, writes the final style snapshot, purges unused database objects, saves, and regenerates the drawing.
 
 ### MERGEDWG_DIAG_TEST
 
@@ -151,7 +152,7 @@ Logging policy:
 
 Style diagnostics are intentionally low-volume. Before each `WblockCloneObjects` call, `DimensionStyleDiagnosticUtils.LogNewStylesBeforeMerge` compares the temporary source database with the target database and logs only source styles whose names do not yet exist in the target. These per-file rows use `stage=before-merge`. After all source files are inserted, `LogStyleSnapshot` writes the final `after-merge` target snapshot with a `[STYLE-SNAPSHOT]` summary plus `[DIM-STYLE]` and `[TEXT-STYLE]` rows. Standard styles (`Standard`, `ISO-25`, `Annotative`) are skipped by name.
 
-Before the final snapshot, `DimensionStyleDiagnosticUtils.ClearDimensionOverrides` removes per-entity dimension style overrides stored in the `ACAD` xdata `DSTYLE` section. Cleanup warnings are logged as `[DIM-OVERRIDES]` only when a specific dimension cannot be cleaned. Other xdata sections are preserved.
+After each clone operation, `DimensionHealer` normalizes newly imported dimension styles and processes only newly cloned dimensions. It removes per-entity dimension style overrides stored in the `ACAD` xdata `DSTYLE` section while preserving other xdata sections, and resets non-zero dimension text rotation. The final snapshot does not run a second full-drawing dimension cleanup pass.
 
 The main command catches startup failures outside the async task body so users see a clear editor message instead of an unobserved task exception.
 
@@ -178,5 +179,5 @@ To maintain performance and code quality, the following rules should be followed
 
 - **Minimize I/O:** Avoid re-reading the same DWG file multiple times. Pass the `Database` object between components (e.g., from `Exporter` to `Inserter`) instead of saving and reloading.
 - **Single-Pass Transformations:** Combine object cloning (`WblockCloneObjects`) with post-processing (translation, scale, property cleanup) to avoid multiple iterations over the same entity collections.
-- **Centralized Logic:** Keep dimension cleanup, unit synchronization, and geometry utilities in shared helper classes (`ExtentsUtils`, `DimensionStyleDiagnosticUtils`) to prevent logic duplication.
+- **Centralized Logic:** Keep dimension cleanup, unit synchronization, and geometry utilities in shared helper classes (`ExtentsUtils`, `DimensionHealer`, `DimensionStyleDiagnosticUtils`) to prevent logic duplication.
 - **Synchronous AutoCAD API:** Prefer synchronous patterns for AutoCAD database operations. Use `Task` only for actual non-blocking I/O (like folder picking or final file saving) to avoid overhead and thread-safety issues.

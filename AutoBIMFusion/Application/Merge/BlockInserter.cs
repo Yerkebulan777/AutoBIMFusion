@@ -92,6 +92,7 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
             IdMapping map = [];
             Extents3d? worldBounds = null;
             int clonedCount = 0;
+            List<ObjectId> clonedDimensionIds = [];
 
             try
             {
@@ -122,6 +123,10 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                         {
                             ent.TransformBy(displacement);
                             clonedCount++;
+                            if (ent is Dimension)
+                            {
+                                clonedDimensionIds.Add(pair.Value);
+                            }
 
                             Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
                             if (ext.HasValue)
@@ -149,7 +154,7 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                 ExtentsUtils.SyncUnits(targetDb);
             }
 
-            int healedCount = DimensionHealer.Heal(targetDb);
+            DimensionHealer.DimensionHealResult healResult = DimensionHealer.Heal(targetDb, clonedDimensionIds);
 
             if (clonedCount == 0)
             {
@@ -163,7 +168,11 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
             _hasPlacedObjects = true;
 
             log.Info($"{sourceName}: вставлено {clonedCount} объектов");
-            log.Debug($"{sourceName}: исправлено размеров после клонирования: {healedCount}");
+            log.Debug(
+                $"{sourceName}: проверено новых размеров: {healResult.DimensionsScanned}, " +
+                $"очищено overrides: {healResult.OverridesCleared}, " +
+                $"сброшено поворотов текста: {healResult.TextRotationsReset}, " +
+                $"нормализовано стилей: {healResult.DimscaleNormalized}");
             return worldBounds;
         }
         catch (Autodesk.AutoCAD.Runtime.Exception ex)

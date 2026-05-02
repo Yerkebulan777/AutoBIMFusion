@@ -12,8 +12,8 @@
     "hash": "ad1ab9f6676ad5e1dc082b90f8584320"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Commands\\MergeCommands.cs": {
-    "mtime": 1777735120.1427722,
-    "hash": "0cf618aa331f6dc3194a93d8750b0db4"
+    "mtime": 1777740928.6768355,
+    "hash": "1842c62307d12668eade2a7b252aaeb7"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Commands\\SmartTextCommands.cs": {
     "mtime": 1777476453.9936054,
@@ -28,8 +28,8 @@
     "hash": "4399ee3981b21a926ec6089910e624fe"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\BlockInserter.cs": {
-    "mtime": 1777726475.1074593,
-    "hash": "f66993b31783c6bb5d7cd17a4947bbac"
+    "mtime": 1777740953.1809232,
+    "hash": "1340a1273915278e347d1b73dddec9a4"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\DwgOptimizer.cs": {
     "mtime": 1777454516.8398676,
@@ -44,8 +44,8 @@
     "hash": "c3ed3206a64e40df2ea16dab6cde81c0"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\Layouts\\DimensionHealer.cs": {
-    "mtime": 1777736730.3940005,
-    "hash": "577bb25d406716796f078a1c4f9a3413"
+    "mtime": 1777741247.3798716,
+    "hash": "be55fd26280e2596ac7836f38dafa3a4"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\Layouts\\DimensionStyleDiagnosticUtils.cs": {
     "mtime": 1777721447.312289,
@@ -84,8 +84,8 @@
     "hash": "5d0c7308deb6943b3a96c7f7e07a0741"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\Layouts\\Transforms\\EntityTransformUtils.cs": {
-    "mtime": 1777722731.7409322,
-    "hash": "7c7f86408688bee5fd4104ba2901bc63"
+    "mtime": 1777740953.1734185,
+    "hash": "154bcb6b01abc4bfa25f559e7f08e91c"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Merge\\Models\\MergeResult.cs": {
     "mtime": 1777399362.279249,
@@ -100,8 +100,8 @@
     "hash": "22b73b34952a1483c49c7e524a63dfe1"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Ribbon\\RibbonBuilder.cs": {
-    "mtime": 1777360301.2260356,
-    "hash": "d2cc6866b92aac958abac6124c3e9e3b"
+    "mtime": 1777740742.1069214,
+    "hash": "ebc389a74e8be2368899209c322b93de"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Ribbon\\RibbonIconLoader.cs": {
     "mtime": 1777273800.5530734,
@@ -127,10 +127,6 @@
     "mtime": 1777300615.7665572,
     "hash": "50c23731458cf0ccdc17c03521ecb56e"
   },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\StyleExportUtils.cs": {
-    "mtime": 1777476453.9976053,
-    "hash": "1b06507de339e8974c9bc79443b3503b"
-  },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\Application\\Utils\\UiDialogService.cs": {
     "mtime": 1777476453.9976053,
     "hash": "73f952b804c48bc4ee6d058ed6ae5cc8"
@@ -147,85 +143,17 @@
     "mtime": 1777476453.999606,
     "hash": "e814cef170895ea6397071cb63e9bdb5"
   },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\Debug\\net8.0\\AutoBIMFusion.AssemblyInfo.cs": {
-    "mtime": 1777723243.1249666,
-    "hash": "53beef0e5c5343c5e43d7048e5438ab9"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\Debug\\net8.0\\AutoBIMFusion.GlobalUsings.g.cs": {
-    "mtime": 1777360435.972607,
-    "hash": "20bceb152081bb9289b00e89defb5fda"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\DebugA25\\net8.0\\AutoBIMFusion.AssemblyInfo.cs": {
-    "mtime": 1777720580.851971,
-    "hash": "eafd77542f6b9712bd30ed993429cb14"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\DebugA25\\net8.0\\AutoBIMFusion.GlobalUsings.g.cs": {
-    "mtime": 1777273803.3860114,
-    "hash": "20bceb152081bb9289b00e89defb5fda"
-  },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\DebugA26\\net8.0\\AutoBIMFusion.AssemblyInfo.cs": {
-    "mtime": 1777736403.440027,
-    "hash": "792c8c498c83c915ed6b25595dbdbee6"
+    "mtime": 1777740978.4158075,
+    "hash": "63964af8ddd79554f3818621b61fb79f"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\DebugA26\\net8.0\\AutoBIMFusion.GlobalUsings.g.cs": {
-    "mtime": 1777273898.8588803,
-    "hash": "20bceb152081bb9289b00e89defb5fda"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\DebugA26\\net8.0-windows8.0\\AutoBIMFusion.AssemblyInfo.cs": {
-    "mtime": 1777300487.950729,
-    "hash": "d749c5f583f423d8612ea992827462fc"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\DebugA26\\net8.0-windows8.0\\AutoBIMFusion.GlobalUsings.g.cs": {
-    "mtime": 1777300363.610094,
-    "hash": "20bceb152081bb9289b00e89defb5fda"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\DebugA27\\net8.0\\AutoBIMFusion.AssemblyInfo.cs": {
-    "mtime": 1777711769.871572,
-    "hash": "b6de5c86a70c66e4d924b1419d5e0b29"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\DebugA27\\net8.0\\AutoBIMFusion.GlobalUsings.g.cs": {
-    "mtime": 1777711769.8388283,
-    "hash": "20bceb152081bb9289b00e89defb5fda"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\Release\\net8.0\\AutoBIMFusion.AssemblyInfo.cs": {
-    "mtime": 1777711770.324695,
-    "hash": "d125b15c01ff93701c447413b0e30cb7"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\Release\\net8.0\\AutoBIMFusion.GlobalUsings.g.cs": {
-    "mtime": 1777711770.302096,
-    "hash": "20bceb152081bb9289b00e89defb5fda"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\ReleaseA25\\net8.0\\AutoBIMFusion.AssemblyInfo.cs": {
-    "mtime": 1777711769.4506233,
-    "hash": "9bbea231e19208dfcc7836bb1928f1a9"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\ReleaseA25\\net8.0\\AutoBIMFusion.GlobalUsings.g.cs": {
-    "mtime": 1777360477.975628,
-    "hash": "20bceb152081bb9289b00e89defb5fda"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\ReleaseA26\\net8.0\\AutoBIMFusion.AssemblyInfo.cs": {
-    "mtime": 1777711769.7384567,
-    "hash": "b3ee3d880683220eaf8c95cea607aa3b"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\ReleaseA26\\net8.0\\AutoBIMFusion.GlobalUsings.g.cs": {
-    "mtime": 1777711769.7134366,
-    "hash": "20bceb152081bb9289b00e89defb5fda"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\ReleaseA27\\net8.0\\AutoBIMFusion.AssemblyInfo.cs": {
-    "mtime": 1777711770.0307202,
-    "hash": "92320e53d1ce4bf1acf6f7e666507ccd"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\ReleaseA27\\net8.0\\AutoBIMFusion.GlobalUsings.g.cs": {
-    "mtime": 1777711770.0072627,
+    "mtime": 1777740902.599368,
     "hash": "20bceb152081bb9289b00e89defb5fda"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\tools\\Run-MergeDwgDiagTest.ps1": {
     "mtime": 1777476454.0131142,
     "hash": "6da3d1feded285e05289bb4047fce5d1"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AGENTS.md": {
-    "mtime": 1777300615.7509232,
-    "hash": "2ed67c68f28bc1ef95ac24167431d7e8"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\CLAUDE.md": {
     "mtime": 1777300615.7665572,
@@ -236,36 +164,24 @@
     "hash": "6d75c57c64742ead9ffcc475c56b4ad0"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\README.md": {
-    "mtime": 1777714918.2962892,
-    "hash": "adbfd0562385f473b870c85b8b6778cd"
+    "mtime": 1777740747.298175,
+    "hash": "74d042bdf1e563dedb3776ac75f71f8c"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\docs\\ALGORITHM.md": {
     "mtime": 1777714941.0065837,
     "hash": "c072c30dedc767ce12cdb972c11cfb33"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\docs\\KNOWN_ISSUES.md": {
-    "mtime": 1777714946.8655057,
-    "hash": "4920c2d3cd49a50df5b25c015b391e37"
+    "mtime": 1777740751.146854,
+    "hash": "28a7f8a252c36f57025795abce915f98"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\docs\\TECHNICAL_DOCUMENTATION.md": {
-    "mtime": 1777714930.8496265,
-    "hash": "f6984da88fbefa9b7f4f44f1fff582a5"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\DebugA25\\net8.0\\AutoBIMFusion.csproj.FileListAbsolute.txt": {
-    "mtime": 1777284280.4959946,
-    "hash": "ca5671f2b90c6b423ed9ef5804d4078b"
+    "mtime": 1777740758.473896,
+    "hash": "35383840d78288f9ffffb110dffbd733"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\DebugA26\\net8.0\\AutoBIMFusion.csproj.FileListAbsolute.txt": {
-    "mtime": 1777736403.6622877,
-    "hash": "1156dda24618b7e1f5df0a2e4c1cd0a4"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\DebugA26\\net8.0-windows8.0\\AutoBIMFusion.csproj.FileListAbsolute.txt": {
-    "mtime": 1777300488.175336,
-    "hash": "b204266ade586cc1d7005ffbe82fea1f"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\obj\\ReleaseA25\\net8.0\\AutoBIMFusion.csproj.FileListAbsolute.txt": {
-    "mtime": 1777360479.9161737,
-    "hash": "1e7375dbd686cdcb09e3a053b41f8213"
+    "mtime": 1777741272.4604938,
+    "hash": "2b794cb9b6a6baad8abb71146a691992"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\skills\\autocad-api.md": {
     "mtime": 1777300615.798605,
@@ -278,30 +194,6 @@
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\skills\\scaffold.md": {
     "mtime": 1777300615.798605,
     "hash": "b232ae5092e79347dd36f551837d1b8f"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\bin\\DebugA25\\net8.0\\AutoBIMFusion.bundle\\Contents\\Resources\\icon-merge-dwg-16.png": {
-    "mtime": 1777273800.55607,
-    "hash": "b49e3cb0a12ed780623d8ad99eb2a5b2"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\bin\\DebugA25\\net8.0\\AutoBIMFusion.bundle\\Contents\\Resources\\icon-merge-dwg-32.png": {
-    "mtime": 1777273800.55607,
-    "hash": "112ad34ab3bfbd947dd21bc0f41461c6"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\bin\\DebugA25\\net8.0\\Resources\\icon-merge-dwg-16.png": {
-    "mtime": 1777273800.55607,
-    "hash": "b49e3cb0a12ed780623d8ad99eb2a5b2"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\bin\\DebugA25\\net8.0\\Resources\\icon-merge-dwg-32.png": {
-    "mtime": 1777273800.55607,
-    "hash": "112ad34ab3bfbd947dd21bc0f41461c6"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\bin\\DebugA26\\LocalApplicationPlugins\\AutoBIMFusion.bundle\\Contents\\Resources\\icon-merge-dwg-16.png": {
-    "mtime": 1777273800.55607,
-    "hash": "b49e3cb0a12ed780623d8ad99eb2a5b2"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\bin\\DebugA26\\LocalApplicationPlugins\\AutoBIMFusion.bundle\\Contents\\Resources\\icon-merge-dwg-32.png": {
-    "mtime": 1777273800.55607,
-    "hash": "112ad34ab3bfbd947dd21bc0f41461c6"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\bin\\DebugA26\\net8.0\\AutoBIMFusion.bundle\\Contents\\Resources\\icon-merge-dwg-16.png": {
     "mtime": 1777273800.55607,
@@ -319,22 +211,6 @@
     "mtime": 1777273800.55607,
     "hash": "112ad34ab3bfbd947dd21bc0f41461c6"
   },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\bin\\DebugA26\\net8.0-windows8.0\\AutoBIMFusion.bundle\\Contents\\Resources\\icon-merge-dwg-16.png": {
-    "mtime": 1777273800.55607,
-    "hash": "b49e3cb0a12ed780623d8ad99eb2a5b2"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\bin\\DebugA26\\net8.0-windows8.0\\AutoBIMFusion.bundle\\Contents\\Resources\\icon-merge-dwg-32.png": {
-    "mtime": 1777273800.55607,
-    "hash": "112ad34ab3bfbd947dd21bc0f41461c6"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\bin\\DebugA26\\net8.0-windows8.0\\Resources\\icon-merge-dwg-16.png": {
-    "mtime": 1777273800.55607,
-    "hash": "b49e3cb0a12ed780623d8ad99eb2a5b2"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\bin\\DebugA26\\net8.0-windows8.0\\Resources\\icon-merge-dwg-32.png": {
-    "mtime": 1777273800.55607,
-    "hash": "112ad34ab3bfbd947dd21bc0f41461c6"
-  },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\bin\\DebugA26-core\\AutoBIMFusion.bundle\\Contents\\Resources\\icon-merge-dwg-16.png": {
     "mtime": 1777273800.55607,
     "hash": "b49e3cb0a12ed780623d8ad99eb2a5b2"
@@ -348,22 +224,6 @@
     "hash": "b49e3cb0a12ed780623d8ad99eb2a5b2"
   },
   "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\bin\\DebugA26-core\\LocalApplicationPlugins\\AutoBIMFusion.bundle\\Contents\\Resources\\icon-merge-dwg-32.png": {
-    "mtime": 1777273800.55607,
-    "hash": "112ad34ab3bfbd947dd21bc0f41461c6"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\bin\\ReleaseA25\\net8.0\\AutoBIMFusion.bundle\\Contents\\Resources\\icon-merge-dwg-16.png": {
-    "mtime": 1777273800.55607,
-    "hash": "b49e3cb0a12ed780623d8ad99eb2a5b2"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\bin\\ReleaseA25\\net8.0\\AutoBIMFusion.bundle\\Contents\\Resources\\icon-merge-dwg-32.png": {
-    "mtime": 1777273800.55607,
-    "hash": "112ad34ab3bfbd947dd21bc0f41461c6"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\bin\\ReleaseA25\\net8.0\\Resources\\icon-merge-dwg-16.png": {
-    "mtime": 1777273800.55607,
-    "hash": "b49e3cb0a12ed780623d8ad99eb2a5b2"
-  },
-  "C:\\Users\\y.zhumabayev\\Yandex.Disk\\Repository\\AutoBIMFusion\\AutoBIMFusion\\bin\\ReleaseA25\\net8.0\\Resources\\icon-merge-dwg-32.png": {
     "mtime": 1777273800.55607,
     "hash": "112ad34ab3bfbd947dd21bc0f41461c6"
   },
