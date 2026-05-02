@@ -17,6 +17,7 @@ internal static class ViewportLayoutExporter
         ArgumentNullException.ThrowIfNull(sourceFilePath);
 
         Database db = new(false, true);
+
         try
         {
             db.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
