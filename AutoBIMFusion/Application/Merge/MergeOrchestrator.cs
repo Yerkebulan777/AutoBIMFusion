@@ -55,10 +55,6 @@ internal static class MergeCoordinator
             using (new AcadUnitScalingOverrideScope())
             {
                 worldBounds = inserter.InsertNativeObjects(targetDoc.Database, tempPath, layoutName, bounds.Value);
-                if (worldBounds.HasValue)
-                {
-                    DimensionStyleDiagnosticUtils.ClearDimensionOverrides(targetDoc.Database, log);
-                }
             }
 
             if (worldBounds is null)
