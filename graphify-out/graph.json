@@ -781,7 +781,7 @@
       "label": ".Heal()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\DimensionHealer.cs",
-      "source_location": "L30",
+      "source_location": "L35",
       "id": "layouts_dimensionhealer_dimensionhealer_heal",
       "community": 3,
       "norm_label": ".heal()"
@@ -790,7 +790,7 @@
       "label": ".HealDimensionStyles()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\DimensionHealer.cs",
-      "source_location": "L156",
+      "source_location": "L181",
       "id": "layouts_dimensionhealer_dimensionhealer_healdimensionstyles",
       "community": 3,
       "norm_label": ".healdimensionstyles()"
@@ -799,7 +799,7 @@
       "label": ".NormalizeStyleVisualScale()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\DimensionHealer.cs",
-      "source_location": "L227",
+      "source_location": "L252",
       "id": "layouts_dimensionhealer_dimensionhealer_normalizestylevisualscale",
       "community": 3,
       "norm_label": ".normalizestylevisualscale()"
@@ -808,7 +808,7 @@
       "label": ".RoundTextVisualValue()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\DimensionHealer.cs",
-      "source_location": "L250",
+      "source_location": "L275",
       "id": "layouts_dimensionhealer_dimensionhealer_roundtextvisualvalue",
       "community": 3,
       "norm_label": ".roundtextvisualvalue()"
@@ -817,7 +817,7 @@
       "label": ".RoundObjectOffsetValue()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\DimensionHealer.cs",
-      "source_location": "L260",
+      "source_location": "L285",
       "id": "layouts_dimensionhealer_dimensionhealer_roundobjectoffsetvalue",
       "community": 3,
       "norm_label": ".roundobjectoffsetvalue()"
@@ -826,7 +826,7 @@
       "label": ".ScaleDimensionRoundValue()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\DimensionHealer.cs",
-      "source_location": "L272",
+      "source_location": "L297",
       "id": "layouts_dimensionhealer_dimensionhealer_scaledimensionroundvalue",
       "community": 3,
       "norm_label": ".scaledimensionroundvalue()"
@@ -835,7 +835,7 @@
       "label": ".ScaleVisualValue()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\DimensionHealer.cs",
-      "source_location": "L282",
+      "source_location": "L307",
       "id": "layouts_dimensionhealer_dimensionhealer_scalevisualvalue",
       "community": 3,
       "norm_label": ".scalevisualvalue()"
@@ -844,7 +844,7 @@
       "label": ".IsImperialOverride()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\DimensionHealer.cs",
-      "source_location": "L293",
+      "source_location": "L318",
       "id": "layouts_dimensionhealer_dimensionhealer_isimperialoverride",
       "community": 3,
       "norm_label": ".isimperialoverride()"
@@ -853,7 +853,7 @@
       "label": ".HasAcadOverrideXData()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\DimensionHealer.cs",
-      "source_location": "L299",
+      "source_location": "L324",
       "id": "layouts_dimensionhealer_dimensionhealer_hasacadoverridexdata",
       "community": 3,
       "norm_label": ".hasacadoverridexdata()"
@@ -862,7 +862,7 @@
       "label": ".AreClose()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\DimensionHealer.cs",
-      "source_location": "L323",
+      "source_location": "L348",
       "id": "layouts_dimensionhealer_dimensionhealer_areclose",
       "community": 3,
       "norm_label": ".areclose()"
@@ -4933,9 +4933,9 @@
       "weight": 1.0,
       "_src": "layouts_dimensionhealer_dimensionhealer",
       "_tgt": "layouts_dimensionhealer_dimensionhealer_roundobjectoffsetvalue",
+      "confidence_score": 1.0,
       "source": "layouts_dimensionhealer_dimensionhealer",
-      "target": "layouts_dimensionhealer_dimensionhealer_roundobjectoffsetvalue",
-      "confidence_score": 1.0
+      "target": "layouts_dimensionhealer_dimensionhealer_roundobjectoffsetvalue"
     },
     {
       "relation": "method",
@@ -5109,6 +5109,18 @@
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\DimensionHealer.cs",
+      "source_location": "L49",
+      "weight": 1.0,
+      "_src": "layouts_dimensionhealer_dimensionhealer_heal",
+      "_tgt": "layouts_dimensionhealer_dimensionhealer_areclose",
+      "confidence_score": 1.0,
+      "source": "layouts_dimensionhealer_dimensionhealer_heal",
+      "target": "layouts_dimensionhealer_dimensionhealer_areclose"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\DimensionHealer.cs",
       "source_location": "L47",
       "weight": 1.0,
       "_src": "layouts_dimensionhealer_dimensionhealer_heal",
@@ -5128,18 +5140,6 @@
       "confidence_score": 1.0,
       "source": "layouts_dimensionhealer_dimensionhealer_heal",
       "target": "layouts_dimensionhealer_dimensionhealer_isimperialoverride"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "AutoBIMFusion\\Application\\Merge\\Layouts\\DimensionHealer.cs",
-      "source_location": "L49",
-      "weight": 1.0,
-      "_src": "layouts_dimensionhealer_dimensionhealer_heal",
-      "_tgt": "layouts_dimensionhealer_dimensionhealer_areclose",
-      "confidence_score": 1.0,
-      "source": "layouts_dimensionhealer_dimensionhealer_heal",
-      "target": "layouts_dimensionhealer_dimensionhealer_areclose"
     },
     {
       "relation": "calls",
@@ -5245,9 +5245,9 @@
       "weight": 1.0,
       "_src": "layouts_dimensionhealer_dimensionhealer_normalizestylevisualscale",
       "_tgt": "layouts_dimensionhealer_dimensionhealer_roundobjectoffsetvalue",
+      "confidence_score": 1.0,
       "source": "layouts_dimensionhealer_dimensionhealer_normalizestylevisualscale",
-      "target": "layouts_dimensionhealer_dimensionhealer_roundobjectoffsetvalue",
-      "confidence_score": 1.0
+      "target": "layouts_dimensionhealer_dimensionhealer_roundobjectoffsetvalue"
     },
     {
       "relation": "calls",

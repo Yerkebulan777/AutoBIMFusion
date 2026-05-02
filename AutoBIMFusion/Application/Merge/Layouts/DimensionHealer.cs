@@ -25,7 +25,12 @@ internal static class DimensionHealer
         double BeforeDimrnd,
         double AfterDimrnd);
 
-    private sealed record DimensionOverrideSample(string Handle, string StyleId);
+    private sealed record DimensionOverrideSample(
+        string Handle,
+        string StyleId,
+        bool OverridesCleared,
+        double BeforeTextRotation,
+        double AfterTextRotation);
 
     internal static int Heal(Database targetDb)
     {
@@ -34,6 +39,7 @@ internal static class DimensionHealer
         int dimensionsScanned = 0;
         int dimensionsOpenedForWrite = 0;
         int overridesCleared = 0;
+        int textRotationsReset = 0;
         List<StyleHealSample> styleSamples = [];
         List<DimensionOverrideSample> dimensionSamples = [];
 
@@ -72,7 +78,10 @@ internal static class DimensionHealer
                 }
 
                 dimensionsScanned++;
-                if (!HasAcadOverrideXData(dimension))
+                bool hasAcadOverrides = HasAcadOverrideXData(dimension);
+                double beforeTextRotation = dimension.TextRotation;
+                bool hasTextRotation = !AreClose(beforeTextRotation, 0.0);
+                if (!hasAcadOverrides && !hasTextRotation)
                 {
                     continue;
                 }
@@ -81,27 +90,39 @@ internal static class DimensionHealer
                 dimension.UpgradeOpen();
                 dimensionsOpenedForWrite++;
 
-                try
+                if (hasAcadOverrides)
                 {
-                    using ResultBuffer clearAcadXData = new(new TypedValue((int)DxfCode.ExtendedDataRegAppName, "ACAD"));
-                    dimension.XData = clearAcadXData;
-                }
-                catch (System.Exception)
-                {
-                    continue;
+                    try
+                    {
+                        using ResultBuffer clearAcadXData = new(new TypedValue((int)DxfCode.ExtendedDataRegAppName, "ACAD"));
+                        dimension.XData = clearAcadXData;
+                        overridesCleared++;
+                    }
+                    catch (System.Exception)
+                    {
+                        hasAcadOverrides = false;
+                    }
                 }
 
-                if (!styleId.IsNull)
+                if (hasTextRotation)
+                {
+                    dimension.TextRotation = 0.0;
+                    textRotationsReset++;
+                }
+
+                if (hasAcadOverrides && !styleId.IsNull)
                 {
                     dimension.DimensionStyle = styleId;
                 }
 
-                overridesCleared++;
                 if (dimensionSamples.Count < MaxDebugSamples)
                 {
                     dimensionSamples.Add(new DimensionOverrideSample(
                         dimension.Handle.ToString(),
-                        styleId.IsNull ? "<null>" : styleId.Handle.ToString()));
+                        styleId.IsNull ? "<null>" : styleId.Handle.ToString(),
+                        hasAcadOverrides,
+                        beforeTextRotation,
+                        dimension.TextRotation));
                 }
             }
         }
@@ -135,17 +156,21 @@ internal static class DimensionHealer
         }
 
         logger.Information(
-            "Dimension entity healer summary: overridesCleared={OverridesCleared}, dimensionsScanned={DimensionsScanned}, dimensionsOpenedForWrite={DimensionsOpenedForWrite}.",
+            "Dimension entity healer summary: overridesCleared={OverridesCleared}, textRotationsReset={TextRotationsReset}, dimensionsScanned={DimensionsScanned}, dimensionsOpenedForWrite={DimensionsOpenedForWrite}.",
             overridesCleared,
+            textRotationsReset,
             dimensionsScanned,
             dimensionsOpenedForWrite);
 
         foreach (DimensionOverrideSample sample in dimensionSamples)
         {
             logger.Debug(
-                "Dimension override healer sample: handle={Handle}, styleId={StyleId}, cleared ACAD dimension overrides.",
+                "Dimension entity healer sample: handle={Handle}, styleId={StyleId}, overridesCleared={OverridesCleared}, textRotation {BeforeTextRotation}->{AfterTextRotation}.",
                 sample.Handle,
-                sample.StyleId);
+                sample.StyleId,
+                sample.OverridesCleared,
+                sample.BeforeTextRotation,
+                sample.AfterTextRotation);
         }
 
         logger.Information("Healed {Count} dimensions infected with imperial overrides.", overridesCleared);
