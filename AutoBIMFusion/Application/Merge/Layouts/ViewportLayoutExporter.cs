@@ -25,6 +25,11 @@ internal static class ViewportLayoutExporter
 
             db.CloseInput(true);
 
+            // Принудительно устанавливаем метрическую систему ДО экспорта листа,
+            // чтобы отключить встроенную конвертацию футов в миллиметры (коэффициенты 304.8)
+            db.Insunits = UnitsValue.Millimeters;
+            db.Measurement = MeasurementValue.Metric;
+
             if (!LayoutUtil.TryFindFirstLayout(db, out string layoutName))
             {
                 log.Warn($"{fileName}: листы не найдены");
