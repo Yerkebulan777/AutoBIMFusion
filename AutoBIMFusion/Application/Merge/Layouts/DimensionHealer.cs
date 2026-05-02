@@ -20,18 +20,24 @@ internal static class DimensionHealer
         double BeforeDimexo,
         double AfterDimexo,
         double BeforeDimrnd,
-        double AfterDimrnd);
+        double AfterDimrnd,
+        double BeforeDimlfac,
+        double AfterDimlfac);
 
     private sealed record DimensionOverrideSample(
         string Handle,
         string StyleId,
         bool OverridesCleared,
+        bool DimlfacReset,
         double BeforeTextRotation,
-        double AfterTextRotation);
+        double AfterTextRotation,
+        double BeforeDimlfac,
+        double AfterDimlfac);
 
     internal readonly record struct DimensionHealResult(
         int OverridesCleared,
         int TextRotationsReset,
+        int DimensionDimlfacNormalized,
         int DimensionsScanned,
         int DimensionsOpenedForWrite,
         int DimlfacHealed,
@@ -47,6 +53,7 @@ internal static class DimensionHealer
         int dimensionsOpenedForWrite = 0;
         int overridesCleared = 0;
         int textRotationsReset = 0;
+        int dimensionDimlfacNormalized = 0;
         List<StyleHealSample> styleSamples = [];
         List<DimensionOverrideSample> dimensionSamples = [];
 
@@ -70,9 +77,9 @@ internal static class DimensionHealer
             dimensionsScanned++;
             bool wasOpenedForWrite = dimension.IsWriteEnabled;
 
-            (bool overridesWereCleared, bool textRotationWasReset, double beforeTextRotation) = HealDimension(dimension);
+            (bool overridesWereCleared, bool textRotationWasReset, bool dimlfacWasReset, double beforeTextRotation, double beforeDimlfac) = HealDimension(dimension);
 
-            if (overridesWereCleared || textRotationWasReset)
+            if (overridesWereCleared || textRotationWasReset || dimlfacWasReset)
             {
                 if (!wasOpenedForWrite && dimension.IsWriteEnabled)
                 {
@@ -89,6 +96,11 @@ internal static class DimensionHealer
                     textRotationsReset++;
                 }
 
+                if (dimlfacWasReset)
+                {
+                    dimensionDimlfacNormalized++;
+                }
+
                 if (dimensionSamples.Count < MaxDebugSamples)
                 {
                     ObjectId styleId = dimension.DimensionStyle;
@@ -96,8 +108,11 @@ internal static class DimensionHealer
                         dimension.Handle.ToString(),
                         styleId.IsNull ? "<null>" : styleId.Handle.ToString(),
                         overridesWereCleared,
+                        dimlfacWasReset,
                         beforeTextRotation,
-                        dimension.TextRotation));
+                        dimension.TextRotation,
+                        beforeDimlfac,
+                        dimension.Dimlfac));
                 }
             }
         }
@@ -114,7 +129,7 @@ internal static class DimensionHealer
         foreach (StyleHealSample sample in styleSamples)
         {
             logger.Debug(
-                "Dimension style healer sample: style={StyleName}, handle={Handle}, dimscale {BeforeDimscale}->{AfterDimscale}, dimtxt {BeforeDimtxt}->{AfterDimtxt}, dimgap {BeforeDimgap}->{AfterDimgap}, dimexo {BeforeDimexo}->{AfterDimexo}, dimrnd {BeforeDimrnd}->{AfterDimrnd}.",
+                "Dimension style healer sample: style={StyleName}, handle={Handle}, dimscale {BeforeDimscale}->{AfterDimscale}, dimtxt {BeforeDimtxt}->{AfterDimtxt}, dimgap {BeforeDimgap}->{AfterDimgap}, dimexo {BeforeDimexo}->{AfterDimexo}, dimrnd {BeforeDimrnd}->{AfterDimrnd}, dimlfac {BeforeDimlfac}->{AfterDimlfac}.",
                 sample.Name,
                 sample.Handle,
                 sample.BeforeDimscale,
@@ -126,32 +141,39 @@ internal static class DimensionHealer
                 sample.BeforeDimexo,
                 sample.AfterDimexo,
                 sample.BeforeDimrnd,
-                sample.AfterDimrnd);
+                sample.AfterDimrnd,
+                sample.BeforeDimlfac,
+                sample.AfterDimlfac);
         }
 
         logger.Information(
-            "Dimension entity healer summary: overridesCleared={OverridesCleared}, textRotationsReset={TextRotationsReset}, dimensionsScanned={DimensionsScanned}, dimensionsOpenedForWrite={DimensionsOpenedForWrite}.",
+            "Dimension entity healer summary: overridesCleared={OverridesCleared}, textRotationsReset={TextRotationsReset}, dimlfacNormalized={DimlfacNormalized}, dimensionsScanned={DimensionsScanned}, dimensionsOpenedForWrite={DimensionsOpenedForWrite}.",
             overridesCleared,
             textRotationsReset,
+            dimensionDimlfacNormalized,
             dimensionsScanned,
             dimensionsOpenedForWrite);
 
         foreach (DimensionOverrideSample sample in dimensionSamples)
         {
             logger.Debug(
-                "Dimension entity healer sample: handle={Handle}, styleId={StyleId}, overridesCleared={OverridesCleared}, textRotation {BeforeTextRotation}->{AfterTextRotation}.",
+                "Dimension entity healer sample: handle={Handle}, styleId={StyleId}, overridesCleared={OverridesCleared}, dimlfacReset={DimlfacReset}, textRotation {BeforeTextRotation}->{AfterTextRotation}, dimlfac {BeforeDimlfac}->{AfterDimlfac}.",
                 sample.Handle,
                 sample.StyleId,
                 sample.OverridesCleared,
+                sample.DimlfacReset,
                 sample.BeforeTextRotation,
-                sample.AfterTextRotation);
+                sample.AfterTextRotation,
+                sample.BeforeDimlfac,
+                sample.AfterDimlfac);
         }
 
-        logger.Information("Healed {Count} dimensions infected with imperial overrides.", overridesCleared);
+        logger.Information("Dimension entity overrides cleared for {Count} objects.", overridesCleared);
 
         return new DimensionHealResult(
             overridesCleared,
             textRotationsReset,
+            dimensionDimlfacNormalized,
             dimensionsScanned,
             dimensionsOpenedForWrite,
             healedStyleDimlfacCount,
@@ -159,11 +181,13 @@ internal static class DimensionHealer
             styleVisualPropsRescaled);
     }
 
-    internal static (bool OverridesCleared, bool TextRotationReset, double BeforeTextRotation) HealDimension(Dimension dimension)
+    internal static (bool OverridesCleared, bool TextRotationReset, bool DimlfacReset, double BeforeTextRotation, double BeforeDimlfac) HealDimension(Dimension dimension)
     {
         ObjectId styleId = dimension.DimensionStyle;
         double beforeTextRotation = dimension.TextRotation;
+        double beforeDimlfac = dimension.Dimlfac;
         bool hasTextRotation = !AreClose(beforeTextRotation, 0.0);
+        bool hasDimlfacDrift = !beforeDimlfac.Equals(1.0);
         bool overridesCleared = false;
 
         try
@@ -178,7 +202,7 @@ internal static class DimensionHealer
                 dimension.Handle.ToString());
         }
 
-        if (hasTextRotation && !dimension.IsWriteEnabled)
+        if ((hasTextRotation || hasDimlfacDrift) && !dimension.IsWriteEnabled)
         {
             dimension.UpgradeOpen();
         }
@@ -188,12 +212,17 @@ internal static class DimensionHealer
             dimension.TextRotation = 0.0;
         }
 
+        if (hasDimlfacDrift)
+        {
+            dimension.Dimlfac = 1.0;
+        }
+
         if (overridesCleared && !styleId.IsNull)
         {
             dimension.DimensionStyle = styleId;
         }
 
-        return (overridesCleared, hasTextRotation, beforeTextRotation);
+        return (overridesCleared, hasTextRotation, hasDimlfacDrift, beforeTextRotation, beforeDimlfac);
     }
 
     public static (int DimlfacHealedCount, int DimscaleNormalizedCount, int VisualPropsRescaledCount) HealDimensionStyles(
@@ -214,8 +243,8 @@ internal static class DimensionHealer
             }
 
             bool hasVisualScaleOverride = IsImperialOverride(style.Dimscale);
-            bool hasMeasurementScaleOverride = IsImperialOverride(style.Dimlfac);
-            if (!hasVisualScaleOverride && !hasMeasurementScaleOverride)
+            bool dimlfacNeedsNormalization = !style.Dimlfac.Equals(1.0);
+            if (!hasVisualScaleOverride && !dimlfacNeedsNormalization)
             {
                 continue;
             }
@@ -225,6 +254,7 @@ internal static class DimensionHealer
             double beforeDimgap = style.Dimgap;
             double beforeDimexo = style.Dimexo;
             double beforeDimrnd = style.Dimrnd;
+            double beforeDimlfac = style.Dimlfac;
             style.UpgradeOpen();
 
             if (hasVisualScaleOverride)
@@ -233,13 +263,13 @@ internal static class DimensionHealer
                 dimscaleNormalizedCount++;
             }
 
-            if (hasMeasurementScaleOverride)
+            if (dimlfacNeedsNormalization)
             {
                 style.Dimlfac = 1.0;
                 dimlfacHealedCount++;
             }
 
-            if (hasVisualScaleOverride && samples.Count < MaxDebugSamples)
+            if ((hasVisualScaleOverride || dimlfacNeedsNormalization) && samples.Count < MaxDebugSamples)
             {
                 samples.Add(new StyleHealSample(
                     style.Name,
@@ -253,7 +283,9 @@ internal static class DimensionHealer
                     beforeDimexo,
                     style.Dimexo,
                     beforeDimrnd,
-                    style.Dimrnd));
+                    style.Dimrnd,
+                    beforeDimlfac,
+                    style.Dimlfac));
             }
         }
 

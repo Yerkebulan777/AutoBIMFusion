@@ -26,7 +26,7 @@ AutoBIMFusion/
 1. **Orchestration:** `MergeCommands` управляет очередью и семафором.
 2. **Preprocessing:** `ViewportLayoutExporter` готовит базу данных в памяти, выполняя проекцию листа в модель.
 3. **Insertion:** `BlockInserter` клонирует объекты в целевой чертеж, применяя расчет смещения по оси X.
-4. **Healing:** `DimensionHealer` и `DimensionUtils` нормализуют `Dimscale/Dimlfac` размерных стилей до базовых значений и очищают per-entity overrides из `XData` (`ACAD`/`DSTYLE`) в процессе вставки.
+4. **Healing:** `DimensionHealer` и `DimensionUtils` принудительно нормализуют `Dimlfac` к `1.0` (и для размерных стилей, и для обрабатываемых размерных сущностей), нормализуют `Dimscale` размерных стилей и очищают per-entity overrides из `XData` (`ACAD`/`DSTYLE`) в процессе вставки.
 5. **Optimization:** `DwgOptimizer` выполняет до 5 проходов `Purge` для удаления мусора.
 
 ### Прочие команды
