@@ -22,18 +22,31 @@ internal static class ViewportLayoutExporter
         using (Database db = new(false, true))
         {
             db.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
-
             db.CloseInput(true);
 
-            // --- ИСПРАВЛЕНИЕ: Нормализация ДО любых трансформаций и сбора Viewport-ов ---
-            ExtentsUtils.SyncUnits(db);
-            using (new AcadWarningSuppressScope())
+            // --- ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ БАГА 304.8 ---
+            // 1. Форсируем метрическую систему глобально до любых манипуляций
+            db.Insunits = UnitsValue.Millimeters;
+            db.Measurement = MeasurementValue.Metric;
+
+            // 2. Жестко переводим все пространства и блоки (включая скрытые размерные) в миллиметры.
+            // Теперь ни один объект в temp.dwg не сможет "вспомнить", что он был футовым.
+            using (Transaction tr = db.TransactionManager.StartTransaction())
             {
-                db.Insunits = UnitsValue.Millimeters;
-                db.Measurement = MeasurementValue.Metric;
+                BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+                foreach (ObjectId btrId in bt)
+                {
+                    BlockTableRecord btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForWrite);
+                    if (!btr.IsFromExternalReference)
+                    {
+                        btr.Units = UnitsValue.Millimeters;
+                    }
+                }
+                tr.Commit();
             }
-            log.Info($"VP: единицы принудительно нормализованы ({fileName})");
-            // -----------------------------------------------------------------------------
+
+            log.Info($"VP: единицы принудительно нормализованы в мм ({fileName})");
+            // ------------------------------------------
 
             if (!LayoutUtil.TryFindFirstLayout(db, out string layoutName))
             {
