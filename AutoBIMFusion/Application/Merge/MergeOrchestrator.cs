@@ -30,20 +30,18 @@ internal static class MergeCoordinator
             return MergeResult.Warn(fileName, warn);
         }
 
-        string tempPath = string.Empty;
-
         try
         {
             log.Info($"Файл: {fileName}");
 
-            tempPath = await ViewportLayoutExporter.ExportToTempAsync(filePath, fileName, log);
+            using Database? sourceDb = ViewportLayoutExporter.PrepareDatabaseForMerge(filePath, fileName, log);
 
-            if (string.IsNullOrEmpty(tempPath))
+            if (sourceDb == null)
             {
                 return MergeResult.Warn(fileName, "Листы не найдены");
             }
 
-            Extents3d? bounds = ReadBounds(tempPath, log);
+            Extents3d? bounds = ExtentsUtils.GetDatabaseExtents(sourceDb);
 
             if (!bounds.HasValue)
             {
@@ -54,7 +52,7 @@ internal static class MergeCoordinator
             using (targetDoc.LockDocument())
             using (new AcadUnitScalingOverrideScope())
             {
-                worldBounds = inserter.InsertNativeObjects(targetDoc.Database, tempPath, layoutName, bounds.Value);
+                worldBounds = inserter.InsertNativeObjects(targetDoc.Database, sourceDb, layoutName, bounds.Value);
             }
 
             if (worldBounds is null)
@@ -69,41 +67,6 @@ internal static class MergeCoordinator
         {
             log.Error(ex, $"Ошибка: {fileName}");
             return MergeResult.Fail(fileName, ex.Message, "Ошибка обработки");
-        }
-        finally
-        {
-            if (!string.IsNullOrEmpty(tempPath) && File.Exists(tempPath))
-            {
-                try
-                {
-                    File.Delete(tempPath);
-                }
-                catch (System.Exception deleteEx)
-                {
-                    log.Warn(deleteEx, $"Сбой удаления temp-файла: {tempPath}");
-                }
-            }
-        }
-    }
-
-    private static Extents3d? ReadBounds(string tempPath, AILog log)
-    {
-        try
-        {
-            using Database db = new(false, true);
-            db.ReadDwgFile(tempPath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
-            db.CloseInput(true);
-            return ExtentsUtils.GetDatabaseExtents(db);
-        }
-        catch (Autodesk.AutoCAD.Runtime.Exception ex)
-        {
-            log.Warn(ex, $"AutoCAD API не смог прочитать границы временного файла: {tempPath}");
-            return null;
-        }
-        catch (System.Exception ex)
-        {
-            log.Warn(ex, $"Не удалось прочитать границы временного файла: {tempPath}");
-            return null;
         }
     }
 }

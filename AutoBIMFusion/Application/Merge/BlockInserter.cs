@@ -24,7 +24,7 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
     /// Границы вставленных объектов в мировой системе координат,
     /// либо <see langword="null"/>, если вставка не выполнена.
     /// </returns>
-    public Extents3d? InsertNativeObjects(Database targetDb, string sourceFilePath, string sourceName, Extents3d sourceBounds)
+    public Extents3d? InsertNativeObjects(Database targetDb, Database sourceDb, string sourceName, Extents3d sourceBounds)
     {
         Point3d insertPt = CalcInsertionPoint(sourceBounds);
         Matrix3d displacement = Matrix3d.Displacement(new Vector3d(insertPt.X, insertPt.Y, insertPt.Z));
@@ -32,11 +32,6 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
         try
         {
             ExtentsUtils.SyncUnits(targetDb);
-
-            // 1. Читаем исходную базу (БЕЗ попыток изменить ее единицы)
-            using Database sourceDb = new(false, true);
-            sourceDb.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
-            sourceDb.CloseInput(true);
 
             ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
             ObjectId targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
@@ -92,7 +87,6 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
             IdMapping map = [];
             Extents3d? worldBounds = null;
             int clonedCount = 0;
-            List<ObjectId> clonedDimensionIds = [];
 
             try
             {
@@ -121,11 +115,13 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
 
                         if (tr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
                         {
+                            // Оптимизация Phase 2: Объединяем трансформацию и очистку
                             ent.TransformBy(displacement);
                             clonedCount++;
-                            if (ent is Dimension)
+
+                            if (ent is Dimension dim)
                             {
-                                clonedDimensionIds.Add(pair.Value);
+                                DimensionUtils.Heal(dim);
                             }
 
                             Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
@@ -137,6 +133,10 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                             }
                         }
                     }
+
+                    // Лечим стили размеров в той же транзакции
+                    _ = DimensionHealer.HealDimensionStyles(targetDb, tr, []);
+
                     tr.Commit();
                 }
             }
@@ -154,8 +154,6 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                 ExtentsUtils.SyncUnits(targetDb);
             }
 
-            DimensionHealer.DimensionHealResult healResult = DimensionHealer.Heal(targetDb, clonedDimensionIds);
-
             if (clonedCount == 0)
             {
                 log.Warn($"{sourceName}: не удалось клонировать объекты");
@@ -168,11 +166,6 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
             _hasPlacedObjects = true;
 
             log.Info($"{sourceName}: вставлено {clonedCount} объектов");
-            log.Debug(
-                $"{sourceName}: проверено новых размеров: {healResult.DimensionsScanned}, " +
-                $"очищено overrides: {healResult.OverridesCleared}, " +
-                $"сброшено поворотов текста: {healResult.TextRotationsReset}, " +
-                $"нормализовано стилей: {healResult.DimscaleNormalized}");
             return worldBounds;
         }
         catch (Autodesk.AutoCAD.Runtime.Exception ex)

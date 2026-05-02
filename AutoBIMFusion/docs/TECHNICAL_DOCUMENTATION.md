@@ -181,3 +181,25 @@ To maintain performance and code quality, the following rules should be followed
 - **Single-Pass Transformations:** Combine object cloning (`WblockCloneObjects`) with post-processing (translation, scale, property cleanup) to avoid multiple iterations over the same entity collections.
 - **Centralized Logic:** Keep dimension cleanup, unit synchronization, and geometry utilities in shared helper classes (`ExtentsUtils`, `DimensionHealer`, `DimensionStyleDiagnosticUtils`) to prevent logic duplication.
 - **Synchronous AutoCAD API:** Prefer synchronous patterns for AutoCAD database operations. Use `Task` only for actual non-blocking I/O (like folder picking or final file saving) to avoid overhead and thread-safety issues.
+
+## 9. Detailed Optimization Roadmap
+
+Based on the analysis of the current architecture, the following steps are recommended for the next refactoring phase:
+
+### Phase 1: In-Memory Database Pipeline
+1.  **Refactor `ViewportLayoutExporter`:** Change `ExportToTempAsync` to return `Database` (in-memory) instead of a file path. Remove the `db.SaveAs` call.
+2.  **Modify `MergeCoordinator`:**
+    - Receive the `Database` from the exporter.
+    - Pass this `Database` instance directly to `ReadBounds` (which will no longer need to open a file).
+    - Pass the `Database` to `BlockInserter`.
+3.  **Update `BlockInserter`:** Remove the `sourceDb.ReadDwgFile` call. Use the passed `Database` directly.
+4.  **Cleanup:** Ensure the `Database` is properly disposed of in `MergeCoordinator`'s `finally` block.
+
+### Phase 2: Transaction & Transformation Consolidation
+1.  **Single-Pass Logic:** In `BlockInserter`, merge the loop that collects `clonedDimensionIds` and applies `TransformBy` with any other post-cloning cleanup.
+2.  **Move Healing to Inserter:** Call `DimensionHealer` logic inside the main insertion transaction to avoid opening objects multiple times.
+3.  **Unit Normalization:** Move the `sourceDb.Insunits` / `Measurement` override logic to a single entry point before cloning starts.
+
+### Phase 3: Logic Unification
+1.  **Dimension Utilities:** Consolidate `RemoveDimStyleOverrides` from `EntityTransformUtils` and `DimensionHealer` into a single `DimensionUtils` class.
+2.  **Layout Logic:** Merge `ProjectSingleViewport` and `ProjectMultipleViewports` in `LayoutProjectionProcessor` into a unified strategy where a single viewport is treated as a multi-viewport setup with one window.

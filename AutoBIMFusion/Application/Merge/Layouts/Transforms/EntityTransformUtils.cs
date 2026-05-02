@@ -25,7 +25,7 @@ internal static class EntityTransformUtils
         // --- ИСПРАВЛЕНИЕ: ЖЕСТКАЯ ОЧИСТКА ПЕРЕОПРЕДЕЛЕНИЙ РАЗМЕРОВ ---
         if (entity is Dimension dim)
         {
-            RemoveDimStyleOverrides(dim);
+            DimensionUtils.RemoveDimStyleOverrides(dim);
         }
         // -------------------------------------------------------------
 
@@ -41,38 +41,6 @@ internal static class EntityTransformUtils
         catch
         {
             // AutoCAD can reject evaluation for damaged or very complex hatch geometry.
-        }
-    }
-
-    // Удаляем XData переопределений стиля размеров (приложение "DSTYLE")
-    private static void RemoveDimStyleOverrides(Dimension dim)
-    {
-        try
-        {
-            if (dim.XData != null)
-            {
-                using ResultBuffer rb = dim.XData;
-                bool hasOverrides = false;
-                foreach (TypedValue tv in rb)
-                {
-                    if (tv.TypeCode == (int)DxfCode.ExtendedDataRegAppName && tv.Value.ToString() == "DSTYLE")
-                    {
-                        hasOverrides = true;
-                        break;
-                    }
-                }
-
-                if (hasOverrides)
-                {
-                    // ResultBuffer только с именем приложения удаляет все данные этого приложения
-                    using ResultBuffer clearRb = new(new TypedValue((int)DxfCode.ExtendedDataRegAppName, "DSTYLE"));
-                    dim.XData = clearRb;
-                }
-            }
-        }
-        catch
-        {
-            // Игнорируем ошибки при очистке, чтобы не прерывать процесс
         }
     }
 }

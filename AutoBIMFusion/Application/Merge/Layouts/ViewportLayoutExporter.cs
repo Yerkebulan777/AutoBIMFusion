@@ -13,13 +13,12 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 [SupportedOSPlatform("Windows")]
 internal static class ViewportLayoutExporter
 {
-    public static Task<string> ExportToTempAsync(string sourceFilePath, string fileName, AILog log)
+    public static Database? PrepareDatabaseForMerge(string sourceFilePath, string fileName, AILog log)
     {
         ArgumentNullException.ThrowIfNull(sourceFilePath);
 
-        string tempPath = BuildTempPath(fileName);
-
-        using (Database db = new(false, true))
+        Database db = new(false, true);
+        try
         {
             db.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
             db.CloseInput(true);
@@ -46,7 +45,8 @@ internal static class ViewportLayoutExporter
             if (!LayoutUtil.TryFindFirstLayout(db, out string layoutName))
             {
                 log.Warn($"{fileName}: листы не найдены");
-                return Task.FromResult(string.Empty);
+                db.Dispose();
+                return null;
             }
 
             List<LayoutViewportInfo> vps = ViewportCollector.Collect(db, layoutName);
@@ -61,19 +61,13 @@ internal static class ViewportLayoutExporter
                 log.Info($"VP: очищено {erased} объектов");
             }
 
-            using (new AcadWarningSuppressScope())
-            {
-                db.SaveAs(tempPath, DwgVersion.AC1032);
-            }
+            log.Info($"VP: подготовка базы завершена ({fileName})");
+            return db;
         }
-
-        log.Info($"VP: экспорт завершен ({fileName})");
-        return Task.FromResult(tempPath);
-    }
-
-    private static string BuildTempPath(string fileName)
-    {
-        string name = Path.GetFileNameWithoutExtension(fileName);
-        return Path.Combine(Path.GetTempPath(), $"{name}-{Guid.NewGuid()}.dwg");
+        catch (System.Exception)
+        {
+            db.Dispose();
+            throw;
+        }
     }
 }

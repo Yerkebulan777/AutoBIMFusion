@@ -13,17 +13,17 @@ internal static class LayoutProjectionProcessor
 
     internal static Extents3d? ProjectLayoutToModelSpace(Database db, string layoutName, IReadOnlyList<LayoutViewportInfo> viewports, AILog log)
     {
-        return viewports.Count switch
+        if (viewports.Count == 0)
         {
-            0 => ProjectNoViewport(db, layoutName, log),
-            1 => ProjectSingleViewport(db, layoutName, viewports[0], log),
-            _ => ProjectMultipleViewports(db, layoutName, viewports, log)
-        };
+            return ProjectNoViewport(db, layoutName, log);
+        }
+
+        return ProjectWithViewports(db, layoutName, viewports, log);
     }
 
-    private static Extents3d? ProjectMultipleViewports(Database db, string layoutName, IReadOnlyList<LayoutViewportInfo> viewports, AILog log)
+    private static Extents3d? ProjectWithViewports(Database db, string layoutName, IReadOnlyList<LayoutViewportInfo> viewports, AILog log)
     {
-        log.Info($"Выбранный метод масштабирования: ProcessMultiVp ({viewports.Count} viewport'ов)");
+        log.Info($"Выбранный метод масштабирования: ProcessVp ({viewports.Count} viewport'ов)");
 
         LayoutViewportInfo mainOriginal = LayoutViewportInfo.PickMainViewport(viewports);
         LayoutViewportInfo mainClamped = ClampMainViewportScale(mainOriginal, log);
@@ -36,30 +36,31 @@ internal static class LayoutProjectionProcessor
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
-        IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
-
-        foreach (LayoutViewportInfo aux in viewports)
+        // Обработка вспомогательных видовых экранов (только если их > 1)
+        if (viewports.Count > 1)
         {
-            if (aux.VpId == mainOriginal.VpId)
+            IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
+
+            foreach (LayoutViewportInfo aux in viewports)
             {
-                continue;
+                if (aux.VpId == mainOriginal.VpId)
+                {
+                    continue;
+                }
+
+                Matrix3d matrix = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
+                ObjectIdCollection toClone = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, log);
+
+                if (toClone.Count == 0)
+                {
+                    log.Info($"aux-VP #{aux.Number}: 0 объектов");
+                    continue;
+                }
+
+                ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log, $"aux-VP #{aux.Number}");
+                _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow, log);
+                log.Info($"aux-VP #{aux.Number}: обработано {cloned.Count} объектов");
             }
-
-            Matrix3d matrix = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
-
-            ObjectIdCollection toClone = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, log);
-
-            if (toClone.Count == 0)
-            {
-                log.Info($"aux-VP #{aux.Number}: 0 объектов");
-                continue;
-            }
-
-            ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log, $"aux-VP #{aux.Number}");
-
-            _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow, log);
-
-            log.Info($"aux-VP #{aux.Number}: обработано {cloned.Count} объектов");
         }
 
         ScaleModelSpaceWhenClamped(db, clampRatio, mainOriginal.ViewCenter, log);
@@ -67,22 +68,6 @@ internal static class LayoutProjectionProcessor
         // Содержимое бумаги проецируется через ограниченную основную область просмотра, поскольку пространство модели
         // уже было приведено к указанному выше ограниченному масштабу.
         return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainClamped, log), log);
-    }
-
-    private static Extents3d? ProjectSingleViewport(Database db, string layoutName, LayoutViewportInfo viewport, AILog log)
-    {
-        log.Info($"Выбранный метод масштабирования: ProcessSingleVp (VP #{viewport.Number})");
-
-        LayoutViewportInfo clamped = ClampMainViewportScale(viewport, log);
-        double clampRatio = viewport.CustomScale / clamped.CustomScale;
-
-        log.Info(
-            $"VP #{viewport.Number}: исходный scale={viewport.CustomScale:F6}, рабочий scale={clamped.CustomScale:F6}, " +
-            $"clampRatio={clampRatio:F6}, центр={ExtentsUtils.FormatPoint(clamped.ViewCenter)}");
-
-        ScaleModelSpaceWhenClamped(db, clampRatio, viewport.ViewCenter, log);
-
-        return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(clamped, log), log);
     }
 
     private static Extents3d? ProjectNoViewport(Database db, string layoutName, AILog log)

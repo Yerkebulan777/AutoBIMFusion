@@ -136,26 +136,7 @@ internal static class DimensionStyleDiagnosticUtils
 
     internal static bool TryRemoveDimensionStyleOverrides(Dimension dimension)
     {
-        ResultBuffer? xdata = dimension.XData;
-        if (xdata is null)
-        {
-            return false;
-        }
-
-        TypedValue[] values;
-        using (xdata)
-        {
-            values = xdata.AsArray();
-        }
-
-        if (!TryRemoveDimensionStyleOverrideSection(values, out List<TypedValue> cleanedValues))
-        {
-            return false;
-        }
-
-        dimension.UpgradeOpen();
-        dimension.XData = cleanedValues.Count == 0 ? null : [.. cleanedValues.ToArray()];
-        return true;
+        return DimensionUtils.RemoveDimStyleOverrides(dimension);
     }
 
     private static bool TryRemoveDimensionStyleOverrideSection(TypedValue[] values, out List<TypedValue> cleanedValues)

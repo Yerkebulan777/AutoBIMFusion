@@ -11,7 +11,7 @@ internal static class DimensionHealer
     private const double ObjectOffsetScale = 100.0;
     private const int MaxDebugSamples = 5;
 
-    private sealed record StyleHealSample(
+    public sealed record StyleHealSample(
         string Name,
         string Handle,
         double BeforeDimscale,
@@ -162,7 +162,7 @@ internal static class DimensionHealer
             styleVisualPropsRescaled);
     }
 
-    private static (bool OverridesCleared, bool TextRotationReset, double BeforeTextRotation) HealDimension(Dimension dimension)
+    public static (bool OverridesCleared, bool TextRotationReset, double BeforeTextRotation) HealDimension(Dimension dimension)
     {
         ObjectId styleId = dimension.DimensionStyle;
         double beforeTextRotation = dimension.TextRotation;
@@ -199,7 +199,7 @@ internal static class DimensionHealer
         return (overridesCleared, hasTextRotation, beforeTextRotation);
     }
 
-    private static (int DimlfacHealedCount, int DimscaleNormalizedCount, int VisualPropsRescaledCount) HealDimensionStyles(
+    public static (int DimlfacHealedCount, int DimscaleNormalizedCount, int VisualPropsRescaledCount) HealDimensionStyles(
         Database targetDb,
         Transaction tr,
         List<StyleHealSample> samples)
