@@ -4,7 +4,7 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 
 internal static class DimensionHealer
 {
-    private const double ImperialOverrideFactor = 304.8;
+    private static readonly double[] ImperialOverrideFactors = [304.8, 25.4, 12.0];
     private const double Tolerance = 1e-6;
 
     internal static int Heal(Database targetDb)
@@ -16,6 +16,7 @@ internal static class DimensionHealer
         using Transaction tr = targetDb.TransactionManager.StartTransaction();
         DBDictionary layoutDictionary = (DBDictionary)tr.GetObject(targetDb.LayoutDictionaryId, OpenMode.ForRead);
         HashSet<ObjectId> visitedBlocks = [];
+        Dictionary<ObjectId, double> styleDimscaleCache = [];
 
         foreach (DBDictionaryEntry entry in layoutDictionary)
         {
@@ -37,16 +38,40 @@ internal static class DimensionHealer
 
             foreach (ObjectId id in block)
             {
-                if (tr.GetObject(id, OpenMode.ForRead, false) is not Dimension dimension
-                    || !IsInfected(dimension))
+                if (tr.GetObject(id, OpenMode.ForRead, false) is not Dimension dimension)
+                {
+                    continue;
+                }
+
+                ObjectId styleId = dimension.DimensionStyle;
+                bool hasStyleDimscale = TryGetStyleDimscale(tr, styleId, styleDimscaleCache, out double styleDimscale);
+                bool hasVisualScaleOverride = IsImperialOverride(dimension.Dimscale)
+                    && (!hasStyleDimscale || !AreClose(dimension.Dimscale, styleDimscale));
+                bool hasMeasurementScaleOverride = IsImperialOverride(dimension.Dimlfac);
+                if (!hasVisualScaleOverride && !hasMeasurementScaleOverride)
                 {
                     continue;
                 }
 
                 dimension.UpgradeOpen();
+
                 _ = DimensionStyleDiagnosticUtils.TryRemoveDimensionStyleOverrides(dimension);
-                dimension.Dimscale = 1.0;
-                dimension.Dimlfac = 1.0;
+
+                if (!styleId.IsNull)
+                {
+                    dimension.DimensionStyle = styleId;
+                }
+
+                if (hasVisualScaleOverride && hasStyleDimscale)
+                {
+                    dimension.Dimscale = styleDimscale;
+                }
+
+                if (hasMeasurementScaleOverride)
+                {
+                    dimension.Dimlfac = 1.0;
+                }
+
                 healedCount++;
             }
         }
@@ -59,15 +84,43 @@ internal static class DimensionHealer
         return healedCount;
     }
 
-    private static bool IsInfected(Dimension dimension)
+    private static bool TryGetStyleDimscale(
+        Transaction tr,
+        ObjectId styleId,
+        Dictionary<ObjectId, double> cache,
+        out double dimscale)
     {
-        return IsImperialOverride(dimension.Dimscale)
-            || IsImperialOverride(dimension.Dimlfac);
+        dimscale = 1.0;
+        if (styleId.IsNull)
+        {
+            return false;
+        }
+
+        if (cache.TryGetValue(styleId, out dimscale))
+        {
+            return true;
+        }
+
+        if (tr.GetObject(styleId, OpenMode.ForRead, false) is not DimStyleTableRecord style)
+        {
+            return false;
+        }
+
+        dimscale = style.Dimscale;
+        cache[styleId] = dimscale;
+        return true;
     }
 
     private static bool IsImperialOverride(double value)
     {
         return double.IsFinite(value)
-            && Abs(value - ImperialOverrideFactor) <= Tolerance;
+            && ImperialOverrideFactors.Any(factor => Abs(value - factor) <= Tolerance);
+    }
+
+    private static bool AreClose(double left, double right)
+    {
+        return double.IsFinite(left)
+            && double.IsFinite(right)
+            && Abs(left - right) <= Tolerance;
     }
 }
