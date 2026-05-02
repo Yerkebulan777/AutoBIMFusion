@@ -122,7 +122,7 @@ internal static class DimensionStyleDiagnosticUtils
 
                 try
                 {
-                    _ = DimensionHealer.TryRemoveDimensionStyleOverrides(dimension);
+                    _ = DimensionUtils.TryRemoveDimensionStyleOverrides(dimension);
                 }
                 catch (System.Exception ex)
                 {
