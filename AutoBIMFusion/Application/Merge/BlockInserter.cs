@@ -68,6 +68,7 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
             UnitsValue originalTargetDbUnits = targetDb.Insunits;
             MeasurementValue originalTargetDbMeasurement = targetDb.Measurement;
             Extents3d? worldBounds = null;
+            List<ObjectId> clonedDimensionIds = [];
             int clonedCount = 0;
 
             try
@@ -92,9 +93,9 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                         ent.TransformBy(displacement);
                         clonedCount++;
 
-                        if (ent is Dimension dim)
+                        if (ent is Dimension)
                         {
-                            DimensionHealer.HealDimension(dim);
+                            clonedDimensionIds.Add(pair.Value);
                         }
 
                         Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
@@ -107,8 +108,6 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                     }
                 }
 
-                _ = DimensionHealer.HealDimensionStyles(targetDb, targetTr, []);
-
                 targetDb.Insunits = originalTargetDbUnits;
                 targetDb.Measurement = originalTargetDbMeasurement;
                 targetMs.Units = originalTargetMsUnits;
@@ -120,6 +119,11 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                 targetDb.Insunits = originalTargetDbUnits;
                 targetDb.Measurement = originalTargetDbMeasurement;
                 ExtentsUtils.SyncUnits(targetDb);
+            }
+
+            if (clonedCount > 0)
+            {
+                _ = DimensionHealer.Heal(targetDb, clonedDimensionIds);
             }
 
             if (clonedCount == 0)

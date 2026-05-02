@@ -5,10 +5,7 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 internal static class DimensionHealer
 {
     private const double Tolerance = 1e-3;
-    private const double ImperialOverrideFactor = 304.8;
-    private const double TextVisualRoundStep = 10.0;
-    private const double ObjectOffsetRoundStep = 50.0;
-    private const double ObjectOffsetScale = 100.0;
+    private static readonly double[] ImperialOverrideFactors = [304.8, 25.4, 12.0];
     private const int MaxDebugSamples = 5;
 
     public sealed record StyleHealSample(
@@ -277,35 +274,8 @@ internal static class DimensionHealer
         style.Dimtsz = ScaleVisualValue(style.Dimtsz, scale, ref changed);
         style.Dimtvp = ScaleVisualValue(style.Dimtvp, scale, ref changed);
         style.Dimfxlen = ScaleVisualValue(style.Dimfxlen, scale, ref changed);
-        style.Dimtxt = RoundTextVisualValue(style.Dimtxt);
-        style.Dimgap = RoundTextVisualValue(style.Dimgap);
-        style.Dimexo = RoundObjectOffsetValue(ScaleObjectOffsetValue(style.Dimexo));
         style.Dimscale = 1.0;
         return changed;
-    }
-
-    private static double RoundTextVisualValue(double value)
-    {
-        return !double.IsFinite(value) || value == 0.0
-            ? value
-            : Round(value / TextVisualRoundStep, 0, MidpointRounding.AwayFromZero) * TextVisualRoundStep;
-    }
-
-    private static double RoundObjectOffsetValue(double value)
-    {
-        if (!double.IsFinite(value) || value == 0.0)
-        {
-            return value;
-        }
-
-        double sign = Sign(value);
-        double roundedMagnitude = Round(Abs(value) / ObjectOffsetRoundStep, 0, MidpointRounding.AwayFromZero) * ObjectOffsetRoundStep;
-        return sign * Max(ObjectOffsetRoundStep, roundedMagnitude);
-    }
-
-    private static double ScaleObjectOffsetValue(double value)
-    {
-        return !double.IsFinite(value) || value == 0.0 ? value : value * ObjectOffsetScale;
     }
 
     private static double ScaleVisualValue(double value, double scale, ref int changedCount)
@@ -322,7 +292,7 @@ internal static class DimensionHealer
     private static bool IsImperialOverride(double value)
     {
         return double.IsFinite(value)
-            && Abs(value - ImperialOverrideFactor) <= Tolerance;
+            && ImperialOverrideFactors.Any(factor => Abs(value - factor) <= Tolerance);
     }
 
     private static bool AreClose(double left, double right)
