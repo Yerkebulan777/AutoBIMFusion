@@ -274,12 +274,9 @@ internal static class DimensionHealer
 
     private static double RoundTextVisualValue(double value)
     {
-        if (!double.IsFinite(value) || value == 0.0)
-        {
-            return value;
-        }
-
-        return Round(value / TextVisualRoundStep, 0, MidpointRounding.AwayFromZero) * TextVisualRoundStep;
+        return !double.IsFinite(value) || value == 0.0
+            ? value
+            : Round(value / TextVisualRoundStep, 0, MidpointRounding.AwayFromZero) * TextVisualRoundStep;
     }
 
     private static double RoundObjectOffsetValue(double value)
@@ -296,12 +293,7 @@ internal static class DimensionHealer
 
     private static double ScaleDimensionRoundValue(double value)
     {
-        if (!double.IsFinite(value) || value == 0.0)
-        {
-            return value;
-        }
-
-        return value * DimensionRoundScale;
+        return !double.IsFinite(value) || value == 0.0 ? value : value * DimensionRoundScale;
     }
 
     private static double ScaleVisualValue(double value, double scale, ref int changedCount)

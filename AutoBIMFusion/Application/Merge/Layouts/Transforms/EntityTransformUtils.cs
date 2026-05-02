@@ -65,7 +65,7 @@ internal static class EntityTransformUtils
                 if (hasOverrides)
                 {
                     // ResultBuffer только с именем приложения удаляет все данные этого приложения
-                    using ResultBuffer clearRb = new ResultBuffer(new TypedValue((int)DxfCode.ExtendedDataRegAppName, "DSTYLE"));
+                    using ResultBuffer clearRb = new(new TypedValue((int)DxfCode.ExtendedDataRegAppName, "DSTYLE"));
                     dim.XData = clearRb;
                 }
             }
