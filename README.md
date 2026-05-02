@@ -1,73 +1,50 @@
 # AutoBIMFusion
 
-AutoBIMFusion is a .NET 8 plugin for AutoCAD 2025-2027. Its main command, `MERGEDWG`, merges DWG files from a selected folder into the active drawing while keeping the imported geometry editable as native Model Space entities.
+AutoBIMFusion — это плагин на .NET 8 для AutoCAD 2025-2027. Основная команда `MERGEDWG` объединяет файлы DWG из выбранной папки в активный чертеж, сохраняя импортированную геометрию как редактируемые нативные объекты Model Space.
 
-## Commands
+## Команды
 
-| Command | Purpose |
+| Команда | Назначение |
 | :--- | :--- |
-| `MERGEDWG` | Recursively finds DWG files, exports the first Paper Space layout of each file, and inserts the result into the active drawing. |
-| `MERGEDWG_DIAG_TEST` | Diagnostic-only merge run for `C:\Users\y.zhumabayev\Desktop\TEST`, without folder picker or final summary dialog. |
-| `SMART_MERGE_TEXT` | Groups nearby `TEXT` / `MTEXT` objects in Model Space and replaces each group with one `MText`. |
-| `MergeTextStyles` | Finds duplicate text styles, reassigns text and attributes to a master style, then removes duplicates. |
-| `JOIN_LINES` | Joins collinear short `LINE` entities on the same layer/color/linetype into longer line segments. |
-| `CreateETransmitZip` | Creates an AutoCAD eTransmit package for the current saved drawing and writes a ZIP archive. |
+| `MERGEDWG` | Рекурсивно находит DWG, экспортирует первый Layout из Paper Space каждого файла и вставляет результат в текущий чертеж. |
+| `MERGEDWG_DIAG_TEST` | Диагностический запуск для `C:\Users\y.zhumabayev\Desktop\TEST` без выбора папки и итогового диалога. |
+| `SMART_MERGE_TEXT` | Группирует близкорасположенные объекты `TEXT` / `MTEXT` и заменяет их на один `MText`. |
+| `MergeTextStyles` | Находит дубликаты текстовых стилей, переназначает их на мастер-стиль и удаляет лишние. |
+| `JOIN_LINES` | Объединяет коллинеарные короткие отрезки `LINE` на одном слое/цвете в длинные сегменты. |
+| `CreateETransmitZip` | Создает пакет AutoCAD eTransmit (ZIP) для текущего чертежа. |
 
-## Merge Flow
+## Процесс слияния (Merge Flow)
 
-1. `MergeCommands` guards against parallel `MERGEDWG` runs with `SemaphoreSlim`.
-2. `FileEnumerator` collects DWG files up to 3 folder levels deep, skipping names prefixed with `#` and files larger than 15 MB.
-3. `MergeCoordinator.MergeSingleFile` validates each DWG, exports the first layout via `ViewportLayoutExporter`, then inserts the temporary result via `BlockInserter`.
-4. `ViewportLayoutExporter` delegates viewport math and layout projection to `LayoutProjectionProcessor`:
-   - 0 viewport: move Paper Space to Model Space with default 1:100 scaling,
-   - 1 viewport: clamp scale if needed, scale Model Space once, then project Paper Space,
-   - multi viewport: flatten aux viewport content to main viewport coordinates, remove aux-only originals, then project Paper Space.
-5. `ModelSpaceTrimmer.TrimOutside` removes objects outside the projected frame bounds.
-6. `BlockInserter` clones native entities into the target Model Space with `WblockCloneObjects` and places each sheet along X with a calculated gap.
-7. The final drawing normalizes raster file paths next to the target DWG (`RasterImagePathFixer`), purges unused database objects, saves as `AC1032`, then runs `REGENALL` and `ZOOM EXTENTS`.
+1. **`MergeCommands`**: Точка входа, предотвращает параллельный запуск команды через `SemaphoreSlim`.
+2. **`FileUtil`**: Собирает файлы DWG (глубина до 3 уровней), пропуская файлы с префиксом `#` и размером более 15 МБ.
+3. **`MergeOrchestrator`**: Координирует процесс для каждого файла: валидация, экспорт через `ViewportLayoutExporter` и вставка через `BlockInserter`.
+4. **`ViewportLayoutExporter`**: Готовит временную базу данных, делегируя расчеты проекции `LayoutProjectionProcessor`:
+   - 0 вьюпортов: перенос Paper Space в Model Space с масштабом 1:100.
+   - 1 вьюпорт: нормализация масштаба, масштабирование Model Space и проекция Paper Space.
+   - Несколько вьюпортов: "сплющивание" содержимого вспомогательных экранов в координаты основного экрана.
+5. **`ModelSpaceTrimmer`**: Удаляет объекты, оказавшиеся за пределами расчетной рамки листа.
+6. **`BlockInserter`**: Выполняет `WblockCloneObjects` в целевой чертеж и размещает листы вдоль оси X с заданным зазором.
+7. **Финализация**: Исправление путей растров (`RasterImagePathFixer`), очистка неиспользуемых объектов (`Purge`), сохранение в формате `AC1032`, `REGENALL` и `ZOOM EXTENTS`.
 
-## Current Design Rules
+## Принципы проектирования
 
-- AutoCAD transactions and disposable objects are always scoped with `using`.
-- Command classes own AutoCAD UI entry points; utility classes contain file, layout, geometry, and logging helpers.
-- Geometry helpers stay small and only expose methods used by the merge pipeline.
-- Per-entity debug logging is kept limited; high-volume operations log counts and critical failures.
-- AutoCAD API exceptions are caught at command/file boundaries and reported through `AILog`.
+- **Управление ресурсами**: Все объекты AutoCAD (`Database`, `Transaction`, `ObjectIdCollection`, `IdMapping`) строго оборачиваются в `using`.
+- **Архитектура**: Бизнес-логика и математика отделены от прямого взаимодействия с API базы данных AutoCAD (SRP).
+- **Обработка ошибок**: Исключения AutoCAD API перехватываются на границах команд и логируются через `AILog` с выводом понятных сообщений.
+- **Оптимизация**: Использование оптимальных алгоритмов для работы с памятью и скоростью (например, кэширование границ объектов при тримминге).
+- **DRY**: Повторяющиеся операции (работа с файлами, стилями, границами) вынесены в общие утилитарные классы.
 
-## Performance & Architecture Guidelines
-
-1. **Memory Management**: All database objects, including `ObjectIdCollection`, must be properly disposed using `using` statements or explicit disposal to prevent memory leaks during batch operations.
-2. **Transaction Optimization**: Related database operations should be grouped into single transactions where possible to improve performance, while being careful not to make them excessively large.
-3. **Error Handling and Logging**: Critical operations must be wrapped in `try-catch` blocks. The logging system utilizes `System.Diagnostics.Trace` for flexible system-level tracing. Error messages should never expose sensitive information like full file paths or credentials.
-4. **Input Validation**: All user inputs, file paths, and external database queries must be validated before processing to prevent invalid data errors.
-5. **Threading Considerations**: Due to AutoCAD’s COM architecture, all API calls must occur on the main application thread.
-
-## Known Tradeoffs
-
-- `DuplicateRecordCloning.Ignore` keeps the target drawing stable but may reuse existing layers/styles instead of preserving conflicting source definitions.
-- Only the first Paper Space layout is processed.
-- Long merge operations do not yet support cancellation.
-
-## Build
+## Сборка
 
 ```powershell
 dotnet build AutoBIMFusion.slnx -c DebugA26
 dotnet build AutoBIMFusion.slnx -c ReleaseA26
 ```
 
-The MSBuild target creates and deploys an AutoCAD bundle under `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle` by default.
+Плагин развертывается в `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`.
 
-## Diagnostic Merge Run
+## Документация
 
-```powershell
-dotnet build AutoBIMFusion.slnx -c DebugA26
-.\tools\Run-MergeDwgDiagTest.ps1 -Configuration DebugA26
-```
-
-The diagnostic runner builds a Core Console-safe plugin variant and invokes `MERGEDWG_DIAG_TEST` against `C:\Users\y.zhumabayev\Desktop\TEST`. It loads the DLL from `AutoBIMFusion\bin\DebugA26-core\AutoBIMFusion.bundle\Contents`, writes Core Console stdout/stderr to `AutoBIMFusion\bin\DebugA26-core\diag`, and writes plugin logs next to the loaded bundle DLL under `Contents\Logs\merge-YYYY-MM-DD.log`. Merge runs emit two compact style snapshots: `before-merge` and `after-merge`. Each snapshot logs user dimension styles as `[DIM-STYLE]` and user text styles as `[TEXT-STYLE]`; dimension override cleanup logs only concrete cleanup failures as `[DIM-OVERRIDES]` warnings.
-
-## Documentation
-
-- [Technical documentation](AutoBIMFusion/docs/TECHNICAL_DOCUMENTATION.md)
-- [Merge algorithm](AutoBIMFusion/docs/ALGORITHM.md)
-- [Known issues](AutoBIMFusion/docs/KNOWN_ISSUES.md)
+- [Техническое описание](AutoBIMFusion/docs/TECHNICAL_DOCUMENTATION.md)
+- [Алгоритм слияния](AutoBIMFusion/docs/ALGORITHM.md)
+- [Известные проблемы](AutoBIMFusion/docs/KNOWN_ISSUES.md)

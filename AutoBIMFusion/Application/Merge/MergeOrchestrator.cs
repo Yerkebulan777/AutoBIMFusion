@@ -13,19 +13,14 @@ namespace AutoBIMFusion.Application.Merge;
 /// вычисляет границы, вставляет как блок со смещением.
 /// </summary>
 [SupportedOSPlatform("windows")]
-internal static class MergeCoordinator
+internal static class MergeOrchestrator
 {
     public static async Task<MergeResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc, AILog log)
     {
         string fileName = Path.GetFileName(filePath);
         string layoutName = Path.GetFileNameWithoutExtension(filePath);
 
-        if (!FileHelper.TryValidateFile(filePath, FileShare.ReadWrite, out string warn))
-        {
-            return MergeResult.Warn(fileName, warn);
-        }
-
-        if (!FileHelper.TryValidateDwgStructure(filePath, out warn))
+        if (!FileUtil.TryValidateDwg(filePath, out string warn))
         {
             return MergeResult.Warn(fileName, warn);
         }

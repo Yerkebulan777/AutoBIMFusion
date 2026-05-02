@@ -203,26 +203,15 @@ internal static class ViewportTransformer
     {
         IReadOnlyList<ObjectId> sourceOrder = DrawOrderPreserver.Capture(db, sourceOwnerId, sourceIds, log);
 
-        ObjectIdCollection validIds = [];
-
+        using ObjectIdCollection validIds = [];
         foreach (ObjectId id in sourceIds)
         {
-            if (!id.IsErased)
-            {
-                _ = validIds.Add(id);
-            }
+            if (!id.IsNull && !id.IsErased) _ = validIds.Add(id);
         }
 
-        if (validIds.Count == 0)
-        {
-            log.Debug($"DeepCloneAndTransform source={sourceName}: все объекты стёрты, клонирование пропущено");
-            return [];
-        }
+        if (validIds.Count == 0) return [];
 
-        IdMapping map = [];
-
-        int mappedPrimary = 0;
-
+        using IdMapping map = [];
         ObjectIdCollection cloned = [];
 
         using (Transaction tr = db.TransactionManager.StartTransaction())
@@ -231,53 +220,26 @@ internal static class ViewportTransformer
 
             foreach (IdPair pair in map)
             {
-                // Для исходных объектов значение IdPair.IsPrimary равно true.
                 if (pair.IsCloned && pair.IsPrimary)
                 {
-                    mappedPrimary++;
-
                     if (tr.GetObject(pair.Value, OpenMode.ForWrite) is Entity e)
                     {
-                        string entType = e.GetType().Name;
-                        string handle = e.Handle.ToString();
-
                         try
                         {
-                            Extents3d? oldExt = ExtentsUtils.TryGetExtents(e);
-
-                            EntityTransformUtils.TransformResult transformResult = EntityTransformUtils.TransformEntity(e, matrix);
-
-                            if (transformResult.SkippedAssociativeHatch)
-                            {
-                                _ = cloned.Add(pair.Value);
-                                continue;
-                            }
-
-                            Extents3d? newExt = ExtentsUtils.TryGetExtents(e);
-
-                            if (ExtentsUtils.TryGetScaleRatio(oldExt, newExt, out double oldDig, out double newDig, out double ratio) && ratio > 1000.0)
-                            {
-                                log.Warn($"[АНОМАЛИЯ КЛОНА] Тип: {entType}, Handle: {handle}. Диагональ ДО: {oldDig:F2}, ПОСЛЕ: {newDig:F2}");
-                            }
-
+                            _ = EntityTransformUtils.TransformEntity(e, matrix);
                             _ = cloned.Add(pair.Value);
                         }
                         catch (System.Exception ex)
                         {
-                            log.Warn($"[ОШИБКА КЛОНА] Тип: {entType}, Handle: {handle}. Ошибка: {ex.Message}");
+                            log.Warn($"[ОШИБКА КЛОНА] {e.GetType().Name} {e.Handle}: {ex.Message}");
                         }
                     }
                 }
             }
-
             tr.Commit();
         }
 
         DrawOrderPreserver.Restore(db, ownerId, sourceOrder, map, log);
-
-        log.Debug(
-            $"DeepCloneAndTransform source={sourceName}, input={sourceIds.Count}, " +
-            $"mappedPrimary={mappedPrimary}, transformed={cloned.Count}");
         return cloned;
     }
 

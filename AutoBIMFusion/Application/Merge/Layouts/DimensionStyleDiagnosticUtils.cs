@@ -122,7 +122,7 @@ internal static class DimensionStyleDiagnosticUtils
 
                 try
                 {
-                    _ = TryRemoveDimensionStyleOverrides(dimension);
+                    _ = DimensionHealer.TryRemoveDimensionStyleOverrides(dimension);
                 }
                 catch (System.Exception ex)
                 {
@@ -132,11 +132,6 @@ internal static class DimensionStyleDiagnosticUtils
         }
 
         tr.Commit();
-    }
-
-    internal static bool TryRemoveDimensionStyleOverrides(Dimension dimension)
-    {
-        return DimensionUtils.RemoveDimStyleOverrides(dimension);
     }
 
     private static bool TryRemoveDimensionStyleOverrideSection(TypedValue[] values, out List<TypedValue> cleanedValues)

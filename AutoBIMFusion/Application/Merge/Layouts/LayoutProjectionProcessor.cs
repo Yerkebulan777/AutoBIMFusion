@@ -38,23 +38,15 @@ internal static class LayoutProjectionProcessor
 
             foreach (LayoutViewportInfo aux in viewports)
             {
-                if (aux.VpId == mainOriginal.VpId)
-                {
-                    continue;
-                }
+                if (aux.VpId == mainOriginal.VpId) continue;
 
                 Matrix3d matrix = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
-                ObjectIdCollection toClone = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, log);
+                using ObjectIdCollection toClone = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, log);
 
-                if (toClone.Count == 0)
-                {
-                    log.Info($"aux-VP #{aux.Number}: 0 объектов");
-                    continue;
-                }
+                if (toClone.Count == 0) continue;
 
-                ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log, $"aux-VP #{aux.Number}");
+                using ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log, $"aux-VP #{aux.Number}");
                 _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow, log);
-                log.Info($"aux-VP #{aux.Number}: обработано {cloned.Count} объектов");
             }
         }
 
@@ -69,28 +61,16 @@ internal static class LayoutProjectionProcessor
     {
         log.Info($"Выбранный метод масштабирования: ProcessNoVp (масштаб по умолчанию 1:100)");
 
-        ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
+        using ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
 
-        if (paperIds.Count == 0)
-        {
-            return null;
-        }
+        if (paperIds.Count == 0) return null;
 
         Extents3d? paperBounds = ModelSpaceTrimmer.ComputeBounds(db, paperIds, log);
 
-        if (!paperBounds.HasValue)
-        {
-            return null;
-        }
+        if (!paperBounds.HasValue) return null;
 
         Point3d minPt = paperBounds.Value.MinPoint;
-        Matrix3d moveToOrigin = Matrix3d.Displacement(Point3d.Origin - minPt);
-        Matrix3d scale = Matrix3d.Scaling(MaxScaleMultiplier, Point3d.Origin);
-        Matrix3d matrix = scale * moveToOrigin;
-
-        log.Info(
-            $"ProcessNoVp: paper bounds={ExtentsUtils.FormatExtents(paperBounds.Value)}, " +
-            $"ratio={MaxScaleMultiplier:F2}");
+        Matrix3d matrix = Matrix3d.Scaling(MaxScaleMultiplier, Point3d.Origin) * Matrix3d.Displacement(Point3d.Origin - minPt);
 
         ViewportTransformer.UnlockTextStylesHeight(db, log);
         return MovePaperToModelSpace(db, layoutName, matrix, log, "paper-no-vp");
@@ -130,15 +110,12 @@ internal static class LayoutProjectionProcessor
     private static Extents3d? MovePaperToModelSpace(Database db, string layoutName, Matrix3d matrix, AILog log, string tag = "paper")
     {
         ObjectId paperBtrId = LayoutUtil.GetLayoutBtrId(db, layoutName);
-        ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
+        using ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
 
-        if (paperIds.Count == 0)
-        {
-            return null;
-        }
+        if (paperIds.Count == 0) return null;
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
-        ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, paperIds, paperBtrId, msId, matrix, log, tag);
+        using ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, paperIds, paperBtrId, msId, matrix, log, tag);
 
         EraseBlockContents(db, paperBtrId);
 

@@ -115,7 +115,7 @@ public sealed class MergeCommands
         string savePath = BuildSavePath(sourceFolder);
         log.Info($"Путь сохранения: {savePath}");
 
-        string[] dwgFiles = FileEnumerator.GetFiles(sourceFolder, log: log);
+        string[] dwgFiles = FileUtil.GetFiles(sourceFolder, log: log);
 
         if (dwgFiles.Length == 0)
         {
@@ -178,7 +178,7 @@ public sealed class MergeCommands
 
                 stats.RecordTotal();
 
-                MergeResult result = await MergeCoordinator.MergeSingleFile(files[idx], inserter, doc, log);
+                MergeResult result = await MergeOrchestrator.MergeSingleFile(files[idx], inserter, doc, log);
 
                 log.Info($"[{(result.Success ? "OK" : result.IsSkipped ? "SKIP" : "FAIL")}] {result.Message}");
 

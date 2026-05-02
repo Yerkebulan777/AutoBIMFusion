@@ -39,21 +39,15 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
 
             using (Transaction tr = sourceDb.TransactionManager.StartTransaction())
             {
-                // 1. ПОЛНЫЙ ОБХОД ВСЕХ БЛОКОВ (включая скрытые анонимные блоки размеров *D)
-                // Это гарантирует, что WblockCloneObjects не найдет ни одного футового блока
-                // и не применит коэффициент 304.8.
                 BlockTable bt = (BlockTable)tr.GetObject(sourceDb.BlockTableId, OpenMode.ForRead);
                 foreach (ObjectId btrId in bt)
                 {
-                    BlockTableRecord btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForWrite);
-                    // Пропускаем XREF, чтобы не вызвать ошибку доступа
-                    if (!btr.IsFromExternalReference)
+                    if (tr.GetObject(btrId, OpenMode.ForWrite) is BlockTableRecord btr && !btr.IsFromExternalReference)
                     {
                         btr.Units = targetDb.Insunits;
                     }
                 }
 
-                // 2. Сбор объектов для клонирования из Model Space
                 BlockTableRecord ms = (BlockTableRecord)tr.GetObject(sourceMsId, OpenMode.ForRead);
                 foreach (ObjectId id in ms)
                 {
@@ -68,22 +62,18 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
 
             if (sourceIds.Count == 0)
             {
-                log.Warn($"{sourceName}: пустой Model Space");
                 return null;
             }
 
-            // 3. Сохраняем исходные метрические настройки целевой базы
             UnitsValue originalTargetDbUnits = targetDb.Insunits;
             MeasurementValue originalTargetDbMeasurement = targetDb.Measurement;
-            IdMapping map = [];
+            IdMapping map = new();
             Extents3d? worldBounds = null;
             int clonedCount = 0;
 
             try
             {
                 using Transaction targetTr = targetDb.TransactionManager.StartTransaction();
-                
-                // 3. Получаем исходные единицы Model Space и ВРЕМЕННО приравниваем
                 BlockTableRecord targetMs = (BlockTableRecord)targetTr.GetObject(targetMsId, OpenMode.ForWrite);
                 UnitsValue originalTargetMsUnits = targetMs.Units;
 
@@ -91,48 +81,34 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                 targetDb.Measurement = sourceDb.Measurement;
                 targetMs.Units = targetDb.Insunits;
 
-                // 4. Выполняем клонирование 1:1
                 targetDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Ignore, false);
 
                 foreach (IdPair pair in map)
                 {
-                    if (!pair.IsCloned || !pair.IsPrimary)
-                    {
-                        continue;
-                    }
+                    if (!pair.IsCloned || !pair.IsPrimary) continue;
 
-                    try
+                    if (targetTr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
                     {
-                        if (targetTr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
+                        ent.TransformBy(displacement);
+                        clonedCount++;
+
+                        if (ent is Dimension dim)
                         {
-                            // Оптимизация Phase 2: Объединяем трансформацию и очистку
-                            ent.TransformBy(displacement);
-                            clonedCount++;
-
-                            if (ent is Dimension dim)
-                            {
-                                DimensionUtils.Heal(dim);
-                            }
-
-                            Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
-                            if (ext.HasValue)
-                            {
-                                worldBounds = worldBounds.HasValue
-                                    ? ExtentsUtils.Union(worldBounds.Value, ext.Value)
-                                    : ext.Value;
-                            }
+                            DimensionHealer.HealDimension(dim);
                         }
-                    }
-                    catch (System.Exception ex)
-                    {
-                        log.Warn(ex, $"Ошибка обработки клонированного объекта {pair.Value}");
+
+                        Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
+                        if (ext.HasValue)
+                        {
+                            worldBounds = worldBounds.HasValue
+                                ? ExtentsUtils.Union(worldBounds.Value, ext.Value)
+                                : ext.Value;
+                        }
                     }
                 }
 
-                // Лечим стили размеров в той же транзакции
                 _ = DimensionHealer.HealDimensionStyles(targetDb, targetTr, []);
 
-                // 5. ОБЯЗАТЕЛЬНО возвращаем целевой базе ее правильные метрические единицы
                 targetDb.Insunits = originalTargetDbUnits;
                 targetDb.Measurement = originalTargetDbMeasurement;
                 targetMs.Units = originalTargetMsUnits;
@@ -141,10 +117,10 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
             }
             finally
             {
-                // На случай падения транзакции, гарантируем восстановление уровня базы
                 targetDb.Insunits = originalTargetDbUnits;
                 targetDb.Measurement = originalTargetDbMeasurement;
                 ExtentsUtils.SyncUnits(targetDb);
+                map.Dispose();
             }
 
             if (clonedCount == 0)

@@ -45,7 +45,6 @@ internal static class ViewportLayoutExporter
             if (!LayoutUtil.TryFindFirstLayout(db, out string layoutName))
             {
                 log.Warn($"{fileName}: листы не найдены");
-                db.Dispose();
                 return null;
             }
 
@@ -53,15 +52,11 @@ internal static class ViewportLayoutExporter
 
             Extents3d? frameBounds = LayoutProjectionProcessor.ProjectLayoutToModelSpace(db, layoutName, vps, log);
 
-            log.Info($"VP: найдено {vps.Count}");
-
             if (frameBounds.HasValue)
             {
-                int erased = ModelSpaceTrimmer.TrimOutside(db, frameBounds.Value, log);
-                log.Info($"VP: очищено {erased} объектов");
+                _ = ModelSpaceTrimmer.TrimOutside(db, frameBounds.Value, log);
             }
 
-            log.Info($"VP: подготовка базы завершена ({fileName})");
             return db;
         }
         catch (System.Exception)
