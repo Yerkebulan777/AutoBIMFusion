@@ -108,6 +108,15 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                             ent.TransformBy(displacement);
                             clonedCount++;
 
+                            // --- ИСПРАВЛЕНИЕ БАГА 304.8 ---
+                            // Очищаем навязанные механизмом WblockCloneObjects переопределения (XData DSTYLE),
+                            // чтобы размер сбросил футовые коэффициенты и принял чистые настройки целевого стиля.
+                            if (ent is Dimension dim)
+                            {
+                                DimensionStyleDiagnosticUtils.TryRemoveDimensionStyleOverrides(dim);
+                            }
+                            // ------------------------------
+
                             Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
                             if (ext.HasValue)
                             {

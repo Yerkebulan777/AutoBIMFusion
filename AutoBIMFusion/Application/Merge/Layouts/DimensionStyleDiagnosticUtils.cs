@@ -134,7 +134,7 @@ internal static class DimensionStyleDiagnosticUtils
         tr.Commit();
     }
 
-    private static bool TryRemoveDimensionStyleOverrides(Dimension dimension)
+    internal static bool TryRemoveDimensionStyleOverrides(Dimension dimension)
     {
         ResultBuffer? xdata = dimension.XData;
         if (xdata is null)
