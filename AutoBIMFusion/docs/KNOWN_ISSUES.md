@@ -1,8 +1,10 @@
 # Known Issues
 
-**Updated:** 2026-04-30
+**Updated:** 2026-05-02
 
 This file tracks only active risks and contentious design decisions. Fixed stale items were removed.
+
+All current AutoCAD command entry points are intentionally retained: `MERGEDWG`, `MERGEDWG_DIAG_TEST`, `SMART_MERGE_TEXT`, `CreateETransmitZip`, `MergeTextStyles`, `JOIN_LINES`, `ExportTextStylesToMd`, and `ExportDimStylesToMd`.
 
 ## Open
 

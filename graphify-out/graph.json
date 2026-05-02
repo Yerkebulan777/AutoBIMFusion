@@ -115,7 +115,7 @@
       "label": "ManagedSystemVariable",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\AcadSupport\\AcadWarningSuppressScope.cs",
-      "source_location": "L45",
+      "source_location": "L41",
       "id": "acadsupport_acadwarningsuppressscope_managedsystemvariable",
       "community": 12,
       "norm_label": "managedsystemvariable"
@@ -124,7 +124,7 @@
       "label": ".Dispose()",
       "file_type": "code",
       "source_file": "AutoBIMFusion\\Application\\AcadSupport\\AcadWarningSuppressScope.cs",
-      "source_location": "L64",
+      "source_location": "L60",
       "id": "acadsupport_acadwarningsuppressscope_managedsystemvariable_dispose",
       "community": 12,
       "norm_label": ".dispose()"

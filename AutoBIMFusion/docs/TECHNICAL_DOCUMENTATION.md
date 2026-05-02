@@ -1,6 +1,6 @@
 # AutoBIMFusion Technical Documentation
 
-**Updated:** 2026-05-01
+**Updated:** 2026-05-02
 
 ## 1. Overview
 
@@ -56,7 +56,7 @@ AutoBIMFusion/
       WindowsNaturalComparer.cs
   Infrastructure/
     Logging/
-      OperationLogger.cs
+      AILog.cs
       LoggerFactory.cs
 ```
 
@@ -64,7 +64,7 @@ AutoBIMFusion/
 
 ### MERGEDWG
 
-1. `MergeCommands` starts the command, creates `OperationLogger`, and rejects parallel runs.
+1. `MergeCommands` starts the command, creates an `AILog`, and rejects parallel runs.
 2. `FolderSelector` gets the source folder.
 3. `FileEnumerator` collects and naturally sorts DWG paths.
 4. `MergeCoordinator.MergeSingleFile` processes each file independently.
@@ -118,12 +118,23 @@ For background runs, prefer `tools\Run-MergeDwgDiagTest.ps1`. It builds a `CoreC
 4. Reassigns `DBText`, `MText`, `AttributeDefinition`, and `AttributeReference`.
 5. Erases duplicate style records when AutoCAD allows it.
 
+### JOIN_LINES
+
+1. Collects short `LINE` entities from Model Space.
+2. Groups lines by layer, color, direction, offset, and linetype-related properties.
+3. Merges overlapping or touching collinear segments into longer `LINE` entities.
+4. Erases the source lines only after replacement entities are appended to the drawing.
+
 ### CreateETransmitZip
 
 1. Requires the active drawing to be saved.
 2. Locates AutoCAD eTransmit API types by assembly/type discovery.
 3. Configures known eTransmit options through reflection because member names vary by AutoCAD version.
 4. Creates a temporary package folder, zips it, and deletes the temporary folder.
+
+### Style Export Commands
+
+`ExportTextStylesToMd` and `ExportDimStylesToMd` write Markdown diagnostics for text and dimension style tables to the desktop. The shared `StyleExportUtils` helper skips noisy built-in style names and dumps readable symbol-table properties.
 
 ## 4. Resource and Transaction Rules
 
