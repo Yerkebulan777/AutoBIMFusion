@@ -1,4 +1,3 @@
-using AutoBIMFusion.Application.AcadSupport;
 using AutoBIMFusion.Application.Utils;
 using AutoBIMFusion.Infrastructure.Logging;
 using System.Runtime.Versioning;

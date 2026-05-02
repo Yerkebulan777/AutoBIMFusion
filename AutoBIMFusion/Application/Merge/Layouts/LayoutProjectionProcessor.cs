@@ -13,12 +13,7 @@ internal static class LayoutProjectionProcessor
 
     internal static Extents3d? ProjectLayoutToModelSpace(Database db, string layoutName, IReadOnlyList<LayoutViewportInfo> viewports, AILog log)
     {
-        if (viewports.Count == 0)
-        {
-            return ProjectNoViewport(db, layoutName, log);
-        }
-
-        return ProjectWithViewports(db, layoutName, viewports, log);
+        return viewports.Count == 0 ? ProjectNoViewport(db, layoutName, log) : ProjectWithViewports(db, layoutName, viewports, log);
     }
 
     private static Extents3d? ProjectWithViewports(Database db, string layoutName, IReadOnlyList<LayoutViewportInfo> viewports, AILog log)
