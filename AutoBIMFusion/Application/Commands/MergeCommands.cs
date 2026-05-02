@@ -136,7 +136,6 @@ public sealed class MergeCommands
             RasterImagePathFixer.CopyImagesToTargetFolder(doc.Database, savePath, log);
             DimensionStyleDiagnosticUtils.LogStyleSnapshot(doc.Database, log, "after-merge");
             DwgOptimizer.Optimize(doc.Database, log);
-            DimensionStyleDiagnosticUtils.ClearDimensionOverrides(doc.Database, log);
 
             SaveMerged(doc.Database, savePath, log);
 
