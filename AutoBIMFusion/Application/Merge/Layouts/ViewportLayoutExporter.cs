@@ -45,9 +45,6 @@ internal static class ViewportLayoutExporter
                 tr.Commit();
             }
 
-            log.Info($"VP: единицы принудительно нормализованы в мм ({fileName})");
-            // ------------------------------------------
-
             if (!LayoutUtil.TryFindFirstLayout(db, out string layoutName))
             {
                 log.Warn($"{fileName}: листы не найдены");
