@@ -53,14 +53,23 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
             // Настраиваем исходный ModelSpace
             using (Transaction tr = sourceDb.TransactionManager.StartTransaction())
             {
-                BlockTableRecord ms = (BlockTableRecord)tr.GetObject(sourceMsId, OpenMode.ForWrite);
-                ms.Units = UnitsValue.Undefined; // Отключаем единицы блока
+                // 1. Открываем таблицу блоков и жестко фиксируем метрические единицы для ВСЕХ блоков.
+                // Это необходимо, чтобы анонимные блоки размеров (*D) не сохранили исходные футы
+                // и WblockCloneObjects не применил к ним коэффициент масштабирования 304.8.
+                BlockTable bt = (BlockTable)tr.GetObject(sourceDb.BlockTableId, OpenMode.ForRead);
+                foreach (ObjectId btrId in bt)
+                {
+                    BlockTableRecord btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForWrite);
+                    btr.Units = targetDb.Insunits;
+                }
 
+                // 2. Собираем ID объектов из Model Space для последующего клонирования
+                BlockTableRecord ms = (BlockTableRecord)tr.GetObject(sourceMsId, OpenMode.ForRead);
                 foreach (ObjectId id in ms)
                 {
                     if (!id.IsNull && !id.IsErased)
                     {
-                        sourceIdsCollection.Add(id);
+                        _ = sourceIdsCollection.Add(id);
                     }
                 }
 
