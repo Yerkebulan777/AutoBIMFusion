@@ -24,19 +24,17 @@ internal static class ViewportLayoutExporter
             db.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
             db.CloseInput(true);
 
-            // --- ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ БАГА 304.8 ---
-            // 1. Форсируем метрическую систему глобально до любых манипуляций
             db.Insunits = UnitsValue.Millimeters;
             db.Measurement = MeasurementValue.Metric;
 
-            // 2. Жестко переводим все пространства и блоки (включая скрытые размерные) в миллиметры.
-            // Теперь ни один объект в temp.dwg не сможет "вспомнить", что он был футовым.
             using (Transaction tr = db.TransactionManager.StartTransaction())
             {
                 BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+
                 foreach (ObjectId btrId in bt)
                 {
                     BlockTableRecord btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForWrite);
+
                     if (!btr.IsFromExternalReference)
                     {
                         btr.Units = UnitsValue.Millimeters;
