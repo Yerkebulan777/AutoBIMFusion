@@ -1,12 +1,12 @@
 # Graph Report - AutoBIMFusion  (2026-05-02)
 
 ## Corpus Check
-- 56 files · ~19,615 words
+- 56 files · ~20,068 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 264 nodes · 483 edges · 19 communities detected
-- Extraction: 65% EXTRACTED · 35% INFERRED · 0% AMBIGUOUS · INFERRED: 168 edges (avg confidence: 0.8)
+- 270 nodes · 491 edges · 20 communities detected
+- Extraction: 66% EXTRACTED · 34% INFERRED · 0% AMBIGUOUS · INFERRED: 168 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -29,6 +29,7 @@
 - [[_COMMUNITY_Community 16|Community 16]]
 - [[_COMMUNITY_Community 17|Community 17]]
 - [[_COMMUNITY_Community 18|Community 18]]
+- [[_COMMUNITY_Community 19|Community 19]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `DimensionStyleDiagnosticUtils` - 21 edges
@@ -68,19 +69,19 @@ Cohesion: 0.21
 Nodes (2): TransmittalCommands, AILog
 
 ### Community 5 - "Community 5"
-Cohesion: 0.18
-Nodes (3): ViewportCollector, ViewportLayoutExporter, LayoutUtil
-
-### Community 6 - "Community 6"
 Cohesion: 0.16
 Nodes (6): MergeCoordinator, Fail(), Ok(), Warn(), StringUtils, FileHelper
+
+### Community 6 - "Community 6"
+Cohesion: 0.21
+Nodes (3): ViewportCollector, ViewportLayoutExporter, LayoutUtil
 
 ### Community 7 - "Community 7"
 Cohesion: 0.28
 Nodes (1): SmartTextCommands
 
 ### Community 8 - "Community 8"
-Cohesion: 0.24
+Cohesion: 0.22
 Nodes (2): ExtentsUtils, BlockInserter
 
 ### Community 9 - "Community 9"
@@ -89,11 +90,11 @@ Nodes (1): TextStyleCommands
 
 ### Community 10 - "Community 10"
 Cohesion: 0.31
-Nodes (2): StyleExportCommands, StyleExportUtils
+Nodes (3): ILogEventSink, DiagnosticSink, LoggerFactory
 
 ### Community 11 - "Community 11"
 Cohesion: 0.31
-Nodes (3): ILogEventSink, DiagnosticSink, LoggerFactory
+Nodes (2): StyleExportCommands, StyleExportUtils
 
 ### Community 12 - "Community 12"
 Cohesion: 0.39
@@ -104,22 +105,26 @@ Cohesion: 0.29
 Nodes (3): IComparer, FileEnumerator, WindowsNaturalComparer
 
 ### Community 14 - "Community 14"
+Cohesion: 0.43
+Nodes (1): EntityTransformUtils
+
+### Community 15 - "Community 15"
 Cohesion: 0.53
 Nodes (1): DwgOptimizer
 
-### Community 15 - "Community 15"
+### Community 16 - "Community 16"
 Cohesion: 0.5
 Nodes (2): JoinCommands, LineInfo
 
-### Community 16 - "Community 16"
-Cohesion: 0.6
-Nodes (1): EntityTransformUtils
-
 ### Community 17 - "Community 17"
+Cohesion: 0.6
+Nodes (1): DimensionHealer
+
+### Community 18 - "Community 18"
 Cohesion: 0.4
 Nodes (2): ICommand, ButtonCommandHandler
 
-### Community 18 - "Community 18"
+### Community 19 - "Community 19"
 Cohesion: 0.67
 Nodes (1): FolderSelector
 
@@ -132,21 +137,23 @@ Nodes (1): FolderSelector
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 7`** (13 nodes): `SmartTextCommands.cs`, `SmartTextCommands`, `.AreHeightsClose()`, `.AreTextsClose()`, `.CollectTextElements()`, `.CombineGroupText()`, `.EscapeMTextContent()`, `.EstimateTextWidth()`, `.GetTextBoundsAlongAxis()`, `.LowerBoundByPerp()`, `.ProjectPerpendicular()`, `.SmartGroupText()`, `.SmartMergeModelText()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 8`** (12 nodes): `BlockInserter.cs`, `ExtentsUtils.cs`, `ExtentsUtils`, `.IsEntityPointIn()`, `.IsPointIn()`, `.SyncUnits()`, `.Transform()`, `.Union()`, `BlockInserter`, `.CalcInsertionPoint()`, `.InsertNativeObjects()`, `.SyncUnits()`
+- **Thin community `Community 8`** (13 nodes): `BlockInserter.cs`, `ExtentsUtils.cs`, `ExtentsUtils`, `.IsEntityPointIn()`, `.IsPointIn()`, `.SyncUnits()`, `.Transform()`, `.TryGetScaleRatio()`, `.Union()`, `BlockInserter`, `.CalcInsertionPoint()`, `.InsertNativeObjects()`, `.SyncUnits()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 9`** (11 nodes): `TextStyleCommands.cs`, `TextStyleCommands`, `.BuildSignature()`, `.ChooseMasterStyle()`, `.CollectStyles()`, `.DeleteStyles()`, `.MergeTextStyles()`, `.Normalize()`, `.ReassignBlockAttributes()`, `.ReassignStyles()`, `.ReassignStylesInBlock()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 10`** (9 nodes): `StyleExportCommands.cs`, `StyleExportUtils.cs`, `StyleExportCommands`, `.ExportDimStyles()`, `.ExportTextStyles()`, `StyleExportUtils`, `.DumpProperties()`, `.ExportSymbolTableToMd()`, `.GetPropertyDisplayName()`
+- **Thin community `Community 11`** (9 nodes): `StyleExportCommands.cs`, `StyleExportUtils.cs`, `StyleExportCommands`, `.ExportDimStyles()`, `.ExportTextStyles()`, `StyleExportUtils`, `.DumpProperties()`, `.ExportSymbolTableToMd()`, `.GetPropertyDisplayName()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 14`** (6 nodes): `DwgOptimizer.cs`, `DwgOptimizer`, `.AddDictionaryIds()`, `.AddTableIds()`, `.Optimize()`, `.PurgePass()`
+- **Thin community `Community 14`** (7 nodes): `EntityTransformUtils.cs`, `EntityTransformUtils`, `.AdjustMLeaderScale()`, `.EvaluateHatch()`, `.GetScaleFactor()`, `.RemoveDimStyleOverrides()`, `.TransformEntity()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 15`** (5 nodes): `JoinCommands.cs`, `JoinCommands`, `.JoinLinesCommand()`, `.MergeGroup()`, `LineInfo`
+- **Thin community `Community 15`** (6 nodes): `DwgOptimizer.cs`, `DwgOptimizer`, `.AddDictionaryIds()`, `.AddTableIds()`, `.Optimize()`, `.PurgePass()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 16`** (5 nodes): `EntityTransformUtils.cs`, `EntityTransformUtils`, `.AdjustMLeaderScale()`, `.EvaluateHatch()`, `.TransformEntity()`
+- **Thin community `Community 16`** (5 nodes): `JoinCommands.cs`, `JoinCommands`, `.JoinLinesCommand()`, `.MergeGroup()`, `LineInfo`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 17`** (5 nodes): `ButtonCommandHandler.cs`, `ICommand`, `ButtonCommandHandler`, `.CanExecute()`, `.Execute()`
+- **Thin community `Community 17`** (5 nodes): `DimensionHealer.cs`, `DimensionHealer`, `.Heal()`, `.IsImperialOverride()`, `.IsInfected()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 18`** (3 nodes): `FolderSelector.cs`, `FolderSelector`, `.TrySelectFolder()`
+- **Thin community `Community 18`** (5 nodes): `ButtonCommandHandler.cs`, `ICommand`, `ButtonCommandHandler`, `.CanExecute()`, `.Execute()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 19`** (3 nodes): `FolderSelector.cs`, `FolderSelector`, `.TrySelectFolder()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions

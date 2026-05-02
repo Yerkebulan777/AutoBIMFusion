@@ -120,15 +120,6 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                             ent.TransformBy(displacement);
                             clonedCount++;
 
-                            // --- ИСПРАВЛЕНИЕ БАГА 304.8 ---
-                            // Очищаем навязанные механизмом WblockCloneObjects переопределения (XData DSTYLE),
-                            // чтобы размер сбросил футовые коэффициенты и принял чистые настройки целевого стиля.
-                            if (ent is Dimension dim)
-                            {
-                                DimensionStyleDiagnosticUtils.TryRemoveDimensionStyleOverrides(dim);
-                            }
-                            // ------------------------------
-
                             Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
                             if (ext.HasValue)
                             {
@@ -155,6 +146,8 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                 ExtentsUtils.SyncUnits(targetDb);
             }
 
+            int healedCount = DimensionHealer.Heal(targetDb);
+
             if (clonedCount == 0)
             {
                 log.Warn($"{sourceName}: не удалось клонировать объекты");
@@ -167,6 +160,7 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
             _hasPlacedObjects = true;
 
             log.Info($"{sourceName}: вставлено {clonedCount} объектов");
+            log.Debug($"{sourceName}: исправлено размеров после клонирования: {healedCount}");
             return worldBounds;
         }
         catch (Autodesk.AutoCAD.Runtime.Exception ex)
