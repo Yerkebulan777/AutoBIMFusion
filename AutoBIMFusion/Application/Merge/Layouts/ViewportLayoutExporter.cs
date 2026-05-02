@@ -25,10 +25,15 @@ internal static class ViewportLayoutExporter
 
             db.CloseInput(true);
 
-            // Принудительно устанавливаем метрическую систему ДО экспорта листа,
-            // чтобы отключить встроенную конвертацию футов в миллиметры (коэффициенты 304.8)
-            db.Insunits = UnitsValue.Millimeters;
-            db.Measurement = MeasurementValue.Metric;
+            // --- ИСПРАВЛЕНИЕ: НОРМАЛИЗАЦИЯ ЕДИНИЦ ДО ЛЮБЫХ ОПЕРАЦИЙ ---
+            ExtentsUtils.SyncUnits(db);
+            using (new AcadWarningSuppressScope())
+            {
+                db.Insunits = UnitsValue.Millimeters;
+                db.Measurement = MeasurementValue.Metric;
+            }
+            log.Info($"Единицы принудительно нормализованы перед обработкой ({fileName})");
+            // --------------------------------------------------------
 
             if (!LayoutUtil.TryFindFirstLayout(db, out string layoutName))
             {
@@ -47,9 +52,6 @@ internal static class ViewportLayoutExporter
                 int erased = ModelSpaceTrimmer.TrimOutside(db, frameBounds.Value, log);
                 log.Info($"VP: очищено {erased} объектов");
             }
-
-            ExtentsUtils.SyncUnits(db);
-            log.Info($"VP: единицы нормализованы ({fileName})");
 
             using (new AcadWarningSuppressScope())
             {
