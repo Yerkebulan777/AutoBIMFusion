@@ -22,140 +22,82 @@ public sealed class MergeCommands
     [CommandMethod("MERGEDWG", CommandFlags.Modal | CommandFlags.Session)]
     public async void MergeDwgFolderCommand()
     {
-        try
-        {
-            await MergeDwgFolderCommandAsync();
-        }
-        catch (System.Exception ex)
-        {
-            Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
-            if (doc is not null)
-            {
-                new AILog(doc.Editor).Error(ex, "Критическая ошибка запуска MERGEDWG");
-            }
-        }
+        await ExecuteMergeAsync(folderPath: null, showDialogs: true, commandName: "MERGEDWG");
     }
 
     [CommandMethod("MERGEDWG_DIAG_TEST", CommandFlags.Modal | CommandFlags.Session)]
     public async void MergeDwgDiagnosticTestCommand()
     {
-        try
-        {
-            await MergeDwgFolderCommandAsync(DiagnosticTestFolder, showDialogs: false, commandName: "MERGEDWG_DIAG_TEST");
-        }
-        catch (System.Exception ex)
-        {
-            Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
-            if (doc is not null)
-            {
-                new AILog(doc.Editor).Error(ex, "Критическая ошибка запуска MERGEDWG_DIAG_TEST");
-            }
-        }
+        await ExecuteMergeAsync(DiagnosticTestFolder, showDialogs: false, commandName: "MERGEDWG_DIAG_TEST");
     }
 
-    private async Task MergeDwgFolderCommandAsync()
-    {
-        await MergeDwgFolderCommandAsync(folderPath: null, showDialogs: true, commandName: "MERGEDWG");
-    }
-
-    private async Task MergeDwgFolderCommandAsync(string? folderPath, bool showDialogs, string commandName)
+    private async Task ExecuteMergeAsync(string? folderPath, bool showDialogs, string commandName)
     {
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
-        ArgumentNullException.ThrowIfNull(doc, nameof(doc));
+        if (doc?.Database == null) return;
 
         AILog log = new(doc.Editor);
-        log.Info($"Запуск команды {commandName}...");
+        log.Info($"Запуск {commandName}...");
 
         if (!await _mergeGate.WaitAsync(0))
         {
             log.Warn($"{commandName}: операция уже запущена.");
-            log.Info($"Завершение команды {commandName}.");
             return;
         }
 
         try
         {
-            await ExecuteMerge(doc, log, folderPath, showDialogs);
+            string? sourceFolder = folderPath;
+            if (string.IsNullOrWhiteSpace(sourceFolder) && !FolderSelector.TrySelectFolder(out sourceFolder))
+            {
+                return;
+            }
+
+            log.Info($"Исходная папка: {sourceFolder}");
+            log.Info($"Файл лога: {LoggerFactory.GetCurrentLogFilePath()}");
+
+            string savePath = BuildSavePath(sourceFolder!);
+            log.Info($"Путь сохранения: {savePath}");
+
+            string[] dwgFiles = FileUtil.GetFiles(sourceFolder!, log: log);
+            if (dwgFiles.Length == 0)
+            {
+                log.Warn("DWG файлы не найдены.");
+                if (showDialogs) UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
+                return;
+            }
+
+            const double gapPercent = 0.1;
+            MergeStatistics stats = new();
+            Stopwatch sw = Stopwatch.StartNew();
+
+            BlockInserter inserter = new(gapPercent, log);
+            await MergeFiles(dwgFiles, inserter, doc, stats, log);
+
+            using (doc.LockDocument())
+            {
+                RasterImagePathFixer.CopyImagesToTargetFolder(doc.Database, savePath, log);
+                DimensionStyleDiagnosticUtils.LogStyleSnapshot(doc.Database, log, "after-merge");
+                DwgOptimizer.Optimize(doc.Database, log);
+
+                SaveMerged(doc.Database, savePath, log);
+
+                doc.SendStringToExecute("._REGENALL ", true, false, false);
+                doc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
+            }
+
+            sw.Stop();
+            log.Info($"Завершено: {stats}");
+            if (showDialogs) ShowSummary(stats, sw.Elapsed, savePath, commandName);
         }
         catch (System.Exception ex)
         {
-            log.Error(ex, $"Ошибка выполнения {commandName}");
+            log.Error(ex, $"Ошибка {commandName}");
         }
         finally
         {
-            _ = _mergeGate.Release();
-            log.Info($"Завершение команды {commandName}.");
-        }
-    }
-
-    private static async Task ExecuteMerge(Document doc, AILog log, string? folderPath, bool showDialogs)
-    {
-        if (doc.Database == null)
-        {
-            log.Warn("Целевая база данных недоступна.");
-            return;
-        }
-
-        string? sourceFolder = folderPath;
-
-        if (string.IsNullOrWhiteSpace(sourceFolder) && !FolderSelector.TrySelectFolder(out sourceFolder))
-        {
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(sourceFolder))
-        {
-            log.Warn("Исходная папка не задана.");
-            return;
-        }
-
-        log.Info($"Исходная папка: {sourceFolder}");
-        log.Info($"Файл лога: {LoggerFactory.GetCurrentLogFilePath()}");
-
-        string savePath = BuildSavePath(sourceFolder);
-        log.Info($"Путь сохранения: {savePath}");
-
-        string[] dwgFiles = FileUtil.GetFiles(sourceFolder, log: log);
-
-        if (dwgFiles.Length == 0)
-        {
-            log.Warn("DWG файлы не найдены.");
-
-            if (showDialogs)
-            {
-                UiDialogService.ShowMessage("DWG-файлов нет!", "MERGEDWG");
-            }
-
-            return;
-        }
-
-        const double gapPercent = 0.1;
-        MergeStatistics stats = new();
-        Stopwatch sw = Stopwatch.StartNew();
-
-        BlockInserter inserter = new(gapPercent, log);
-
-        await MergeFiles(dwgFiles, inserter, doc, stats, log);
-
-        using (doc.LockDocument())
-        {
-            RasterImagePathFixer.CopyImagesToTargetFolder(doc.Database, savePath, log);
-            DimensionStyleDiagnosticUtils.LogStyleSnapshot(doc.Database, log, "after-merge");
-            DwgOptimizer.Optimize(doc.Database, log);
-
-            SaveMerged(doc.Database, savePath, log);
-
-            doc.SendStringToExecute("._REGENALL ", true, false, false);
-            doc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
-        }
-
-        sw.Stop();
-        log.Prefix = string.Empty;
-        log.Info($"Завершено: {stats}");
-
-        if (showDialogs)
-        {
-            ShowSummary(stats, sw.Elapsed, savePath);
+            _mergeGate.Release();
+            log.Info($"Завершение {commandName}.");
         }
     }
 
@@ -174,26 +116,13 @@ public sealed class MergeCommands
         {
             for (int idx = 0; idx < files.Length; idx++)
             {
-                log.Prefix = $"[{idx + 1}/{files.Length}]";
-
                 stats.RecordTotal();
 
                 MergeResult result = await MergeOrchestrator.MergeSingleFile(files[idx], inserter, doc, log);
 
-                log.Info($"[{(result.Success ? "OK" : result.IsSkipped ? "SKIP" : "FAIL")}] {result.Message}");
-
-                if (result.Success)
-                {
-                    stats.RecordSuccess();
-                }
-                else if (result.IsSkipped)
-                {
-                    stats.RecordSkipped();
-                }
-                else
-                {
-                    stats.RecordFailed();
-                }
+                if (result.Success) stats.RecordSuccess();
+                else if (result.IsSkipped) stats.RecordSkipped();
+                else stats.RecordFailed();
 
                 pm.MeterProgress();
             }
@@ -206,7 +135,6 @@ public sealed class MergeCommands
 
     private static string BuildSavePath(string rootPath)
     {
-        ArgumentException.ThrowIfNullOrEmpty(rootPath);
         DirectoryInfo dir = new(rootPath);
         DirectoryInfo? parent = dir.Parent;
 
@@ -223,11 +151,6 @@ public sealed class MergeCommands
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(savePath))
-            {
-                throw new ArgumentException("Путь для сохранения не может быть пустым.", nameof(savePath));
-            }
-
             string? dir = Path.GetDirectoryName(savePath);
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
             {
@@ -253,12 +176,12 @@ public sealed class MergeCommands
         }
     }
 
-    private static void ShowSummary(MergeStatistics stats, TimeSpan elapsed, string savePath)
+    private static void ShowSummary(MergeStatistics stats, TimeSpan elapsed, string savePath, string commandName)
     {
         string summary = stats.Failed == 0
             ? $"Завершено успешно.\nОбработано файлов: {stats.Successful}\nВремя: {elapsed:mm\\:ss\\.fff}\nСохранено в: {savePath}"
             : $"Завершено с ошибками.\nУспешно: {stats.Successful}\nПропущено: {stats.Skipped}\nОшибок: {stats.Failed}\nВремя: {elapsed:mm\\:ss\\.fff}\nСохранено в: {savePath}";
 
-        UiDialogService.ShowMessage(summary, "MERGEDWG");
+        UiDialogService.ShowMessage(summary, commandName);
     }
 }

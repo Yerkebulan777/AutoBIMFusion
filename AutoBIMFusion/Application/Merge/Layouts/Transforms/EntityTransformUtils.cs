@@ -25,7 +25,7 @@ internal static class EntityTransformUtils
         // --- ИСПРАВЛЕНИЕ: ЖЕСТКАЯ ОЧИСТКА ПЕРЕОПРЕДЕЛЕНИЙ РАЗМЕРОВ ---
         if (entity is Dimension dim)
         {
-            _ = DimensionHealer.TryRemoveDimensionStyleOverrides(dim);
+            _ = DimensionUtils.TryRemoveDimensionStyleOverrides(dim);
         }
         // -------------------------------------------------------------
 

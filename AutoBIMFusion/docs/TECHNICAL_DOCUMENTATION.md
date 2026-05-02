@@ -1,205 +1,52 @@
-# AutoBIMFusion Technical Documentation
+# Техническая документация AutoBIMFusion
 
-**Updated:** 2026-05-02
+**Последнее обновление:** 2026-05-02
 
-## 1. Overview
+## 1. Обзор
+AutoBIMFusion — это плагин для AutoCAD (target .NET 8, x64, AutoCAD 2025-2027), предназначенный для автоматизации объединения чертежей, очистки текстов и стилей, а также подготовки пакетов eTransmit.
 
-AutoBIMFusion is an AutoCAD plugin targeting .NET 8 and x64 AutoCAD 2025-2027. It provides merge, text cleanup, style cleanup, and eTransmit packaging commands.
-
-The main requirement is stable DWG merging with native, editable entities in the target drawing.
-
-## 2. Project Structure
+## 2. Структура проекта
 
 ```text
 AutoBIMFusion/
   Application/
-    AcadSupport/
-      AcadWarningSuppressScope.cs
-    Commands/
-      MergeCommands.cs
-      SmartTextCommands.cs
-      TextStyleCommands.cs
-      TransmittalCommands.cs
-      JoinCommands.cs
-    Merge/
-      MergeOrchestrator.cs        # MergeCoordinator class: one-file workflow
-      BlockInserter.cs            # Native object insertion and placement
-      DwgOptimizer.cs             # Bounded purge passes
-      RasterImagePathFixer.cs     # Raster path normalization for final DWG
-      Layouts/
-        ViewportLayoutExporter.cs
-        LayoutProjectionProcessor.cs
-        ViewportTransformer.cs
-        ViewportCollector.cs
-        DimensionHealer.cs
-        DimensionStyleDiagnosticUtils.cs
-        ModelSpaceTrimmer.cs
-        DrawOrderPreserver.cs
-        ExtentsUtils.cs
-        LayoutViewportInfo.cs
-        Transforms/
-          EntityTransformUtils.cs
-      Models/
-        MergeResult.cs
-        MergeStatistics.cs
-    Ribbon/
-      RibbonBuilder.cs
-      ButtonCommandHandler.cs
-      RibbonIconLoader.cs
-    Utils/
-      FileEnumerator.cs
-      FileHelper.cs
-      FolderSelector.cs
-      LayoutUtil.cs
-      StringUtils.cs
-      WindowsNaturalComparer.cs
+    AcadSupport/      # Области подавления предупреждений и системные утилиты
+    Commands/         # Точки входа (команды AutoCAD)
+    Merge/            # Логика объединения чертежей (Core Pipeline)
+    Layouts/          # Обработка листов, видовых экранов и трансформаций
+    Ribbon/           # Описание интерфейса (лента AutoCAD)
+    Utils/            # Вспомогательные утилиты (файлы, строки, диалоги)
   Infrastructure/
-    Logging/
-      AILog.cs
-      LoggerFactory.cs
+    Logging/          # Система логирования (Serilog + AutoCAD Editor)
 ```
 
-## 3. Runtime Flow
+## 3. Основные процессы
 
-### MERGEDWG
+### Объединение (MERGEDWG)
+1. **Orchestration:** `MergeCommands` управляет очередью и семафором.
+2. **Preprocessing:** `ViewportLayoutExporter` готовит базу данных в памяти, выполняя проекцию листа в модель.
+3. **Insertion:** `BlockInserter` клонирует объекты в целевой чертеж, применяя расчет смещения по оси X.
+4. **Healing:** `DimensionHealer` и `DimensionUtils` нормализуют размерные стили и очищают переопределения (overrides) в процессе вставки.
+5. **Optimization:** `DwgOptimizer` выполняет до 5 проходов `Purge` для удаления мусора.
 
-1. `MergeCommands` starts the command, creates an `AILog`, and rejects parallel runs.
-2. `FolderSelector` gets the source folder.
-3. `FileEnumerator` collects and naturally sorts DWG paths.
-4. `MergeCoordinator.MergeSingleFile` processes each file independently.
-5. `ViewportLayoutExporter` exports the first layout to a temporary DWG and delegates projection logic to `LayoutProjectionProcessor`.
-6. `LayoutProjectionProcessor` handles 0 / 1 / multi-viewport strategies, including scale clamp, aux-viewport flattening, and Paper Space transfer.
-7. `ModelSpaceTrimmer.TrimOutside` removes Model Space entities outside projected frame bounds.
-8. `BlockInserter` clones temporary Model Space objects into the target database, translates them into place, and passes only newly cloned dimension IDs to `DimensionHealer`.
-9. Final pass fixes raster paths, writes the final style snapshot, purges unused database objects, saves, and regenerates the drawing.
+### Прочие команды
+- **SMART_MERGE_TEXT:** Группировка и объединение близкорасположенных текстовых объектов в `MText`.
+- **MergeTextStyles:** Поиск и слияние дубликатов текстовых стилей на основе их параметров.
+- **JOIN_LINES:** Объединение коллинеарных отрезков на одном слое.
 
-### MERGEDWG_DIAG_TEST
+## 4. Правила работы с ресурсами
+- **Транзакции:** Строгое использование `using Transaction` для всех операций с БД AutoCAD.
+- **Базы данных:** Фоновые базы данных создаются в памяти и уничтожаются через `Dispose()` сразу после использования.
+- **Блокировки:** Любое изменение активного документа требует `Document.LockDocument()`.
+- **Единицы измерения:** Перед клонированием всегда выполняется принудительная синхронизация `Insunits` и `Measurement` между базами.
 
-`MERGEDWG_DIAG_TEST` is a diagnostic-only entry point for repeatable dimension scaling debugging. It bypasses `FolderSelector` and always processes `C:\Users\y.zhumabayev\Desktop\TEST`.
+## 5. Обработка ошибок и Логирование
+- Используется `AILog` для вывода информации в командную строку AutoCAD и Serilog для детального анализа.
+- Логирование в цикле минимизировано: упор сделан на анализ критических ошибок и результат обработки.
+- Исключения `Autodesk.AutoCAD.Runtime.Exception` перехватываются точечно, чтобы не прерывать пакетную обработку.
 
-Behavior:
-
-- uses the same merge pipeline as `MERGEDWG`;
-- suppresses the final summary `MessageBox`;
-- saves to `C:\Users\y.zhumabayev\Desktop\TEST.dwg`;
-- logs the source folder, save path, and active Serilog file path;
-- logs new per-file source styles as `before-merge` before insertion and the final target snapshot as `after-merge`;
-- logs user dimension styles as `[DIM-STYLE]`, user text styles as `[TEXT-STYLE]`, and dimension override cleanup failures as `[DIM-OVERRIDES]` warnings.
-
-Recommended AutoCAD script flow:
-
-```text
-FILEDIA
-0
-CMDDIA
-0
-(command "_.NETLOAD" "C:/path/to/AutoBIMFusion.dll")
-MERGEDWG_DIAG_TEST
-```
-
-When running iterative diagnostics, close AutoCAD before rebuilding if the loaded plugin DLL is locked. The log file is expected under the loaded bundle or DLL folder: `Contents\Logs\merge-YYYY-MM-DD.log` or `Logs\merge-YYYY-MM-DD.log`.
-
-For background runs, prefer `tools\Run-MergeDwgDiagTest.ps1`. It builds a `CoreConsoleDiagnostics` variant without Ribbon/UI startup code, loads the DLL from `AutoBIMFusion\bin\<Configuration>-core\AutoBIMFusion.bundle\Contents`, generates the script, sets `FILEDIA=0`, `CMDDIA=0`, `SECURELOAD=0` for that diagnostic process, discards the temporary drawing on `QUIT` with `_Y`, runs `accoreconsole.exe` with a timeout, and writes Core Console stdout/stderr under `AutoBIMFusion\bin\<Configuration>-core\diag`.
-
-### SMART_MERGE_TEXT
-
-1. Collects non-empty `TEXT` and `MTEXT` from Model Space.
-2. Groups candidates by text style and rounded rotation.
-3. Sorts each group by the perpendicular text axis.
-4. Uses binary search to inspect only nearby vertical candidates instead of scanning the whole group for every text.
-5. Creates one `MText` per group and erases source entities.
-
-### MergeTextStyles
-
-1. Builds a signature from each non-dependent text style.
-2. Groups duplicate signatures.
-3. Chooses the current style as master when possible; otherwise uses the alphabetically first style.
-4. Reassigns `DBText`, `MText`, `AttributeDefinition`, and `AttributeReference`.
-5. Erases duplicate style records when AutoCAD allows it.
-
-### JOIN_LINES
-
-1. Collects short `LINE` entities from Model Space.
-2. Groups lines by layer, color, direction, offset, and linetype-related properties.
-3. Merges overlapping or touching collinear segments into longer `LINE` entities.
-4. Erases the source lines only after replacement entities are appended to the drawing.
-
-### CreateETransmitZip
-
-1. Requires the active drawing to be saved.
-2. Locates AutoCAD eTransmit API types by assembly/type discovery.
-3. Configures known eTransmit options through reflection because member names vary by AutoCAD version.
-4. Creates a temporary package folder, zips it, and deletes the temporary folder.
-
-## 4. Resource and Transaction Rules
-
-- Every `Transaction`, side `Database`, `DocumentLock`, `ProgressMeter`, image, and warning scope is wrapped in `using`.
-- Side databases call `ReadDwgFile` followed by `CloseInput(true)` where the file must not remain locked. After `CloseInput(true)`, unit properties (`Insunits`, `Measurement`) of the source database are immediately forced to match the target database. This is required because AutoCAD restores file-header metadata (including `INSUNITS`) when the input stream is closed, which would otherwise cause `WblockCloneObjects` to auto-scale dimension style properties such as `Dimscale` and `Dimlfac` by the unit conversion factor (e.g. ×304.8 from feet to millimetres).
-- Temporary DWG files and temporary eTransmit folders are deleted in `finally`.
-- Long-running per-file failures return `MergeResult` instead of aborting the whole batch.
-- Entity-level transform failures are logged with type and handle, then processing continues.
-
-## 5. Error Handling and Logging
-
-`AILog` writes non-debug messages to the AutoCAD editor and all levels to Serilog.
-
-Logging policy:
-
-- command start/end: `Info`
-- expected recoverable skips: `Warn`
-- AutoCAD API failures that affect a command or file: `Error`
-- high-volume diagnostics: `Debug`
-
-Style diagnostics are intentionally low-volume. Before each `WblockCloneObjects` call, `DimensionStyleDiagnosticUtils.LogNewStylesBeforeMerge` compares the temporary source database with the target database and logs only source styles whose names do not yet exist in the target. These per-file rows use `stage=before-merge`. After all source files are inserted, `LogStyleSnapshot` writes the final `after-merge` target snapshot with a `[STYLE-SNAPSHOT]` summary plus `[DIM-STYLE]` and `[TEXT-STYLE]` rows. Standard styles (`Standard`, `ISO-25`, `Annotative`) are skipped by name.
-
-After each clone operation, `DimensionHealer` normalizes newly imported dimension styles and processes only newly cloned dimensions. It removes per-entity dimension style overrides stored in the `ACAD` xdata `DSTYLE` section while preserving other xdata sections, and resets non-zero dimension text rotation. The final snapshot does not run a second full-drawing dimension cleanup pass.
-
-The main command catches startup failures outside the async task body so users see a clear editor message instead of an unobserved task exception.
-
-## 6. Important Constants
-
-| Constant | Location | Value | Meaning |
-| :--- | :--- | :--- | :--- |
-| `MaxFileSizeBytes` | `FileEnumerator` | 15 MB | Skip large source DWGs. |
-| `MaxRecursionDepth` | `FileEnumerator` | 3 | Limit folder traversal. |
-| `MaxScaleMultiplier` | `LayoutProjectionProcessor` | 100 | Clamp viewport scale and no-viewport default scale, equivalent to 1:100. |
-| `MaxPurgePasses` | `DwgOptimizer` | 5 | Bound purge iterations. |
-
-## 7. Remaining Risks
-
-- `DuplicateRecordCloning.Ignore` is stable for the target database but can change visual style fidelity if source and target definitions conflict.
-- Long operations have no cancellation token.
-- Only the first Paper Space layout is processed.
-
-See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for current open items.
-
-## 8. Optimization & Refactoring Guidelines
-
-To maintain performance and code quality, the following rules should be followed during future updates:
-
-- **Minimize I/O:** Avoid re-reading the same DWG file multiple times. Pass the `Database` object between components (e.g., from `Exporter` to `Inserter`) instead of saving and reloading.
-- **Single-Pass Transformations:** Combine object cloning (`WblockCloneObjects`) with post-processing (translation, scale, property cleanup) to avoid multiple iterations over the same entity collections.
-- **Centralized Logic:** Keep dimension cleanup, unit synchronization, and geometry utilities in shared helper classes (`ExtentsUtils`, `DimensionHealer`, `DimensionStyleDiagnosticUtils`) to prevent logic duplication.
-- **Synchronous AutoCAD API:** Prefer synchronous patterns for AutoCAD database operations. Use `Task` only for actual non-blocking I/O (like folder picking or final file saving) to avoid overhead and thread-safety issues.
-
-## 9. Detailed Optimization Roadmap
-
-Based on the analysis of the current architecture, the following steps are recommended for the next refactoring phase:
-
-### Phase 1: In-Memory Database Pipeline
-1.  **Refactor `ViewportLayoutExporter`:** Change `ExportToTempAsync` to return `Database` (in-memory) instead of a file path. Remove the `db.SaveAs` call.
-2.  **Modify `MergeCoordinator`:**
-    - Receive the `Database` from the exporter.
-    - Pass this `Database` instance directly to `ReadBounds` (which will no longer need to open a file).
-    - Pass the `Database` to `BlockInserter`.
-3.  **Update `BlockInserter`:** Remove the `sourceDb.ReadDwgFile` call. Use the passed `Database` directly.
-4.  **Cleanup:** Ensure the `Database` is properly disposed of in `MergeCoordinator`'s `finally` block.
-
-### Phase 2: Transaction & Transformation Consolidation
-1.  **Single-Pass Logic:** In `BlockInserter`, merge the loop that collects `clonedDimensionIds` and applies `TransformBy` with any other post-cloning cleanup.
-2.  **Move Healing to Inserter:** Call `DimensionHealer` logic inside the main insertion transaction to avoid opening objects multiple times.
-3.  **Unit Normalization:** Move the `sourceDb.Insunits` / `Measurement` override logic to a single entry point before cloning starts.
-
-### Phase 3: Logic Unification
-1.  **Dimension Utilities:** Consolidate `RemoveDimStyleOverrides` from `EntityTransformUtils` and `DimensionHealer` into a single `DimensionUtils` class.
-2.  **Layout Logic:** Merge `ProjectSingleViewport` and `ProjectMultipleViewports` in `LayoutProjectionProcessor` into a unified strategy where a single viewport is treated as a multi-viewport setup with one window.
+## 6. Ключевые константы
+- `MaxFileSizeBytes`: 15 МБ (пропуск тяжелых файлов).
+- `MaxRecursionDepth`: 3 (глубина поиска в папках).
+- `MaxScaleMultiplier`: 100 (ограничение масштаба 1:100).
+- `MaxPurgePasses`: 5 (лимит итераций очистки).

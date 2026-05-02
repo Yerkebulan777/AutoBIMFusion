@@ -67,7 +67,6 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
 
             UnitsValue originalTargetDbUnits = targetDb.Insunits;
             MeasurementValue originalTargetDbMeasurement = targetDb.Measurement;
-            IdMapping map = new();
             Extents3d? worldBounds = null;
             int clonedCount = 0;
 
@@ -81,6 +80,7 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                 targetDb.Measurement = sourceDb.Measurement;
                 targetMs.Units = targetDb.Insunits;
 
+                using IdMapping map = new();
                 targetDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Ignore, false);
 
                 foreach (IdPair pair in map)
@@ -120,7 +120,6 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                 targetDb.Insunits = originalTargetDbUnits;
                 targetDb.Measurement = originalTargetDbMeasurement;
                 ExtentsUtils.SyncUnits(targetDb);
-                map.Dispose();
             }
 
             if (clonedCount == 0)
@@ -136,11 +135,6 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
 
             log.Info($"{sourceName}: вставлено {clonedCount} объектов");
             return worldBounds;
-        }
-        catch (Autodesk.AutoCAD.Runtime.Exception ex)
-        {
-            log.Error(ex, $"Ошибка AutoCAD API при вставке: {sourceName}");
-            return null;
         }
         catch (System.Exception ex)
         {

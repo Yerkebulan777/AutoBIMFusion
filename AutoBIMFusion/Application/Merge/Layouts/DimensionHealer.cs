@@ -162,42 +162,6 @@ internal static class DimensionHealer
             styleVisualPropsRescaled);
     }
 
-    internal static bool TryRemoveDimensionStyleOverrides(Dimension dim)
-    {
-        try
-        {
-            if (dim.XData == null)
-            {
-                return false;
-            }
-
-            using ResultBuffer rb = dim.XData;
-            bool hasOverrides = false;
-            foreach (TypedValue tv in rb)
-            {
-                if (tv.TypeCode == (int)DxfCode.ExtendedDataRegAppName && tv.Value.ToString() == "DSTYLE")
-                {
-                    hasOverrides = true;
-                    break;
-                }
-            }
-
-            if (hasOverrides)
-            {
-                // ResultBuffer только с именем приложения удаляет все данные этого приложения
-                using ResultBuffer clearRb = new(new TypedValue((int)DxfCode.ExtendedDataRegAppName, "DSTYLE"));
-                dim.XData = clearRb;
-                return true;
-            }
-        }
-        catch (System.Exception ex)
-        {
-            LoggerFactory.GetSharedLogger().Warning(ex, "Failed to remove DSTYLE overrides for dimension {Handle}", dim.Handle);
-        }
-
-        return false;
-    }
-
     internal static (bool OverridesCleared, bool TextRotationReset, double BeforeTextRotation) HealDimension(Dimension dimension)
     {
         ObjectId styleId = dimension.DimensionStyle;
@@ -207,7 +171,7 @@ internal static class DimensionHealer
 
         try
         {
-            overridesCleared = TryRemoveDimensionStyleOverrides(dimension);
+            overridesCleared = DimensionUtils.TryRemoveDimensionStyleOverrides(dimension);
         }
         catch (System.Exception ex)
         {
