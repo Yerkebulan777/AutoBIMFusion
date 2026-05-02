@@ -42,13 +42,24 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
             ObjectId targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
             ObjectIdCollection sourceIds = [];
 
-            // 2. Читаем единицы пространства модели источника
-            UnitsValue sourceMsUnits;
             using (Transaction tr = sourceDb.TransactionManager.StartTransaction())
             {
-                BlockTableRecord ms = (BlockTableRecord)tr.GetObject(sourceMsId, OpenMode.ForRead);
-                sourceMsUnits = ms.Units;
+                // 1. ПОЛНЫЙ ОБХОД ВСЕХ БЛОКОВ (включая скрытые анонимные блоки размеров *D)
+                // Это гарантирует, что WblockCloneObjects не найдет ни одного футового блока
+                // и не применит коэффициент 304.8.
+                BlockTable bt = (BlockTable)tr.GetObject(sourceDb.BlockTableId, OpenMode.ForRead);
+                foreach (ObjectId btrId in bt)
+                {
+                    BlockTableRecord btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForWrite);
+                    // Пропускаем XREF, чтобы не вызвать ошибку доступа
+                    if (!btr.IsFromExternalReference)
+                    {
+                        btr.Units = targetDb.Insunits;
+                    }
+                }
 
+                // 2. Сбор объектов для клонирования из Model Space
+                BlockTableRecord ms = (BlockTableRecord)tr.GetObject(sourceMsId, OpenMode.ForRead);
                 foreach (ObjectId id in ms)
                 {
                     if (!id.IsNull && !id.IsErased)
@@ -56,6 +67,7 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                         _ = sourceIds.Add(id);
                     }
                 }
+
                 tr.Commit();
             }
 
@@ -90,7 +102,7 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                 using (Transaction tr = targetDb.TransactionManager.StartTransaction())
                 {
                     BlockTableRecord targetMs = (BlockTableRecord)tr.GetObject(targetMsId, OpenMode.ForWrite);
-                    targetMs.Units = sourceMsUnits;
+                    targetMs.Units = targetDb.Insunits;
                     tr.Commit();
                 }
 

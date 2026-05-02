@@ -25,15 +25,15 @@ internal static class ViewportLayoutExporter
 
             db.CloseInput(true);
 
-            // --- ИСПРАВЛЕНИЕ: НОРМАЛИЗАЦИЯ ЕДИНИЦ ДО ЛЮБЫХ ОПЕРАЦИЙ ---
+            // --- ИСПРАВЛЕНИЕ: Нормализация ДО любых трансформаций и сбора Viewport-ов ---
             ExtentsUtils.SyncUnits(db);
             using (new AcadWarningSuppressScope())
             {
                 db.Insunits = UnitsValue.Millimeters;
                 db.Measurement = MeasurementValue.Metric;
             }
-            log.Info($"Единицы принудительно нормализованы перед обработкой ({fileName})");
-            // --------------------------------------------------------
+            log.Info($"VP: единицы принудительно нормализованы ({fileName})");
+            // -----------------------------------------------------------------------------
 
             if (!LayoutUtil.TryFindFirstLayout(db, out string layoutName))
             {
