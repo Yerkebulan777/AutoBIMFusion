@@ -48,8 +48,6 @@ internal static class ViewportLayoutExporter
 
             using (new AcadWarningSuppressScope())
             {
-                db.Insunits = UnitsValue.Millimeters;
-                db.Measurement = MeasurementValue.Metric;
                 db.SaveAs(tempPath, DwgVersion.AC1032);
             }
         }

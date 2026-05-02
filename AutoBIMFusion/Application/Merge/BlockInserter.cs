@@ -38,64 +38,59 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
             ExtentsUtils.SyncUnits(sourceDb);
             sourceDb.CloseInput(true);
 
-            // Принудительная синхронизация единиц измерения, чтобы избежать авто-масштабирования размеров (например, x304.8 из футов в мм)
-            sourceDb.Insunits = targetDb.Insunits;
-            sourceDb.Measurement = targetDb.Measurement;
+            // Запоминаем исходные единицы целевого чертежа
+            UnitsValue originalTargetUnits = targetDb.Insunits;
 
-            ObjectIdCollection sourceIds = [];
+            // ПРИНУДИТЕЛЬНО отключаем единицы в ОБЕИХ базах, чтобы WblockCloneObjects
+            // не пытался конвертировать размеры (304.8)
+            sourceDb.Insunits = UnitsValue.Undefined;
+            targetDb.Insunits = UnitsValue.Undefined;
+
+            ObjectIdCollection sourceIdsCollection = new ObjectIdCollection();
             ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
+            ObjectId targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
 
+            // Настраиваем исходный ModelSpace
             using (Transaction tr = sourceDb.TransactionManager.StartTransaction())
             {
-                // 1. Получаем таблицу блоков
-                BlockTable bt = (BlockTable)tr.GetObject(sourceDb.BlockTableId, OpenMode.ForRead);
+                BlockTableRecord ms = (BlockTableRecord)tr.GetObject(sourceMsId, OpenMode.ForWrite);
+                ms.Units = UnitsValue.Undefined; // Отключаем единицы блока
 
-                // 2. Жестко фиксируем метрические единицы для ВСЕХ блоков,
-                // включая анонимные блоки размеров (*D...), чтобы WblockCloneObjects
-                // не применял автомасштабирование (коэффициент 304.8) к Dimscale/Dimlfac
-                foreach (ObjectId btrId in bt)
-                {
-                    if (!btrId.IsNull && !btrId.IsErased)
-                    {
-                        BlockTableRecord btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForWrite);
-                        btr.Units = targetDb.Insunits;
-                    }
-                }
-
-                // 3. Собираем ID объектов из Model Space для клонирования
-                BlockTableRecord ms = (BlockTableRecord)tr.GetObject(sourceMsId, OpenMode.ForRead);
                 foreach (ObjectId id in ms)
                 {
                     if (!id.IsNull && !id.IsErased)
                     {
-                        _ = sourceIds.Add(id);
+                        sourceIdsCollection.Add(id);
                     }
                 }
 
                 tr.Commit();
             }
 
-            if (sourceIds.Count == 0)
+            if (sourceIdsCollection.Count == 0)
             {
                 log.Warn($"{sourceName}: пустой Model Space");
+                targetDb.Insunits = originalTargetUnits; // Восстанавливаем
                 return null;
             }
 
-            ObjectId targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
-            IdMapping map = [];
+            IdMapping map = new IdMapping();
             Extents3d? worldBounds = null;
             int clonedCount = 0;
 
+            // Клонирование и настройка целевого ModelSpace
             using (Transaction tr = targetDb.TransactionManager.StartTransaction())
             {
-                targetDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Ignore, false);
+                BlockTableRecord targetMs = (BlockTableRecord)tr.GetObject(targetMsId, OpenMode.ForWrite);
+                UnitsValue originalTargetMsUnits = targetMs.Units;
+                targetMs.Units = UnitsValue.Undefined; // Временно отключаем
+
+                // Теперь клонирование пройдет без конвертации размерных стилей 1 к 304.8
+                targetDb.WblockCloneObjects(sourceIdsCollection, targetMsId, map, DuplicateRecordCloning.Ignore, false);
 
                 foreach (IdPair pair in map)
                 {
-                    if (!pair.IsCloned || !pair.IsPrimary)
-                    {
-                        continue;
-                    }
+                    if (!pair.IsCloned || !pair.IsPrimary) continue;
 
                     if (tr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
                     {
@@ -112,8 +107,13 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
                     }
                 }
 
+                // Восстанавливаем единицы ModelSpace
+                targetMs.Units = originalTargetMsUnits;
                 tr.Commit();
             }
+
+            // Восстанавливаем глобальные единицы целевой базы
+            targetDb.Insunits = originalTargetUnits;
 
             if (clonedCount == 0)
             {
