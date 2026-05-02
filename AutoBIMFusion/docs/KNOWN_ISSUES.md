@@ -4,7 +4,7 @@
 
 This file tracks only active risks and contentious design decisions. Fixed stale items were removed.
 
-All current AutoCAD command entry points are intentionally retained: `MERGEDWG`, `MERGEDWG_DIAG_TEST`, `SMART_MERGE_TEXT`, `CreateETransmitZip`, `MergeTextStyles`, `JOIN_LINES`, `ExportTextStylesToMd`, and `ExportDimStylesToMd`.
+All current AutoCAD command entry points are intentionally retained: `MERGEDWG`, `MERGEDWG_DIAG_TEST`, `SMART_MERGE_TEXT`, `CreateETransmitZip`, `MergeTextStyles`, and `JOIN_LINES`.
 
 ## Open
 
@@ -51,6 +51,30 @@ These are intentionally conservative, but they are not user-configurable.
 **Residual verification:** manual visual QA in AutoCAD is still required for representative production sheets, because full dimension extents may include scaled extension-line geometry even when text and arrow visual metrics are preserved.
 
 **Diagnostic scenarios:** verify one viewport at 1:50, one viewport at 1:200, a Model Space dimension visible through a viewport, a Paper Space dimension, and a dimension in an auxiliary viewport. The merged output must preserve the original layout appearance: displayed value, dimension text height, arrows, and extension lines.
+
+### KI-5. Redundant I/O and Multiple DWG Reads
+
+**Where:** `MergeCoordinator`, `ViewportLayoutExporter`, `BlockInserter`
+
+Currently, the temporary DWG file created during export is read from disk multiple times (for bounds calculation and final insertion).
+
+**Preferred fix:** Modify `ViewportLayoutExporter` to return the `Database` object and keep it in memory until the merge of that file is complete.
+
+### KI-6. Scattered Dimension Override Cleanup Logic
+
+**Where:** `DimensionHealer`, `DimensionStyleDiagnosticUtils`, `EntityTransformUtils`
+
+Logic for removing `DSTYLE` XData and normalizing dimension properties is duplicated or overlapping across these classes.
+
+**Preferred fix:** Unify all dimension "healing" and override removal logic into a single service or utility class to ensure consistency.
+
+### KI-7. Double-pass on Cloned Objects
+
+**Where:** `BlockInserter.InsertNativeObjects`
+
+Objects are first cloned, then iterated again to apply `TransformBy`. For large datasets, this second pass adds measurable overhead.
+
+**Preferred fix:** Integrate the transformation/displacement logic into the same loop that performs post-cloning entity cleanup.
 
 ## Recently Fixed
 

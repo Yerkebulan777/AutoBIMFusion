@@ -12,7 +12,6 @@ AutoBIMFusion is a .NET 8 plugin for AutoCAD 2025-2027. Its main command, `MERGE
 | `MergeTextStyles` | Finds duplicate text styles, reassigns text and attributes to a master style, then removes duplicates. |
 | `JOIN_LINES` | Joins collinear short `LINE` entities on the same layer/color/linetype into longer line segments. |
 | `CreateETransmitZip` | Creates an AutoCAD eTransmit package for the current saved drawing and writes a ZIP archive. |
-| `ExportTextStylesToMd` / `ExportDimStylesToMd` | Exports style table diagnostics to Markdown on the desktop. |
 
 ## Merge Flow
 

@@ -4,7 +4,7 @@
 
 ## 1. Overview
 
-AutoBIMFusion is an AutoCAD plugin targeting .NET 8 and x64 AutoCAD 2025-2027. It provides merge, text cleanup, style cleanup, style export, and eTransmit packaging commands.
+AutoBIMFusion is an AutoCAD plugin targeting .NET 8 and x64 AutoCAD 2025-2027. It provides merge, text cleanup, style cleanup, and eTransmit packaging commands.
 
 The main requirement is stable DWG merging with native, editable entities in the target drawing.
 
@@ -19,7 +19,6 @@ AutoBIMFusion/
       MergeCommands.cs
       SmartTextCommands.cs
       TextStyleCommands.cs
-      StyleExportCommands.cs
       TransmittalCommands.cs
       JoinCommands.cs
     Merge/
@@ -52,7 +51,6 @@ AutoBIMFusion/
       FolderSelector.cs
       LayoutUtil.cs
       StringUtils.cs
-      StyleExportUtils.cs
       WindowsNaturalComparer.cs
   Infrastructure/
     Logging/
@@ -132,10 +130,6 @@ For background runs, prefer `tools\Run-MergeDwgDiagTest.ps1`. It builds a `CoreC
 3. Configures known eTransmit options through reflection because member names vary by AutoCAD version.
 4. Creates a temporary package folder, zips it, and deletes the temporary folder.
 
-### Style Export Commands
-
-`ExportTextStylesToMd` and `ExportDimStylesToMd` write Markdown diagnostics for text and dimension style tables to the desktop. The shared `StyleExportUtils` helper skips noisy built-in style names and dumps readable symbol-table properties.
-
 ## 4. Resource and Transaction Rules
 
 - Every `Transaction`, side `Database`, `DocumentLock`, `ProgressMeter`, image, and warning scope is wrapped in `using`.
@@ -177,3 +171,12 @@ The main command catches startup failures outside the async task body so users s
 - Only the first Paper Space layout is processed.
 
 See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for current open items.
+
+## 8. Optimization & Refactoring Guidelines
+
+To maintain performance and code quality, the following rules should be followed during future updates:
+
+- **Minimize I/O:** Avoid re-reading the same DWG file multiple times. Pass the `Database` object between components (e.g., from `Exporter` to `Inserter`) instead of saving and reloading.
+- **Single-Pass Transformations:** Combine object cloning (`WblockCloneObjects`) with post-processing (translation, scale, property cleanup) to avoid multiple iterations over the same entity collections.
+- **Centralized Logic:** Keep dimension cleanup, unit synchronization, and geometry utilities in shared helper classes (`ExtentsUtils`, `DimensionStyleDiagnosticUtils`) to prevent logic duplication.
+- **Synchronous AutoCAD API:** Prefer synchronous patterns for AutoCAD database operations. Use `Task` only for actual non-blocking I/O (like folder picking or final file saving) to avoid overhead and thread-safety issues.
