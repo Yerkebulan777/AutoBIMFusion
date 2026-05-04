@@ -1,4 +1,4 @@
-using AutoBIMFusion.Infrastructure.Logging;
+using Serilog.Core;
 
 namespace AutoBIMFusion.Application.Merge;
 
@@ -8,12 +8,12 @@ namespace AutoBIMFusion.Application.Merge;
 /// </summary>
 internal static class RasterImagePathFixer
 {
-    public static void CopyImagesToTargetFolder(Database db, string targetFilePath, AILog log)
+    public static void CopyImagesToTargetFolder(Database db, string targetFilePath, Logger log)
     {
         string? targetDir = Path.GetDirectoryName(targetFilePath);
         if (string.IsNullOrEmpty(targetDir))
         {
-            log.Warn("RasterImagePathFixer: не удалось определить папку целевого файла");
+            log.Warning("RasterImagePathFixer: не удалось определить папку целевого файла");
             return;
         }
 
@@ -44,7 +44,7 @@ internal static class RasterImagePathFixer
                 string? path = def.SourceFileName;
                 if (string.IsNullOrWhiteSpace(path))
                 {
-                    log.Warn($"RasterImageDef '{entry.Key}': путь не задан");
+                    log.Warning($"RasterImageDef '{entry.Key}': путь не задан");
                     continue;
                 }
 
@@ -52,11 +52,11 @@ internal static class RasterImagePathFixer
                 {
                     if (resolveError is not null)
                     {
-                        log.Warn(resolveError, $"RasterImageDef '{entry.Key}': ошибка разрешения пути: {path}");
+                        log.Warning(resolveError, $"RasterImageDef '{entry.Key}': ошибка разрешения пути: {path}");
                     }
                     else
                     {
-                        log.Warn($"RasterImageDef '{entry.Key}': файл не найден: {path}");
+                        log.Warning($"RasterImageDef '{entry.Key}': файл не найден: {path}");
                     }
 
                     continue;
@@ -84,11 +84,11 @@ internal static class RasterImagePathFixer
                 def.SourceFileName = uniqueFileName; // относительный путь к папке DWG
                 def.Load(); // Правило 2: загружаем определение после смены пути
                 fixedCount++;
-                log.Info($"RasterImage скопирован: {resolvedPath} -> {uniqueFileName}");
+                log.Information($"RasterImage скопирован: {resolvedPath} -> {uniqueFileName}");
             }
             catch (System.Exception ex)
             {
-                log.Warn(ex, $"RasterImageDef '{entry.Key}': не удалось обработать изображение");
+                log.Warning(ex, $"RasterImageDef '{entry.Key}': не удалось обработать изображение");
             }
         }
 
@@ -96,7 +96,7 @@ internal static class RasterImagePathFixer
 
         if (fixedCount > 0)
         {
-            log.Info($"RasterImagePathFixer: обработано {fixedCount} изображений");
+            log.Information($"RasterImagePathFixer: обработано {fixedCount} изображений");
         }
     }
 

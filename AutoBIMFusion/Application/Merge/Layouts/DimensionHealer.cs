@@ -1,3 +1,4 @@
+using System.Text;
 using AutoBIMFusion.Infrastructure.Logging;
 
 namespace AutoBIMFusion.Application.Merge.Layouts;
@@ -9,7 +10,6 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 internal static class DimensionHealer
 {
     private const double Tolerance = 1e-3;
-    // Значение Dimscale, которое AutoCAD записывает при конвертации Imperial-чертежей: 304.8 = мм/фут.
     private const double ImperialOverrideFactor = 304.8;
 
     /// <summary>Статистика операции исправления размеров.</summary>
@@ -26,62 +26,64 @@ internal static class DimensionHealer
     /// <summary>
     /// Исправляет стили размеров и указанные размерные объекты в целевой базе данных.
     /// </summary>
-    /// <param name="targetDb">Целевая база данных AutoCAD.</param>
-    /// <param name="dimensionIds">ObjectId размерных объектов, подлежащих исправлению.</param>
-    /// <returns>Статистика по числу исправленных объектов и стилей.</returns>
     internal static DimensionHealResult Heal(Database targetDb, IReadOnlyCollection<ObjectId> dimensionIds)
     {
-        ArgumentNullException.ThrowIfNull(targetDb);
-        ArgumentNullException.ThrowIfNull(dimensionIds);
-
         int overridesCleared = 0;
         int dimensionsScanned = 0;
         int textRotationsReset = 0;
         int dimensionsOpenedForWrite = 0;
         int dimensionDimlfacNormalized = 0;
 
-        using Transaction tr = targetDb.TransactionManager.StartTransaction();
+        ArgumentNullException.ThrowIfNull(targetDb);
+        ArgumentNullException.ThrowIfNull(dimensionIds);
 
-        (int healedStyleDimlfacCount, int normalizedStyleDimscaleCount, int styleVisualPropsRescaled) = HealDimensionStyles(targetDb, tr);
+        Serilog.Core.Logger logger = LoggerFactory.GetSharedLogger();
+
+        using Transaction trx = targetDb.TransactionManager.StartTransaction();
+
+        (int healedStyleDimlfacCount, int normalizedStyleDimscaleCount, int styleVisualPropsRescaled) = HealDimensionStyles(targetDb, trx);
+
+        StringBuilder? warnings = null;
 
         foreach (ObjectId id in dimensionIds)
         {
-            if (id.IsNull || id.IsErased)
+            if (!id.IsNull && !id.IsErased)
             {
-                continue;
-            }
-
-            if (tr.GetObject(id, OpenMode.ForRead, false) is not Dimension dimension)
-            {
-                continue;
-            }
-
-            dimensionsScanned++;
-            bool wasOpenedForWrite = dimension.IsWriteEnabled;
-
-            (bool overridesWereCleared, bool textRotationWasReset, bool dimlfacWasReset, string? warning) = HealDimension(dimension);
-
-            if (warning is not null)
-            {
-                LoggerFactory.GetSharedLogger().Warning(warning);
-            }
-
-            if (overridesWereCleared || textRotationWasReset || dimlfacWasReset)
-            {
-                if (!wasOpenedForWrite && dimension.IsWriteEnabled)
+                if (trx.GetObject(id, OpenMode.ForRead, false) is Dimension dimension)
                 {
-                    dimensionsOpenedForWrite++;
-                }
+                    dimensionsScanned++;
+                    bool wasOpenedForWrite = dimension.IsWriteEnabled;
 
-                if (overridesWereCleared) overridesCleared++;
-                if (textRotationWasReset) textRotationsReset++;
-                if (dimlfacWasReset) dimensionDimlfacNormalized++;
+                    (bool overridesWereCleared, bool textRotationWasReset, bool dimlfacWasReset, string? warning) = HealDimension(dimension);
+
+                    if (warning is not null)
+                    {
+                        (warnings ??= new StringBuilder()).AppendLine(warning);
+                    }
+
+                    if (overridesWereCleared || textRotationWasReset || dimlfacWasReset)
+                    {
+                        if (!wasOpenedForWrite && dimension.IsWriteEnabled)
+                        {
+                            dimensionsOpenedForWrite++;
+                        }
+
+                        if (overridesWereCleared) overridesCleared++;
+                        if (textRotationWasReset) textRotationsReset++;
+                        if (dimlfacWasReset) dimensionDimlfacNormalized++;
+                    }
+                }
             }
         }
 
-        tr.Commit();
+        trx.Commit();
 
-        Serilog.Core.Logger logger = LoggerFactory.GetSharedLogger();
+        if (warnings is not null)
+        {
+            logger.Warning(warnings.ToString());
+        }
+
+        
         logger.Information(
             "DimensionHealer styles: dimlfac={DimlfacHealed}, dimscale={DimscaleNormalized}, visualProps={VisualPropsRescaled}.",
             healedStyleDimlfacCount,
@@ -152,9 +154,7 @@ internal static class DimensionHealer
         return (overridesCleared, hasTextRotation, hasDimlfacDrift, warningMessage);
     }
 
-    private static (int DimlfacHealedCount, int DimscaleNormalizedCount, int VisualPropsRescaledCount) HealDimensionStyles(
-        Database targetDb,
-        Transaction tr)
+    private static (int DimlfacHealedCount, int DimscaleNormalizedCount, int VisualPropsRescaledCount) HealDimensionStyles(Database targetDb, Transaction tr)
     {
         int dimlfacHealedCount = 0;
         int dimscaleNormalizedCount = 0;

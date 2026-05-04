@@ -2,8 +2,8 @@ using AutoBIMFusion.Application.AcadSupport;
 using AutoBIMFusion.Application.Merge.Layouts;
 using AutoBIMFusion.Application.Merge.Models;
 using AutoBIMFusion.Application.Utils;
-using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
+using Serilog.Core;
 using System.Runtime.Versioning;
 
 namespace AutoBIMFusion.Application.Merge;
@@ -15,7 +15,7 @@ namespace AutoBIMFusion.Application.Merge;
 [SupportedOSPlatform("windows")]
 internal static class MergeOrchestrator
 {
-    public static async Task<MergeResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc, AILog log)
+    public static async Task<MergeResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc, Logger log)
     {
         string fileName = Path.GetFileName(filePath);
         string layoutName = Path.GetFileNameWithoutExtension(filePath);
@@ -27,7 +27,7 @@ internal static class MergeOrchestrator
 
         try
         {
-            log.Info($"Файл: {fileName}");
+            log.Information($"Файл: {fileName}");
 
             using Database? sourceDb = ViewportLayoutExporter.PrepareDatabaseForMerge(filePath, fileName, log);
 
@@ -55,7 +55,7 @@ internal static class MergeOrchestrator
                 return MergeResult.Fail(fileName, "Не удалось вставить объекты");
             }
 
-            log.Info($"Вставлен лист '{layoutName}'");
+            log.Information($"Вставлен лист '{layoutName}'");
             return MergeResult.Ok(fileName, layoutName);
         }
         catch (System.Exception ex)

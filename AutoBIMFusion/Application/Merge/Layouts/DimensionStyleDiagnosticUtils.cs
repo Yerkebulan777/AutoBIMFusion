@@ -1,5 +1,5 @@
-using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.Colors;
+using Serilog.Core;
 using System.Globalization;
 
 namespace AutoBIMFusion.Application.Merge.Layouts;
@@ -16,7 +16,7 @@ internal static class DimensionStyleDiagnosticUtils
         "Annotative"
     };
 
-    internal static void LogStyleSnapshot(Database db, AILog log, string stage)
+    internal static void LogStyleSnapshot(Database db, Logger log, string stage)
     {
         using Transaction tr = db.TransactionManager.StartTransaction();
 
@@ -45,20 +45,20 @@ internal static class DimensionStyleDiagnosticUtils
 
         tr.Commit();
 
-        log.Info($"[STYLE-SNAPSHOT] stage={stage}, dimStyles={dimStyles.Count}, textStyles={textStyles.Count}");
+        log.Information($"[STYLE-SNAPSHOT] stage={stage}, dimStyles={dimStyles.Count}, textStyles={textStyles.Count}");
 
         foreach (string style in dimStyles.Order(StringComparer.OrdinalIgnoreCase))
         {
-            log.Info($"[DIM-STYLE] stage={stage}, {style}");
+            log.Information($"[DIM-STYLE] stage={stage}, {style}");
         }
 
         foreach (string style in textStyles.Order(StringComparer.OrdinalIgnoreCase))
         {
-            log.Info($"[TEXT-STYLE] stage={stage}, {style}");
+            log.Information($"[TEXT-STYLE] stage={stage}, {style}");
         }
     }
 
-    internal static void LogNewStylesBeforeMerge(Database sourceDb, Database targetDb, AILog log)
+    internal static void LogNewStylesBeforeMerge(Database sourceDb, Database targetDb, Logger log)
     {
         HashSet<string> targetDimStyleNames = CollectDimensionStyleNames(targetDb);
         HashSet<string> targetTextStyleNames = CollectTextStyleNames(targetDb);
@@ -92,16 +92,16 @@ internal static class DimensionStyleDiagnosticUtils
 
         foreach (string style in newDimStyles.Order(StringComparer.OrdinalIgnoreCase))
         {
-            log.Info($"[DIM-STYLE] stage=before-merge, {style}");
+            log.Information($"[DIM-STYLE] stage=before-merge, {style}");
         }
 
         foreach (string style in newTextStyles.Order(StringComparer.OrdinalIgnoreCase))
         {
-            log.Info($"[TEXT-STYLE] stage=before-merge, {style}");
+            log.Information($"[TEXT-STYLE] stage=before-merge, {style}");
         }
     }
 
-    internal static void ClearDimensionOverrides(Database db, AILog log)
+    internal static void ClearDimensionOverrides(Database db, Logger log)
     {
         using Transaction tr = db.TransactionManager.StartTransaction();
         BlockTable blockTable = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
@@ -126,7 +126,7 @@ internal static class DimensionStyleDiagnosticUtils
                 }
                 catch (System.Exception ex)
                 {
-                    log.Warn($"[DIM-OVERRIDES] handle={dimension.Handle}: не удалось очистить overrides: {ex.Message}");
+                    log.Warning($"[DIM-OVERRIDES] handle={dimension.Handle}: не удалось очистить overrides: {ex.Message}");
                 }
             }
         }

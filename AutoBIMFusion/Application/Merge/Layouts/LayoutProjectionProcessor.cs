@@ -1,5 +1,5 @@
 using AutoBIMFusion.Application.Utils;
-using AutoBIMFusion.Infrastructure.Logging;
+using Serilog.Core;
 
 namespace AutoBIMFusion.Application.Merge.Layouts;
 
@@ -11,20 +11,20 @@ internal static class LayoutProjectionProcessor
 {
     private const double MaxScaleMultiplier = 100.0;
 
-    internal static Extents3d? ProjectLayoutToModelSpace(Database db, string layoutName, IReadOnlyList<LayoutViewportInfo> viewports, AILog log)
+    internal static Extents3d? ProjectLayoutToModelSpace(Database db, string layoutName, IReadOnlyList<LayoutViewportInfo> viewports, Logger log)
     {
         return viewports.Count == 0 ? ProjectNoViewport(db, layoutName, log) : ProjectWithViewports(db, layoutName, viewports, log);
     }
 
-    private static Extents3d? ProjectWithViewports(Database db, string layoutName, IReadOnlyList<LayoutViewportInfo> viewports, AILog log)
+    private static Extents3d? ProjectWithViewports(Database db, string layoutName, IReadOnlyList<LayoutViewportInfo> viewports, Logger log)
     {
-        log.Info($"Выбранный метод масштабирования: ProcessVp ({viewports.Count} viewport'ов)");
+        log.Information($"Выбранный метод масштабирования: ProcessVp ({viewports.Count} viewport'ов)");
 
         LayoutViewportInfo mainOriginal = LayoutViewportInfo.PickMainViewport(viewports);
         LayoutViewportInfo mainClamped = ClampMainViewportScale(mainOriginal, log);
         double clampRatio = mainOriginal.CustomScale / mainClamped.CustomScale;
 
-        log.Info(
+        log.Information(
             $"VP main#{mainOriginal.Number}: исходный scale={mainOriginal.CustomScale:F6}, " +
             $"рабочий scale={mainClamped.CustomScale:F6}, clampRatio={clampRatio:F6}, " +
             $"центр={ExtentsUtils.FormatPoint(mainOriginal.ViewCenter)}");
@@ -57,9 +57,9 @@ internal static class LayoutProjectionProcessor
         return MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainClamped, log), log);
     }
 
-    private static Extents3d? ProjectNoViewport(Database db, string layoutName, AILog log)
+    private static Extents3d? ProjectNoViewport(Database db, string layoutName, Logger log)
     {
-        log.Info($"Выбранный метод масштабирования: ProcessNoVp (масштаб по умолчанию 1:100)");
+        log.Information($"Выбранный метод масштабирования: ProcessNoVp (масштаб по умолчанию 1:100)");
 
         using ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
 
@@ -80,34 +80,34 @@ internal static class LayoutProjectionProcessor
     /// <summary>
     /// Масштабирует объекты Model Space вокруг указанного центра, если clampRatio превышает 1.0.
     /// </summary>
-    private static void ScaleModelSpaceWhenClamped(Database db, double clampRatio, Point3d center, AILog log)
+    private static void ScaleModelSpaceWhenClamped(Database db, double clampRatio, Point3d center, Logger log)
     {
         if (clampRatio > 1.0 + 1e-9)
         {
             Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, center);
 
-            log.Info($"Применяем clampRatio={clampRatio:F6} к Model Space вокруг {ExtentsUtils.FormatPoint(center)}");
+            log.Information($"Применяем clampRatio={clampRatio:F6} к Model Space вокруг {ExtentsUtils.FormatPoint(center)}");
 
             ViewportTransformer.UnlockTextStylesHeight(db, log);
             ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
         }
     }
 
-    private static LayoutViewportInfo ClampMainViewportScale(LayoutViewportInfo viewport, AILog log)
+    private static LayoutViewportInfo ClampMainViewportScale(LayoutViewportInfo viewport, Logger log)
     {
         double multiplier = 1.0 / viewport.CustomScale;
 
         if (multiplier < MaxScaleMultiplier)
         {
-            log.Info($"VP #{viewport.Number}: масштаб 1:{multiplier:F0} → зажат до 1:{MaxScaleMultiplier:F0}");
+            log.Information($"VP #{viewport.Number}: масштаб 1:{multiplier:F0} → зажат до 1:{MaxScaleMultiplier:F0}");
             return viewport with { CustomScale = 1.0 / MaxScaleMultiplier };
         }
 
-        log.Info($"VP #{viewport.Number}: масштаб 1:{multiplier:F0}");
+        log.Information($"VP #{viewport.Number}: масштаб 1:{multiplier:F0}");
         return viewport;
     }
 
-    private static Extents3d? MovePaperToModelSpace(Database db, string layoutName, Matrix3d matrix, AILog log, string tag = "paper")
+    private static Extents3d? MovePaperToModelSpace(Database db, string layoutName, Matrix3d matrix, Logger log, string tag = "paper")
     {
         ObjectId paperBtrId = LayoutUtil.GetLayoutBtrId(db, layoutName);
         using ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);

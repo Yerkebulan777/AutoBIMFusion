@@ -1,5 +1,5 @@
 using AutoBIMFusion.Application.Merge.Layouts;
-using AutoBIMFusion.Infrastructure.Logging;
+using Serilog.Core;
 
 namespace AutoBIMFusion.Application.Merge;
 
@@ -7,7 +7,7 @@ namespace AutoBIMFusion.Application.Merge;
 /// Вставляет содержимое DWG как нативные объекты в Model Space целевого чертежа,
 /// располагая их вдоль оси X с заданным зазором.
 /// </summary>
-internal sealed class BlockInserter(double gapPercent, AILog log)
+internal sealed class BlockInserter(double gapPercent, Logger log)
 {
     private double _rightMax;
     private bool _hasPlacedObjects;
@@ -128,7 +128,7 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
 
             if (clonedCount == 0)
             {
-                log.Warn($"{sourceName}: не удалось клонировать объекты");
+                log.Warning($"{sourceName}: не удалось клонировать объекты");
                 return null;
             }
 
@@ -137,7 +137,7 @@ internal sealed class BlockInserter(double gapPercent, AILog log)
             _rightMax = worldBounds.Value.MaxPoint.X;
             _hasPlacedObjects = true;
 
-            log.Info($"{sourceName}: вставлено {clonedCount} объектов");
+            log.Information($"{sourceName}: вставлено {clonedCount} объектов");
             return worldBounds;
         }
         catch (System.Exception ex)

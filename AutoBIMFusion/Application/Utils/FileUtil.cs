@@ -1,4 +1,4 @@
-﻿using AutoBIMFusion.Infrastructure.Logging;
+﻿using Serilog.Core;
 
 namespace AutoBIMFusion.Application.Utils;
 
@@ -13,7 +13,7 @@ internal static class FileUtil
     /// <summary>
     /// Возвращает отсортированный список DWG-файлов из директории.
     /// </summary>
-    internal static string[] GetFiles(string rootPath, string excludePrefix = "#", AILog? log = null)
+    internal static string[] GetFiles(string rootPath, string excludePrefix = "#", Logger? log = null)
     {
         EnumerationOptions opts = new()
         {
@@ -37,7 +37,7 @@ internal static class FileUtil
 
         files.Sort((x, y) => NaturalComparer.Compare(Path.GetRelativePath(rootPath, x), Path.GetRelativePath(rootPath, y)));
 
-        log?.Info($"Найдено DWG: {files.Count}");
+        log?.Information($"Найдено DWG: {files.Count}");
         return [.. files];
     }
 

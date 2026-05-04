@@ -1,5 +1,5 @@
 using AutoBIMFusion.Application.Merge.Layouts.Transforms;
-using AutoBIMFusion.Infrastructure.Logging;
+using Serilog.Core;
 
 namespace AutoBIMFusion.Application.Merge.Layouts;
 
@@ -24,7 +24,7 @@ internal static class ViewportTransformer
     /// <summary>
     /// Матрица переноса «модель aux-VP → модель main-VP».
     /// </summary>
-    internal static Matrix3d BuildMatrix(LayoutViewportInfo main, LayoutViewportInfo aux, AILog log)
+    internal static Matrix3d BuildMatrix(LayoutViewportInfo main, LayoutViewportInfo aux, Logger log)
     {
         Vector3d z = Vector3d.ZAxis;
         Point3d origin = Point3d.Origin;
@@ -52,7 +52,7 @@ internal static class ViewportTransformer
     /// Матрица переноса «бумага → модель main-VP». Используется для содержимого Paper Space
     /// (рамка, штамп, тексты) когда его пересаживают в Model Space через главный VP.
     /// </summary>
-    internal static Matrix3d BuildPaperToMainMatrix(LayoutViewportInfo main, AILog log)
+    internal static Matrix3d BuildPaperToMainMatrix(LayoutViewportInfo main, Logger log)
     {
         Vector3d z = Vector3d.ZAxis;
         Point3d origin = Point3d.Origin;
@@ -77,7 +77,7 @@ internal static class ViewportTransformer
     /// Viewport'ы пропускаются; особенности конкретных типов сущностей обрабатывает
     /// <see cref="EntityTransformUtils"/>.
     /// </summary>
-    internal static void ScaleModelSpaceObjects(Database db, Matrix3d matrix, double ratio, AILog log)
+    internal static void ScaleModelSpaceObjects(Database db, Matrix3d matrix, double ratio, Logger log)
     {
         int total = 0;
         int scaled = 0;
@@ -118,7 +118,7 @@ internal static class ViewportTransformer
 
                     if (ExtentsUtils.TryGetScaleRatio(oldExt, newExt, out double oldDig, out double newDig, out double digRatio) && digRatio > (ratio * 5.0))
                     {
-                        log.Warn($"[АНОМАЛИЯ МАСШТАБА] Тип: {entType}, Handle: {handle}. Диагональ ДО: {oldDig:F2}, ПОСЛЕ: {newDig:F2}");
+                        log.Warning($"[АНОМАЛИЯ МАСШТАБА] Тип: {entType}, Handle: {handle}. Диагональ ДО: {oldDig:F2}, ПОСЛЕ: {newDig:F2}");
                     }
 
                     scaled++;
@@ -140,16 +140,16 @@ internal static class ViewportTransformer
 
         trx.Commit();
 
-        log.Info($"ScaleModelSpaceObjects завершен: ratio={ratio:F6}, total={total}, scaled={scaled}");
+        log.Information($"ScaleModelSpaceObjects завершен: ratio={ratio:F6}, total={total}, scaled={scaled}");
 
         if (errorTypes.Count > 0)
         {
             string errorStr = string.Join(", ", errorTypes.Select(kv => $"{kv.Key}({kv.Value})"));
-            log.Warn($"Ошибочные типы (Scale): {errorStr}");
+            log.Warning($"Ошибочные типы (Scale): {errorStr}");
         }
     }
 
-    internal static IReadOnlyList<ModelEntitySnapshot> CollectModelEntitiesWithExtents(Database db, ObjectId msId, AILog log)
+    internal static IReadOnlyList<ModelEntitySnapshot> CollectModelEntitiesWithExtents(Database db, ObjectId msId, Logger log)
     {
         int total = 0;
 
@@ -198,7 +198,7 @@ internal static class ViewportTransformer
         ObjectId sourceOwnerId,
         ObjectId ownerId,
         Matrix3d matrix,
-        AILog log,
+        Logger log,
         string sourceName)
     {
         IReadOnlyList<ObjectId> sourceOrder = DrawOrderPreserver.Capture(db, sourceOwnerId, sourceIds, log);
@@ -231,7 +231,7 @@ internal static class ViewportTransformer
                         }
                         catch (System.Exception ex)
                         {
-                            log.Warn($"[ОШИБКА КЛОНА] {e.GetType().Name} {e.Handle}: {ex.Message}");
+                            log.Warning($"[ОШИБКА КЛОНА] {e.GetType().Name} {e.Handle}: {ex.Message}");
                         }
                     }
                 }
@@ -243,7 +243,7 @@ internal static class ViewportTransformer
         return cloned;
     }
 
-    internal static ObjectIdCollection SelectModelInside(IReadOnlyList<ModelEntitySnapshot> modelEntities, Extents3d window, AILog log)
+    internal static ObjectIdCollection SelectModelInside(IReadOnlyList<ModelEntitySnapshot> modelEntities, Extents3d window, Logger log)
     {
         int outsideWindow = 0;
         ObjectIdCollection result = [];
@@ -276,7 +276,7 @@ internal static class ViewportTransformer
     /// Без этого шага объекты aux VP, чьи модельные координаты попадают в пределы листа
     /// (frameBounds), не удаляются TrimOutside и остаются как «мусор» в результирующем файле.
     /// </summary>
-    internal static int EraseEntitiesOutsideMainWindow(Database db, ObjectIdCollection auxEntities, IReadOnlyList<ModelEntitySnapshot> modelSnapshots, Extents3d mainWindow, AILog log)
+    internal static int EraseEntitiesOutsideMainWindow(Database db, ObjectIdCollection auxEntities, IReadOnlyList<ModelEntitySnapshot> modelSnapshots, Extents3d mainWindow, Logger log)
     {
         HashSet<ObjectId> inMain = [];
 
@@ -311,7 +311,7 @@ internal static class ViewportTransformer
         }
 
         tr.Commit();
-        log.Info($"EraseEntitiesOutsideMainWindow: erased={erased} of {auxEntities.Count}, inMain={inMain.Count}");
+        log.Information($"EraseEntitiesOutsideMainWindow: erased={erased} of {auxEntities.Count}, inMain={inMain.Count}");
         return erased;
     }
 
@@ -321,7 +321,7 @@ internal static class ViewportTransformer
     /// размерных стилей ожидаемым образом. Обнуление «отвязывает» высоту.
     /// Вызывается перед масштабированием объектов Model Space.
     /// </summary>
-    internal static void UnlockTextStylesHeight(Database db, AILog log)
+    internal static void UnlockTextStylesHeight(Database db, Logger log)
     {
         int unlocked = 0;
 
@@ -342,6 +342,6 @@ internal static class ViewportTransformer
         }
 
         tr.Commit();
-        log.Info($"UnlockTextStylesHeight: разблокировано {unlocked} текстовых стилей");
+        log.Information($"UnlockTextStylesHeight: разблокировано {unlocked} текстовых стилей");
     }
 }

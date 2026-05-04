@@ -5,6 +5,7 @@ using AutoBIMFusion.Application.Merge.Models;
 using AutoBIMFusion.Application.Utils;
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
+using Serilog.Core;
 using System.Diagnostics;
 using System.Runtime.Versioning;
 
@@ -36,12 +37,12 @@ public sealed class MergeCommands
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
         if (doc?.Database == null) return;
 
-        AILog log = new(doc.Editor);
-        log.Info($"Запуск {commandName}...");
+        Logger log = LoggerFactory.GetSharedLogger();
+        log.Information($"Запуск {commandName}...");
 
         if (!await _mergeGate.WaitAsync(0))
         {
-            log.Warn($"{commandName}: операция уже запущена.");
+            log.Warning($"{commandName}: операция уже запущена.");
             return;
         }
 
@@ -53,16 +54,16 @@ public sealed class MergeCommands
                 return;
             }
 
-            log.Info($"Исходная папка: {sourceFolder}");
-            log.Info($"Файл лога: {LoggerFactory.GetCurrentLogFilePath()}");
+            log.Information($"Исходная папка: {sourceFolder}");
+            log.Information($"Файл лога: {LoggerFactory.GetCurrentLogFilePath()}");
 
             string savePath = BuildSavePath(sourceFolder!);
-            log.Info($"Путь сохранения: {savePath}");
+            log.Information($"Путь сохранения: {savePath}");
 
             string[] dwgFiles = FileUtil.GetFiles(sourceFolder!, log: log);
             if (dwgFiles.Length == 0)
             {
-                log.Warn("DWG файлы не найдены.");
+                log.Warning("DWG файлы не найдены.");
                 if (showDialogs) UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
                 return;
             }
@@ -87,7 +88,7 @@ public sealed class MergeCommands
             }
 
             sw.Stop();
-            log.Info($"Завершено: {stats}");
+            log.Information($"Завершено: {stats}");
             if (showDialogs) ShowSummary(stats, sw.Elapsed, savePath, commandName);
         }
         catch (System.Exception ex)
@@ -97,7 +98,7 @@ public sealed class MergeCommands
         finally
         {
             _mergeGate.Release();
-            log.Info($"Завершение {commandName}.");
+            log.Information($"Завершение {commandName}.");
         }
     }
 
@@ -106,7 +107,7 @@ public sealed class MergeCommands
         BlockInserter inserter,
         Document doc,
         MergeStatistics stats,
-        AILog log)
+        Logger log)
     {
         using ProgressMeter pm = new();
         pm.Start("Объединение файлов DWG...");
@@ -147,7 +148,7 @@ public sealed class MergeCommands
         return Path.Combine(parent.FullName, $"{dir.Name}.dwg");
     }
 
-    private static void SaveMerged(Database db, string savePath, AILog log)
+    private static void SaveMerged(Database db, string savePath, Logger log)
     {
         try
         {
@@ -167,7 +168,7 @@ public sealed class MergeCommands
                 db.SaveAs(savePath, DwgVersion.AC1032);
             }
 
-            log.Info($"Сохранено: {savePath}");
+            log.Information($"Сохранено: {savePath}");
         }
         catch (System.Exception ex)
         {

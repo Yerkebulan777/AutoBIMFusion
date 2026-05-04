@@ -1,5 +1,6 @@
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
+using Serilog.Core;
 using System.Runtime.Versioning;
 
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
@@ -20,8 +21,8 @@ public sealed class JoinCommands
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
-        AILog log = new(doc.Editor);
-        log.Info("Запуск команды JOIN_LINES...");
+        Logger log = LoggerFactory.GetSharedLogger();
+        log.Information("Запуск команды JOIN_LINES...");
 
         try
         {
@@ -59,7 +60,7 @@ public sealed class JoinCommands
 
                 if (candidates.Count < 2)
                 {
-                    log.Info("Недостаточно линий для объединения.");
+                    log.Information("Недостаточно линий для объединения.");
                     tr.Commit();
                     return;
                 }
@@ -71,7 +72,7 @@ public sealed class JoinCommands
 
                 if (groups.Count == 0)
                 {
-                    log.Info("Группы для объединения не найдены.");
+                    log.Information("Группы для объединения не найдены.");
                     tr.Commit();
                     return;
                 }
@@ -122,15 +123,15 @@ public sealed class JoinCommands
 
                 if (joinedGroups > 0)
                 {
-                    log.Info($"Объединено групп: {joinedGroups}, исходных линий: {joinedLines}");
+                    log.Information($"Объединено групп: {joinedGroups}, исходных линий: {joinedLines}");
                 }
                 else
                 {
-                    log.Info("Ни одна группа не была объединена (возможно, линии уже разделены оптимально).");
+                    log.Information("Ни одна группа не была объединена (возможно, линии уже разделены оптимально).");
                 }
             }
 
-            log.Info("Завершение команды JOIN_LINES.");
+            log.Information("Завершение команды JOIN_LINES.");
         }
         catch (System.Exception ex)
         {

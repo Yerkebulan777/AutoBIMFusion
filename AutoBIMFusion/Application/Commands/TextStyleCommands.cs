@@ -1,5 +1,6 @@
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
+using Serilog.Core;
 using Autodesk.AutoCAD.GraphicsInterface;
 using System.Runtime.Versioning;
 
@@ -18,8 +19,8 @@ public sealed class TextStyleCommands
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
-        AILog log = new(doc.Editor);
-        log.Info("Запуск команды MergeTextStyles...");
+        Logger log = LoggerFactory.GetSharedLogger();
+        log.Information("Запуск команды MergeTextStyles...");
         Database db = doc.Database;
 
         int updatedObjects = 0;
@@ -42,8 +43,8 @@ public sealed class TextStyleCommands
 
                 if (duplicateGroups.Count == 0)
                 {
-                    log.Info("MergeTextStyles: дубликаты текстовых стилей не найдены.");
-                    log.Info("Завершение команды MergeTextStyles.");
+                    log.Information("MergeTextStyles: дубликаты текстовых стилей не найдены.");
+                    log.Information("Завершение команды MergeTextStyles.");
                     return;
                 }
 
@@ -68,10 +69,10 @@ public sealed class TextStyleCommands
                 }
 
                 tr.Commit();
-                log.Info($"MergeTextStyles: групп дубликатов {duplicateGroups.Count}, обновлено объектов {updatedObjects}, удалено стилей {deletedStyles}.");
+                log.Information($"MergeTextStyles: групп дубликатов {duplicateGroups.Count}, обновлено объектов {updatedObjects}, удалено стилей {deletedStyles}.");
             }
 
-            log.Info("Завершение команды MergeTextStyles.");
+            log.Information("Завершение команды MergeTextStyles.");
         }
         catch (System.Exception ex)
         {
@@ -235,7 +236,7 @@ public sealed class TextStyleCommands
         return updated;
     }
 
-    private static int DeleteStyles(Transaction tr, HashSet<ObjectId> duplicateStyleIds, AILog log)
+    private static int DeleteStyles(Transaction tr, HashSet<ObjectId> duplicateStyleIds, Logger log)
     {
         int deleted = 0;
 
@@ -253,7 +254,7 @@ public sealed class TextStyleCommands
             }
             catch (Autodesk.AutoCAD.Runtime.Exception ex)
             {
-                log.Warn($"MergeTextStyles: не удалось удалить стиль '{styleRecord.Name}': {ex.Message}");
+                log.Warning($"MergeTextStyles: не удалось удалить стиль '{styleRecord.Name}': {ex.Message}");
             }
         }
 

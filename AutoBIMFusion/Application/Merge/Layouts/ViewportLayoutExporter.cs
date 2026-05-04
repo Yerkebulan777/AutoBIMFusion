@@ -1,5 +1,5 @@
 using AutoBIMFusion.Application.Utils;
-using AutoBIMFusion.Infrastructure.Logging;
+using Serilog.Core;
 using System.Runtime.Versioning;
 
 namespace AutoBIMFusion.Application.Merge.Layouts;
@@ -12,7 +12,7 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 [SupportedOSPlatform("Windows")]
 internal static class ViewportLayoutExporter
 {
-    public static Database? PrepareDatabaseForMerge(string sourceFilePath, string fileName, AILog log)
+    public static Database? PrepareDatabaseForMerge(string sourceFilePath, string fileName, Logger log)
     {
         ArgumentNullException.ThrowIfNull(sourceFilePath);
 
@@ -44,7 +44,7 @@ internal static class ViewportLayoutExporter
 
             if (!LayoutUtil.TryFindFirstLayout(db, out string layoutName))
             {
-                log.Warn($"{fileName}: листы не найдены");
+                log.Warning($"{fileName}: листы не найдены");
                 return null;
             }
 

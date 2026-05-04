@@ -1,4 +1,4 @@
-using AutoBIMFusion.Infrastructure.Logging;
+using Serilog.Core;
 
 namespace AutoBIMFusion.Application.Merge;
 
@@ -15,9 +15,9 @@ internal static class DwgOptimizer
     /// </summary>
     private const int MaxPurgePasses = 5;
 
-    public static void Optimize(Database db, AILog log)
+    public static void Optimize(Database db, Logger log)
     {
-        log.Info("Очистка (Purge)...");
+        log.Information("Очистка (Purge)...");
 
         int totalPurged = 0;
         int passes = 0;
@@ -36,15 +36,15 @@ internal static class DwgOptimizer
 
         if (totalPurged > 0)
         {
-            log.Info($"Очищено: {totalPurged} объектов (проходов: {passes})");
+            log.Information($"Очищено: {totalPurged} объектов (проходов: {passes})");
         }
         else
         {
-            log.Info("Очистка: неиспользуемых объектов нет");
+            log.Information("Очистка: неиспользуемых объектов нет");
         }
     }
 
-    private static int PurgePass(Database db, AILog log)
+    private static int PurgePass(Database db, Logger log)
     {
         using ObjectIdCollection candidates = [];
 
@@ -79,7 +79,7 @@ internal static class DwgOptimizer
         }
         catch (System.Exception ex)
         {
-            log.Warn(ex, "Ошибка при вызове Database.Purge");
+            log.Warning(ex, "Ошибка при вызове Database.Purge");
             tr.Commit();
             return 0;
         }
@@ -106,7 +106,7 @@ internal static class DwgOptimizer
             }
             catch (System.Exception ex)
             {
-                log.Warn($"Не удалось удалить объект {id.Handle}: {ex.Message}");
+                log.Warning($"Не удалось удалить объект {id.Handle}: {ex.Message}");
             }
         }
 
@@ -114,7 +114,7 @@ internal static class DwgOptimizer
         return erased;
     }
 
-    private static void AddTableIds(Transaction tr, ObjectId tableId, ObjectIdCollection target, AILog log)
+    private static void AddTableIds(Transaction tr, ObjectId tableId, ObjectIdCollection target, Logger log)
     {
         if (tableId.IsNull)
         {
@@ -138,7 +138,7 @@ internal static class DwgOptimizer
         }
     }
 
-    private static void AddDictionaryIds(Transaction tr, ObjectId dictId, ObjectIdCollection target, AILog log)
+    private static void AddDictionaryIds(Transaction tr, ObjectId dictId, ObjectIdCollection target, Logger log)
     {
         if (dictId.IsNull)
         {

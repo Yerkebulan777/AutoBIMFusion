@@ -1,5 +1,6 @@
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
+using Serilog.Core;
 using Autodesk.AutoCAD.Colors;
 using System.Runtime.Versioning;
 
@@ -19,8 +20,8 @@ public sealed class SmartTextCommands
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
-        AILog log = new(doc.Editor);
-        log.Info("Запуск команды SMART_MERGE_TEXT...");
+        Logger log = LoggerFactory.GetSharedLogger();
+        log.Information("Запуск команды SMART_MERGE_TEXT...");
         Database db = doc.Database;
         int mergedGroupsCount = 0;
 
@@ -37,7 +38,7 @@ public sealed class SmartTextCommands
 
                 if (textsInModel.Count == 0)
                 {
-                    log.Info("Текст (TEXT или MTEXT) в Model Space не найден.");
+                    log.Information("Текст (TEXT или MTEXT) в Model Space не найден.");
                     tr.Commit();
                     return;
                 }
@@ -81,10 +82,10 @@ public sealed class SmartTextCommands
                 }
 
                 tr.Commit();
-                log.Info($"SMART_MERGE_TEXT: собрано групп текста: {mergedGroupsCount}");
+                log.Information($"SMART_MERGE_TEXT: собрано групп текста: {mergedGroupsCount}");
             }
 
-            log.Info("Завершение команды SMART_MERGE_TEXT.");
+            log.Information("Завершение команды SMART_MERGE_TEXT.");
         }
         catch (System.Exception ex)
         {
@@ -92,7 +93,7 @@ public sealed class SmartTextCommands
         }
     }
 
-    private static List<TextElement> CollectTextElements(BlockTableRecord modelSpace, Transaction tr, AILog log)
+    private static List<TextElement> CollectTextElements(BlockTableRecord modelSpace, Transaction tr, Logger log)
     {
         List<TextElement> result = [];
         int textCount = 0;
@@ -162,7 +163,7 @@ public sealed class SmartTextCommands
             }
         }
 
-        log.Info($"Диагностика Model Space: найдено однострочных TEXT: {textCount}, многострочных MTEXT: {mtextCount}, других объектов: {otherCount}");
+        log.Information($"Диагностика Model Space: найдено однострочных TEXT: {textCount}, многострочных MTEXT: {mtextCount}, других объектов: {otherCount}");
 
         return result;
     }

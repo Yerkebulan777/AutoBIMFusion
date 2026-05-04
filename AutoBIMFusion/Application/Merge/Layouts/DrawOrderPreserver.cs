@@ -1,4 +1,4 @@
-using AutoBIMFusion.Infrastructure.Logging;
+using Serilog.Core;
 
 namespace AutoBIMFusion.Application.Merge.Layouts;
 
@@ -10,7 +10,7 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 internal static class DrawOrderPreserver
 {
     internal static IReadOnlyList<ObjectId> Capture(
-        Database db, ObjectId sourceBtrId, ObjectIdCollection filterIds, AILog log)
+        Database db, ObjectId sourceBtrId, ObjectIdCollection filterIds, Logger log)
     {
         ArgumentNullException.ThrowIfNull(filterIds);
 
@@ -50,7 +50,7 @@ internal static class DrawOrderPreserver
 
     internal static void Restore(
         Database db, ObjectId targetBtrId, IReadOnlyList<ObjectId> sourceOrder,
-        IdMapping map, AILog log)
+        IdMapping map, Logger log)
     {
         ArgumentNullException.ThrowIfNull(sourceOrder);
         ArgumentNullException.ThrowIfNull(map);

@@ -1,5 +1,6 @@
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
+using Serilog.Core;
 using System.Globalization;
 using System.IO.Compression;
 using System.Reflection;
@@ -22,13 +23,13 @@ public sealed class TransmittalCommands
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
         ArgumentNullException.ThrowIfNull(doc, nameof(doc));
 
-        AILog log = new(doc.Editor);
-        log.Info("Запуск команды CreateETransmitZip...");
+        Logger log = LoggerFactory.GetSharedLogger();
+        log.Information("Запуск команды CreateETransmitZip...");
 
         if (!doc.IsNamedDrawing || string.IsNullOrWhiteSpace(doc.Name))
         {
-            log.Warn("Сначала сохраните текущий чертеж на диск, затем повторите команду CreateETransmitZip.");
-            log.Info("Завершение команды CreateETransmitZip.");
+            log.Warning("Сначала сохраните текущий чертеж на диск, затем повторите команду CreateETransmitZip.");
+            log.Information("Завершение команды CreateETransmitZip.");
             return;
         }
 
@@ -45,11 +46,11 @@ public sealed class TransmittalCommands
         {
             PrepareOutputFolders(destinationRoot, tempFolder, zipFilePath);
 
-            log.Info("Сбор файлов eTransmit...");
+            log.Information("Сбор файлов eTransmit...");
 
             if (!TryCreateTransmittalOperation(out object? operation, out string reason, log))
             {
-                log.Warn(reason);
+                log.Warning(reason);
                 return;
             }
 
@@ -64,16 +65,16 @@ public sealed class TransmittalCommands
 
             if (!string.Equals(addResultName, "eFileAdded", StringComparison.OrdinalIgnoreCase))
             {
-                log.Warn($"Не удалось добавить чертеж в пакет eTransmit. Код: {addResultName}");
+                log.Warning($"Не удалось добавить чертеж в пакет eTransmit. Код: {addResultName}");
                 return;
             }
 
             tro.createTransmittalPackage();
 
-            log.Info("Создание ZIP-архива...");
+            log.Information("Создание ZIP-архива...");
             ZipFile.CreateFromDirectory(tempFolder, zipFilePath, CompressionLevel.Optimal, false);
 
-            log.Info($"Пакет eTransmit сохранен: {zipFilePath}");
+            log.Information($"Пакет eTransmit сохранен: {zipFilePath}");
         }
         catch (System.Exception ex)
         {
@@ -82,11 +83,11 @@ public sealed class TransmittalCommands
         finally
         {
             TryDeleteTempFolder(tempFolder, log);
-            log.Info("Завершение команды CreateETransmitZip.");
+            log.Information("Завершение команды CreateETransmitZip.");
         }
     }
 
-    private static bool TryCreateTransmittalOperation(out object? operation, out string reason, AILog log)
+    private static bool TryCreateTransmittalOperation(out object? operation, out string reason, Logger log)
     {
         operation = null;
         reason = string.Empty;
@@ -123,7 +124,7 @@ public sealed class TransmittalCommands
         return true;
     }
 
-    private static void ConfigureTransmittalInfo(dynamic transmittalInfo, string tempFolder, AILog log)
+    private static void ConfigureTransmittalInfo(dynamic transmittalInfo, string tempFolder, Logger log)
     {
         // AutoCAD версии могут использовать разные имена для поля назначения
         bool destinationSet = false;
@@ -144,7 +145,7 @@ public sealed class TransmittalCommands
 
         if (!destinationSet)
         {
-            log.Warn("Не удалось задать папку назначения eTransmit — ни одно из известных имён полей не найдено. Пакет может быть создан в папке по умолчанию.");
+            log.Warning("Не удалось задать папку назначения eTransmit — ни одно из известных имён полей не найдено. Пакет может быть создан в папке по умолчанию.");
         }
 
         SetMemberValue(transmittalInfo, "preserveSubdirs", 0, log);
@@ -155,7 +156,7 @@ public sealed class TransmittalCommands
         SetMemberValue(transmittalInfo, "includeDataLinkFile", 1, log);
     }
 
-    private static void SetMemberValue(object target, string memberName, object value, AILog log, bool required = false)
+    private static void SetMemberValue(object target, string memberName, object value, Logger log, bool required = false)
     {
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase;
 
@@ -215,7 +216,7 @@ public sealed class TransmittalCommands
         }
     }
 
-    private static void TryLoadAssemblyByName(string assemblyName, AILog log)
+    private static void TryLoadAssemblyByName(string assemblyName, Logger log)
     {
         try
         {
@@ -227,7 +228,7 @@ public sealed class TransmittalCommands
         }
     }
 
-    private static void TryLoadAssemblyByPath(string assemblyPath, AILog log)
+    private static void TryLoadAssemblyByPath(string assemblyPath, Logger log)
     {
         try
         {
@@ -259,7 +260,7 @@ public sealed class TransmittalCommands
         }
     }
 
-    private static void TryDeleteTempFolder(string tempFolder, AILog log)
+    private static void TryDeleteTempFolder(string tempFolder, Logger log)
     {
         try
         {
@@ -270,11 +271,11 @@ public sealed class TransmittalCommands
         }
         catch (IOException ex)
         {
-            log.Warn(ex, $"Не удалось удалить временную папку: {tempFolder}");
+            log.Warning(ex, $"Не удалось удалить временную папку: {tempFolder}");
         }
         catch (UnauthorizedAccessException ex)
         {
-            log.Warn(ex, $"Нет прав на удаление временной папки: {tempFolder}");
+            log.Warning(ex, $"Нет прав на удаление временной папки: {tempFolder}");
         }
     }
 }
