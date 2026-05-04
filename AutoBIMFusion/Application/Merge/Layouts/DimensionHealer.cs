@@ -1,4 +1,5 @@
 using AutoBIMFusion.Infrastructure.Logging;
+using System.Diagnostics;
 using System.Text;
 
 namespace AutoBIMFusion.Application.Merge.Layouts;
@@ -181,6 +182,7 @@ internal static class DimensionHealer
 
                     if (hasVisualScaleOverride && NormalizeStyleVisualScale(style, style.Dimscale))
                     {
+                        Debug.WriteLine($"Normalizing DimStyle {style.Name} visual scale from {style.Dimscale} to 1.0");
                         dimscaleNormalizedCount++;
                     }
 
@@ -202,6 +204,7 @@ internal static class DimensionHealer
     private static bool NormalizeStyleVisualScale(DimStyleTableRecord style, double scale)
     {
         bool changed = false;
+
         style.Dimtxt = ScaleVisualValue(style.Dimtxt, scale, ref changed);
         style.Dimasz = ScaleVisualValue(style.Dimasz, scale, ref changed);
         style.Dimexo = ScaleVisualValue(style.Dimexo, scale, ref changed);
