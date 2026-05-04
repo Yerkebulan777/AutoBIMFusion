@@ -246,7 +246,12 @@ internal static class DimensionStyleNormalizer
             multiplier = fallbackMultiplier;
         }
 
-        return IsUsableMultiplier(multiplier) ? multiplier : 1.0;
+        if (!IsUsableMultiplier(multiplier))
+        {
+            return 1.0;
+        }
+
+        return Math.Clamp(multiplier, LayoutProjectionProcessor.MinScaleMultiplier, LayoutProjectionProcessor.MaxScaleMultiplier);
     }
 
     private static ObjectId CreateScaledStyle(
@@ -292,6 +297,10 @@ internal static class DimensionStyleNormalizer
         style.Dimcen = ScaleVisualValue(style.Dimcen, multiplier);
         style.Dimtvp = ScaleVisualValue(style.Dimtvp, multiplier);
         style.Dimfxlen = ScaleVisualValue(style.Dimfxlen, multiplier);
+        style.Dimdsep = ScaleVisualValue(style.Dimdsep, multiplier);
+        
+        // Set text fill to transparent (0 = transparent, 1 = background fill, 2 = fill box)
+        style.Dimtfill = 0;
     }
 
     private static double ScaleVisualValue(double value, double multiplier)
