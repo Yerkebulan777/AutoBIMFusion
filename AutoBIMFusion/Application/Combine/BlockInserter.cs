@@ -137,10 +137,10 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
                 ExtentsUtils.SyncUnits(targetDb);
             }
 
-            if (clonedCount > 0)
-            {
-                _ = DimensionHealer.Heal(targetDb, clonedDimensionIds);
-            }
+            //if (clonedCount > 0)
+            //{
+            //    _ = DimensionHealer.Heal(targetDb, clonedDimensionIds);
+            //}
 
             if (clonedCount == 0)
             {

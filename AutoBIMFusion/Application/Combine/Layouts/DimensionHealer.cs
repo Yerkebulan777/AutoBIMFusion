@@ -119,11 +119,15 @@ internal static class DimensionHealer
     /// сбрасывает TextRotation в 0 и нормализует Dimlfac в 1.0.
     /// </summary>
     /// <remarks>Может открыть объект на запись (UpgradeOpen), если требуются изменения.</remarks>
+    /// <summary>
+    /// Исправляет один размерный объект: удаляет DSTYLE XData-переопределения,
+    /// сбрасывает TextRotation в 0 и нормализует Dimlfac в 1.0.
+    /// </summary>
     private static (bool OverridesCleared, bool TextRotationReset, bool DimlfacReset, string? WarningMessage) HealDimension(Dimension dimension)
     {
         ObjectId styleId = dimension.DimensionStyle;
         bool hasDimlfacDrift = !dimension.Dimlfac.Equals(1.0);
-        bool hasTextRotation = !AreClose(dimension.TextRotation);
+        bool hasTextRotation = Math.Abs(dimension.TextRotation) > Tolerance;
 
         bool overridesCleared = false;
         string? warningMessage = null;
@@ -137,7 +141,8 @@ internal static class DimensionHealer
             warningMessage = $"Dimension healer could not clear overrides for handle={dimension.Handle}: {ex.Message}";
         }
 
-        if ((hasTextRotation || hasDimlfacDrift) && !dimension.IsWriteEnabled)
+        // ВСЕГДА открываем размер на запись. Нам нужно сбросить кэш.
+        if (!dimension.IsWriteEnabled)
         {
             dimension.UpgradeOpen();
         }
@@ -152,9 +157,10 @@ internal static class DimensionHealer
             dimension.Dimlfac = 1.0;
         }
 
-        // После удаления XData повторное присвоение того же стиля заставляет AutoCAD
-        // перечитать свойства из таблицы стилей и сбросить кэшированные override-значения.
-        if (overridesCleared && !styleId.IsNull)
+        // Это заставит объект Dimension удалить из своего кэша старый Dimscale=304.8,
+        // прочитать новые "запеченные" значения из стиля и предотвратить
+        // появление анонимных стилей *D... при WblockCloneObjects.
+        if (!styleId.IsNull)
         {
             dimension.DimensionStyle = styleId;
         }
