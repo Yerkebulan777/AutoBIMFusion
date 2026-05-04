@@ -4,10 +4,50 @@ using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Application.AcadSupport;
 
-internal sealed class AcadWarningSuppressScope : IDisposable
+/// <summary>
+/// Базовый RAII-скоуп для временного изменения системных переменных AutoCAD.
+/// Гарантирует восстановление исходных значений при выходе из блока using,
+/// даже при возникновении исключений.
+/// </summary>
+internal abstract class SysVarScope : IDisposable
 {
-    private readonly List<ManagedSystemVariable> _variables = new();
+    private readonly List<(string Name, object? OldValue, bool IsSet)> _vars = [];
 
+    protected void Set(string name, object value)
+    {
+        try
+        {
+            object? oldValue = AcadApp.GetSystemVariable(name);
+            AcadApp.SetSystemVariable(name, value);
+            _vars.Add((name, oldValue, true));
+        }
+        catch
+        {
+            // Переменная недоступна или только для чтения — пропускаем.
+            _vars.Add((name, null, false));
+        }
+    }
+
+    public void Dispose()
+    {
+        // Восстанавливаем в обратном порядке для корректного стека зависимостей.
+        for (int i = _vars.Count - 1; i >= 0; i--)
+        {
+            var (name, oldValue, isSet) = _vars[i];
+            if (!isSet) continue;
+            try { AcadApp.SetSystemVariable(name, oldValue!); }
+            catch { /* Игнорируем: другие переменные должны быть восстановлены. */ }
+        }
+    }
+}
+
+/// <summary>
+/// Подавляет диалоги и предупреждения AutoCAD на время операции слияния.
+/// Устанавливает FILEDIA=0, CMDDIA=0, EXPERT=5, PROXYNOTICE=0,
+/// LAYEREVAL=0, LAYERNOTIFY=0, LAYOUTREGENCTL=0, VTENABLE=0.
+/// </summary>
+internal sealed class AcadWarningSuppressScope : SysVarScope
+{
     public AcadWarningSuppressScope()
     {
         Set("FILEDIA", 0);
@@ -19,84 +59,17 @@ internal sealed class AcadWarningSuppressScope : IDisposable
         Set("LAYOUTREGENCTL", 0);
         Set("VTENABLE", 0);
     }
-
-    private void Set(string name, object value)
-    {
-        _variables.Add(new ManagedSystemVariable(name, value));
-    }
-
-    public void Dispose()
-    {
-        for (int i = _variables.Count - 1; i >= 0; i--)
-        {
-            _variables[i].Dispose();
-        }
-    }
 }
 
-internal sealed class AcadUnitScalingOverrideScope : IDisposable
+/// <summary>
+/// Устанавливает единицы вставки блоков (INSUNITSDEFSOURCE и INSUNITSDEFTARGET = 4 = мм)
+/// для корректного масштабирования при WblockCloneObjects.
+/// </summary>
+internal sealed class AcadUnitScalingOverrideScope : SysVarScope
 {
-    private readonly List<ManagedSystemVariable> _variables = new();
-
     public AcadUnitScalingOverrideScope()
     {
         Set("INSUNITSDEFSOURCE", 4);
         Set("INSUNITSDEFTARGET", 4);
-    }
-
-    private void Set(string name, object value)
-    {
-        _variables.Add(new ManagedSystemVariable(name, value));
-    }
-
-    public void Dispose()
-    {
-        for (int i = _variables.Count - 1; i >= 0; i--)
-        {
-            _variables[i].Dispose();
-        }
-    }
-}
-
-internal sealed class ManagedSystemVariable : IDisposable
-{
-    private readonly string _name;
-    private readonly object? _oldValue;
-    private readonly bool _isSet;
-
-    public ManagedSystemVariable(string name, object value)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            throw new ArgumentException("Value cannot be null or whitespace.", nameof(name));
-        }
-
-        _name = name;
-        try
-        {
-            _oldValue = AcadApp.GetSystemVariable(name);
-            AcadApp.SetSystemVariable(name, value);
-            _isSet = true;
-        }
-        catch
-        {
-            // Ignore if the variable does not exist, is read-only, or throws an exception.
-            _isSet = false;
-        }
-    }
-
-    public void Dispose()
-    {
-        if (_isSet)
-        {
-            try
-            {
-                AcadApp.SetSystemVariable(_name, _oldValue);
-            }
-            catch
-            {
-                // Ignore errors during restore to ensure other variables still get restored.
-            }
-        }
     }
 }

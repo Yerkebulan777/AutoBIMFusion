@@ -54,8 +54,8 @@ internal static class LayoutUtil
     }
 
     /// <summary>
-    /// Перечисляет сущности Paper Space указанного листа.
-    /// Viewport'ы (включая служебный Number==1) исключаются, если excludeViewports=true.
+    /// Перечисляет сущности Paper Space указанного листа в одной транзакции.
+    /// Viewport'ы исключаются, если excludeViewports=true.
     /// </summary>
     internal static ObjectIdCollection GetPaperSpaceEntities(
         Database db, string layoutName, bool excludeViewports)
@@ -64,15 +64,17 @@ internal static class LayoutUtil
         ObjectIdCollection result = [];
 
         using Transaction tr = db.TransactionManager.StartTransaction();
-        ObjectId btrId = GetLayoutBtrId(db, layoutName);
+        DBDictionary layoutDict = (DBDictionary)tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
-        if (btrId.IsNull)
+        if (!layoutDict.Contains(layoutName))
         {
             tr.Commit();
             return result;
         }
 
-        BlockTableRecord btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForRead);
+        ObjectId layoutId = layoutDict.GetAt(layoutName);
+        Layout layout = (Layout)tr.GetObject(layoutId, OpenMode.ForRead);
+        BlockTableRecord btr = (BlockTableRecord)tr.GetObject(layout.BlockTableRecordId, OpenMode.ForRead);
 
         foreach (ObjectId id in btr)
         {

@@ -1,52 +1,64 @@
 # Техническая документация AutoBIMFusion
 
-**Последнее обновление:** 2026-05-02
+**Последнее обновление:** 2026-05-04
 
 ## 1. Обзор
-AutoBIMFusion — это плагин для AutoCAD (target .NET 8, x64, AutoCAD 2025-2027), предназначенный для автоматизации объединения чертежей, очистки текстов и стилей, а также подготовки пакетов eTransmit.
+
+AutoBIMFusion — плагин для AutoCAD (.NET 8, x64, AutoCAD 2025–2027) для автоматизации объединения чертежей, очистки текстов и стилей, а также подготовки пакетов eTransmit.
 
 ## 2. Структура проекта
 
 ```text
 AutoBIMFusion/
   Application/
-    AcadSupport/      # Области подавления предупреждений и системные утилиты
+    AcadSupport/      # RAII-скоупы системных переменных AutoCAD
     Commands/         # Точки входа (команды AutoCAD)
-    Merge/            # Логика объединения чертежей (Core Pipeline)
-    Layouts/          # Обработка листов, видовых экранов и трансформаций
-    Ribbon/           # Описание интерфейса (лента AutoCAD)
-    Utils/            # Вспомогательные утилиты (файлы, строки, диалоги)
+    Combine/          # Пайплайн объединения DWG
+      Layouts/        # Обработка листов, видовых экранов, трансформаций, размеров
+    Ribbon/           # Лента AutoCAD (исключается при CoreConsoleDiagnostics=true)
+    Utils/            # Вспомогательные утилиты (файлы, строки, диалоги, сортировка)
   Infrastructure/
-    Logging/          # Система логирования (Serilog + AutoCAD Editor)
+    Logging/          # Serilog + DiagnosticSink (Trace / Debug)
 ```
 
-## 3. Основные процессы
+## 3. Ключевые классы
 
-### Объединение (MERGEDWG)
-1. **Orchestration:** `MergeCommands` управляет очередью и семафором.
-2. **Preprocessing:** `ViewportLayoutExporter` готовит базу данных в памяти, выполняя проекцию листа в модель.
-3. **Insertion:** `BlockInserter` клонирует объекты в целевой чертеж, применяя расчет смещения по оси X.
-4. **Dimension normalization:** `DimensionStyleNormalizer` выполняется в `ViewportLayoutExporter.PrepareDatabaseForMerge` до `WblockCloneObjects`: для каждого размера Model Space создаётся/переиспользуется стиль `"{Style} - Scale {EffectiveMainMultiplier}"`, где multiplier берется из рабочего clamped main VP, очищаются per-entity overrides из `XData` (`ACAD`/`DSTYLE`), назначается нормализованный стиль, а `Dimscale` и `Dimlfac` приводятся к `1.0`. Стили с уже модельной высотой текста не перемножаются повторно. После переназначения удаляются только те старые исходные размерные стили, которые `Database.Purge` считает неиспользуемыми.
-5. **Optimization:** `DwgOptimizer` выполняет до 5 проходов `Purge` для удаления мусора.
+| Класс | Назначение |
+|---|---|
+| `CombineCommands` | Точка входа MERGEDWG; семафор, прогресс, сохранение |
+| `CombineOrchestrator` | Координирует обработку одного файла |
+| `ViewportLayoutExporter` | Открывает DWG в памяти, проецирует лист → модель |
+| `LayoutProjectionProcessor` | Масштабирование VP, трансформация aux-VP и Paper Space |
+| `ViewportTransformer` | Математика трансформаций, клонирование, DrawOrder |
+| `BlockInserter` | `WblockCloneObjects` + расстановка по оси X |
+| `DimensionStyleNormalizer` | Нормализация размерных стилей перед клонированием |
+| `DimensionStyleDiagnosticUtils` | Диагностический снимок стилей в лог |
+| `DwgOptimizer` | Многопроходный Purge |
+| `RasterImagePathFixer` | Копирование растров, обновление путей |
+| `ExtentsUtils` | Математика с Extents3d (без API-вызовов) |
+| `ModelSpaceTrimmer` | Удаление объектов вне рамки листа |
 
-### Прочие команды
-- **SMART_MERGE_TEXT:** Группировка и объединение близкорасположенных текстовых объектов в `MText`.
-- **MergeTextStyles:** Поиск и слияние дубликатов текстовых стилей на основе их параметров.
-- **JOIN_LINES:** Объединение коллинеарных отрезков на одном слое.
+## 4. Управление ресурсами
 
-## 4. Правила работы с ресурсами
-- **Транзакции:** Строгое использование `using Transaction` для всех операций с БД AutoCAD.
-- **Базы данных:** Фоновые базы данных создаются в памяти и уничтожаются через `Dispose()` сразу после использования.
-- **Блокировки:** Любое изменение активного документа требует `Document.LockDocument()`.
-- **Единицы измерения:** Перед клонированием всегда выполняется принудительная синхронизация `Insunits` и `Measurement` между базами.
+- **Транзакции:** `using Transaction tr = ...` — всегда. `tr.Commit()` или `tr.Abort()` в явном виде.
+- **Блокировки:** `using (doc.LockDocument())` — обязательно для любой записи в активный документ.
+- **Системные переменные:** `AcadWarningSuppressScope` и `AcadUnitScalingOverrideScope` — RAII-скоупы на базе `SysVarScope`. Гарантируют восстановление переменных даже при исключении.
+- **Фоновые базы данных:** `new Database(false, true)` открывается в памяти, передаётся через `using Database? db = ...`, уничтожается сразу после обработки файла.
+- **Единицы измерения:** перед `WblockCloneObjects` принудительно синхронизируются `Insunits` и `Measurement` через `ExtentsUtils.SyncUnits`.
 
-## 5. Обработка ошибок и Логирование
-- Используется `AILog` для вывода информации в командную строку AutoCAD и Serilog для детального анализа.
-- Логирование в цикле минимизировано: упор сделан на анализ критических ошибок и результат обработки.
-- Исключения `Autodesk.AutoCAD.Runtime.Exception` перехватываются точечно, чтобы не прерывать пакетную обработку.
+## 5. Обработка ошибок и логирование
+
+- Логгер — Serilog `Logger` из `LoggerFactory.GetSharedLogger()`. Файл лога — `{AssemblyDir}/Logs/merge-{date}.log`.
+- `DiagnosticSink` дублирует записи в `Debug.WriteLine` (при отладке) или `Trace.WriteLine` (в production).
+- Исключения AutoCAD API перехватываются точечно там, где сбой одного объекта не должен останавливать пакет.
+- В циклах суммируются счётчики; подробный лог пишется только при наличии ошибок.
 
 ## 6. Ключевые константы
-- `MaxFileSizeBytes`: 15 МБ (пропуск тяжелых файлов).
-- `MaxRecursionDepth`: 3 (глубина поиска в папках).
-- `MaxScaleMultiplier`: 100 (ограничение масштаба 1:100).
-- `MaxPurgePasses`: 5 (лимит итераций очистки).
+
+| Константа | Значение | Описание |
+|---|---|---|
+| `MaxFileSizeBytes` | 15 МБ | Пропуск тяжёлых файлов |
+| `MaxRecursionDepth` | 3 | Глубина поиска в папках |
+| `MaxScaleMultiplier` | 100 | Ограничение масштаба VP (1:100) |
+| `MaxPurgePasses` | 5 | Лимит итераций очистки |
+| `gapPercent` | 0.1 | Зазор между чертежами (10% от габарита) |

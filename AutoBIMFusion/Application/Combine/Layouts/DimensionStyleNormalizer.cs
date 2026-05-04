@@ -26,10 +26,6 @@ internal static class DimensionStyleNormalizer
         double fallbackMultiplier,
         Logger log)
     {
-        ArgumentNullException.ThrowIfNull(db);
-        ArgumentNullException.ThrowIfNull(scaleByDimensionId);
-        ArgumentNullException.ThrowIfNull(log);
-
         int scanned = 0;
         int normalized = 0;
         int overridesCleared = 0;

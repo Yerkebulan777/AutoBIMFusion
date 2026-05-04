@@ -88,7 +88,8 @@ internal static class DimensionUtils
 
             List<TypedValue> cleanedSection = sectionValues;
             bool sectionChanged = false;
-            if (appName.Equals(AcadRegAppName, StringComparison.OrdinalIgnoreCase))
+            // IsRegApp возвращает true только при appName != null — оператор ! документирует этот инвариант.
+            if (appName!.Equals(AcadRegAppName, StringComparison.OrdinalIgnoreCase))
             {
                 sectionChanged = TryRemoveAcadDimensionStyleOverrideSection(sectionValues, out cleanedSection);
             }
