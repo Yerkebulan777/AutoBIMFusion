@@ -171,9 +171,10 @@ public sealed class CombineCommands
         try
         {
             string? dir = Path.GetDirectoryName(savePath);
+
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
             {
-                _ = Directory.CreateDirectory(dir);
+                Directory.CreateDirectory(dir);
             }
 
             if (File.Exists(savePath))
