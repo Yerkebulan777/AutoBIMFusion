@@ -26,7 +26,7 @@ AutoBIMFusion/
 1. **Orchestration:** `MergeCommands` управляет очередью и семафором.
 2. **Preprocessing:** `ViewportLayoutExporter` готовит базу данных в памяти, выполняя проекцию листа в модель.
 3. **Insertion:** `BlockInserter` клонирует объекты в целевой чертеж, применяя расчет смещения по оси X.
-4. **Healing:** `DimensionHealer` и `DimensionUtils` принудительно нормализуют `Dimlfac` к `1.0` (и для размерных стилей, и для обрабатываемых размерных сущностей), нормализуют `Dimscale` размерных стилей и очищают per-entity overrides из `XData` (`ACAD`/`DSTYLE`) в процессе вставки.
+4. **Dimension normalization:** `DimensionStyleNormalizer` выполняется в `ViewportLayoutExporter.PrepareDatabaseForMerge` до `WblockCloneObjects`: для каждого размера Model Space создаётся/переиспользуется стиль `"{Style} - Scale {EffectiveMainMultiplier}"`, где multiplier берется из рабочего clamped main VP, очищаются per-entity overrides из `XData` (`ACAD`/`DSTYLE`), назначается нормализованный стиль, а `Dimscale` и `Dimlfac` приводятся к `1.0`. Стили с уже модельной высотой текста не перемножаются повторно. После переназначения удаляются только те старые исходные размерные стили, которые `Database.Purge` считает неиспользуемыми.
 5. **Optimization:** `DwgOptimizer` выполняет до 5 проходов `Purge` для удаления мусора.
 
 ### Прочие команды

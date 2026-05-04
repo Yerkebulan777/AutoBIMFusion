@@ -20,6 +20,18 @@ internal static class ViewportTransformer
 {
     internal sealed record ModelEntitySnapshot(ObjectId Id, Extents3d Extents);
 
+    internal sealed class CloneTransformResult : IDisposable
+    {
+        internal ObjectIdCollection ClonedIds { get; } = [];
+
+        internal Dictionary<ObjectId, ObjectId> SourceToClone { get; } = [];
+
+        public void Dispose()
+        {
+            ClonedIds.Dispose();
+        }
+    }
+
     /// <summary>
     /// Матрица переноса «модель aux-VP → модель main-VP».
     /// </summary>
@@ -191,7 +203,7 @@ internal static class ViewportTransformer
     /// <remarks>
     /// Type-specific transform compensation is delegated to <see cref="EntityTransformUtils"/>.
     /// </remarks>
-    internal static ObjectIdCollection DeepCloneAndTransform(
+    internal static CloneTransformResult DeepCloneAndTransform(
         Database db,
         ObjectIdCollection sourceIds,
         ObjectId sourceOwnerId,
@@ -213,11 +225,11 @@ internal static class ViewportTransformer
 
         if (validIds.Count == 0)
         {
-            return [];
+            return new CloneTransformResult();
         }
 
         using IdMapping map = [];
-        ObjectIdCollection cloned = [];
+        CloneTransformResult result = new();
 
         using (Transaction tr = db.TransactionManager.StartTransaction())
         {
@@ -232,7 +244,8 @@ internal static class ViewportTransformer
                         try
                         {
                             _ = EntityTransformUtils.TransformEntity(e, matrix);
-                            _ = cloned.Add(pair.Value);
+                            _ = result.ClonedIds.Add(pair.Value);
+                            result.SourceToClone[pair.Key] = pair.Value;
                         }
                         catch (System.Exception ex)
                         {
@@ -245,7 +258,7 @@ internal static class ViewportTransformer
         }
 
         DrawOrderPreserver.Restore(db, ownerId, sourceOrder, map, log);
-        return cloned;
+        return result;
     }
 
     internal static ObjectIdCollection SelectModelInside(IReadOnlyList<ModelEntitySnapshot> modelEntities, Extents3d window, Logger log)

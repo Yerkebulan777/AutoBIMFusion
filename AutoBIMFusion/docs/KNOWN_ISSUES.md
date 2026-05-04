@@ -40,13 +40,13 @@ These are intentionally conservative, but they are not user-configurable.
 
 **Severity:** Medium
 
-**Where:** `EntityTransformUtils`, `DimensionStyleDiagnosticUtils`, `LayoutProjectionProcessor`
+**Where:** `DimensionStyleNormalizer`, `DimensionStyleDiagnosticUtils`, `LayoutProjectionProcessor`
 
-`MERGEDWG` no longer applies per-entity dimension compensation during layout flattening, and finalization now removes per-entity dimension style overrides from the `ACAD` xdata `DSTYLE` section. The goal is for dimensions in the merged DWG to rely on shared project styles instead of local overrides.
+`MERGEDWG` now normalizes dimensions in the prepared source database before `WblockCloneObjects`. Each Model Space dimension is assigned an effective-main-viewport-scale-specific style named `"{Style} - Scale {Multiplier}"`, where the multiplier comes from the clamped main VP used by the projection algorithm. `ACAD`/`DSTYLE` overrides are removed before the style reset. Source styles that already have model-sized visual values are not multiplied a second time. Replaced source dimension styles are purged only when AutoCAD reports them as unused.
 
 **Risk:** dimensions may change text height, arrow size, extension-line geometry, or displayed numeric value after model clamp scaling, Paper Space cloning, or auxiliary viewport flattening.
 
-**Status:** active diagnostics log new per-file source styles as `before-merge`, the final target style snapshot as `after-merge`, and `[DIM-OVERRIDES]` warnings only for concrete dimension override cleanup failures.
+**Status:** active diagnostics log new per-file source styles as `before-merge`, the final target style snapshot as `after-merge`, and `[DIM-NORMALIZE]` summaries for source-side style creation and override cleanup.
 
 **Residual verification:** manual visual QA in AutoCAD is still required for representative production sheets, because full dimension extents may include scaled extension-line geometry even when text and arrow visual metrics are preserved.
 
@@ -60,15 +60,7 @@ Currently, the temporary DWG file created during export is read from disk multip
 
 **Preferred fix:** Modify `ViewportLayoutExporter` to return the `Database` object and keep it in memory until the merge of that file is complete.
 
-### KI-6. Scattered Dimension Override Cleanup Logic
-
-**Where:** `DimensionHealer`, `DimensionStyleDiagnosticUtils`, `EntityTransformUtils`
-
-Logic for removing `DSTYLE` XData and normalizing dimension properties is duplicated or overlapping across these classes.
-
-**Preferred fix:** Unify all dimension "healing" and override removal logic into a single service or utility class to ensure consistency.
-
-### KI-7. Double-pass on Cloned Objects
+### KI-6. Double-pass on Cloned Objects
 
 **Where:** `BlockInserter.InsertNativeObjects`
 
@@ -81,6 +73,7 @@ Objects are first cloned, then iterated again to apply `TransformBy`. For large 
 | Item | Fix |
 | :--- | :--- |
 | Aux viewport double-scaling drift | Aux-to-main transform now uses original main viewport scale before global clamp scaling. |
+| Scattered dimension post-processing | Removed the old post-merge dimension healer; dimensions are normalized once in `DimensionStyleNormalizer` before cross-database cloning. |
 | Dimension property auto-scaling ×304.8 on imperial source DWGs | After `CloseInput(true)`, `sourceDb.Insunits` and `sourceDb.Measurement` are now forced to match `targetDb` before `WblockCloneObjects`. Syncing before `CloseInput` was insufficient: AutoCAD restores file-header metadata when the input stream is closed, so the sync must happen strictly after `CloseInput`. |
 | Aux viewport residual originals | Added `EraseEntitiesOutsideMainWindow` cleanup after aux cloning. |
 | Fire-and-forget startup failure | `MergeDwgFolderCommand` catches startup exceptions around the awaited task. |

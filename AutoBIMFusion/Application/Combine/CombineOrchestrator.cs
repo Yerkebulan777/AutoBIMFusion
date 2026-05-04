@@ -42,11 +42,8 @@ internal static class CombineOrchestrator
                 return CombineResult.Warn(fileName, "Пустой файл");
             }
 
-            // ВНИМАНИЕ: Внутри этого блока НЕ вызываются HealDimensionStyles
-            // и TryRemoveDimensionStyleOverrides. Постобработка размеров выполняется
-            // строго ОДИН РАЗ после слияния ВСЕХ листов — через DimensionHealer.HealAll()
-            // в CombineCommands.ExecuteMergeAsync. Это предотвращает многократное
-            // умножение визуальных свойств на коэффициент 304.8.
+            // Размерные стили нормализуются превентивно внутри PrepareDatabaseForMerge:
+            // каждый размер получает стиль с масштабом рабочего clamped main VP до WblockCloneObjects.
 
             Extents3d? worldBounds;
             using (targetDoc.LockDocument())
