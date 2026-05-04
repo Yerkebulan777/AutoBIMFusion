@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Application.AcadSupport;
@@ -33,8 +31,12 @@ internal abstract class SysVarScope : IDisposable
         // Восстанавливаем в обратном порядке для корректного стека зависимостей.
         for (int i = _vars.Count - 1; i >= 0; i--)
         {
-            var (name, oldValue, isSet) = _vars[i];
-            if (!isSet) continue;
+            (string? name, object? oldValue, bool isSet) = _vars[i];
+            if (!isSet)
+            {
+                continue;
+            }
+
             try { AcadApp.SetSystemVariable(name, oldValue!); }
             catch { /* Игнорируем: другие переменные должны быть восстановлены. */ }
         }

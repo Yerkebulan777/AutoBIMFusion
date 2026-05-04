@@ -1,4 +1,3 @@
-```
 # Build artifacts
 bin/
 obj/
@@ -22,6 +21,7 @@ node_modules/
 # Editors
 .vscode/
 .idea/
+.vs/
 *.suo
 *.user
 *.userosscache
@@ -32,6 +32,8 @@ node_modules/
 Thumbs.db
 desktop.ini
 
+# Misc junk
+NUL
+
 # Testing
 TestResults/
-```

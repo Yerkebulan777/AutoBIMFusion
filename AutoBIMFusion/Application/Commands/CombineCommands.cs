@@ -45,6 +45,7 @@ public sealed class CombineCommands
         try
         {
             string? sourceFolder = folderPath;
+
             if (string.IsNullOrWhiteSpace(sourceFolder) && !UiDialogService.TrySelectFolder("Выберите папку с файлами DWG для объединения", out sourceFolder))
             {
                 return;
@@ -155,12 +156,7 @@ public sealed class CombineCommands
         DirectoryInfo dir = new(rootPath);
         DirectoryInfo? parent = dir.Parent;
 
-        if (parent is null)
-        {
-            return Path.Combine(dir.FullName, $"{dir.Name}.dwg");
-        }
-
-        return Path.Combine(parent.FullName, $"{dir.Name}.dwg");
+        return parent is null ? Path.Combine(dir.FullName, $"{dir.Name}.dwg") : Path.Combine(parent.FullName, $"{dir.Name}.dwg");
     }
 
     private static void SaveMerged(Database db, string savePath, Logger log)
@@ -171,7 +167,7 @@ public sealed class CombineCommands
 
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
             {
-                Directory.CreateDirectory(dir);
+                _ = Directory.CreateDirectory(dir);
             }
 
             if (File.Exists(savePath))

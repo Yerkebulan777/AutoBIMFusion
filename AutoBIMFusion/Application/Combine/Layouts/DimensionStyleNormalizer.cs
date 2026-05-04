@@ -11,6 +11,8 @@ internal static class DimensionStyleNormalizer
 {
     private const double Tolerance = 1e-9;
     private const double ModelSizedDimtxtThreshold = 20.0;
+    private const double MinScaleMultiplier = 0.01;
+    private const double MaxScaleMultiplier = 100.0;
 
     /// <summary>
     /// Creates or reuses effective projection-scale-specific dimension styles for every model-space dimension,
@@ -66,9 +68,8 @@ internal static class DimensionStyleNormalizer
             }
 
             string newStyleName = BuildScaledStyleName(sourceStyle.Name, multiplier);
-            ObjectId normalizedStyleId;
 
-            if (!styleCache.TryGetValue(newStyleName, out normalizedStyleId))
+            if (!styleCache.TryGetValue(newStyleName, out ObjectId normalizedStyleId))
             {
                 normalizedStyleId = CreateScaledStyle(dimStyleTable, sourceStyle, newStyleName, multiplier, tr, log);
                 styleCache[newStyleName] = normalizedStyleId;
@@ -246,12 +247,7 @@ internal static class DimensionStyleNormalizer
             multiplier = fallbackMultiplier;
         }
 
-        if (!IsUsableMultiplier(multiplier))
-        {
-            return 1.0;
-        }
-
-        return Math.Clamp(multiplier, LayoutProjectionProcessor.MinScaleMultiplier, LayoutProjectionProcessor.MaxScaleMultiplier);
+        return !IsUsableMultiplier(multiplier) ? 1.0 : Math.Clamp(multiplier, MinScaleMultiplier, MaxScaleMultiplier);
     }
 
     private static ObjectId CreateScaledStyle(
@@ -297,8 +293,7 @@ internal static class DimensionStyleNormalizer
         style.Dimcen = ScaleVisualValue(style.Dimcen, multiplier);
         style.Dimtvp = ScaleVisualValue(style.Dimtvp, multiplier);
         style.Dimfxlen = ScaleVisualValue(style.Dimfxlen, multiplier);
-        style.Dimdsep = ScaleVisualValue(style.Dimdsep, multiplier);
-        
+
         // Set text fill to transparent (0 = transparent, 1 = background fill, 2 = fill box)
         style.Dimtfill = 0;
     }
@@ -323,12 +318,9 @@ internal static class DimensionStyleNormalizer
         }
 
         double rounded = Math.Round(multiplier);
-        if (Math.Abs(multiplier - rounded) < Tolerance)
-        {
-            return rounded.ToString("0", CultureInfo.InvariantCulture);
-        }
-
-        return multiplier
+        return Math.Abs(multiplier - rounded) < Tolerance
+            ? rounded.ToString("0", CultureInfo.InvariantCulture)
+            : multiplier
             .ToString("0.######", CultureInfo.InvariantCulture)
             .TrimEnd('0')
             .TrimEnd('.');

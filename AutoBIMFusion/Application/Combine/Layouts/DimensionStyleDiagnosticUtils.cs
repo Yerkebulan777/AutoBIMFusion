@@ -67,7 +67,9 @@ internal static class DimensionStyleDiagnosticUtils
     }
 
     private static bool IsUserStyle(SymbolTableRecord style)
-        => !style.IsDependent && !style.IsErased && !StandardStyleNames.Contains(style.Name);
+    {
+        return !style.IsDependent && !style.IsErased && !StandardStyleNames.Contains(style.Name);
+    }
 
     private static string FormatDimensionStyle(DimStyleTableRecord style)
     {
@@ -97,15 +99,22 @@ internal static class DimensionStyleDiagnosticUtils
             $"styleObliquingAngle={F(style.ObliquingAngle)}";
     }
 
-    private static string FormatColor(Color color) => $"{color.ColorMethod}:{color.ColorIndex}";
+    private static string FormatColor(Color color)
+    {
+        return $"{color.ColorMethod}:{color.ColorIndex}";
+    }
 
     private static string F(double value)
-        => double.IsFinite(value) ? value.ToString("F6", CultureInfo.InvariantCulture) : "n/a";
+    {
+        return double.IsFinite(value) ? value.ToString("F6", CultureInfo.InvariantCulture) : "n/a";
+    }
 
     private static string Escape(string? value)
-        => (value ?? string.Empty)
-            .Replace("\\", "\\\\", StringComparison.Ordinal)
-            .Replace("\"", "\\\"", StringComparison.Ordinal)
-            .Replace("\r", "\\r", StringComparison.Ordinal)
-            .Replace("\n", "\\n", StringComparison.Ordinal);
+    {
+        return (value ?? string.Empty)
+                .Replace("\\", "\\\\", StringComparison.Ordinal)
+                .Replace("\"", "\\\"", StringComparison.Ordinal)
+                .Replace("\r", "\\r", StringComparison.Ordinal)
+                .Replace("\n", "\\n", StringComparison.Ordinal);
+    }
 }

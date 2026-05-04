@@ -12,10 +12,7 @@ internal static class LayoutProjectionProcessor
     private const double MaxScaleMultiplier = 100.0;
     private const double MinScaleMultiplier = 0.01;
 
-    internal sealed record LayoutProjectionResult(
-        Extents3d? FrameBounds,
-        IReadOnlyDictionary<ObjectId, double> DimensionScales,
-        double FallbackMultiplier);
+    internal sealed record LayoutProjectionResult(Extents3d? FrameBounds, IReadOnlyDictionary<ObjectId, double> DimensionScales, double FallbackMultiplier);
 
     private sealed class DimensionScaleAccumulator
     {
