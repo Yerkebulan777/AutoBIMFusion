@@ -59,7 +59,12 @@ internal static class DimensionHealer
             dimensionsScanned++;
             bool wasOpenedForWrite = dimension.IsWriteEnabled;
 
-            (bool overridesWereCleared, bool textRotationWasReset, bool dimlfacWasReset) = HealDimension(dimension);
+            (bool overridesWereCleared, bool textRotationWasReset, bool dimlfacWasReset, string? warning) = HealDimension(dimension);
+
+            if (warning is not null)
+            {
+                LoggerFactory.GetSharedLogger().Warning(warning);
+            }
 
             if (overridesWereCleared || textRotationWasReset || dimlfacWasReset)
             {
@@ -105,12 +110,13 @@ internal static class DimensionHealer
     /// сбрасывает TextRotation в 0 и нормализует Dimlfac в 1.0.
     /// </summary>
     /// <remarks>Может открыть объект на запись (UpgradeOpen), если требуются изменения.</remarks>
-    internal static (bool OverridesCleared, bool TextRotationReset, bool DimlfacReset) HealDimension(Dimension dimension)
+    internal static (bool OverridesCleared, bool TextRotationReset, bool DimlfacReset, string? WarningMessage) HealDimension(Dimension dimension)
     {
         ObjectId styleId = dimension.DimensionStyle;
         bool hasTextRotation = !AreClose(dimension.TextRotation, 0.0);
         bool hasDimlfacDrift = !dimension.Dimlfac.Equals(1.0);
         bool overridesCleared = false;
+        string? warningMessage = null;
 
         try
         {
@@ -118,10 +124,7 @@ internal static class DimensionHealer
         }
         catch (System.Exception ex)
         {
-            LoggerFactory.GetSharedLogger().Warning(
-                ex,
-                "Dimension healer could not clear overrides for handle={Handle}.",
-                dimension.Handle.ToString());
+            warningMessage = $"Dimension healer could not clear overrides for handle={dimension.Handle}: {ex.Message}";
         }
 
         if ((hasTextRotation || hasDimlfacDrift) && !dimension.IsWriteEnabled)
@@ -146,7 +149,7 @@ internal static class DimensionHealer
             dimension.DimensionStyle = styleId;
         }
 
-        return (overridesCleared, hasTextRotation, hasDimlfacDrift);
+        return (overridesCleared, hasTextRotation, hasDimlfacDrift, warningMessage);
     }
 
     private static (int DimlfacHealedCount, int DimscaleNormalizedCount, int VisualPropsRescaledCount) HealDimensionStyles(
