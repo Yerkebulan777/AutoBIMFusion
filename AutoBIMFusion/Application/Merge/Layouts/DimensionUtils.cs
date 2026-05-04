@@ -88,11 +88,11 @@ internal static class DimensionUtils
 
             List<TypedValue> cleanedSection = sectionValues;
             bool sectionChanged = false;
-            if (appName is not null && appName.Equals(AcadRegAppName, StringComparison.OrdinalIgnoreCase))
+            if (appName.Equals(AcadRegAppName, StringComparison.OrdinalIgnoreCase))
             {
                 sectionChanged = TryRemoveAcadDimensionStyleOverrideSection(sectionValues, out cleanedSection);
             }
-            else if (appName is not null && appName.Equals(LegacyDstyleRegAppName, StringComparison.OrdinalIgnoreCase))
+            else if (appName.Equals(LegacyDstyleRegAppName, StringComparison.OrdinalIgnoreCase))
             {
                 cleanedSection = [];
                 sectionChanged = true;

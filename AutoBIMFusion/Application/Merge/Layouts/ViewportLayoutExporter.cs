@@ -5,9 +5,9 @@ using System.Runtime.Versioning;
 namespace AutoBIMFusion.Application.Merge.Layouts;
 
 /// <summary>
-/// Exports the first layout of a source DWG to a temporary Model Space-only DWG.
-/// The method keeps the high-level pipeline here and delegates viewport projection
-/// and scale normalization to <see cref="LayoutProjectionProcessor"/>.
+/// Экспортирует первый макет исходного файла DWG во временный файл DWG, содержащий только пространство модели.
+/// Данный метод сохраняет за собой управление общим процессом и делегирует обработку проекции окна просмотра
+/// и нормализацию масштаба объекту <see cref="LayoutProjectionProcessor"/>.
 /// </summary>
 [SupportedOSPlatform("Windows")]
 internal static class ViewportLayoutExporter

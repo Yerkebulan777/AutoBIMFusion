@@ -2,13 +2,20 @@ using AutoBIMFusion.Infrastructure.Logging;
 
 namespace AutoBIMFusion.Application.Merge.Layouts;
 
+/// <summary>
+/// Исправляет размерные объекты и стили размеров после клонирования из исходного чертежа.
+/// Удаляет DSTYLE XData-переопределения, нормализует Dimlfac и сбрасывает ImperialOverride-масштабы.
+/// </summary>
 internal static class DimensionHealer
 {
     private const double Tolerance = 1e-3;
-    private static readonly double[] ImperialOverrideFactors = [304.8, 25.4, 12.0];
+    private const double ImperialOverrideFactor = 304.8;
+
+    // Значение Dimscale, которое AutoCAD записывает при конвертации Imperial-чертежей:
+    // 304.8 = мм/фут.
     private const int MaxDebugSamples = 5;
 
-    public sealed record StyleHealSample(
+    private sealed record StyleHealSample(
         string Name,
         string Handle,
         double BeforeDimscale,
@@ -34,6 +41,7 @@ internal static class DimensionHealer
         double BeforeDimlfac,
         double AfterDimlfac);
 
+    /// <summary>Статистика операции исправления размеров.</summary>
     internal readonly record struct DimensionHealResult(
         int OverridesCleared,
         int TextRotationsReset,
@@ -44,23 +52,29 @@ internal static class DimensionHealer
         int DimscaleNormalized,
         int VisualPropsRescaled);
 
+    /// <summary>
+    /// Исправляет стили размеров и указанные размерные объекты в целевой базе данных.
+    /// </summary>
+    /// <param name="targetDb">Целевая база данных AutoCAD.</param>
+    /// <param name="dimensionIds">ObjectId размерных объектов, подлежащих исправлению.</param>
+    /// <returns>Статистика по числу исправленных объектов и стилей.</returns>
     internal static DimensionHealResult Heal(Database targetDb, IReadOnlyCollection<ObjectId> dimensionIds)
     {
         ArgumentNullException.ThrowIfNull(targetDb);
         ArgumentNullException.ThrowIfNull(dimensionIds);
 
-        int dimensionsScanned = 0;
-        int dimensionsOpenedForWrite = 0;
         int overridesCleared = 0;
+        int dimensionsScanned = 0;
         int textRotationsReset = 0;
+        int dimensionsOpenedForWrite = 0;
         int dimensionDimlfacNormalized = 0;
+
         List<StyleHealSample> styleSamples = [];
         List<DimensionOverrideSample> dimensionSamples = [];
 
         using Transaction tr = targetDb.TransactionManager.StartTransaction();
 
-        (int healedStyleDimlfacCount, int normalizedStyleDimscaleCount, int styleVisualPropsRescaled) =
-            HealDimensionStyles(targetDb, tr, styleSamples);
+        (int healedStyleDimlfacCount, int normalizedStyleDimscaleCount, int styleVisualPropsRescaled) = HealDimensionStyles(targetDb, tr, styleSamples);
 
         foreach (ObjectId id in dimensionIds)
         {
@@ -168,8 +182,6 @@ internal static class DimensionHealer
                 sample.AfterDimlfac);
         }
 
-        logger.Information("Dimension entity overrides cleared for {Count} objects.", overridesCleared);
-
         return new DimensionHealResult(
             overridesCleared,
             textRotationsReset,
@@ -181,6 +193,11 @@ internal static class DimensionHealer
             styleVisualPropsRescaled);
     }
 
+    /// <summary>
+    /// Исправляет один размерный объект: удаляет DSTYLE XData-переопределения,
+    /// сбрасывает TextRotation в 0 и нормализует Dimlfac в 1.0.
+    /// </summary>
+    /// <remarks>Может открыть объект на запись (UpgradeOpen), если требуются изменения.</remarks>
     internal static (bool OverridesCleared, bool TextRotationReset, bool DimlfacReset, double BeforeTextRotation, double BeforeDimlfac) HealDimension(Dimension dimension)
     {
         ObjectId styleId = dimension.DimensionStyle;
@@ -217,6 +234,8 @@ internal static class DimensionHealer
             dimension.Dimlfac = 1.0;
         }
 
+        // После удаления XData повторное присвоение того же стиля заставляет AutoCAD
+        // перечитать свойства из таблицы стилей и сбросить кэшированные override-значения.
         if (overridesCleared && !styleId.IsNull)
         {
             dimension.DimensionStyle = styleId;
@@ -225,7 +244,7 @@ internal static class DimensionHealer
         return (overridesCleared, hasTextRotation, hasDimlfacDrift, beforeTextRotation, beforeDimlfac);
     }
 
-    public static (int DimlfacHealedCount, int DimscaleNormalizedCount, int VisualPropsRescaledCount) HealDimensionStyles(
+    private static (int DimlfacHealedCount, int DimscaleNormalizedCount, int VisualPropsRescaledCount) HealDimensionStyles(
         Database targetDb,
         Transaction tr,
         List<StyleHealSample> samples)
@@ -235,6 +254,7 @@ internal static class DimensionHealer
         int visualPropsRescaledCount = 0;
 
         DimStyleTable dimStyleTable = (DimStyleTable)tr.GetObject(targetDb.DimStyleTableId, OpenMode.ForRead);
+        
         foreach (ObjectId styleId in dimStyleTable)
         {
             if (tr.GetObject(styleId, OpenMode.ForRead, false) is not DimStyleTableRecord style || style.IsDependent)
@@ -292,6 +312,9 @@ internal static class DimensionHealer
         return (dimlfacHealedCount, dimscaleNormalizedCount, visualPropsRescaledCount);
     }
 
+    // Когда Dimscale равен imperial-фактору, AutoCAD умножает визуальные размеры на него при отображении.
+    // Чтобы установить Dimscale=1.0 без визуального изменения чертежа, нужно предварительно
+    // «запечь» этот множитель в каждое визуальное свойство.
     private static int NormalizeStyleVisualScale(DimStyleTableRecord style, double scale)
     {
         int changed = 0;
@@ -320,11 +343,15 @@ internal static class DimensionHealer
         changedCount++;
         return value * scale;
     }
-
+        
     private static bool IsImperialOverride(double value)
     {
-        return double.IsFinite(value)
-            && ImperialOverrideFactors.Any(factor => Abs(value - factor) <= Tolerance);
+        if (double.IsFinite(value))
+        {
+            return AreClose(value, ImperialOverrideFactor);
+        }
+
+        return false;
     }
 
     private static bool AreClose(double left, double right)
