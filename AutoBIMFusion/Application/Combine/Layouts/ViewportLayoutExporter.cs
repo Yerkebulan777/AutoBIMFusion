@@ -50,12 +50,18 @@ internal static class ViewportLayoutExporter
 
             List<LayoutViewportInfo> vps = ViewportCollector.Collect(db, layoutName);
 
-            Extents3d? frameBounds = LayoutProjectionProcessor.ProjectLayoutToModelSpace(db, layoutName, vps, log);
+            LayoutProjectionProcessor.LayoutProjectionResult projection = LayoutProjectionProcessor.ProjectLayoutToModelSpace(db, layoutName, vps, log);
 
-            if (frameBounds.HasValue)
+            if (projection.FrameBounds.HasValue)
             {
-                _ = ModelSpaceTrimmer.TrimOutside(db, frameBounds.Value, log);
+                _ = ModelSpaceTrimmer.TrimOutside(db, projection.FrameBounds.Value, log);
             }
+
+            DimensionStyleNormalizer.NormalizeModelSpaceDimensions(
+                db,
+                projection.DimensionScales,
+                projection.FallbackMultiplier,
+                log);
 
             return db;
         }

@@ -22,11 +22,8 @@ internal static class EntityTransformUtils
             EvaluateHatch(hatch);
         }
 
-        // ПРИМЕЧАНИЕ: Очистка переопределений размерных стилей (TryRemoveDimensionStyleOverrides)
-        // НЕ выполняется здесь. Она делегирована в DimensionHealer.HealAll(), который вызывается
-        // строго ОДИН РАЗ в конце процесса слияния (CombineCommands.ExecuteMergeAsync).
-        // Вызов TryRemoveDimensionStyleOverrides внутри циклов трансформации приводил к
-        // дублированию обработки и мог вызывать создание кривых анонимных стилей *D...
+        // Размерные стили и DSTYLE XData нормализуются после проекции sourceDb,
+        // когда известен effective multiplier рабочего clamped main VP.
 
         return new TransformResult(true, false);
     }

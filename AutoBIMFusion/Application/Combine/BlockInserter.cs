@@ -35,8 +35,8 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
 
             ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
             ObjectId targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
-            // Цель цикла: только клонировать объекты в targetDb.
-            // Лечение размерных стилей и объектов выполняется единожды после всех вставок через DimensionHealer.HealAll.
+            // Цель цикла: только собрать объекты для клонирования в targetDb.
+            // Размеры уже нормализованы в подготовленной sourceDb до WblockCloneObjects.
             using ObjectIdCollection sourceIds = [];
 
             using (Transaction tr = sourceDb.TransactionManager.StartTransaction())
