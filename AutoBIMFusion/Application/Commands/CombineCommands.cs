@@ -85,6 +85,7 @@ public sealed class CombineCommands
             {
                 RasterImagePathFixer.CopyImagesToTargetFolder(doc.Database, savePath, log);
                 DimensionStyleDiagnosticUtils.LogStyleSnapshot(doc.Database, log, "after-merge");
+
                 DwgOptimizer.Optimize(doc.Database, log);
 
                 SaveMerged(doc.Database, savePath, log);
@@ -111,12 +112,7 @@ public sealed class CombineCommands
         }
     }
 
-    private static async Task MergeFiles(
-        string[] files,
-        BlockInserter inserter,
-        Document doc,
-        CombineStatistics stats,
-        Logger log)
+    private static async Task MergeFiles(string[] files, BlockInserter inserter, Document doc, CombineStatistics stats, Logger log)
     {
         using ProgressMeter pm = new();
         pm.Start("Объединение файлов DWG...");
@@ -159,8 +155,7 @@ public sealed class CombineCommands
 
         if (parent is null)
         {
-            string name = string.IsNullOrEmpty(dir.Name) ? "MergedDrawings" : dir.Name;
-            return Path.Combine(dir.FullName, $"{name}.dwg");
+            return Path.Combine(dir.FullName, $"{dir.Name}.dwg");
         }
 
         return Path.Combine(parent.FullName, $"{dir.Name}.dwg");
