@@ -96,7 +96,9 @@ public sealed class CombineCommands
             }
 
             sw.Stop();
+
             log.Information($"Завершено: {stats}");
+
             if (showDialogs)
             {
                 ShowSummary(stats, sw.Elapsed, savePath, commandName);
