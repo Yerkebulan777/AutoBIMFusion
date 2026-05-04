@@ -1,6 +1,6 @@
 using AutoBIMFusion.Infrastructure.Logging;
 
-namespace AutoBIMFusion.Application.Merge.Layouts;
+namespace AutoBIMFusion.Application.Combine.Layouts;
 
 /// <summary>
 /// Утилиты для работы с размерами AutoCAD.

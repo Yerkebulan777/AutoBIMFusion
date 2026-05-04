@@ -1,4 +1,4 @@
-namespace AutoBIMFusion.Application.Merge.Layouts;
+namespace AutoBIMFusion.Application.Combine.Layouts;
 
 /// <summary>
 /// Математические операции с габаритами AutoCAD-геометрии.

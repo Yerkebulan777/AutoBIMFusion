@@ -1,6 +1,6 @@
 using Serilog.Core;
 
-namespace AutoBIMFusion.Application.Merge;
+namespace AutoBIMFusion.Application.Combine;
 
 /// <summary>
 /// Копирует файлы растровых изображений в папку с целевым DWG

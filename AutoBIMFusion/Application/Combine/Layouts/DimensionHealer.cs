@@ -2,7 +2,7 @@ using AutoBIMFusion.Infrastructure.Logging;
 using System.Diagnostics;
 using System.Text;
 
-namespace AutoBIMFusion.Application.Merge.Layouts;
+namespace AutoBIMFusion.Application.Combine.Layouts;
 
 /// <summary>
 /// Исправляет размерные объекты и стили размеров после клонирования из исходного чертежа.

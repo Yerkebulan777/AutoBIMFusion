@@ -1,7 +1,6 @@
-using AutoBIMFusion.Application.Merge.Layouts.Transforms;
 using Serilog.Core;
 
-namespace AutoBIMFusion.Application.Merge.Layouts;
+namespace AutoBIMFusion.Application.Combine.Layouts;
 
 /// <summary>
 /// Переводит содержимое вспомогательного viewport'а (узла) в модельные координаты

@@ -1,7 +1,6 @@
 using AutoBIMFusion.Application.AcadSupport;
-using AutoBIMFusion.Application.Merge;
-using AutoBIMFusion.Application.Merge.Layouts;
-using AutoBIMFusion.Application.Merge.Models;
+using AutoBIMFusion.Application.Combine;
+using AutoBIMFusion.Application.Combine.Layouts;
 using AutoBIMFusion.Application.Utils;
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
@@ -14,7 +13,7 @@ using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 namespace AutoBIMFusion.Application.Commands;
 
 [SupportedOSPlatform("Windows")]
-public sealed class MergeCommands
+public sealed class CombineCommands
 {
     private const string DiagnosticTestFolder = @"C:\Users\y.zhumabayev\Desktop\TEST";
 
@@ -76,7 +75,7 @@ public sealed class MergeCommands
             }
 
             const double gapPercent = 0.1;
-            MergeStatistics stats = new();
+            CombineStatistics stats = new();
             Stopwatch sw = Stopwatch.StartNew();
 
             BlockInserter inserter = new(gapPercent, log);
@@ -129,7 +128,7 @@ public sealed class MergeCommands
             {
                 stats.RecordTotal();
 
-                MergeResult result = await MergeOrchestrator.MergeSingleFile(files[idx], inserter, doc, log);
+                CombineResult result = await CombineOrchestrator.MergeSingleFile(files[idx], inserter, doc, log);
 
                 if (result.Success)
                 {

@@ -1,7 +1,7 @@
 using AutoBIMFusion.Application.Utils;
 using Serilog.Core;
 
-namespace AutoBIMFusion.Application.Merge.Layouts;
+namespace AutoBIMFusion.Application.Combine.Layouts;
 
 /// <summary>
 /// Размещает содержимое проекта в пространстве модели до объединения временного файла DWG.

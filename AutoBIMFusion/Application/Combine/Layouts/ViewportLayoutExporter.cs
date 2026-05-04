@@ -2,7 +2,7 @@ using AutoBIMFusion.Application.Utils;
 using Serilog.Core;
 using System.Runtime.Versioning;
 
-namespace AutoBIMFusion.Application.Merge.Layouts;
+namespace AutoBIMFusion.Application.Combine.Layouts;
 
 /// <summary>
 /// Экспортирует первый макет исходного файла DWG во временный файл DWG, содержащий только пространство модели.

@@ -2,7 +2,7 @@ using Autodesk.AutoCAD.Colors;
 using Serilog.Core;
 using System.Globalization;
 
-namespace AutoBIMFusion.Application.Merge.Layouts;
+namespace AutoBIMFusion.Application.Combine.Layouts;
 
 internal static class DimensionStyleDiagnosticUtils
 {

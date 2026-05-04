@@ -1,7 +1,7 @@
-using AutoBIMFusion.Application.Merge.Layouts;
+using AutoBIMFusion.Application.Combine.Layouts;
 using Serilog.Core;
 
-namespace AutoBIMFusion.Application.Merge;
+namespace AutoBIMFusion.Application.Combine;
 
 /// <summary>
 /// Вставляет содержимое DWG как нативные объекты в Model Space целевого чертежа,

@@ -1,4 +1,4 @@
-namespace AutoBIMFusion.Application.Merge.Layouts.Transforms;
+namespace AutoBIMFusion.Application.Combine.Layouts;
 
 /// <summary>
 /// Применяет преобразования объектов AutoCAD с необходимой постобработкой для

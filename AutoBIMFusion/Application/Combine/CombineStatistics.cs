@@ -1,9 +1,9 @@
-namespace AutoBIMFusion.Application.Merge.Models;
+namespace AutoBIMFusion.Application.Combine;
 
 /// <summary>
 /// Статистика операции слияния DWG-файлов.
 /// </summary>
-internal sealed class MergeStatistics
+internal sealed class CombineStatistics
 {
     public int TotalFiles { get; private set; }
     public int Successful { get; private set; }

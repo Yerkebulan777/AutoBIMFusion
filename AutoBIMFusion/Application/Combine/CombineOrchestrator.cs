@@ -1,28 +1,27 @@
 using AutoBIMFusion.Application.AcadSupport;
-using AutoBIMFusion.Application.Merge.Layouts;
-using AutoBIMFusion.Application.Merge.Models;
+using AutoBIMFusion.Application.Combine.Layouts;
 using AutoBIMFusion.Application.Utils;
 using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
 using System.Runtime.Versioning;
 
-namespace AutoBIMFusion.Application.Merge;
+namespace AutoBIMFusion.Application.Combine;
 
 /// <summary>
 /// Координирует слияние DWG-файлов: экспортирует первый Paper Space лист,
 /// вычисляет границы, вставляет как блок со смещением.
 /// </summary>
 [SupportedOSPlatform("windows")]
-internal static class MergeOrchestrator
+internal static class CombineOrchestrator
 {
-    public static async Task<MergeResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc, Logger log)
+    public static async Task<CombineResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc, Logger log)
     {
         string fileName = Path.GetFileName(filePath);
         string layoutName = Path.GetFileNameWithoutExtension(filePath);
 
         if (!FileUtil.TryValidateDwg(filePath, out string warn))
         {
-            return MergeResult.Warn(fileName, warn);
+            return CombineResult.Warn(fileName, warn);
         }
 
         try
@@ -33,14 +32,14 @@ internal static class MergeOrchestrator
 
             if (sourceDb == null)
             {
-                return MergeResult.Warn(fileName, "Листы не найдены");
+                return CombineResult.Warn(fileName, "Листы не найдены");
             }
 
             Extents3d? bounds = ExtentsUtils.GetDatabaseExtents(sourceDb);
 
             if (!bounds.HasValue)
             {
-                return MergeResult.Warn(fileName, "Пустой файл");
+                return CombineResult.Warn(fileName, "Пустой файл");
             }
 
             Extents3d? worldBounds;
@@ -52,16 +51,16 @@ internal static class MergeOrchestrator
 
             if (worldBounds is null)
             {
-                return MergeResult.Fail(fileName, "Не удалось вставить объекты");
+                return CombineResult.Fail(fileName, "Не удалось вставить объекты");
             }
 
             log.Information($"Вставлен лист '{layoutName}'");
-            return MergeResult.Ok(fileName, layoutName);
+            return CombineResult.Ok(fileName, layoutName);
         }
         catch (System.Exception ex)
         {
             log.Error(ex, $"Ошибка: {fileName}");
-            return MergeResult.Fail(fileName, ex.Message, "Ошибка обработки");
+            return CombineResult.Fail(fileName, ex.Message, "Ошибка обработки");
         }
     }
 }
