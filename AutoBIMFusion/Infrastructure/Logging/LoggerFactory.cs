@@ -20,6 +20,17 @@ internal static class LoggerFactory
         return Path.Combine(GetLogsDirectory(), $"merge-{DateTime.Today:yyyy-MM-dd}.log");
     }
 
+    public static string GetCurrentLogFilePath(string directoryPath)
+    {
+        return Path.Combine(directoryPath, $"merge-{DateTime.Today:yyyy-MM-dd}.log");
+    }
+
+    public static Logger CreateLoggerInDirectory(string directoryPath)
+    {
+        string logFile = GetCurrentLogFilePath(directoryPath);
+        return CreateFileLoggerCore(logFile);
+    }
+
     private static Logger CreateFileLogger()
     {
         try
@@ -28,6 +39,25 @@ internal static class LoggerFactory
             string logFile = GetCurrentLogFilePath();
 
             _ = Directory.CreateDirectory(logsDir);
+
+            return CreateFileLoggerCore(logFile);
+        }
+        catch (System.Exception ex)
+        {
+            Debug.WriteLine($"Failed to create file logger: {ex}");
+            return new LoggerConfiguration().CreateLogger();
+        }
+    }
+
+    private static Logger CreateFileLoggerCore(string logFile)
+    {
+        try
+        {
+            string? logsDir = Path.GetDirectoryName(logFile);
+            if (!string.IsNullOrEmpty(logsDir))
+            {
+                _ = Directory.CreateDirectory(logsDir);
+            }
 
             return new LoggerConfiguration()
                 .MinimumLevel.Debug()
@@ -38,7 +68,7 @@ internal static class LoggerFactory
         }
         catch (System.Exception ex)
         {
-            Debug.WriteLine($"Failed to create file logger: {ex}");
+            Debug.WriteLine($"Failed to create logger for file '{logFile}': {ex}");
             return new LoggerConfiguration().CreateLogger();
         }
     }

@@ -26,19 +26,21 @@ public sealed class CombineCommands
     private async Task ExecuteMergeAsync(string? folderPath, bool showDialogs, string commandName)
     {
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
+
         if (doc?.Database == null)
         {
             return;
         }
 
-        Logger log = LoggerFactory.GetSharedLogger();
-        log.Information($"Запуск {commandName}...");
+        Logger bootstrapLog = LoggerFactory.GetSharedLogger();
 
         if (!await _mergeGate.WaitAsync(0))
         {
-            log.Warning($"{commandName}: операция уже запущена.");
+            bootstrapLog.Warning($"{commandName}: операция уже запущена.");
             return;
         }
+
+        Logger? commandLog = null;
 
         try
         {
@@ -48,8 +50,12 @@ public sealed class CombineCommands
                 return;
             }
 
+            commandLog = LoggerFactory.CreateLoggerInDirectory(sourceFolder!);
+            Logger log = commandLog;
+
+            log.Information($"Запуск {commandName}...");
             log.Information($"Исходная папка: {sourceFolder}");
-            log.Information($"Файл лога: {LoggerFactory.GetCurrentLogFilePath()}");
+            log.Information($"Файл лога: {LoggerFactory.GetCurrentLogFilePath(sourceFolder!)}");
 
             string savePath = BuildSavePath(sourceFolder!);
             log.Information($"Путь сохранения: {savePath}");
@@ -98,12 +104,13 @@ public sealed class CombineCommands
         }
         catch (System.Exception ex)
         {
-            log.Error(ex, $"Ошибка {commandName}");
+            (commandLog ?? bootstrapLog).Error(ex, $"Ошибка {commandName}");
         }
         finally
         {
             _ = _mergeGate.Release();
-            log.Information($"Завершение {commandName}.");
+            (commandLog ?? bootstrapLog).Information($"Завершение {commandName}.");
+            commandLog?.Dispose();
         }
     }
 
