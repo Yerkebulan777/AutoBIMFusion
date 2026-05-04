@@ -9,7 +9,7 @@ namespace AutoBIMFusion.Application.Merge.Layouts;
 /// </summary>
 internal static class DimensionHealer
 {
-    private const double Tolerance = 1e-3;
+    private const double Tolerance = 1e-5;
     private const double ImperialOverrideFactor = 304.8;
 
     /// <summary>Статистика операции исправления размеров.</summary>
@@ -125,7 +125,7 @@ internal static class DimensionHealer
     internal static (bool OverridesCleared, bool TextRotationReset, bool DimlfacReset, string? WarningMessage) HealDimension(Dimension dimension)
     {
         ObjectId styleId = dimension.DimensionStyle;
-        bool hasTextRotation = !AreClose(dimension.TextRotation, 0.0);
+        bool hasTextRotation = !AreClose(dimension.TextRotation);
         bool hasDimlfacDrift = !dimension.Dimlfac.Equals(1.0);
         bool overridesCleared = false;
         string? warningMessage = null;
@@ -239,13 +239,13 @@ internal static class DimensionHealer
 
     private static bool IsImperialOverride(double value)
     {
-        return double.IsFinite(value) && AreClose(value, ImperialOverrideFactor);
+        return double.IsFinite(value) && AreClose(value);
     }
 
-    private static bool AreClose(double left, double right)
+    private static bool AreClose(double value)
     {
-        return double.IsFinite(left)
-            && double.IsFinite(right)
-            && Abs(left - right) <= Tolerance;
+        double different = Abs(value - ImperialOverrideFactor);
+
+        return double.IsFinite(value) && different < Tolerance;
     }
 }
