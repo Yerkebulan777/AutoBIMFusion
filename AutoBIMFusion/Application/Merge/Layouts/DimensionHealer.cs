@@ -125,8 +125,9 @@ internal static class DimensionHealer
     internal static (bool OverridesCleared, bool TextRotationReset, bool DimlfacReset, string? WarningMessage) HealDimension(Dimension dimension)
     {
         ObjectId styleId = dimension.DimensionStyle;
-        bool hasTextRotation = !AreClose(dimension.TextRotation);
         bool hasDimlfacDrift = !dimension.Dimlfac.Equals(1.0);
+        bool hasTextRotation = !AreClose(dimension.TextRotation);
+
         bool overridesCleared = false;
         string? warningMessage = null;
 
