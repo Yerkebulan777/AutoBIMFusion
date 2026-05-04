@@ -11,15 +11,7 @@ internal static class DimensionHealer
 {
     private const double Tolerance = 1e-5;
     private const double ImperialOverrideFactor = 304.8;
-
-    /// <summary>
-    /// Пороговое значение Dimtxt для предохранителя (sanity check).
-    /// Если высота текста размера в стиле превышает это значение, стиль считается
-    /// УЖЕ масштабированным и умножение визуальных свойств на Dimscale пропускается.
-    /// Типичные метрические значения Dimtxt: 2.5, 3.0, 5.0 — всё что больше 50.0
-    /// гарантированно является результатом предыдущего «запекания» масштаба.
-    /// </summary>
-    private const double DimtxtSanityThreshold = 50.0;
+    private const double DimtxtSanityThreshold = 100.0;
 
     /// <summary>Статистика операции исправления размеров.</summary>
     internal readonly record struct DimensionHealResult(
