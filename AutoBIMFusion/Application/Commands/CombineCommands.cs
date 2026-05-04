@@ -115,7 +115,7 @@ public sealed class CombineCommands
         string[] files,
         BlockInserter inserter,
         Document doc,
-        MergeStatistics stats,
+        CombineStatistics stats,
         Logger log)
     {
         using ProgressMeter pm = new();
@@ -126,21 +126,21 @@ public sealed class CombineCommands
         {
             for (int idx = 0; idx < files.Length; idx++)
             {
-                stats.RecordTotal();
+                stats.AddTotal();
 
                 CombineResult result = await CombineOrchestrator.MergeSingleFile(files[idx], inserter, doc, log);
 
                 if (result.Success)
                 {
-                    stats.RecordSuccess();
+                    stats.AddSuccess();
                 }
                 else if (result.IsSkipped)
                 {
-                    stats.RecordSkipped();
+                    stats.AddSkipped();
                 }
                 else
                 {
-                    stats.RecordFailed();
+                    stats.AddFailed();
                 }
 
                 pm.MeterProgress();
@@ -195,7 +195,7 @@ public sealed class CombineCommands
         }
     }
 
-    private static void ShowSummary(MergeStatistics stats, TimeSpan elapsed, string savePath, string commandName)
+    private static void ShowSummary(CombineStatistics stats, TimeSpan elapsed, string savePath, string commandName)
     {
         string summary = stats.Failed == 0
             ? $"Завершено успешно.\nОбработано файлов: {stats.Successful}\nВремя: {elapsed:mm\\:ss\\.fff}\nСохранено в: {savePath}"
