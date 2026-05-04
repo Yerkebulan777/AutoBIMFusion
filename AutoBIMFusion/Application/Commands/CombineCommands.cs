@@ -15,20 +15,12 @@ namespace AutoBIMFusion.Application.Commands;
 [SupportedOSPlatform("Windows")]
 public sealed class CombineCommands
 {
-    private const string DiagnosticTestFolder = @"C:\Users\y.zhumabayev\Desktop\TEST";
-
     private readonly SemaphoreSlim _mergeGate = new(1, 1);
 
     [CommandMethod("MERGEDWG", CommandFlags.Modal | CommandFlags.Session)]
     public async void MergeDwgFolderCommand()
     {
         await ExecuteMergeAsync(folderPath: null, showDialogs: true, commandName: "MERGEDWG");
-    }
-
-    [CommandMethod("MERGEDWG_DIAG_TEST", CommandFlags.Modal | CommandFlags.Session)]
-    public async void MergeDwgDiagnosticTestCommand()
-    {
-        await ExecuteMergeAsync(DiagnosticTestFolder, showDialogs: false, commandName: "MERGEDWG_DIAG_TEST");
     }
 
     private async Task ExecuteMergeAsync(string? folderPath, bool showDialogs, string commandName)
