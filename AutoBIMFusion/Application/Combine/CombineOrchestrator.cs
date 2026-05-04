@@ -42,6 +42,12 @@ internal static class CombineOrchestrator
                 return CombineResult.Warn(fileName, "Пустой файл");
             }
 
+            // ВНИМАНИЕ: Внутри этого блока НЕ вызываются HealDimensionStyles
+            // и TryRemoveDimensionStyleOverrides. Постобработка размеров выполняется
+            // строго ОДИН РАЗ после слияния ВСЕХ листов — через DimensionHealer.HealAll()
+            // в CombineCommands.ExecuteMergeAsync. Это предотвращает многократное
+            // умножение визуальных свойств на коэффициент 304.8.
+
             Extents3d? worldBounds;
             using (targetDoc.LockDocument())
             using (new AcadUnitScalingOverrideScope())

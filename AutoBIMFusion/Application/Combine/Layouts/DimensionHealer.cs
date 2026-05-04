@@ -12,6 +12,15 @@ internal static class DimensionHealer
     private const double Tolerance = 1e-5;
     private const double ImperialOverrideFactor = 304.8;
 
+    /// <summary>
+    /// Пороговое значение Dimtxt для предохранителя (sanity check).
+    /// Если высота текста размера в стиле превышает это значение, стиль считается
+    /// УЖЕ масштабированным и умножение визуальных свойств на Dimscale пропускается.
+    /// Типичные метрические значения Dimtxt: 2.5, 3.0, 5.0 — всё что больше 50.0
+    /// гарантированно является результатом предыдущего «запекания» масштаба.
+    /// </summary>
+    private const double DimtxtSanityThreshold = 50.0;
+
     /// <summary>Статистика операции исправления размеров.</summary>
     internal readonly record struct DimensionHealResult(
         int OverridesCleared,
@@ -136,11 +145,14 @@ internal static class DimensionHealer
     /// Исправляет один размерный объект: удаляет DSTYLE XData-переопределения,
     /// сбрасывает TextRotation в 0 и нормализует Dimlfac в 1.0.
     /// </summary>
-    /// <remarks>Может открыть объект на запись (UpgradeOpen), если требуются изменения.</remarks>
-    /// <summary>
-    /// Исправляет один размерный объект: удаляет DSTYLE XData-переопределения,
-    /// сбрасывает TextRotation в 0 и нормализует Dimlfac в 1.0.
-    /// </summary>
+    /// <remarks>
+    /// КРИТИЧЕСКИ ВАЖНЫЙ ПОРЯДОК ОПЕРАЦИЙ:
+    ///   1. TryRemoveDimensionStyleOverrides(dim) — очистка XData переопределений
+    ///   2. dimension.DimensionStyle = styleId     — регенерация кэша из стиля
+    /// Если сделать наоборот, AutoCAD создаст новый кривой анонимный стиль *D...,
+    /// так как при присвоении DimensionStyle он считает XData-переопределения
+    /// и генерирует анонимный стиль на их основе.
+    /// </remarks>
     private static (bool OverridesCleared, bool TextRotationReset, bool DimlfacReset, string? WarningMessage) HealDimension(Dimension dimension)
     {
         ObjectId styleId = dimension.DimensionStyle;
@@ -150,6 +162,9 @@ internal static class DimensionHealer
         bool overridesCleared = false;
         string? warningMessage = null;
 
+        // ── ШАГ 1: Очистка XData переопределений ДО регенерации стиля ──
+        // Это ДОЛЖНО быть выполнено первым. Иначе при присвоении DimensionStyle
+        // AutoCAD увидит DSTYLE XData и создаст новый анонимный стиль *D...
         try
         {
             overridesCleared = DimensionUtils.TryRemoveDimensionStyleOverrides(dimension);
@@ -175,6 +190,7 @@ internal static class DimensionHealer
             dimension.Dimlfac = 1.0;
         }
 
+        // ── ШАГ 2: Регенерация кэша из стиля (СТРОГО ПОСЛЕ очистки XData) ──
         // Это заставит объект Dimension удалить из своего кэша старый Dimscale=304.8,
         // прочитать новые "запеченные" значения из стиля и предотвратить
         // появление анонимных стилей *D... при WblockCloneObjects.
@@ -222,6 +238,7 @@ internal static class DimensionHealer
         int dimlfacHealedCount = 0;
         int dimscaleNormalizedCount = 0;
 
+        Serilog.Core.Logger logger = LoggerFactory.GetSharedLogger();
         DimStyleTable dimStyleTable = (DimStyleTable)tr.GetObject(targetDb.DimStyleTableId, OpenMode.ForRead);
 
         foreach (ObjectId styleId in dimStyleTable)
@@ -230,18 +247,50 @@ internal static class DimensionHealer
             {
                 bool hasVisualScaleOverride = IsImperialOverride(style.Dimscale);
                 bool dimlfacNeedsNormalization = !style.Dimlfac.Equals(1.0);
+
+                // Логируем состояние каждого стиля перед принятием решения
+                logger.Information(
+                    "[Обнаружен стиль: {Name}] Dimscale: {Dimscale}, Dimtxt: {Dimtxt}, Dimasz: {Dimasz}, Dimlfac: {Dimlfac}",
+                    style.Name, style.Dimscale, style.Dimtxt, style.Dimasz, style.Dimlfac);
+
                 if (hasVisualScaleOverride || dimlfacNeedsNormalization)
                 {
                     style.UpgradeOpen();
 
-                    StringBuilder debugMessage = new();
-
                     if (hasVisualScaleOverride)
                     {
-                        _ = debugMessage.AppendLine($"Приведение к единому масштабу методом умножения на {style.Dimscale}");
-                        _ = debugMessage.AppendLine($"Стиль {style.Name} визуальные свойства: ");
-                        NormalizeStyleVisualScale(style, style.Dimscale);
-                        dimscaleNormalizedCount++;
+                        // ── ПРЕДОХРАНИТЕЛЬ (Sanity Check) ──────────────────────────────
+                        // Если Dimtxt уже превышает порог, значит визуальные свойства
+                        // стиля УЖЕ были «запечены» ранее (умножены на Dimscale).
+                        // Повторное умножение привело бы к гигантским размерам
+                        // (например, 762.0 × 304.8 = 232 257.6).
+                        // Применяется как к именованным, так и к анонимным (*D...) стилям.
+                        // ─────────────────────────────────────────────────────────────
+                        if (style.Dimtxt > DimtxtSanityThreshold)
+                        {
+                            logger.Warning(
+                                "[ПРОПУСК] Стиль {Name} пропущен (сработал предохранитель, Dimtxt={Dimtxt} слишком велик, порог={Threshold}). " +
+                                "Dimscale сбрасывается в 1.0 без перемасштабирования визуальных свойств.",
+                                style.Name, style.Dimtxt, DimtxtSanityThreshold);
+
+                            // Сбрасываем Dimscale без умножения визуальных свойств —
+                            // они уже содержат корректные «запечённые» значения.
+                            style.Dimscale = 1.0;
+                            dimscaleNormalizedCount++;
+                        }
+                        else
+                        {
+                            logger.Information(
+                                "[ИСПРАВЛЕНИЕ] Стиль {Name}: умножение визуальных свойств на Dimscale={Dimscale}...",
+                                style.Name, style.Dimscale);
+
+                            NormalizeStyleVisualScale(style, style.Dimscale);
+                            dimscaleNormalizedCount++;
+
+                            logger.Information(
+                                "[ИСПРАВЛЕН] Стиль {Name} нормализован. Новый Dimtxt: {Dimtxt}, Dimasz: {Dimasz}, Dimscale сброшен в 1.0",
+                                style.Name, style.Dimtxt, style.Dimasz);
+                        }
                     }
 
                     if (dimlfacNeedsNormalization)

@@ -22,12 +22,11 @@ internal static class EntityTransformUtils
             EvaluateHatch(hatch);
         }
 
-        // --- ИСПРАВЛЕНИЕ: ЖЕСТКАЯ ОЧИСТКА ПЕРЕОПРЕДЕЛЕНИЙ РАЗМЕРОВ ---
-        if (entity is Dimension dim)
-        {
-            _ = DimensionUtils.TryRemoveDimensionStyleOverrides(dim);
-        }
-        // -------------------------------------------------------------
+        // ПРИМЕЧАНИЕ: Очистка переопределений размерных стилей (TryRemoveDimensionStyleOverrides)
+        // НЕ выполняется здесь. Она делегирована в DimensionHealer.HealAll(), который вызывается
+        // строго ОДИН РАЗ в конце процесса слияния (CombineCommands.ExecuteMergeAsync).
+        // Вызов TryRemoveDimensionStyleOverrides внутри циклов трансформации приводил к
+        // дублированию обработки и мог вызывать создание кривых анонимных стилей *D...
 
         return new TransformResult(true, false);
     }
