@@ -183,21 +183,8 @@ internal static class DimensionHealer
 
                     if (hasVisualScaleOverride && NormalizeStyleVisualScale(style, style.Dimscale))
                     {
-                        debugMessage.AppendLine($"Стиль {style.Name}, приведенный к единому масштабу от {style.Dimscale} до 1,0");
-
-                        debugMessage.AppendLine($"Визуальные свойства: ");
-                        debugMessage.AppendLine($"Высота текста={style.Dimtxt}");
-                        debugMessage.AppendLine($"Размер стрелок={style.Dimasz}");
-                        debugMessage.AppendLine($"Отступ выносной линии={style.Dimexo}");
-                        debugMessage.AppendLine($"Вынос выносной линии={style.Dimexe}");
-                        debugMessage.AppendLine($"Отступ от размерной линии={style.Dimgap}");
-                        debugMessage.AppendLine($"Шаг размерной линии={style.Dimdli}");
-                        debugMessage.AppendLine($"Выступ размерной линии={style.Dimdle}");
-                        debugMessage.AppendLine($"Обозначение центра={style.Dimcen}");
-                        debugMessage.AppendLine($"Размер насечки={style.Dimtsz}");
-                        debugMessage.AppendLine($"Вертикальное положение текста={style.Dimtvp}");
-                        debugMessage.AppendLine($"Длина фиксированной выносной линии={style.Dimfxlen}");
-
+                        debugMessage.AppendLine($"Приведенный к единому масштабу методом умножения на {style.Dimscale}");
+                        debugMessage.AppendLine($"Стиль {style.Name} визуальные свойства: ");
                         dimscaleNormalizedCount++;
                     }
 
@@ -244,7 +231,8 @@ internal static class DimensionHealer
         }
 
         changed = true;
-        return value * scale;
+
+        return Math.Round(value * scale);
     }
 
     private static bool IsImperialOverride(double value)
