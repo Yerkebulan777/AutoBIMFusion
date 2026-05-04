@@ -20,8 +20,7 @@ internal static class DimensionHealer
         int DimensionsScanned,
         int DimensionsOpenedForWrite,
         int DimlfacHealed,
-        int DimscaleNormalized,
-        int VisualPropsRescaled);
+        int DimscaleNormalized);
 
     /// <summary>
     /// Исправляет стили размеров и указанные размерные объекты в целевой базе данных.
@@ -41,7 +40,7 @@ internal static class DimensionHealer
 
         using Transaction trx = targetDb.TransactionManager.StartTransaction();
 
-        (int healedStyleDimlfacCount, int normalizedStyleDimscaleCount, int styleVisualPropsRescaled) = HealDimensionStyles(targetDb, trx);
+        (int healedStyleDimlfacCount, int normalizedStyleDimscaleCount) = HealDimensionStyles(targetDb, trx);
 
         StringBuilder warnings = new();
 
@@ -95,10 +94,9 @@ internal static class DimensionHealer
         }
 
         logger.Information(
-            "DimensionHealer styles: dimlfac={DimlfacHealed}, dimscale={DimscaleNormalized}, visualProps={VisualPropsRescaled}.",
+            "DimensionHealer styles: dimlfac={DimlfacHealed}, dimscale={DimscaleNormalized}.",
             healedStyleDimlfacCount,
-            normalizedStyleDimscaleCount,
-            styleVisualPropsRescaled);
+            normalizedStyleDimscaleCount);
 
         logger.Information(
             "DimensionHealer entities: overrides={OverridesCleared}, dimlfac={DimlfacNormalized}, textRotation={TextRotationsReset}.",
@@ -113,8 +111,7 @@ internal static class DimensionHealer
             dimensionsScanned,
             dimensionsOpenedForWrite,
             healedStyleDimlfacCount,
-            normalizedStyleDimscaleCount,
-            styleVisualPropsRescaled);
+            normalizedStyleDimscaleCount);
     }
 
     /// <summary>
@@ -165,11 +162,10 @@ internal static class DimensionHealer
         return (overridesCleared, hasTextRotation, hasDimlfacDrift, warningMessage);
     }
 
-    private static (int DimlfacHealedCount, int DimscaleNormalizedCount, int VisualPropsRescaledCount) HealDimensionStyles(Database targetDb, Transaction tr)
+    private static (int DimlfacHealedCount, int DimscaleNormalizedCount) HealDimensionStyles(Database targetDb, Transaction tr)
     {
         int dimlfacHealedCount = 0;
         int dimscaleNormalizedCount = 0;
-        int visualPropsRescaledCount = 0;
 
         DimStyleTable dimStyleTable = (DimStyleTable)tr.GetObject(targetDb.DimStyleTableId, OpenMode.ForRead);
 
@@ -181,13 +177,10 @@ internal static class DimensionHealer
                 bool dimlfacNeedsNormalization = !style.Dimlfac.Equals(1.0);
                 if (hasVisualScaleOverride || dimlfacNeedsNormalization)
                 {
-                    double beforeDimscale = style.Dimscale;
-
                     style.UpgradeOpen();
 
-                    if (hasVisualScaleOverride)
+                    if (hasVisualScaleOverride && NormalizeStyleVisualScale(style, style.Dimscale))
                     {
-                        visualPropsRescaledCount += NormalizeStyleVisualScale(style, beforeDimscale);
                         dimscaleNormalizedCount++;
                     }
 
@@ -200,15 +193,15 @@ internal static class DimensionHealer
             }
         }
 
-        return (dimlfacHealedCount, dimscaleNormalizedCount, visualPropsRescaledCount);
+        return (dimlfacHealedCount, dimscaleNormalizedCount);
     }
 
     // Когда Dimscale равен imperial-фактору, AutoCAD умножает визуальные размеры на него при отображении.
     // Чтобы установить Dimscale=1.0 без визуального изменения чертежа, нужно предварительно
     // «запечь» этот множитель в каждое визуальное свойство.
-    private static int NormalizeStyleVisualScale(DimStyleTableRecord style, double scale)
+    private static bool NormalizeStyleVisualScale(DimStyleTableRecord style, double scale)
     {
-        int changed = 0;
+        bool changed = false;
         style.Dimtxt = ScaleVisualValue(style.Dimtxt, scale, ref changed);
         style.Dimasz = ScaleVisualValue(style.Dimasz, scale, ref changed);
         style.Dimexo = ScaleVisualValue(style.Dimexo, scale, ref changed);
@@ -224,14 +217,14 @@ internal static class DimensionHealer
         return changed;
     }
 
-    private static double ScaleVisualValue(double value, double scale, ref int changedCount)
+    private static double ScaleVisualValue(double value, double scale, ref bool changed)
     {
         if (!double.IsFinite(value) || value == 0.0)
         {
             return value;
         }
 
-        changedCount++;
+        changed = true;
         return value * scale;
     }
 
