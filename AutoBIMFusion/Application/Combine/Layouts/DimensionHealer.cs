@@ -5,7 +5,7 @@ namespace AutoBIMFusion.Application.Combine.Layouts;
 
 /// <summary>
 /// Исправляет размерные объекты и стили размеров после клонирования из исходного чертежа.
-/// Удаляет DSTYLE XData-переопределения, нормализует Dimlfac и сбрасывает ImperialOverride-масштабы.
+/// Удаляет DSTYLE XData-переопределения, нормализует Dimlfac и приводит визуальный масштаб стилей к единому виду.
 /// </summary>
 internal static class DimensionHealer
 {
@@ -181,10 +181,11 @@ internal static class DimensionHealer
 
                     StringBuilder debugMessage = new();
 
-                    if (hasVisualScaleOverride && NormalizeStyleVisualScale(style, style.Dimscale))
+                    if (hasVisualScaleOverride)
                     {
-                        debugMessage.AppendLine($"Приведенный к единому масштабу методом умножения на {style.Dimscale}");
-                        debugMessage.AppendLine($"Стиль {style.Name} визуальные свойства: ");
+                        _ = debugMessage.AppendLine($"Приведение к единому масштабу методом умножения на {style.Dimscale}");
+                        _ = debugMessage.AppendLine($"Стиль {style.Name} визуальные свойства: ");
+                        NormalizeStyleVisualScale(style, style.Dimscale);
                         dimscaleNormalizedCount++;
                     }
 
@@ -216,43 +217,36 @@ internal static class DimensionHealer
     //   — Dimtp/Dimtm: допуски ± (значения в единицах измерения, не геометрии)
     //   — Dimlwd/Dimlwe: веса линий (целые коды AutoCAD, не миллиметры)
     //
-    // Каждое свойство после умножения округляется до ближайшего кратного 10 (см. ScaleVisualValue).
-    private static bool NormalizeStyleVisualScale(DimStyleTableRecord style, double scale)
+    // Каждое свойство после умножения округляется до ближайшего кратного baseValue
+    // (в текущей конфигурации вызывается с baseValue = 5, см. ScaleVisualValue).
+    private static void NormalizeStyleVisualScale(DimStyleTableRecord style, double scale)
     {
-        bool changed = false;
-
-        style.Dimtxt = ScaleVisualValue(style.Dimtxt, scale, ref changed); // высота текста размера
-        style.Dimasz = ScaleVisualValue(style.Dimasz, scale, ref changed); // размер стрелки / засечки
-        style.Dimtsz = ScaleVisualValue(style.Dimtsz, scale, ref changed); // размер косой засечки (tick)
-        style.Dimexo = ScaleVisualValue(style.Dimexo, scale, ref changed); // отступ выносной линии от объекта
-        style.Dimexe = ScaleVisualValue(style.Dimexe, scale, ref changed); // выступ выносной линии за размерную
-        style.Dimgap = ScaleVisualValue(style.Dimgap, scale, ref changed); // зазор между текстом и размерной линией
-        style.Dimdli = ScaleVisualValue(style.Dimdli, scale, ref changed); // шаг параллельных размерных линий (baseline)
-        style.Dimdle = ScaleVisualValue(style.Dimdle, scale, ref changed); // выступ размерной линии за выносную
-        style.Dimcen = ScaleVisualValue(style.Dimcen, scale, ref changed); // размер маркера центра окружности
-        style.Dimtvp = ScaleVisualValue(style.Dimtvp, scale, ref changed); // вертикальное смещение текста от линии
-        style.Dimfxlen = ScaleVisualValue(style.Dimfxlen, scale, ref changed); // фиксированная длина выносной линии
-        style.Dimscale = 1.0;                                                  // общий масштаб сброшен — все «запечено» выше
-
-        return changed;
+        style.Dimtxt = ScaleVisualValue(style.Dimtxt, scale, 5); // высота текста размера
+        style.Dimasz = ScaleVisualValue(style.Dimasz, scale, 5); // размер стрелки / засечки
+        style.Dimtsz = ScaleVisualValue(style.Dimtsz, scale, 5); // размер косой засечки (tick)
+        style.Dimexo = ScaleVisualValue(style.Dimexo, scale, 5); // отступ выносной линии от объекта
+        style.Dimexe = ScaleVisualValue(style.Dimexe, scale, 5); // выступ выносной линии за размерную
+        style.Dimgap = ScaleVisualValue(style.Dimgap, scale, 5); // зазор между текстом и размерной линией
+        style.Dimdli = ScaleVisualValue(style.Dimdli, scale, 5); // шаг параллельных размерных линий (baseline)
+        style.Dimdle = ScaleVisualValue(style.Dimdle, scale, 5); // выступ размерной линии за выносную
+        style.Dimcen = ScaleVisualValue(style.Dimcen, scale, 5); // размер маркера центра окружности
+        style.Dimtvp = ScaleVisualValue(style.Dimtvp, scale, 5); // вертикальное смещение текста от линии
+        style.Dimfxlen = ScaleVisualValue(style.Dimfxlen, scale, 5); // фиксированная длина выносной линии
+        style.Dimscale = 1.0;  // общий масштаб сброшен — все «запечено» выше
     }
 
-    // Умножает визуальное значение на масштаб и округляет результат до ближайшего кратного 10.
-    // Округление до 10 (а не до целого) обусловлено тем, что размерные свойства в AutoCAD
-    // (высота текста, стрелки, отступы и т.д.) задаются в десятках единиц чертежа:
-    // дробные значения после умножения на imperial-фактор (304.8) порождают визуальный шум
-    // и затрудняют ручное редактирование стиля.
-    private static double ScaleVisualValue(double value, double scale, ref bool changed)
+    // Умножает визуальное значение на масштаб и округляет результат до ближайшего кратного baseValue.
+    // Выбор baseValue позволяет контролировать дискретность значений и избегать визуального шума
+    // после умножения на imperial-фактор (304.8).
+    private static double ScaleVisualValue(double value, double scale, int baseValue)
     {
-        if (!double.IsFinite(value) || value == 0.0)
+        if (double.IsFinite(value) && value != 0.0)
         {
-            return value;
+            double scaledValue = value * scale;
+            return Math.Round(scaledValue / baseValue) * baseValue;
         }
 
-        changed = true;
-
-        // Math.Round(x / 10) * 10 — стандартный приём округления до кратного N.
-        return Math.Round(value * scale / 10.0) * 10.0;
+        return value;
     }
 
     private static bool IsImperialOverride(double value)

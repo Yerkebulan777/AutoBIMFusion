@@ -36,6 +36,7 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
             ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
             ObjectId targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
             using ObjectIdCollection sourceIds = [];
+            List<ObjectId> sourceDimIds = [];
 
             using (Transaction tr = sourceDb.TransactionManager.StartTransaction())
             {
@@ -54,10 +55,20 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
                     if (!id.IsNull && !id.IsErased)
                     {
                         _ = sourceIds.Add(id);
+
+                        if (tr.GetObject(id, OpenMode.ForRead, false) is Dimension)
+                        {
+                            sourceDimIds.Add(id);
+                        }
                     }
                 }
 
                 tr.Commit();
+            }
+
+            if (sourceDimIds.Count > 0)
+            {
+                _ = DimensionHealer.Heal(sourceDb, sourceDimIds);
             }
 
             if (sourceIds.Count == 0)
