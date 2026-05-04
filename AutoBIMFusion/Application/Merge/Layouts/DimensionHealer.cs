@@ -43,7 +43,7 @@ internal static class DimensionHealer
 
         (int healedStyleDimlfacCount, int normalizedStyleDimscaleCount, int styleVisualPropsRescaled) = HealDimensionStyles(targetDb, trx);
 
-        StringBuilder? warnings = null;
+        StringBuilder warnings = new StringBuilder();
 
         foreach (ObjectId id in dimensionIds)
         {
@@ -58,7 +58,7 @@ internal static class DimensionHealer
 
                     if (warning is not null)
                     {
-                        (warnings ??= new StringBuilder()).AppendLine(warning);
+                        warnings.AppendLine(warning);
                     }
 
                     if (overridesWereCleared || textRotationWasReset || dimlfacWasReset)
@@ -78,12 +78,11 @@ internal static class DimensionHealer
 
         trx.Commit();
 
-        if (warnings is not null)
+        if (warnings.Length > 0)
         {
             logger.Warning(warnings.ToString());
         }
 
-        
         logger.Information(
             "DimensionHealer styles: dimlfac={DimlfacHealed}, dimscale={DimscaleNormalized}, visualProps={VisualPropsRescaled}.",
             healedStyleDimlfacCount,
