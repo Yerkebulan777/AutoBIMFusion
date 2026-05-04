@@ -1,5 +1,4 @@
 using AutoBIMFusion.Infrastructure.Logging;
-using System.Diagnostics;
 using System.Text;
 
 namespace AutoBIMFusion.Application.Combine.Layouts;
@@ -120,7 +119,7 @@ internal static class DimensionHealer
     /// сбрасывает TextRotation в 0 и нормализует Dimlfac в 1.0.
     /// </summary>
     /// <remarks>Может открыть объект на запись (UpgradeOpen), если требуются изменения.</remarks>
-    internal static (bool OverridesCleared, bool TextRotationReset, bool DimlfacReset, string? WarningMessage) HealDimension(Dimension dimension)
+    private static (bool OverridesCleared, bool TextRotationReset, bool DimlfacReset, string? WarningMessage) HealDimension(Dimension dimension)
     {
         ObjectId styleId = dimension.DimensionStyle;
         bool hasDimlfacDrift = !dimension.Dimlfac.Equals(1.0);
@@ -180,9 +179,25 @@ internal static class DimensionHealer
                 {
                     style.UpgradeOpen();
 
+                    StringBuilder debugMessage = new();
+
                     if (hasVisualScaleOverride && NormalizeStyleVisualScale(style, style.Dimscale))
                     {
-                        Debug.WriteLine($"Normalizing DimStyle {style.Name} visual scale from {style.Dimscale} to 1.0");
+                        debugMessage.AppendLine($"DimStyle {style.Name} visual scale normalized from {style.Dimscale} to 1.0");
+
+                        debugMessage.AppendLine($"New visual properties: ");
+                        debugMessage.AppendLine($"Dimtxt={style.Dimtxt}");
+                        debugMessage.AppendLine($"Dimasz={style.Dimasz}");
+                        debugMessage.AppendLine($"Dimexo={style.Dimexo}");
+                        debugMessage.AppendLine($"Dimexe={style.Dimexe}");
+                        debugMessage.AppendLine($"Dimgap={style.Dimgap}");
+                        debugMessage.AppendLine($"Dimdli={style.Dimdli}");
+                        debugMessage.AppendLine($"Dimdle={style.Dimdle}");
+                        debugMessage.AppendLine($"Dimcen={style.Dimcen}");
+                        debugMessage.AppendLine($"Dimtsz={style.Dimtsz}");
+                        debugMessage.AppendLine($"Dimtvp={style.Dimtvp}");
+                        debugMessage.AppendLine($"Dimfxlen={style.Dimfxlen}");
+
                         dimscaleNormalizedCount++;
                     }
 
@@ -217,6 +232,7 @@ internal static class DimensionHealer
         style.Dimtvp = ScaleVisualValue(style.Dimtvp, scale, ref changed);
         style.Dimfxlen = ScaleVisualValue(style.Dimfxlen, scale, ref changed);
         style.Dimscale = 1.0;
+
         return changed;
     }
 
