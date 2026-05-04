@@ -1,5 +1,5 @@
-using System.Text;
 using AutoBIMFusion.Infrastructure.Logging;
+using System.Text;
 
 namespace AutoBIMFusion.Application.Merge.Layouts;
 
@@ -43,7 +43,7 @@ internal static class DimensionHealer
 
         (int healedStyleDimlfacCount, int normalizedStyleDimscaleCount, int styleVisualPropsRescaled) = HealDimensionStyles(targetDb, trx);
 
-        StringBuilder warnings = new StringBuilder();
+        StringBuilder warnings = new();
 
         foreach (ObjectId id in dimensionIds)
         {
@@ -58,7 +58,7 @@ internal static class DimensionHealer
 
                     if (warning is not null)
                     {
-                        warnings.AppendLine(warning);
+                        _ = warnings.AppendLine(warning);
                     }
 
                     if (overridesWereCleared || textRotationWasReset || dimlfacWasReset)
@@ -68,9 +68,20 @@ internal static class DimensionHealer
                             dimensionsOpenedForWrite++;
                         }
 
-                        if (overridesWereCleared) overridesCleared++;
-                        if (textRotationWasReset) textRotationsReset++;
-                        if (dimlfacWasReset) dimensionDimlfacNormalized++;
+                        if (overridesWereCleared)
+                        {
+                            overridesCleared++;
+                        }
+
+                        if (textRotationWasReset)
+                        {
+                            textRotationsReset++;
+                        }
+
+                        if (dimlfacWasReset)
+                        {
+                            dimensionDimlfacNormalized++;
+                        }
                     }
                 }
             }
@@ -225,15 +236,10 @@ internal static class DimensionHealer
         changedCount++;
         return value * scale;
     }
-        
+
     private static bool IsImperialOverride(double value)
     {
-        if (double.IsFinite(value))
-        {
-            return AreClose(value, ImperialOverrideFactor);
-        }
-
-        return false;
+        return double.IsFinite(value) && AreClose(value, ImperialOverrideFactor);
     }
 
     private static bool AreClose(double left, double right)

@@ -38,12 +38,18 @@ internal static class LayoutProjectionProcessor
 
             foreach (LayoutViewportInfo aux in viewports)
             {
-                if (aux.VpId == mainOriginal.VpId) continue;
+                if (aux.VpId == mainOriginal.VpId)
+                {
+                    continue;
+                }
 
                 Matrix3d matrix = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
                 using ObjectIdCollection toClone = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, log);
 
-                if (toClone.Count == 0) continue;
+                if (toClone.Count == 0)
+                {
+                    continue;
+                }
 
                 using ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log, $"aux-VP #{aux.Number}");
                 _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow, log);
@@ -63,11 +69,17 @@ internal static class LayoutProjectionProcessor
 
         using ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
 
-        if (paperIds.Count == 0) return null;
+        if (paperIds.Count == 0)
+        {
+            return null;
+        }
 
         Extents3d? paperBounds = ModelSpaceTrimmer.ComputeBounds(db, paperIds, log);
 
-        if (!paperBounds.HasValue) return null;
+        if (!paperBounds.HasValue)
+        {
+            return null;
+        }
 
         Point3d minPt = paperBounds.Value.MinPoint;
         Matrix3d matrix = Matrix3d.Scaling(MaxScaleMultiplier, Point3d.Origin) * Matrix3d.Displacement(Point3d.Origin - minPt);
@@ -112,7 +124,10 @@ internal static class LayoutProjectionProcessor
         ObjectId paperBtrId = LayoutUtil.GetLayoutBtrId(db, layoutName);
         using ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
 
-        if (paperIds.Count == 0) return null;
+        if (paperIds.Count == 0)
+        {
+            return null;
+        }
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
         using ObjectIdCollection cloned = ViewportTransformer.DeepCloneAndTransform(db, paperIds, paperBtrId, msId, matrix, log, tag);

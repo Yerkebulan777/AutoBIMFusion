@@ -86,7 +86,10 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
 
                 foreach (IdPair pair in map)
                 {
-                    if (!pair.IsCloned || !pair.IsPrimary) continue;
+                    if (!pair.IsCloned || !pair.IsPrimary)
+                    {
+                        continue;
+                    }
 
                     if (targetTr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
                     {

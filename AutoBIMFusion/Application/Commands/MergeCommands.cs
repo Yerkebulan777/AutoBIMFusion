@@ -35,7 +35,10 @@ public sealed class MergeCommands
     private async Task ExecuteMergeAsync(string? folderPath, bool showDialogs, string commandName)
     {
         Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
-        if (doc?.Database == null) return;
+        if (doc?.Database == null)
+        {
+            return;
+        }
 
         Logger log = LoggerFactory.GetSharedLogger();
         log.Information($"Запуск {commandName}...");
@@ -64,7 +67,11 @@ public sealed class MergeCommands
             if (dwgFiles.Length == 0)
             {
                 log.Warning("DWG файлы не найдены.");
-                if (showDialogs) UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
+                if (showDialogs)
+                {
+                    UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
+                }
+
                 return;
             }
 
@@ -89,7 +96,10 @@ public sealed class MergeCommands
 
             sw.Stop();
             log.Information($"Завершено: {stats}");
-            if (showDialogs) ShowSummary(stats, sw.Elapsed, savePath, commandName);
+            if (showDialogs)
+            {
+                ShowSummary(stats, sw.Elapsed, savePath, commandName);
+            }
         }
         catch (System.Exception ex)
         {
@@ -97,7 +107,7 @@ public sealed class MergeCommands
         }
         finally
         {
-            _mergeGate.Release();
+            _ = _mergeGate.Release();
             log.Information($"Завершение {commandName}.");
         }
     }
@@ -121,9 +131,18 @@ public sealed class MergeCommands
 
                 MergeResult result = await MergeOrchestrator.MergeSingleFile(files[idx], inserter, doc, log);
 
-                if (result.Success) stats.RecordSuccess();
-                else if (result.IsSkipped) stats.RecordSkipped();
-                else stats.RecordFailed();
+                if (result.Success)
+                {
+                    stats.RecordSuccess();
+                }
+                else if (result.IsSkipped)
+                {
+                    stats.RecordSkipped();
+                }
+                else
+                {
+                    stats.RecordFailed();
+                }
 
                 pm.MeterProgress();
             }
@@ -155,7 +174,7 @@ public sealed class MergeCommands
             string? dir = Path.GetDirectoryName(savePath);
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
             {
-                Directory.CreateDirectory(dir);
+                _ = Directory.CreateDirectory(dir);
             }
 
             if (File.Exists(savePath))

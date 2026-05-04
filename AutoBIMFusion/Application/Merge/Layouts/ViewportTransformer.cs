@@ -206,10 +206,16 @@ internal static class ViewportTransformer
         using ObjectIdCollection validIds = [];
         foreach (ObjectId id in sourceIds)
         {
-            if (!id.IsNull && !id.IsErased) _ = validIds.Add(id);
+            if (!id.IsNull && !id.IsErased)
+            {
+                _ = validIds.Add(id);
+            }
         }
 
-        if (validIds.Count == 0) return [];
+        if (validIds.Count == 0)
+        {
+            return [];
+        }
 
         using IdMapping map = [];
         ObjectIdCollection cloned = [];

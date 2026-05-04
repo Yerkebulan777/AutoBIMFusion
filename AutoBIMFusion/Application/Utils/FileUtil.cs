@@ -28,9 +28,15 @@ internal static class FileUtil
         foreach (string path in Directory.EnumerateFiles(rootPath, "*.dwg", opts))
         {
             string fileName = Path.GetFileName(path);
-            if (fileName.StartsWith(excludePrefix, StringComparison.OrdinalIgnoreCase)) continue;
+            if (fileName.StartsWith(excludePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
 
-            if (new FileInfo(path).Length > MaxFileSizeBytes) continue;
+            if (new FileInfo(path).Length > MaxFileSizeBytes)
+            {
+                continue;
+            }
 
             files.Add(path);
         }

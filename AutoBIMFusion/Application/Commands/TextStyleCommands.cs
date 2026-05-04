@@ -1,9 +1,8 @@
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
-using Serilog.Core;
 using Autodesk.AutoCAD.GraphicsInterface;
+using Serilog.Core;
 using System.Runtime.Versioning;
-
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Application.Commands;
