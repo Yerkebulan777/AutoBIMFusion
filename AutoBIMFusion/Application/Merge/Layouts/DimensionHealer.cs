@@ -175,31 +175,28 @@ internal static class DimensionHealer
 
         foreach (ObjectId styleId in dimStyleTable)
         {
-            if (tr.GetObject(styleId, OpenMode.ForRead, false) is not DimStyleTableRecord style || style.IsDependent)
+            if (tr.GetObject(styleId, OpenMode.ForRead, false) is DimStyleTableRecord style && !style.IsDependent)
             {
-                continue;
-            }
+                bool hasVisualScaleOverride = IsImperialOverride(style.Dimscale);
+                bool dimlfacNeedsNormalization = !style.Dimlfac.Equals(1.0);
+                if (hasVisualScaleOverride || dimlfacNeedsNormalization)
+                {
+                    double beforeDimscale = style.Dimscale;
 
-            bool hasVisualScaleOverride = IsImperialOverride(style.Dimscale);
-            bool dimlfacNeedsNormalization = !style.Dimlfac.Equals(1.0);
-            if (!hasVisualScaleOverride && !dimlfacNeedsNormalization)
-            {
-                continue;
-            }
+                    style.UpgradeOpen();
 
-            double beforeDimscale = style.Dimscale;
-            style.UpgradeOpen();
+                    if (hasVisualScaleOverride)
+                    {
+                        visualPropsRescaledCount += NormalizeStyleVisualScale(style, beforeDimscale);
+                        dimscaleNormalizedCount++;
+                    }
 
-            if (hasVisualScaleOverride)
-            {
-                visualPropsRescaledCount += NormalizeStyleVisualScale(style, beforeDimscale);
-                dimscaleNormalizedCount++;
-            }
-
-            if (dimlfacNeedsNormalization)
-            {
-                style.Dimlfac = 1.0;
-                dimlfacHealedCount++;
+                    if (dimlfacNeedsNormalization)
+                    {
+                        style.Dimlfac = 1.0;
+                        dimlfacHealedCount++;
+                    }
+                }
             }
         }
 
