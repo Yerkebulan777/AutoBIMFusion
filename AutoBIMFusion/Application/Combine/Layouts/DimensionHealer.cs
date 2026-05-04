@@ -183,20 +183,20 @@ internal static class DimensionHealer
 
                     if (hasVisualScaleOverride && NormalizeStyleVisualScale(style, style.Dimscale))
                     {
-                        debugMessage.AppendLine($"DimStyle {style.Name} visual scale normalized from {style.Dimscale} to 1.0");
+                        debugMessage.AppendLine($"Стиль {style.Name}, приведенный к единому масштабу от {style.Dimscale} до 1,0");
 
-                        debugMessage.AppendLine($"New visual properties: ");
-                        debugMessage.AppendLine($"Dimtxt={style.Dimtxt}");
-                        debugMessage.AppendLine($"Dimasz={style.Dimasz}");
-                        debugMessage.AppendLine($"Dimexo={style.Dimexo}");
-                        debugMessage.AppendLine($"Dimexe={style.Dimexe}");
-                        debugMessage.AppendLine($"Dimgap={style.Dimgap}");
-                        debugMessage.AppendLine($"Dimdli={style.Dimdli}");
-                        debugMessage.AppendLine($"Dimdle={style.Dimdle}");
-                        debugMessage.AppendLine($"Dimcen={style.Dimcen}");
-                        debugMessage.AppendLine($"Dimtsz={style.Dimtsz}");
-                        debugMessage.AppendLine($"Dimtvp={style.Dimtvp}");
-                        debugMessage.AppendLine($"Dimfxlen={style.Dimfxlen}");
+                        debugMessage.AppendLine($"Визуальные свойства: ");
+                        debugMessage.AppendLine($"Высота текста={style.Dimtxt}");
+                        debugMessage.AppendLine($"Размер стрелок={style.Dimasz}");
+                        debugMessage.AppendLine($"Отступ выносной линии={style.Dimexo}");
+                        debugMessage.AppendLine($"Вынос выносной линии={style.Dimexe}");
+                        debugMessage.AppendLine($"Отступ от размерной линии={style.Dimgap}");
+                        debugMessage.AppendLine($"Шаг размерной линии={style.Dimdli}");
+                        debugMessage.AppendLine($"Выступ размерной линии={style.Dimdle}");
+                        debugMessage.AppendLine($"Обозначение центра={style.Dimcen}");
+                        debugMessage.AppendLine($"Размер насечки={style.Dimtsz}");
+                        debugMessage.AppendLine($"Вертикальное положение текста={style.Dimtvp}");
+                        debugMessage.AppendLine($"Длина фиксированной выносной линии={style.Dimfxlen}");
 
                         dimscaleNormalizedCount++;
                     }
