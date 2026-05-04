@@ -41,6 +41,7 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
             using (Transaction tr = sourceDb.TransactionManager.StartTransaction())
             {
                 BlockTable bt = (BlockTable)tr.GetObject(sourceDb.BlockTableId, OpenMode.ForRead);
+
                 foreach (ObjectId btrId in bt)
                 {
                     if (tr.GetObject(btrId, OpenMode.ForWrite) is BlockTableRecord btr && !btr.IsFromExternalReference)
@@ -50,6 +51,7 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
                 }
 
                 BlockTableRecord ms = (BlockTableRecord)tr.GetObject(sourceMsId, OpenMode.ForRead);
+
                 foreach (ObjectId id in ms)
                 {
                     if (!id.IsNull && !id.IsErased)
