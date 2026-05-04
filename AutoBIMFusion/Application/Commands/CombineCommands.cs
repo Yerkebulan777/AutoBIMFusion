@@ -84,6 +84,12 @@ public sealed class CombineCommands
             using (doc.LockDocument())
             {
                 RasterImagePathFixer.CopyImagesToTargetFolder(doc.Database, savePath, log);
+
+                // Единоразовая постобработка: нормализация всех размерных стилей и объектов после слияния всех листов.
+                // HealDimensionStyles вызывается ровно один раз — без множественного умножения масштабов *Dстилей.
+                log.Information("Постобработка: однократная нормализация размерных стилей и объектов...");
+                DimensionHealer.HealAll(doc.Database);
+
                 DimensionStyleDiagnosticUtils.LogStyleSnapshot(doc.Database, log, "after-merge");
 
                 DwgOptimizer.Optimize(doc.Database, log);

@@ -115,6 +115,24 @@ internal static class DimensionHealer
     }
 
     /// <summary>
+    /// Единоразовая постобработка: исправляет ВСЕ размерные стили и объекты-размеры
+    /// в целевой базе данных. Вызывается однократно после слияния всех листов,
+    /// перед сохранением результирующего DWG.
+    /// Гарантирует, что HealDimensionStyles вызовется ровно один раз,
+    /// исключая многократное умножение масштабов анонимных стилей *D...
+    /// </summary>
+    internal static DimensionHealResult HealAll(Database targetDb)
+    {
+        ArgumentNullException.ThrowIfNull(targetDb);
+
+        Serilog.Core.Logger logger = LoggerFactory.GetSharedLogger();
+        IReadOnlyList<ObjectId> allDimIds = CollectAllDimensionIds(targetDb);
+        logger.Information("HealAll: собрано {Count} объектов Dimension из всех BlockTableRecord.", allDimIds.Count);
+
+        return Heal(targetDb, allDimIds);
+    }
+
+    /// <summary>
     /// Исправляет один размерный объект: удаляет DSTYLE XData-переопределения,
     /// сбрасывает TextRotation в 0 и нормализует Dimlfac в 1.0.
     /// </summary>
@@ -166,6 +184,37 @@ internal static class DimensionHealer
         }
 
         return (overridesCleared, hasTextRotation, hasDimlfacDrift, warningMessage);
+    }
+
+    /// <summary>
+    /// Собирает ObjectId всех объектов типа <see cref="Dimension"/> из всех
+    /// <see cref="BlockTableRecord"/> базы данных (Model Space, Paper Space, именованные блоки).
+    /// </summary>
+    private static IReadOnlyList<ObjectId> CollectAllDimensionIds(Database db)
+    {
+        List<ObjectId> ids = [];
+
+        using Transaction tr = db.TransactionManager.StartTransaction();
+        BlockTable blockTable = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+
+        foreach (ObjectId btrId in blockTable)
+        {
+            if (tr.GetObject(btrId, OpenMode.ForRead, false) is not BlockTableRecord btr)
+            {
+                continue;
+            }
+
+            foreach (ObjectId id in btr)
+            {
+                if (!id.IsNull && !id.IsErased && tr.GetObject(id, OpenMode.ForRead, false) is Dimension)
+                {
+                    ids.Add(id);
+                }
+            }
+        }
+
+        tr.Commit();
+        return ids;
     }
 
     private static (int DimlfacHealedCount, int DimscaleNormalizedCount) HealDimensionStyles(Database targetDb, Transaction tr)
