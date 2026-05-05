@@ -197,8 +197,7 @@ internal static class DimensionStyleNormalizer
             return false;
         }
 
-        if (trx.GetObject(resolvedStyleId, OpenMode.ForRead, false) is not DimStyleTableRecord resolvedStyle
-            || resolvedStyle.IsErased)
+        if (trx.GetObject(resolvedStyleId, OpenMode.ForRead, false) is not DimStyleTableRecord resolvedStyle || resolvedStyle.IsErased)
         {
             return false;
         }
