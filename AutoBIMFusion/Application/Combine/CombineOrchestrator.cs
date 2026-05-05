@@ -50,6 +50,10 @@ internal static class CombineOrchestrator
             using (new AcadUnitScalingOverrideScope())
             {
                 worldBounds = inserter.InsertNativeObjects(targetDoc.Database, sourceDb, layoutName, bounds.Value);
+                if (worldBounds is not null)
+                {
+                    DimensionStyleDiagnosticUtils.LogStyleSnapshot(targetDoc.Database, log, "target-after-clone");
+                }
             }
 
             if (worldBounds is null)

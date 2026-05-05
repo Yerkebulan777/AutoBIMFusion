@@ -56,7 +56,7 @@ internal static class ViewportLayoutExporter
                 _ = ModelSpaceTrimmer.TrimOutside(db, projection.FrameBounds.Value, log);
             }
 
-            DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "before-normalize");
+            DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "source-before-normalize");
 
             DimensionStyleNormalizer.NormalizeDimensions(
                 db,
@@ -65,7 +65,7 @@ internal static class ViewportLayoutExporter
                 projection.ClampRatio,
                 log);
 
-            DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "after-normalize");
+            DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "source-after-normalize-before-clone");
 
             return db;
         }

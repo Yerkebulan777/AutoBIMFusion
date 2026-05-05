@@ -84,7 +84,7 @@ public sealed class CombineCommands
             {
                 RasterImagePathFixer.CopyImagesToTargetFolder(doc.Database, savePath, log);
 
-                DimensionStyleDiagnosticUtils.LogStyleSnapshot(doc.Database, log, "after-merge");
+                DimensionStyleDiagnosticUtils.LogStyleSnapshot(doc.Database, log, "target-after-merge");
 
                 DwgOptimizer.Optimize(doc.Database, log);
 
@@ -177,6 +177,7 @@ public sealed class CombineCommands
 
             using (new AcadWarningSuppressScope())
             {
+                DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "target-before-save");
                 db.SaveAs(savePath, DwgVersion.AC1032);
             }
 

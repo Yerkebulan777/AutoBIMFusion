@@ -87,15 +87,13 @@ internal static class DimensionStyleNormalizer
                 stylesCreated++;
 
                 log.Information(
-                    "[DIM-NORMALIZE] created style \"{StyleName}\" from \"{BaseStyle}\": scale={Scale}, visualScale={VisualScale}, Dimtxt={DimtxtBefore}->{DimtxtAfter}, Dimasz={DimaszBefore}->{DimaszAfter}.",
-                    newStyleName,
+                    "[DIM-NORMALIZE] created style: baseStyle=\"{BaseStyle}\", newStyle=\"{NewStyle}\", scale={Scale}, visualScale={VisualScale}, clampRatio={ClampRatio}, changes={Changes}.",
                     sourceStyle.Name,
+                    newStyleName,
                     FormatScale(multiplier),
                     FormatScale(visualMultiplier),
-                    FormatValue(sourceStyle.Dimtxt),
-                    FormatValue(ScaleVisualValue(sourceStyle.Dimtxt, visualMultiplier)),
-                    FormatValue(sourceStyle.Dimasz),
-                    FormatValue(ScaleVisualValue(sourceStyle.Dimasz, visualMultiplier)));
+                    FormatValue(clampRatio),
+                    FormatStyleVisualChanges(sourceStyle, normalizedStyleId, trx));
             }
 
             dimension.UpgradeOpen();
@@ -200,6 +198,39 @@ internal static class DimensionStyleNormalizer
 
         trx.Commit();
         return purged;
+    }
+
+    private static string FormatStyleVisualChanges(DimStyleTableRecord sourceStyle, ObjectId normalizedStyleId, Transaction trx)
+    {
+        DimStyleTableRecord normalizedStyle = (DimStyleTableRecord)trx.GetObject(normalizedStyleId, OpenMode.ForRead);
+
+        return string.Join(", ",
+        [
+            FormatChange("Dimtxt", sourceStyle.Dimtxt, normalizedStyle.Dimtxt),
+            FormatChange("Dimasz", sourceStyle.Dimasz, normalizedStyle.Dimasz),
+            FormatChange("Dimtsz", sourceStyle.Dimtsz, normalizedStyle.Dimtsz),
+            FormatChange("Dimexo", sourceStyle.Dimexo, normalizedStyle.Dimexo),
+            FormatChange("Dimexe", sourceStyle.Dimexe, normalizedStyle.Dimexe),
+            FormatChange("Dimgap", sourceStyle.Dimgap, normalizedStyle.Dimgap),
+            FormatChange("Dimdli", sourceStyle.Dimdli, normalizedStyle.Dimdli),
+            FormatChange("Dimdle", sourceStyle.Dimdle, normalizedStyle.Dimdle),
+            FormatChange("Dimcen", sourceStyle.Dimcen, normalizedStyle.Dimcen),
+            FormatChange("Dimtvp", sourceStyle.Dimtvp, normalizedStyle.Dimtvp),
+            FormatChange("Dimfxlen", sourceStyle.Dimfxlen, normalizedStyle.Dimfxlen),
+            FormatChange("Dimscale", sourceStyle.Dimscale, normalizedStyle.Dimscale),
+            FormatChange("Dimlfac", sourceStyle.Dimlfac, normalizedStyle.Dimlfac),
+            FormatChange("Dimtfill", sourceStyle.Dimtfill, normalizedStyle.Dimtfill)
+        ]);
+    }
+
+    private static string FormatChange(string propertyName, double before, double after)
+    {
+        return $"{propertyName}:{FormatValue(before)}->{FormatValue(after)}";
+    }
+
+    private static string FormatChange(string propertyName, short before, short after)
+    {
+        return $"{propertyName}:{before.ToString(CultureInfo.InvariantCulture)}->{after.ToString(CultureInfo.InvariantCulture)}";
     }
 
     private static Dictionary<string, ObjectId> BuildStyleCache(DimStyleTable dimStyleTable, Transaction trx)
