@@ -334,22 +334,22 @@ internal static class DimensionStyleNormalizer
 
     private static double ResolveVisualBakeMultiplier(DimStyleTableRecord sourceStyle, double scaleMultiplier, Logger log)
     {
-        if (!IsUsableMultiplier(scaleMultiplier))
+        if (IsUsableMultiplier(scaleMultiplier))
         {
-            return 1.0;
+            if (double.IsFinite(sourceStyle.Dimtxt) && sourceStyle.Dimtxt > ModelSizedDimtxtThreshold)
+            {
+                log.Information(
+                    "[DIM-NORMALIZE] style \"{StyleName}\" already has model-sized Dimtxt={Dimtxt}; Dimscale will be reset without multiplying visual values by effective scale={Scale}.",
+                    sourceStyle.Name,
+                    sourceStyle.Dimtxt,
+                    FormatScale(scaleMultiplier));
+
+                return 1.0;
+            }
+
+            return scaleMultiplier;
         }
-
-        if (double.IsFinite(sourceStyle.Dimtxt) && sourceStyle.Dimtxt > ModelSizedDimtxtThreshold)
-        {
-            log.Information(
-                "[DIM-NORMALIZE] style \"{StyleName}\" already has model-sized Dimtxt={Dimtxt}; Dimscale will be reset without multiplying visual values by effective scale={Scale}.",
-                sourceStyle.Name,
-                sourceStyle.Dimtxt,
-                FormatScale(scaleMultiplier));
-
-            return 1.0;
-        }
-
-        return scaleMultiplier;
+        
+        return 1.0;
     }
 }
