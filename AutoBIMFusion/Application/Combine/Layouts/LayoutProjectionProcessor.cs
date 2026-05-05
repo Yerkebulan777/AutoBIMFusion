@@ -56,6 +56,7 @@ namespace AutoBIMFusion.Application.Combine.Layouts;
 /// </remarks>
 internal static class LayoutProjectionProcessor
 {
+<<<<<<< HEAD
     /// <summary>
     /// Нижняя граница мультипликатора размеров.
     /// Значение 0.01 позволяет корректно масштабировать размеры во вьюпортах
@@ -69,7 +70,10 @@ internal static class LayoutProjectionProcessor
     /// Верхняя граница мультипликатора размеров.
     /// Предотвращает чрезмерное увеличение размерных элементов при масштабах мельче 1:100.
     /// </summary>
+=======
+>>>>>>> parent of 8c2ab47 (Math.Clamp(multiplier, MinScaleMultiplier, MaxScaleMultiplier);)
     private const double MaxScaleMultiplier = 100.0;
+    private const double MinScaleMultiplier = 0.01;
 
     internal sealed record LayoutProjectionResult(Extents3d? FrameBounds, IReadOnlyDictionary<ObjectId, double> DimensionScales, double FallbackMultiplier);
 
@@ -291,6 +295,7 @@ internal static class LayoutProjectionProcessor
         tr.Commit();
     }
 
+<<<<<<< HEAD
     /// <summary>
     /// Вычисляет итоговый мультипликатор размерного стиля для указанного вьюпорта.
     /// </summary>
@@ -316,6 +321,9 @@ internal static class LayoutProjectionProcessor
     /// </para>
     /// </remarks>
     private static double ResolveMultiplier(ViewportInfo viewport)
+=======
+    private static double ResolveMultiplier(LayoutViewportInfo viewport)
+>>>>>>> parent of 8c2ab47 (Math.Clamp(multiplier, MinScaleMultiplier, MaxScaleMultiplier);)
     {
         double multiplier = viewport.CustomScale > 0.0 ? 1.0 / viewport.CustomScale : 1.0;
         return Math.Clamp(multiplier, MinScaleMultiplier, MaxScaleMultiplier);
