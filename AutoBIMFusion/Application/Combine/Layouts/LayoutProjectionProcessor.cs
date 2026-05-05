@@ -56,22 +56,6 @@ namespace AutoBIMFusion.Application.Combine.Layouts;
 /// </remarks>
 internal static class LayoutProjectionProcessor
 {
-<<<<<<< HEAD
-    /// <summary>
-    /// Нижняя граница мультипликатора размеров.
-    /// Значение 0.01 позволяет корректно масштабировать размеры во вьюпортах
-    /// с масштабом крупнее 1:1 (например, 2:1 → multiplier = 0.5, 100:1 → multiplier = 0.01).
-    /// Если установить 1.0, все такие вьюпорты получат multiplier = 1.0,
-    /// и размерные элементы не будут уменьшаться пропорционально, что приводит
-    /// к визуально некорректному отображению (слишком крупный текст и стрелки).
-    /// </summary>
-    private const double MinScaleMultiplier = 0.01;
-    /// <summary>
-    /// Верхняя граница мультипликатора размеров.
-    /// Предотвращает чрезмерное увеличение размерных элементов при масштабах мельче 1:100.
-    /// </summary>
-=======
->>>>>>> parent of 8c2ab47 (Math.Clamp(multiplier, MinScaleMultiplier, MaxScaleMultiplier);)
     private const double MaxScaleMultiplier = 100.0;
     private const double MinScaleMultiplier = 0.01;
 
@@ -295,17 +279,13 @@ internal static class LayoutProjectionProcessor
         tr.Commit();
     }
 
-<<<<<<< HEAD
     /// <summary>
-    /// Вычисляет итоговый мультипликатор размерного стиля для указанного вьюпорта.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Мультипликатор = 1.0 / CustomScale. Это число показывает, во сколько раз
+    /// Вычисляет итоговый мультипликатор размерного стиля для указанного vp.
+    ///     /// Мультипликатор = 1.0 / CustomScale. Это число показывает, во сколько раз
     /// нужно увеличить визуальные свойства размерного стиля (текст, стрелки, выноски),
     /// чтобы они выглядели на листе так же, как в пространстве модели.
-    /// </para>
-    /// <para>
+    /// </summary>
+    /// <remarks>
     /// Примеры:
     /// <list type="bullet">
     ///   <item><description>Вьюпорт 1:100 (CustomScale = 0.01) → multiplier = 100</description></item>
@@ -314,16 +294,10 @@ internal static class LayoutProjectionProcessor
     ///   <item><description>Вьюпорт 2:1   (CustomScale = 2.0)  → multiplier = 0.5</description></item>
     ///   <item><description>Вьюпорт 10:1  (CustomScale = 10.0) → multiplier = 0.1</description></item>
     /// </list>
-    /// </para>
-    /// <para>
     /// Результат зажимается в диапазон [MinScaleMultiplier, MaxScaleMultiplier],
     /// чтобы избежать экстремальных значений, которые привели бы к нечитаемым размерам.
-    /// </para>
     /// </remarks>
     private static double ResolveMultiplier(ViewportInfo viewport)
-=======
-    private static double ResolveMultiplier(LayoutViewportInfo viewport)
->>>>>>> parent of 8c2ab47 (Math.Clamp(multiplier, MinScaleMultiplier, MaxScaleMultiplier);)
     {
         double multiplier = viewport.CustomScale > 0.0 ? 1.0 / viewport.CustomScale : 1.0;
         return Math.Clamp(multiplier, MinScaleMultiplier, MaxScaleMultiplier);
