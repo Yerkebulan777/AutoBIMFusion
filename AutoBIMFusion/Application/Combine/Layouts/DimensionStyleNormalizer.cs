@@ -25,6 +25,9 @@ internal static class DimensionStyleNormalizer
         int overridesCleared = 0;
         int stylesCreated = 0;
         int fallbackUsed = 0;
+        int invalidMultiplierFallbackUsed = 0;
+        int minMultiplierClamped = 0;
+        int dimlfacAdjusted = 0;
 
         HashSet<ObjectId> replacedStyleIds = [];
 
@@ -45,10 +48,26 @@ internal static class DimensionStyleNormalizer
 
             scanned++;
 
-            double multiplier = ResolveMultiplier(id, scaleByDimensionId, fallbackMultiplier, out bool usedFallback);
+            double multiplier = ResolveMultiplier(
+                id,
+                scaleByDimensionId,
+                fallbackMultiplier,
+                out bool usedFallback,
+                out bool usedInvalidMultiplierFallback,
+                out bool usedMinMultiplierClamp);
             if (usedFallback)
             {
                 fallbackUsed++;
+            }
+
+            if (usedInvalidMultiplierFallback)
+            {
+                invalidMultiplierFallbackUsed++;
+            }
+
+            if (usedMinMultiplierClamp)
+            {
+                minMultiplierClamped++;
             }
 
             if (!TryResolveStyleRecord(db, dimension.DimensionStyle, trx, out DimStyleTableRecord sourceStyle))
@@ -63,15 +82,20 @@ internal static class DimensionStyleNormalizer
 
             if (!styleCache.TryGetValue(newStyleName, out ObjectId normalizedStyleId))
             {
-                normalizedStyleId = CreateScaledStyle(dimStyleTable, sourceStyle, newStyleName, multiplier, clampRatio, trx, log);
+                normalizedStyleId = CreateScaledStyle(dimStyleTable, sourceStyle, newStyleName, multiplier, clampRatio, trx, out double visualMultiplier);
                 styleCache[newStyleName] = normalizedStyleId;
                 stylesCreated++;
 
                 log.Information(
-                    "[DIM-NORMALIZE] created style \"{StyleName}\" from \"{BaseStyle}\" with scale={Scale}.",
+                    "[DIM-NORMALIZE] created style \"{StyleName}\" from \"{BaseStyle}\": scale={Scale}, visualScale={VisualScale}, Dimtxt={DimtxtBefore}->{DimtxtAfter}, Dimasz={DimaszBefore}->{DimaszAfter}.",
                     newStyleName,
                     sourceStyle.Name,
-                    FormatScale(multiplier));
+                    FormatScale(multiplier),
+                    FormatScale(visualMultiplier),
+                    FormatValue(sourceStyle.Dimtxt),
+                    FormatValue(ScaleVisualValue(sourceStyle.Dimtxt, visualMultiplier)),
+                    FormatValue(sourceStyle.Dimasz),
+                    FormatValue(ScaleVisualValue(sourceStyle.Dimasz, visualMultiplier)));
             }
 
             dimension.UpgradeOpen();
@@ -84,7 +108,13 @@ internal static class DimensionStyleNormalizer
             dimension.DimensionStyle = normalizedStyleId;
             // Геометрия model-space размеров была физически умножена на clampRatio в ScaleModelSpaceWhenClamped.
             // Dimlfac компенсирует это, чтобы показываемое значение соответствовало оригинальной геометрии.
-            dimension.Dimlfac = scaleByDimensionId.ContainsKey(id) && clampRatio > 1.0 + Tolerance  ? 1.0 / clampRatio : 1.0;
+            bool adjustDimlfac = scaleByDimensionId.ContainsKey(id) && clampRatio > 1.0 + Tolerance;
+            dimension.Dimlfac = adjustDimlfac ? 1.0 / clampRatio : 1.0;
+            if (adjustDimlfac)
+            {
+                dimlfacAdjusted++;
+            }
+
             dimension.RecomputeDimensionBlock(true);
             dimension.RecordGraphicsModified(true);
 
@@ -100,13 +130,24 @@ internal static class DimensionStyleNormalizer
 
         int purgedOldStyles = PurgeUnusedReplacedStyles(db, replacedStyleIds, log);
 
+        if (invalidMultiplierFallbackUsed > 0)
+        {
+            log.Warning(
+                "[DIM-NORMALIZE] invalid scale multiplier fallback used for {Count} dimension(s); fallbackMultiplier={FallbackMultiplier}.",
+                invalidMultiplierFallbackUsed,
+                FormatValue(fallbackMultiplier));
+        }
+
         log.Information(
-            "[DIM-NORMALIZE] scanned={Scanned}, normalized={Normalized}, stylesCreated={StylesCreated}, overridesCleared={OverridesCleared}, fallbackUsed={FallbackUsed}, purgedOldStyles={PurgedOldStyles}.",
+            "[DIM-NORMALIZE] scanned={Scanned}, normalized={Normalized}, stylesCreated={StylesCreated}, overridesCleared={OverridesCleared}, fallbackUsed={FallbackUsed}, invalidMultiplierFallbackUsed={InvalidMultiplierFallbackUsed}, minMultiplierClamped={MinMultiplierClamped}, dimlfacAdjusted={DimlfacAdjusted}, purgedOldStyles={PurgedOldStyles}.",
             scanned,
             normalized,
             stylesCreated,
             overridesCleared,
             fallbackUsed,
+            invalidMultiplierFallbackUsed,
+            minMultiplierClamped,
+            dimlfacAdjusted,
             purgedOldStyles);
     }
 
@@ -206,16 +247,31 @@ internal static class DimensionStyleNormalizer
     /// Входящий multiplier поступает из <c>dimensionMultiplier</c> (1.0 / mainOriginal.CustomScale) —
     /// не из зажатого effectiveMultiplier — поэтому урезание до 100 было бы неверным.
     /// </remarks>
-    private static double ResolveMultiplier(ObjectId dimensionId, IReadOnlyDictionary<ObjectId, double> scaleByDimensionId, double fallback, out bool fallbackUsed)
+    private static double ResolveMultiplier(
+        ObjectId dimensionId,
+        IReadOnlyDictionary<ObjectId, double> scaleByDimensionId,
+        double fallback,
+        out bool fallbackUsed,
+        out bool invalidMultiplierUsed,
+        out bool minMultiplierClamped)
     {
         fallbackUsed = !scaleByDimensionId.TryGetValue(dimensionId, out double multiplier);
+        invalidMultiplierUsed = false;
+        minMultiplierClamped = false;
 
         if (fallbackUsed)
         {
             multiplier = fallback;
         }
 
-        return !IsUsableMultiplier(multiplier) ? 1.0 : Math.Max(multiplier, MinScaleMultiplier);
+        invalidMultiplierUsed = !IsUsableMultiplier(multiplier);
+        if (invalidMultiplierUsed)
+        {
+            return 1.0;
+        }
+
+        minMultiplierClamped = multiplier < MinScaleMultiplier;
+        return minMultiplierClamped ? MinScaleMultiplier : multiplier;
     }
 
     private static ObjectId CreateScaledStyle(
@@ -225,7 +281,7 @@ internal static class DimensionStyleNormalizer
         double scaleMultiplier,
         double clampRatio,
         Transaction trx,
-        Logger log)
+        out double visualMultiplier)
     {
         if (!dimStyleTable.IsWriteEnabled)
         {
@@ -235,7 +291,7 @@ internal static class DimensionStyleNormalizer
         DimStyleTableRecord scaledStyle = (DimStyleTableRecord)sourceStyle.Clone();
         scaledStyle.Name = styleName;
 
-        double visualMultiplier = ResolveVisualBakeMultiplier(sourceStyle, scaleMultiplier, clampRatio, log);
+        visualMultiplier = ResolveVisualBakeMultiplier(sourceStyle, scaleMultiplier, clampRatio);
         NormalizeStyleVisualScale(scaledStyle, visualMultiplier);
         scaledStyle.Dimscale = 1.0;
         scaledStyle.Dimlfac = 1.0;
@@ -295,12 +351,17 @@ internal static class DimensionStyleNormalizer
         return string.Empty;
     }
 
+    private static string FormatValue(double value)
+    {
+        return double.IsFinite(value) ? value.ToString("0.######", CultureInfo.InvariantCulture) : "n/a";
+    }
+
     private static bool IsUsableMultiplier(double multiplier)
     {
         return double.IsFinite(multiplier) && multiplier > Tolerance;
     }
 
-    private static double ResolveVisualBakeMultiplier(DimStyleTableRecord sourceStyle, double scaleMultiplier, double clampRatio, Logger log)
+    private static double ResolveVisualBakeMultiplier(DimStyleTableRecord sourceStyle, double scaleMultiplier, double clampRatio)
     {
         if (IsUsableMultiplier(scaleMultiplier))
         {
@@ -309,12 +370,6 @@ internal static class DimensionStyleNormalizer
                 // Стиль уже имеет model-size текст (калиброван под оригинальный масштаб ВЭ).
                 // После clampRatio-масштабирования геометрии визуальные свойства нужно также умножить
                 // на clampRatio, чтобы пропорции сохранились на уровне effectiveMultiplier.
-                log.Information(
-                    "[DIM-NORMALIZE] style \"{StyleName}\" already has model-sized Dimtxt={Dimtxt}; applying clampRatio={ClampRatio} to align with scaled geometry.",
-                    sourceStyle.Name,
-                    sourceStyle.Dimtxt,
-                    FormatScale(clampRatio));
-
                 return clampRatio;
             }
 
@@ -324,3 +379,4 @@ internal static class DimensionStyleNormalizer
         return 1.0;
     }
 }
+
