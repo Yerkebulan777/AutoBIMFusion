@@ -16,7 +16,7 @@ AutoBIMFusion/
     AcadSupport/      # RAII-скоупы системных переменных AutoCAD
     Commands/         # Точки входа AutoCAD CommandMethod
     Combine/          # Пайплайн объединения DWG
-      Layouts/        # Layout, viewport, трансформации, размеры, extents
+      Layouts/        # Layout, vpt, трансформации, размеры, extents
     Ribbon/           # Ribbon-кнопки; исключается при CoreConsoleDiagnostics=true
     Utils/            # Файлы, строки, диалоги, layout helpers, natural sort
   Infrastructure/
@@ -42,7 +42,7 @@ AutoBIMFusion/
 | `CombineCommands` | Точка входа `MERGEDWG`; выбор папки, семафор, progress meter, финализация и сохранение |
 | `CombineOrchestrator` | Обработка одного DWG: validation, подготовка source DB, вставка |
 | `ViewportLayoutExporter` | Открывает DWG в фоновой `Database(false, true)` и готовит Model Space к merge |
-| `LayoutProjectionProcessor` | Перенос Paper Space в Model Space, main/aux viewport projection, scale clamp |
+| `LayoutProjectionProcessor` | Перенос Paper Space в Model Space, main/aux vpt projection, scale clamp |
 | `ViewportTransformer` | Матрицы трансформации, clone/transform, erase outside main VP, draw order |
 | `DimensionStyleNormalizer` | Нормализация размерных стилей до клонирования |
 | `DimensionStyleDiagnosticUtils` | Диагностические снимки размерных и текстовых стилей |

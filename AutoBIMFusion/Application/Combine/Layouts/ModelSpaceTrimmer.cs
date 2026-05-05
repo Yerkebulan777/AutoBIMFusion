@@ -5,7 +5,7 @@ namespace AutoBIMFusion.Application.Combine.Layouts;
 /// <summary>
 /// Удаляет из Model Space всё, что полностью лежит вне рамки-штампа (frameBounds).
 /// frameBounds — bbox клонированных paper-объектов (то, что осталось от рамки/штампа
-/// после переноса через главный viewport).
+/// после переноса через главный vpt).
 /// </summary>
 internal static class ModelSpaceTrimmer
 {

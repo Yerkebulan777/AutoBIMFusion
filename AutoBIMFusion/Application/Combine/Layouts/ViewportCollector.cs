@@ -2,7 +2,7 @@
 
 /// <summary>
 /// Перечисляет активные Viewport'ы указанного листа и собирает LayoutViewportInfo.
-/// Служебный viewport с Number == 1 исключается.
+/// Служебный vpt с Number == 1 исключается.
 /// </summary>
 internal static class ViewportCollector
 {

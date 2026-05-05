@@ -19,7 +19,7 @@ internal static class DimensionStyleNormalizer
     /// </summary>
     /// <param name="db">Prepared source database whose Model Space dimensions should be normalized.</param>
     /// <param name="scaleByDimensionId">Dimension multiplier (1.0 / originalViewport.CustomScale) by source dimension id.</param>
-    /// <param name="fallbackMultiplier">Dimension multiplier from the original (unclamped) main viewport, used when a dimension has no explicit match.</param>
+    /// <param name="fallbackMultiplier">Dimension multiplier from the original (unclamped) main vpt, used when a dimension has no explicit match.</param>
     /// <param name="log">Logger for normalization diagnostics.</param>
     internal static void NormalizeModelSpaceDimensions(
         Database db,

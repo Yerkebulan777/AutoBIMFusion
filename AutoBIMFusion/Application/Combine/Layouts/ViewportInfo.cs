@@ -2,7 +2,7 @@ namespace AutoBIMFusion.Application.Combine.Layouts;
 
 /// <summary>
 /// Снимок Viewport'а с листа: положение на бумаге, параметры вида модели, масштаб.
-/// CoverageScore используется для выбора главного viewport.
+/// CoverageScore используется для выбора главного vpt.
 /// </summary>
 internal sealed record ViewportInfo(
     ObjectId VpId,
@@ -29,7 +29,7 @@ internal sealed record ViewportInfo(
 
         if (vps.Count == 0)
         {
-            throw new ArgumentException("Список viewport'ов пуст.", nameof(vps));
+            throw new ArgumentException("Список vpt'ов пуст.", nameof(vps));
         }
 
         ViewportInfo best = vps[0];

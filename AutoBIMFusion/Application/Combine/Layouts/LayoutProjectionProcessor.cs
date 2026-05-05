@@ -42,7 +42,7 @@ internal static class LayoutProjectionProcessor
 
     private static LayoutProjectionResult ProjectWithViewports(Database db, string layoutName, IReadOnlyList<ViewportInfo> viewports, Logger log)
     {
-        log.Information($"Выбранный метод масштабирования: ProcessVp ({viewports.Count} viewport'ов)");
+        log.Information($"Выбранный метод масштабирования: ProcessVp ({viewports.Count} vpt'ов)");
 
         ViewportInfo mainOriginal = ViewportInfo.PickMainViewport(viewports);
         ViewportInfo mainClamped = ClampMainViewportScale(mainOriginal, log);
@@ -158,18 +158,18 @@ internal static class LayoutProjectionProcessor
     /// <see cref="ScaleModelSpaceWhenClamped"/>. Для размерных стилей используется
     /// dimensionMultiplier из исходного ВЭ, а не effectiveMultiplier из зажатого.
     /// </remarks>
-    private static ViewportInfo ClampMainViewportScale(ViewportInfo viewport, Logger log)
+    private static ViewportInfo ClampMainViewportScale(ViewportInfo vpt, Logger log)
     {
-        double multiplier = 1.0 / viewport.CustomScale;
+        double multiplier = 1.0 / vpt.CustomScale;
 
         if (multiplier < MaxScaleMultiplier)
         {
-            log.Information($"VP #{viewport.Number}: масштаб 1:{multiplier:F0} → зажат до 1:{MaxScaleMultiplier:F0}");
-            return viewport with { CustomScale = 1.0 / MaxScaleMultiplier };
+            log.Information($"VP #{vpt.Number}: масштаб 1:{multiplier:F0} → зажат до 1:{MaxScaleMultiplier:F0}");
+            return vpt with { CustomScale = 1.0 / MaxScaleMultiplier };
         }
 
-        log.Information($"VP #{viewport.Number}: масштаб 1:{multiplier:F0}");
-        return viewport;
+        log.Information($"VP #{vpt.Number}: масштаб 1:{multiplier:F0}");
+        return vpt;
     }
 
     private static Extents3d? MovePaperToModelSpace(Database db, string layoutName, Matrix3d matrix, Logger log, string tag = "paper")
@@ -213,9 +213,9 @@ internal static class LayoutProjectionProcessor
         trx.Commit();
     }
 
-    private static void RegisterClonedDimensions(Database db, IReadOnlyDictionary<ObjectId, ObjectId> sourceToClone, ViewportInfo viewport, double multiplier, ScaleCollector dimensionScales)
+    private static void RegisterClonedDimensions(Database db, IReadOnlyDictionary<ObjectId, ObjectId> sourceToClone, ViewportInfo vpt, double multiplier, ScaleCollector dimensionScales)
     {
-        double viewportArea = ComputeArea(viewport.ModelWindow);
+        double viewportArea = ComputeArea(vpt.ModelWindow);
 
         using Transaction trx = db.TransactionManager.StartTransaction();
 
@@ -238,9 +238,9 @@ internal static class LayoutProjectionProcessor
     /// Используется для <c>effectiveMultiplier</c> (из зажатого ВЭ) и <c>dimensionMultiplier</c> (из исходного ВЭ).
     /// Результат не зажимается — применяющий код отвечает за допустимые границы.
     /// </summary>
-    private static double ResolveMultiplier(ViewportInfo viewport)
+    private static double ResolveMultiplier(ViewportInfo vpt)
     {
-        return viewport.CustomScale > 0.0 ? 1.0 / viewport.CustomScale : 1.0;
+        return vpt.CustomScale > 0.0 ? 1.0 / vpt.CustomScale : 1.0;
     }
 
     private static double ComputeArea(Extents3d extents)

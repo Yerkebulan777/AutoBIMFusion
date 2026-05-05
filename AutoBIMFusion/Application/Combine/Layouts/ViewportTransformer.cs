@@ -3,8 +3,8 @@ using Serilog.Core;
 namespace AutoBIMFusion.Application.Combine.Layouts;
 
 /// <summary>
-/// Переводит содержимое вспомогательного viewport'а (узла) в модельные координаты
-/// главного viewport'а и выполняет операции над наборами объектов Model Space.
+/// Переводит содержимое вспомогательного vpt'а (узла) в модельные координаты
+/// главного vpt'а и выполняет операции над наборами объектов Model Space.
 ///
 /// Математика: MainModelFromAuxModel = MainModelFromPaper ∘ PaperFromAuxModel.
 ///
