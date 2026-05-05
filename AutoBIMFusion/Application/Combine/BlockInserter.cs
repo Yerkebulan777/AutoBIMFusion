@@ -39,19 +39,19 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
             // Размеры уже нормализованы в подготовленной sourceDb до WblockCloneObjects.
             using ObjectIdCollection sourceIds = [];
 
-            using (Transaction tr = sourceDb.TransactionManager.StartTransaction())
+            using (Transaction trx = sourceDb.TransactionManager.StartTransaction())
             {
-                BlockTable bt = (BlockTable)tr.GetObject(sourceDb.BlockTableId, OpenMode.ForRead);
+                BlockTable bt = (BlockTable)trx.GetObject(sourceDb.BlockTableId, OpenMode.ForRead);
 
                 foreach (ObjectId btrId in bt)
                 {
-                    if (tr.GetObject(btrId, OpenMode.ForWrite) is BlockTableRecord btr && !btr.IsFromExternalReference)
+                    if (trx.GetObject(btrId, OpenMode.ForWrite) is BlockTableRecord btr && !btr.IsFromExternalReference)
                     {
                         btr.Units = targetDb.Insunits;
                     }
                 }
 
-                BlockTableRecord ms = (BlockTableRecord)tr.GetObject(sourceMsId, OpenMode.ForRead);
+                BlockTableRecord ms = (BlockTableRecord)trx.GetObject(sourceMsId, OpenMode.ForRead);
 
                 foreach (ObjectId id in ms)
                 {
@@ -61,7 +61,7 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
                     }
                 }
 
-                tr.Commit();
+                trx.Commit();
             }
 
             if (sourceIds.Count == 0)

@@ -30,10 +30,10 @@ public sealed class JoinCommands
             {
                 Database db = doc.Database;
 
-                using Transaction tr = db.TransactionManager.StartTransaction();
+                using Transaction trx = db.TransactionManager.StartTransaction();
 
-                BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
-                BlockTableRecord modelSpace = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForRead);
+                BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
+                BlockTableRecord modelSpace = (BlockTableRecord)trx.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForRead);
 
                 List<LineInfo> candidates = [];
 
@@ -44,7 +44,7 @@ public sealed class JoinCommands
                         continue;
                     }
 
-                    if (tr.GetObject(id, OpenMode.ForRead) is not Line line)
+                    if (trx.GetObject(id, OpenMode.ForRead) is not Line line)
                     {
                         continue;
                     }
@@ -61,7 +61,7 @@ public sealed class JoinCommands
                 if (candidates.Count < 2)
                 {
                     log.Information("Недостаточно линий для объединения.");
-                    tr.Commit();
+                    trx.Commit();
                     return;
                 }
 
@@ -73,11 +73,11 @@ public sealed class JoinCommands
                 if (groups.Count == 0)
                 {
                     log.Information("Группы для объединения не найдены.");
-                    tr.Commit();
+                    trx.Commit();
                     return;
                 }
 
-                BlockTableRecord modelSpaceWrite = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+                BlockTableRecord modelSpaceWrite = (BlockTableRecord)trx.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
 
                 int joinedGroups = 0;
                 int joinedLines = 0;
@@ -106,7 +106,7 @@ public sealed class JoinCommands
                         };
 
                         _ = modelSpaceWrite.AppendEntity(newLine);
-                        tr.AddNewlyCreatedDBObject(newLine, true);
+                        trx.AddNewlyCreatedDBObject(newLine, true);
                     }
 
                     foreach (LineInfo info in group)
@@ -119,7 +119,7 @@ public sealed class JoinCommands
                     joinedLines += group.Count();
                 }
 
-                tr.Commit();
+                trx.Commit();
 
                 if (joinedGroups > 0)
                 {

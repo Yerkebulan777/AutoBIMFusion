@@ -28,23 +28,23 @@ public sealed class SmartTextCommands
         {
             using (doc.LockDocument())
             {
-                using Transaction tr = db.TransactionManager.StartTransaction();
+                using Transaction trx = db.TransactionManager.StartTransaction();
 
-                BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
-                BlockTableRecord modelSpace = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForRead);
+                BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
+                BlockTableRecord modelSpace = (BlockTableRecord)trx.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForRead);
 
-                List<TextElement> textsInModel = CollectTextElements(modelSpace, tr, log);
+                List<TextElement> textsInModel = CollectTextElements(modelSpace, trx, log);
 
                 if (textsInModel.Count == 0)
                 {
                     log.Information("Текст (TEXT или MTEXT) в Model Space не найден.");
-                    tr.Commit();
+                    trx.Commit();
                     return;
                 }
 
                 List<List<TextElement>> groups = SmartGroupText(textsInModel);
 
-                BlockTableRecord modelSpaceWrite = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+                BlockTableRecord modelSpaceWrite = (BlockTableRecord)trx.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
 
                 foreach (List<TextElement> group in groups)
                 {
@@ -69,7 +69,7 @@ public sealed class SmartTextCommands
                     };
 
                     _ = modelSpaceWrite.AppendEntity(mergedText);
-                    tr.AddNewlyCreatedDBObject(mergedText, true);
+                    trx.AddNewlyCreatedDBObject(mergedText, true);
 
                     foreach (TextElement text in group)
                     {
@@ -80,7 +80,7 @@ public sealed class SmartTextCommands
                     mergedGroupsCount++;
                 }
 
-                tr.Commit();
+                trx.Commit();
                 log.Information($"SMART_MERGE_TEXT: собрано групп текста: {mergedGroupsCount}");
             }
 
@@ -92,7 +92,7 @@ public sealed class SmartTextCommands
         }
     }
 
-    private static List<TextElement> CollectTextElements(BlockTableRecord modelSpace, Transaction tr, Logger log)
+    private static List<TextElement> CollectTextElements(BlockTableRecord modelSpace, Transaction trx, Logger log)
     {
         List<TextElement> result = [];
         int textCount = 0;
@@ -109,7 +109,7 @@ public sealed class SmartTextCommands
                 continue;
             }
 
-            if (tr.GetObject(id, OpenMode.ForRead) is not Entity ent)
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent)
             {
                 continue;
             }

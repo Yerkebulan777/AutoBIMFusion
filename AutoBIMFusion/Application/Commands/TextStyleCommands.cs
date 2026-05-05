@@ -29,10 +29,10 @@ public sealed class TextStyleCommands
         {
             using (doc.LockDocument())
             {
-                using Transaction tr = db.TransactionManager.StartTransaction();
+                using Transaction trx = db.TransactionManager.StartTransaction();
 
-                TextStyleTable styleTable = (TextStyleTable)tr.GetObject(db.TextStyleTableId, OpenMode.ForRead);
-                List<TextStyleData> styles = CollectStyles(styleTable, tr);
+                TextStyleTable styleTable = (TextStyleTable)trx.GetObject(db.TextStyleTableId, OpenMode.ForRead);
+                List<TextStyleData> styles = CollectStyles(styleTable, trx);
 
                 List<List<TextStyleData>> duplicateGroups = styles
                     .GroupBy(x => x.Signature)
@@ -47,7 +47,7 @@ public sealed class TextStyleCommands
                     return;
                 }
 
-                BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+                BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
                 ObjectId currentStyleId = db.Textstyle;
 
                 foreach (List<TextStyleData> group in duplicateGroups)
@@ -63,11 +63,11 @@ public sealed class TextStyleCommands
                         continue;
                     }
 
-                    updatedObjects += ReassignStyles(bt, tr, masterStyleId, duplicateIds);
-                    deletedStyles += DeleteStyles(tr, duplicateIds, log);
+                    updatedObjects += ReassignStyles(bt, trx, masterStyleId, duplicateIds);
+                    deletedStyles += DeleteStyles(trx, duplicateIds, log);
                 }
 
-                tr.Commit();
+                trx.Commit();
                 log.Information($"MergeTextStyles: групп дубликатов {duplicateGroups.Count}, обновлено объектов {updatedObjects}, удалено стилей {deletedStyles}.");
             }
 
@@ -79,13 +79,13 @@ public sealed class TextStyleCommands
         }
     }
 
-    private static List<TextStyleData> CollectStyles(TextStyleTable styleTable, Transaction tr)
+    private static List<TextStyleData> CollectStyles(TextStyleTable styleTable, Transaction trx)
     {
         List<TextStyleData> styles = [];
 
         foreach (ObjectId styleId in styleTable)
         {
-            if (tr.GetObject(styleId, OpenMode.ForRead) is not TextStyleTableRecord styleRecord)
+            if (trx.GetObject(styleId, OpenMode.ForRead) is not TextStyleTableRecord styleRecord)
             {
                 continue;
             }
@@ -133,7 +133,7 @@ public sealed class TextStyleCommands
 
     private static int ReassignStyles(
         BlockTable blockTable,
-        Transaction tr,
+        Transaction trx,
         ObjectId masterStyleId,
         HashSet<ObjectId> duplicateStyleIds)
     {
@@ -142,7 +142,7 @@ public sealed class TextStyleCommands
 
         foreach (ObjectId btrId in blockTable)
         {
-            updated += ReassignStylesInBlock(btrId, tr, masterStyleId, duplicateStyleIds, visitedBtr);
+            updated += ReassignStylesInBlock(btrId, trx, masterStyleId, duplicateStyleIds, visitedBtr);
         }
 
         return updated;
@@ -150,7 +150,7 @@ public sealed class TextStyleCommands
 
     private static int ReassignStylesInBlock(
         ObjectId btrId,
-        Transaction tr,
+        Transaction trx,
         ObjectId masterStyleId,
         HashSet<ObjectId> duplicateStyleIds,
         HashSet<ObjectId> visitedBtr)
@@ -160,7 +160,7 @@ public sealed class TextStyleCommands
             return 0;
         }
 
-        if (tr.GetObject(btrId, OpenMode.ForRead) is not BlockTableRecord btr)
+        if (trx.GetObject(btrId, OpenMode.ForRead) is not BlockTableRecord btr)
         {
             return 0;
         }
@@ -169,7 +169,7 @@ public sealed class TextStyleCommands
 
         foreach (ObjectId entId in btr)
         {
-            if (tr.GetObject(entId, OpenMode.ForRead, false) is not Entity entity)
+            if (trx.GetObject(entId, OpenMode.ForRead, false) is not Entity entity)
             {
                 continue;
             }
@@ -194,12 +194,12 @@ public sealed class TextStyleCommands
             }
             else if (entity is BlockReference blockRef)
             {
-                updated += ReassignBlockAttributes(blockRef, tr, masterStyleId, duplicateStyleIds);
+                updated += ReassignBlockAttributes(blockRef, trx, masterStyleId, duplicateStyleIds);
 
                 // Рекурсивно обходим вложенный блок (в т.ч. анонимные динамические блоки)
                 if (!blockRef.BlockTableRecord.IsNull)
                 {
-                    updated += ReassignStylesInBlock(blockRef.BlockTableRecord, tr, masterStyleId, duplicateStyleIds, visitedBtr);
+                    updated += ReassignStylesInBlock(blockRef.BlockTableRecord, trx, masterStyleId, duplicateStyleIds, visitedBtr);
                 }
             }
         }
@@ -209,7 +209,7 @@ public sealed class TextStyleCommands
 
     private static int ReassignBlockAttributes(
         BlockReference blockRef,
-        Transaction tr,
+        Transaction trx,
         ObjectId masterStyleId,
         HashSet<ObjectId> duplicateStyleIds)
     {
@@ -217,7 +217,7 @@ public sealed class TextStyleCommands
 
         foreach (ObjectId attrId in blockRef.AttributeCollection)
         {
-            if (tr.GetObject(attrId, OpenMode.ForRead, false) is not AttributeReference attrRef)
+            if (trx.GetObject(attrId, OpenMode.ForRead, false) is not AttributeReference attrRef)
             {
                 continue;
             }
@@ -235,13 +235,13 @@ public sealed class TextStyleCommands
         return updated;
     }
 
-    private static int DeleteStyles(Transaction tr, HashSet<ObjectId> duplicateStyleIds, Logger log)
+    private static int DeleteStyles(Transaction trx, HashSet<ObjectId> duplicateStyleIds, Logger log)
     {
         int deleted = 0;
 
         foreach (ObjectId styleId in duplicateStyleIds)
         {
-            if (tr.GetObject(styleId, OpenMode.ForWrite, false) is not TextStyleTableRecord styleRecord)
+            if (trx.GetObject(styleId, OpenMode.ForWrite, false) is not TextStyleTableRecord styleRecord)
             {
                 continue;
             }

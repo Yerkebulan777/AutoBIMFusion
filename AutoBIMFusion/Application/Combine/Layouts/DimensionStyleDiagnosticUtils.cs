@@ -26,15 +26,15 @@ internal static class DimensionStyleDiagnosticUtils
     /// <param name="stage">Метка этапа (например: "after-merge").</param>
     internal static void LogStyleSnapshot(Database db, Logger log, string stage)
     {
-        using Transaction tr = db.TransactionManager.StartTransaction();
+        using Transaction trx = db.TransactionManager.StartTransaction();
 
-        DimStyleTable dimStyleTable = (DimStyleTable)tr.GetObject(db.DimStyleTableId, OpenMode.ForRead);
-        TextStyleTable textStyleTable = (TextStyleTable)tr.GetObject(db.TextStyleTableId, OpenMode.ForRead);
+        DimStyleTable dimStyleTable = (DimStyleTable)trx.GetObject(db.DimStyleTableId, OpenMode.ForRead);
+        TextStyleTable textStyleTable = (TextStyleTable)trx.GetObject(db.TextStyleTableId, OpenMode.ForRead);
 
         List<string> dimStyles = [];
         foreach (ObjectId id in dimStyleTable)
         {
-            DimStyleTableRecord style = (DimStyleTableRecord)tr.GetObject(id, OpenMode.ForRead);
+            DimStyleTableRecord style = (DimStyleTableRecord)trx.GetObject(id, OpenMode.ForRead);
             if (IsUserStyle(style))
             {
                 dimStyles.Add(FormatDimensionStyle(style));
@@ -44,14 +44,14 @@ internal static class DimensionStyleDiagnosticUtils
         List<string> textStyles = [];
         foreach (ObjectId id in textStyleTable)
         {
-            TextStyleTableRecord style = (TextStyleTableRecord)tr.GetObject(id, OpenMode.ForRead);
+            TextStyleTableRecord style = (TextStyleTableRecord)trx.GetObject(id, OpenMode.ForRead);
             if (IsUserStyle(style))
             {
                 textStyles.Add(FormatTextStyle(style));
             }
         }
 
-        tr.Commit();
+        trx.Commit();
 
         log.Information($"[STYLE-SNAPSHOT] stage={stage}, dimStyles={dimStyles.Count}, textStyles={textStyles.Count}");
 

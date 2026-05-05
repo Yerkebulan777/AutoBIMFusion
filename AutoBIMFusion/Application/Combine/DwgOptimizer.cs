@@ -48,28 +48,28 @@ internal static class DwgOptimizer
     {
         using ObjectIdCollection candidates = [];
 
-        using Transaction tr = db.TransactionManager.StartTransaction();
+        using Transaction trx = db.TransactionManager.StartTransaction();
 
-        AddTableIds(tr, db.BlockTableId, candidates, log);
-        AddTableIds(tr, db.LayerTableId, candidates, log);
-        AddTableIds(tr, db.LinetypeTableId, candidates, log);
-        AddTableIds(tr, db.TextStyleTableId, candidates, log);
-        AddTableIds(tr, db.DimStyleTableId, candidates, log);
-        AddTableIds(tr, db.RegAppTableId, candidates, log);
-        AddTableIds(tr, db.UcsTableId, candidates, log);
-        AddTableIds(tr, db.ViewTableId, candidates, log);
-        AddTableIds(tr, db.ViewportTableId, candidates, log);
+        AddTableIds(trx, db.BlockTableId, candidates, log);
+        AddTableIds(trx, db.LayerTableId, candidates, log);
+        AddTableIds(trx, db.LinetypeTableId, candidates, log);
+        AddTableIds(trx, db.TextStyleTableId, candidates, log);
+        AddTableIds(trx, db.DimStyleTableId, candidates, log);
+        AddTableIds(trx, db.RegAppTableId, candidates, log);
+        AddTableIds(trx, db.UcsTableId, candidates, log);
+        AddTableIds(trx, db.ViewTableId, candidates, log);
+        AddTableIds(trx, db.ViewportTableId, candidates, log);
 
-        AddDictionaryIds(tr, db.MLeaderStyleDictionaryId, candidates, log);
-        AddDictionaryIds(tr, db.MaterialDictionaryId, candidates, log);
-        AddDictionaryIds(tr, db.TableStyleDictionaryId, candidates, log);
-        AddDictionaryIds(tr, db.PlotStyleNameDictionaryId, candidates, log);
-        AddDictionaryIds(tr, db.GroupDictionaryId, candidates, log);
-        AddDictionaryIds(tr, db.VisualStyleDictionaryId, candidates, log);
+        AddDictionaryIds(trx, db.MLeaderStyleDictionaryId, candidates, log);
+        AddDictionaryIds(trx, db.MaterialDictionaryId, candidates, log);
+        AddDictionaryIds(trx, db.TableStyleDictionaryId, candidates, log);
+        AddDictionaryIds(trx, db.PlotStyleNameDictionaryId, candidates, log);
+        AddDictionaryIds(trx, db.GroupDictionaryId, candidates, log);
+        AddDictionaryIds(trx, db.VisualStyleDictionaryId, candidates, log);
 
         if (candidates.Count == 0)
         {
-            tr.Commit();
+            trx.Commit();
             return 0;
         }
 
@@ -80,26 +80,26 @@ internal static class DwgOptimizer
         catch (System.Exception ex)
         {
             log.Warning(ex, "Ошибка при вызове Database.Purge");
-            tr.Commit();
+            trx.Commit();
             return 0;
         }
 
         if (candidates.Count == 0)
         {
-            tr.Commit();
+            trx.Commit();
             return 0;
         }
 
-        int erased = ErasePurgedObjects(tr, candidates, log);
+        int erased = ErasePurgedObjects(trx, candidates, log);
 
-        tr.Commit();
+        trx.Commit();
         return erased;
     }
 
     /// <summary>
     /// Удаляет объекты, оставшиеся в коллекции после вызова <see cref="Database.Purge"/>.
     /// </summary>
-    internal static int ErasePurgedObjects(Transaction tr, ObjectIdCollection candidates, Logger log)
+    internal static int ErasePurgedObjects(Transaction trx, ObjectIdCollection candidates, Logger log)
     {
         int erased = 0;
         foreach (ObjectId id in candidates)
@@ -111,7 +111,7 @@ internal static class DwgOptimizer
 
             try
             {
-                DBObject obj = tr.GetObject(id, OpenMode.ForWrite);
+                DBObject obj = trx.GetObject(id, OpenMode.ForWrite);
                 obj.Erase();
                 erased++;
             }
@@ -124,7 +124,7 @@ internal static class DwgOptimizer
         return erased;
     }
 
-    private static void AddTableIds(Transaction tr, ObjectId tableId, ObjectIdCollection target, Logger log)
+    private static void AddTableIds(Transaction trx, ObjectId tableId, ObjectIdCollection target, Logger log)
     {
         if (tableId.IsNull)
         {
@@ -133,7 +133,7 @@ internal static class DwgOptimizer
 
         try
         {
-            SymbolTable table = (SymbolTable)tr.GetObject(tableId, OpenMode.ForRead);
+            SymbolTable table = (SymbolTable)trx.GetObject(tableId, OpenMode.ForRead);
             foreach (ObjectId id in table)
             {
                 if (!id.IsNull && !id.IsErased)
@@ -148,7 +148,7 @@ internal static class DwgOptimizer
         }
     }
 
-    private static void AddDictionaryIds(Transaction tr, ObjectId dictId, ObjectIdCollection target, Logger log)
+    private static void AddDictionaryIds(Transaction trx, ObjectId dictId, ObjectIdCollection target, Logger log)
     {
         if (dictId.IsNull)
         {
@@ -157,7 +157,7 @@ internal static class DwgOptimizer
 
         try
         {
-            DBDictionary dict = (DBDictionary)tr.GetObject(dictId, OpenMode.ForRead);
+            DBDictionary dict = (DBDictionary)trx.GetObject(dictId, OpenMode.ForRead);
             foreach (DBDictionaryEntry entry in dict)
             {
                 ObjectId id = entry.Value;

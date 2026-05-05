@@ -20,23 +20,23 @@ internal static class RasterImagePathFixer
         Dictionary<string, string> copiedBySourcePath = new(StringComparer.OrdinalIgnoreCase);
         HashSet<string> reservedDestinationPaths = new(StringComparer.OrdinalIgnoreCase);
 
-        using Transaction tr = db.TransactionManager.StartTransaction();
+        using Transaction trx = db.TransactionManager.StartTransaction();
         ObjectId dictId = RasterImageDef.GetImageDictionary(db);
 
         if (dictId.IsNull)
         {
-            tr.Commit();
+            trx.Commit();
             return;
         }
 
-        DBDictionary dict = (DBDictionary)tr.GetObject(dictId, OpenMode.ForRead);
+        DBDictionary dict = (DBDictionary)trx.GetObject(dictId, OpenMode.ForRead);
         int fixedCount = 0;
 
         foreach (DBDictionaryEntry entry in dict)
         {
             try
             {
-                if (tr.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def)
+                if (trx.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def)
                 {
                     continue;
                 }
@@ -92,7 +92,7 @@ internal static class RasterImagePathFixer
             }
         }
 
-        tr.Commit();
+        trx.Commit();
 
         if (fixedCount > 0)
         {

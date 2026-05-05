@@ -190,19 +190,19 @@ internal static class LayoutProjectionProcessor
         return ModelSpaceTrimmer.ComputeBounds(db, cloneResult.ClonedIds, log);
     }
 
-    private static void RegisterDimensionsInside(Database db, IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities, ViewportInfo viewport, double multiplier, ScaleCollector dimensionScales)
+    private static void RegisterDimensionsInside(Database db, IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> entities, ViewportInfo vpt, double multiplier, ScaleCollector dimensionScales)
     {
-        double viewportArea = ComputeArea(viewport.ModelWindow);
+        double viewportArea = ComputeArea(vpt.ModelWindow);
 
-        using Transaction tr = db.TransactionManager.StartTransaction();
+        using Transaction trx = db.TransactionManager.StartTransaction();
 
-        foreach (ViewportTransformer.ModelEntitySnapshot snapshot in modelEntities)
+        foreach (ViewportTransformer.ModelEntitySnapshot snapshot in entities)
         {
             if (!snapshot.Id.IsNull && !snapshot.Id.IsErased)
             {
-                if (ExtentsUtils.AabbIntersect(viewport.ModelWindow, snapshot.Extents))
+                if (ExtentsUtils.AabbIntersect(vpt.ModelWindow, snapshot.Extents))
                 {
-                    if (tr.GetObject(snapshot.Id, OpenMode.ForRead, false) is Dimension)
+                    if (trx.GetObject(snapshot.Id, OpenMode.ForRead, false) is Dimension)
                     {
                         dimensionScales.Register(snapshot.Id, multiplier, viewportArea);
                     }
@@ -210,27 +210,27 @@ internal static class LayoutProjectionProcessor
             }
         }
 
-        tr.Commit();
+        trx.Commit();
     }
 
     private static void RegisterClonedDimensions(Database db, IReadOnlyDictionary<ObjectId, ObjectId> sourceToClone, ViewportInfo viewport, double multiplier, ScaleCollector dimensionScales)
     {
         double viewportArea = ComputeArea(viewport.ModelWindow);
 
-        using Transaction tr = db.TransactionManager.StartTransaction();
+        using Transaction trx = db.TransactionManager.StartTransaction();
 
         foreach (ObjectId cloneId in sourceToClone.Values)
         {
             if (!cloneId.IsNull && !cloneId.IsErased)
             {
-                if (tr.GetObject(cloneId, OpenMode.ForRead, false) is Dimension)
+                if (trx.GetObject(cloneId, OpenMode.ForRead, false) is Dimension)
                 {
                     dimensionScales.Register(cloneId, multiplier, viewportArea);
                 }
             }
         }
 
-        tr.Commit();
+        trx.Commit();
     }
 
     /// <summary>
@@ -253,18 +253,18 @@ internal static class LayoutProjectionProcessor
     {
         if (!btrId.IsNull)
         {
-            using Transaction tr = db.TransactionManager.StartTransaction();
-            BlockTableRecord btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForRead);
+            using Transaction trx = db.TransactionManager.StartTransaction();
+            BlockTableRecord btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
 
             foreach (ObjectId id in btr)
             {
-                if (tr.GetObject(id, OpenMode.ForWrite) is Entity entity && !entity.IsErased)
+                if (trx.GetObject(id, OpenMode.ForWrite) is Entity entity && !entity.IsErased)
                 {
                     entity.Erase();
                 }
             }
 
-            tr.Commit();
+            trx.Commit();
         }
     }
 }

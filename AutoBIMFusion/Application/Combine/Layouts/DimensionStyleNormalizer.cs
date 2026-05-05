@@ -35,18 +35,18 @@ internal static class DimensionStyleNormalizer
         int fallbackUsed = 0;
         HashSet<ObjectId> replacedStyleIds = [];
 
-        using Transaction tr = db.TransactionManager.StartTransaction();
+        using Transaction trx = db.TransactionManager.StartTransaction();
 
-        DimStyleTable dimStyleTable = (DimStyleTable)tr.GetObject(db.DimStyleTableId, OpenMode.ForRead);
-        Dictionary<string, ObjectId> styleCache = BuildStyleCache(dimStyleTable, tr);
+        DimStyleTable dimStyleTable = (DimStyleTable)trx.GetObject(db.DimStyleTableId, OpenMode.ForRead);
+        Dictionary<string, ObjectId> styleCache = BuildStyleCache(dimStyleTable, trx);
 
-        BlockTableRecord modelSpace = (BlockTableRecord)tr.GetObject(
+        BlockTableRecord modelSpace = (BlockTableRecord)trx.GetObject(
             SymbolUtilityServices.GetBlockModelSpaceId(db),
             OpenMode.ForRead);
 
         foreach (ObjectId id in modelSpace)
         {
-            if (id.IsNull || id.IsErased || tr.GetObject(id, OpenMode.ForRead, false) is not Dimension dimension)
+            if (id.IsNull || id.IsErased || trx.GetObject(id, OpenMode.ForRead, false) is not Dimension dimension)
             {
                 continue;
             }
@@ -59,7 +59,7 @@ internal static class DimensionStyleNormalizer
                 fallbackUsed++;
             }
 
-            if (!TryResolveStyleRecord(db, dimension.DimensionStyle, tr, out DimStyleTableRecord sourceStyle))
+            if (!TryResolveStyleRecord(db, dimension.DimensionStyle, trx, out DimStyleTableRecord sourceStyle))
             {
                 log.Warning(
                     "[DIM-NORMALIZE] handle={Handle}: skipped because source dimension style is not available.",
@@ -71,7 +71,7 @@ internal static class DimensionStyleNormalizer
 
             if (!styleCache.TryGetValue(newStyleName, out ObjectId normalizedStyleId))
             {
-                normalizedStyleId = CreateScaledStyle(dimStyleTable, sourceStyle, newStyleName, multiplier, clampRatio, tr, log);
+                normalizedStyleId = CreateScaledStyle(dimStyleTable, sourceStyle, newStyleName, multiplier, clampRatio, trx, log);
                 styleCache[newStyleName] = normalizedStyleId;
                 stylesCreated++;
 
@@ -106,7 +106,7 @@ internal static class DimensionStyleNormalizer
             normalized++;
         }
 
-        tr.Commit();
+        trx.Commit();
 
         int purgedOldStyles = PurgeUnusedReplacedStyles(db, replacedStyleIds, log);
 
@@ -164,20 +164,20 @@ internal static class DimensionStyleNormalizer
             return 0;
         }
 
-        using Transaction tr = db.TransactionManager.StartTransaction();
-        int purged = DwgOptimizer.ErasePurgedObjects(tr, candidates, log);
+        using Transaction trx = db.TransactionManager.StartTransaction();
+        int purged = DwgOptimizer.ErasePurgedObjects(trx, candidates, log);
 
-        tr.Commit();
+        trx.Commit();
         return purged;
     }
 
-    private static Dictionary<string, ObjectId> BuildStyleCache(DimStyleTable dimStyleTable, Transaction tr)
+    private static Dictionary<string, ObjectId> BuildStyleCache(DimStyleTable dimStyleTable, Transaction trx)
     {
         Dictionary<string, ObjectId> cache = new(StringComparer.OrdinalIgnoreCase);
 
         foreach (ObjectId styleId in dimStyleTable)
         {
-            if (tr.GetObject(styleId, OpenMode.ForRead, false) is DimStyleTableRecord style && !style.IsErased)
+            if (trx.GetObject(styleId, OpenMode.ForRead, false) is DimStyleTableRecord style && !style.IsErased)
             {
                 cache[style.Name] = styleId;
             }
@@ -189,7 +189,7 @@ internal static class DimensionStyleNormalizer
     private static bool TryResolveStyleRecord(
         Database db,
         ObjectId styleId,
-        Transaction tr,
+        Transaction trx,
         out DimStyleTableRecord style)
     {
         style = null!;
@@ -203,7 +203,7 @@ internal static class DimensionStyleNormalizer
             return false;
         }
 
-        if (tr.GetObject(resolvedStyleId, OpenMode.ForRead, false) is not DimStyleTableRecord resolvedStyle
+        if (trx.GetObject(resolvedStyleId, OpenMode.ForRead, false) is not DimStyleTableRecord resolvedStyle
             || resolvedStyle.IsErased)
         {
             return false;
@@ -245,7 +245,7 @@ internal static class DimensionStyleNormalizer
         string styleName,
         double scaleMultiplier,
         double clampRatio,
-        Transaction tr,
+        Transaction trx,
         Logger log)
     {
         if (!dimStyleTable.IsWriteEnabled)
@@ -262,7 +262,7 @@ internal static class DimensionStyleNormalizer
         scaledStyle.Dimlfac = 1.0;
 
         ObjectId styleId = dimStyleTable.Add(scaledStyle);
-        tr.AddNewlyCreatedDBObject(scaledStyle, true);
+        trx.AddNewlyCreatedDBObject(scaledStyle, true);
         return styleId;
     }
 
