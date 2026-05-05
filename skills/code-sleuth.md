@@ -1,112 +1,70 @@
-# Code Sleuth — Finding SDK Samples & API References
+# Code Sleuth — AutoCAD .NET Search Patterns
 
-When writing plugin code, check SDK samples and enumerate live API objects before generating from scratch.
+AutoCAD-only search guide for this repository. Use it only for desktop AutoCAD plugin work and AutoCAD SDK/API lookup.
 
-## The Super Tool: `rg` (ripgrep)
+## Ripgrep baseline
 
-Before running any `rg` command, verify it is available:
+Verify `rg` exists:
 
-```bash
+```powershell
 rg --version
 ```
 
-If missing, prompt the user to install via `winget`:
+If missing:
 
-```bash
+```powershell
 winget install BurntSushi.ripgrep.MSVC
 ```
 
-After install, restart the terminal session so `rg` is on `PATH`.
+## AutoBIMFusion repo checks
 
----
+```powershell
+# Registered AutoCAD commands
+rg -n "\[CommandMethod" AutoBIMFusion/Application/Commands
 
-`rg` is the fastest way to find usage patterns across SDK samples and existing codebases.
+# Command classes and AutoCAD entry points
+rg -n "CommandMethod|IExtensionApplication|ExtensionApplication|CommandClass" AutoBIMFusion
 
-```bash
-# Find all usages of a class in SDK samples
-rg "DataLinksManager" /path/to/sdk/samples
+# DocumentLock and transaction usage
+rg -n "LockDocument|StartTransaction|Commit\(\)" AutoBIMFusion/Application
 
-# Find method signatures
-rg "dlm\.GetRelatedRowIds" --type cs
+# Bundle deployment and core-console exclusions
+rg -n "CoreConsoleDiagnostics|CreateAutoCADBundle|CleanAutoCADBundle|ApplicationPlugins|BundleName" AutoBIMFusion/AutoBIMFusion.csproj
 
-# Find namespace declarations (locate which DLL a type lives in)
-rg "namespace Autodesk\.ProcessPower" --type cs -l
+# AutoCAD package and version mapping
+rg -n "TargetFramework|AcadPackageVersion|AcadInteropPackageVersion|PackageVersion|DefineConstants" AutoBIMFusion/AutoBIMFusion.csproj Directory.Build.props Directory.Packages.props
 
-# Case-insensitive, with context
-rg -i "cogopoint" --type cs -C 3
-
-# Search only in .csproj for package references
-rg "PackageReference" --glob "*.csproj"
-
-# Find all CommandMethod usages
-rg "\[CommandMethod" --type cs
+# Stale documentation names without matching this command text literally
+rg -n "Merge[C]ommands|Merge[O]rchestrator|Create[E]TransmitZip|Merge[T]extStyles|MERGEDWG_DIAG_TEST" README.md AGENTS.md AutoBIMFusion/docs skills
 ```
 
-Use `rg` over IDE search when working outside Visual Studio or when searching large SDK trees.
+Current registered commands are `MERGEDWG`, `SMART_MERGE_TEXT`, `MERGE_TEXT_STYLES`, `JOIN_LINES`, and `CREATE_ETRANSMIT_ZIP`. `tools/Run-MergeDwgDiagTest.ps1` references `MERGEDWG_DIAG_TEST`, but that command is not registered in the current C# sources.
 
----
+## AutoCAD API lookup
 
-## Online API References
+Use official AutoCAD docs and NuGet XML docs first:
 
-| Resource | URL |
-|----------|-----|
-| AutoCAD .NET Developer's Guide (2027) | https://help.autodesk.com/view/OARX/2027/ENU/ |
-| Civil 3D .NET API Reference (2027) | https://help.autodesk.com/view/CIV3D/2027/ENU/ |
-| Plant 3D SDK download | https://aps.autodesk.com/developer/overview/autocad-plant-3d-objectarx-sdk-downloads |
-| AutoCAD NuGet (`AutoCAD.NET`) | https://www.nuget.org/packages/AutoCAD.NET |
-| Civil 3D NuGet (`Civil3D.NET`) | https://www.nuget.org/packages/Civil3D.NET |
+```powershell
+# Find AutoCAD type references in package XML docs
+rg "Database" "$env:USERPROFILE\.nuget\packages\autocad.net" --glob "*.xml"
 
----
+# Find command patterns in this repo
+rg -n "\[CommandMethod" AutoBIMFusion --glob "*.cs"
 
-## NuGet Package XML Docs
+# Find entity type checks
+rg -n " is (DBText|MText|Line|Dimension|Entity)|DxfName" AutoBIMFusion/Application --glob "*.cs"
 
-Intellisense XML docs ship with every NuGet package. Grep them directly:
-
-```bash
-rg "DataLinksManager" ~/.nuget/packages/autocad.net/ --type xml -l
+# Find system variable scopes
+rg -n "AcadWarningSuppressScope|AcadUnitScalingOverrideScope|Application\\.SetSystemVariable|GetSystemVariable" AutoBIMFusion/Application --glob "*.cs"
 ```
 
----
+## Runtime discovery inside AutoCAD
 
-## Runtime Discovery Patterns
-
-When docs are sparse, enumerate live objects inside a running AutoCAD command.
-
-### Discover Plant3D table columns
+When docs are sparse, inspect live AutoCAD objects inside a temporary command:
 
 ```csharp
-foreach (PnPTable t in pnpDb.Tables)
-{
-    ed.WriteMessage($"\nTable: {t.Name}");
-    foreach (var col in t.Columns)
-        ed.WriteMessage($"  col: {col.Name}");
-}
+Entity ent = (Entity)tr.GetObject(id, OpenMode.ForRead);
+ed.WriteMessage($"\nType: {ent.GetType().FullName}; DXF: {id.ObjectClass.DxfName}; Assembly: {ent.GetType().Assembly.GetName().Name}");
 ```
 
-### Discover Plant3D relationships
-
-```csharp
-foreach (PnPRelationshipType rt in pnpDb.RelationshipTypes)
-{
-    ed.WriteMessage($"\nRel: {rt.Name}");
-    foreach (PnPRoleType role in rt.RoleTypes)
-        ed.WriteMessage($"  role: {role.Name}");
-}
-```
-
-### Identify unknown entity type at an ObjectId
-
-```csharp
-var ent = tr.GetObject(id, OpenMode.ForRead);
-ed.WriteMessage($"\nType: {ent.GetType().FullName}  Assembly: {ent.GetType().Assembly.GetName().Name}");
-```
-
-### Dump all properties on a Plant3D row
-
-```csharp
-string cls  = dlm.GetObjectClassname(rowId);
-PnPTable tbl = pnpDb.Tables[cls];
-PnPRow   row = tbl.Select($"PnPID={rowId}")[0];
-foreach (var col in tbl.Columns)
-    ed.WriteMessage($"\n  {col.Name} = {row[col.Name]}");
-```
+Keep discovery commands local or remove them before committing unless they are intentionally productized diagnostics.

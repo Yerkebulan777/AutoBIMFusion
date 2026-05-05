@@ -1,212 +1,108 @@
 # Scaffold Skill — AutoCAD .NET Plugins
 
-Agentic steps to create a new plugin project end-to-end. Execute these steps in order.
+AutoCAD-only guide for this repository. Use it only for desktop AutoCAD plugin work.
 
-## Step 0 — Identify the target product
+## AutoBIMFusion repository baseline
 
-| User says | Target | Template | Extra packages |
-|-----------|--------|----------|----------------|
-| "AutoCAD plugin" / "acad add-in" | AutoCAD 2027 | `acad` | `AutoCAD.NET 26.0.0` |
-| "Civil 3D plugin" / "c3d add-in" | Civil 3D 2027 | `civil` | `Civil3D.NET 13.9.628` |
-| "Plant 3D plugin" / "plant add-in" | Plant 3D 2027 | *(manual)* | `AutoCAD.NET.Core 26.0.0` + SDK DLL refs |
-| "Design Automation" / "DA" | Any (headless) | `acad` | *(Core already wired)* |
+- Solution: `AutoBIMFusion.slnx`.
+- Project: `AutoBIMFusion/AutoBIMFusion.csproj`.
+- Target: `net8.0`, `PlatformTarget=x64`.
+- Configurations: `DebugA25`, `DebugA26`, `DebugA27`, `ReleaseA25`, `ReleaseA26`, `ReleaseA27`.
+- Package versions: central package management in `Directory.Packages.props`; do not pin AutoCAD package versions in the project file.
+- Bundle deployment: every build creates and deploys `AutoBIMFusion.bundle` to `%AppData%\Autodesk\ApplicationPlugins\`.
+- Core-console diagnostic build: `/p:CoreConsoleDiagnostics=true` excludes `AutoBIMFusionExtension.cs`, `Application/Ribbon/**`, and WPF.
 
----
+## New AutoCAD command checklist
 
-## Step 1 — Scaffold
+1. Add the command class or method under `AutoBIMFusion/Application/Commands`.
+2. Register the command with `[CommandMethod("COMMAND_NAME", CommandFlags.Modal)]` or the existing flag pattern needed by AutoCAD.
+3. For any write to the active drawing, wrap work in `using (doc.LockDocument())`.
+4. Use `TransactionManager.StartTransaction()` and commit explicitly.
+5. Keep AutoCAD API calls on the main thread.
+6. Log through `LoggerFactory.GetSharedLogger()` or the command-specific logger pattern.
+7. Add a Ribbon button only when the command should be exposed in the AutoBIMFusion tab.
+8. Build with the target AutoCAD config, for example:
 
-### AutoCAD
-
-```bash
-dotnet new acad -n <ProjectName> -o <ProjectName>
-cd <ProjectName>
+```powershell
+dotnet build AutoBIMFusion.slnx -c DebugA26
 ```
 
-### Civil 3D
+## AutoCAD package mapping
 
-```bash
-dotnet new civil --rootNamespace=<ProjectName> -o <ProjectName>
-cd <ProjectName>
-```
+| AutoCAD | Config suffix | `AcadPackageVersion` | `AcadInteropPackageVersion` | Preprocessor |
+|---|---|---|---|---|
+| 2025 | A25 | `25.0` | `2025.0` | `ACAD2025` |
+| 2026 | A26 | `25.1` | `2026.0` | `ACAD2026` |
+| 2027 | A27 | `26.0` | `2026.0` | `ACAD2027` |
 
-### Plant 3D (manual)
+## Manual AutoCAD plugin scaffold
 
-Create `<ProjectName>/<ProjectName>.csproj`:
+Use this only for a separate AutoCAD-only plugin project, not for modifying AutoBIMFusion itself.
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <TargetFramework>net8.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>$(MSBuildProjectName)</RootNamespace>
-    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
 
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
-    <PackageReference Include="AutoCAD.NET.Core" Version="26.0.0" ExcludeAssets="runtime" />
-    <PackageReference Include="AutoCAD.NET.Model" Version="26.0.0" ExcludeAssets="runtime" />
-  </ItemGroup>
-
-  <!-- Plant 3D SDK — PLANT_SDK = path to inc-x64\ folder -->
-  <!-- Download SDK: https://aps.autodesk.com/developer/overview/autocad-plant-3d-objectarx-sdk-downloads -->
-  <ItemGroup>
-    <Reference Include="PnIDMgd">
-      <HintPath>$(PLANT_SDK)\PnIDMgd.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="PnPDataLinks">
-      <HintPath>$(PLANT_SDK)\PnPDataLinks.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="PnPDataObjects">
-      <HintPath>$(PLANT_SDK)\PnPDataObjects.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="PnPProjectManagerMgd">
-      <HintPath>$(PLANT_SDK)\PnPProjectManagerMgd.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="PnPCommonMgd">
-      <HintPath>$(PLANT_SDK)\PnPCommonMgd.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="PnPCommonDbxMgd">
-      <HintPath>$(PLANT_SDK)\PnPCommonDbxMgd.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="PnIdProjectPartsMgd">
-      <HintPath>$(PLANT_SDK)\PnIdProjectPartsMgd.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
+    <PackageReference Include="AutoCAD.NET" Version="26.0.*" ExcludeAssets="runtime" />
+    <PackageReference Include="AutoCAD.NET.Interop" Version="2026.0.*" ExcludeAssets="runtime" />
   </ItemGroup>
 </Project>
 ```
 
-Set `PLANT_SDK` as an MSBuild property, environment variable, or `Directory.Build.props`:
-
-```xml
-<!-- Directory.Build.props (repo root) -->
-<Project>
-  <PropertyGroup>
-    <PLANT_SDK Condition="'$(PLANT_SDK)'==''">D:\SDKS\Plant2027\inc-x64</PLANT_SDK>
-  </PropertyGroup>
-</Project>
-```
-
-Create the entry point `App.cs`:
+Entry point pattern:
 
 ```csharp
 using Autodesk.AutoCAD.Runtime;
 
-[assembly: ExtensionApplication(typeof(<ProjectName>.App))]
-[assembly: CommandClass(typeof(<ProjectName>.Commands))]
+[assembly: ExtensionApplication(typeof(MyPlugin.App))]
+[assembly: CommandClass(typeof(MyPlugin.Commands))]
 
-namespace <ProjectName>;
+namespace MyPlugin;
 
-public class App : IExtensionApplication
+public sealed class App : IExtensionApplication
 {
     public void Initialize() { }
     public void Terminate() { }
 }
 ```
 
----
+Command pattern:
 
-## Step 2 — Update framework (if template generated older target)
+```csharp
+using Autodesk.AutoCAD.ApplicationServices.Core;
+using Autodesk.AutoCAD.Runtime;
 
-If the scaffolded `.csproj` shows `net6.0-windows`, update it:
+namespace MyPlugin;
 
-```bash
-# In the .csproj, replace:
-# <TargetFramework>net6.0-windows</TargetFramework>
-# with:
-# <TargetFramework>net8.0-windows</TargetFramework>
-```
-
----
-
-## Step 3 — Add variant packages
-
-### AutoCAD (desktop testing)
-
-```bash
-dotnet add package AutoCAD.NET --version 26.0.0
-```
-
-### Civil 3D
-
-```bash
-dotnet add package Civil3D.NET --version 13.9.628
-```
-
-> Plant 3D packages are already in the manual csproj from Step 1.
-
----
-
-## Step 4 — Add launchSettings.json
-
-Create `Properties/launchSettings.json`. Replace `<ACAD_HOME>` with the AutoCAD install path (e.g. `C:\Program Files\Autodesk\AutoCAD 2027` or prompt the user).
-
-### AutoCAD
-
-```json
+public sealed class Commands
 {
-  "profiles": {
-    "<ProjectName>": { "commandName": "Project" },
-    "AutoCAD2027": {
-      "commandName": "Executable",
-      "executablePath": "<ACAD_HOME>\\acad.exe"
+    [CommandMethod("MY_COMMAND", CommandFlags.Modal)]
+    public void MyCommand()
+    {
+        Document? doc = Application.DocumentManager.MdiActiveDocument;
+        if (doc?.Database is null)
+        {
+            return;
+        }
+
+        using (doc.LockDocument())
+        using (Transaction tr = doc.Database.TransactionManager.StartTransaction())
+        {
+            tr.Commit();
+        }
     }
-  }
 }
 ```
 
-### Civil 3D
+## Load and run
 
-```json
-{
-  "profiles": {
-    "<ProjectName>": { "commandName": "Project" },
-    "C3D2027_Metric": {
-      "commandName": "Executable",
-      "executablePath": "<ACAD_HOME>\\acad.exe",
-      "commandLineArgs": "/ld \"<ACAD_HOME>\\AecBase.dbx\" /p \"<<C3D_Metric>>\" /product C3D /language en-US"
-    },
-    "C3D2027_Imperial": {
-      "commandName": "Executable",
-      "executablePath": "<ACAD_HOME>\\acad.exe",
-      "commandLineArgs": "/ld \"<ACAD_HOME>\\AecBase.dbx\" /p \"<<C3D_Imperial>>\" /product C3D /language en-US"
-    }
-  }
-}
-```
+For AutoBIMFusion, build is enough because the bundle deploys automatically. Then launch AutoCAD and run the command.
 
-### Plant 3D
-
-```json
-{
-  "profiles": {
-    "<ProjectName>": { "commandName": "Project" },
-    "Plant3D2027": {
-      "commandName": "Executable",
-      "executablePath": "<ACAD_HOME>\\acad.exe",
-      "commandLineArgs": "/product PLNT3D /language \"en-US\""
-    }
-  }
-}
-```
-
----
-
-## Step 5 — Build and load
-
-```bash
-dotnet build -c Debug
-```
-
-In AutoCAD: `NETLOAD` → `bin\Debug\net8.0-windows\<ProjectName>.dll`
-
-Run your command (template default: `HELLOWORLD`).
+Manual fallback: AutoCAD command line -> `NETLOAD` -> select the built DLL under `AutoBIMFusion/bin/<Configuration>/`.
