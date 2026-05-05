@@ -186,17 +186,11 @@ internal static class DimensionStyleNormalizer
         return cache;
     }
 
-    private static bool TryResolveStyleRecord(
-        Database db,
-        ObjectId styleId,
-        Transaction trx,
-        out DimStyleTableRecord style)
+    private static bool TryResolveStyleRecord(Database db, ObjectId styleId, Transaction trx, out DimStyleTableRecord style)
     {
         style = null!;
 
-        ObjectId resolvedStyleId = !styleId.IsNull && !styleId.IsErased
-            ? styleId
-            : db.Dimstyle;
+        ObjectId resolvedStyleId = !styleId.IsNull && !styleId.IsErased  ? styleId : db.Dimstyle;
 
         if (resolvedStyleId.IsNull || resolvedStyleId.IsErased)
         {
