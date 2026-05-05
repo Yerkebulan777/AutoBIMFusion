@@ -5,7 +5,7 @@ namespace AutoBIMFusion.Application.Combine.Layouts;
 /// <summary>
 /// Удаляет из Model Space всё, что полностью лежит вне рамки-штампа (frameBounds).
 /// frameBounds — bbox клонированных paper-объектов (то, что осталось от рамки/штампа
-/// после переноса через главный viewport).
+/// после переноса через главный vpt).
 /// </summary>
 internal static class ModelSpaceTrimmer
 {
@@ -23,11 +23,11 @@ internal static class ModelSpaceTrimmer
 
         Extents3d? acc = null;
 
-        using Transaction tr = db.TransactionManager.StartTransaction();
+        using Transaction trx = db.TransactionManager.StartTransaction();
 
         foreach (ObjectId id in entityIds)
         {
-            if (tr.GetObject(id, OpenMode.ForRead) is not Entity ent)
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent)
             {
                 continue;
             }
@@ -42,7 +42,7 @@ internal static class ModelSpaceTrimmer
             acc = acc is null ? ext.Value : ExtentsUtils.Union(acc.Value, ext.Value);
         }
 
-        tr.Commit();
+        trx.Commit();
         if (acc.HasValue)
         {
             log.Debug($"ModelSpaceTrimmer.ComputeBounds: entities={entityIds.Count}, bounds={ExtentsUtils.FormatExtents(acc.Value)}");
@@ -69,16 +69,16 @@ internal static class ModelSpaceTrimmer
         int erased = 0;
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
-        using Transaction tr = db.TransactionManager.StartTransaction();
+        using Transaction trx = db.TransactionManager.StartTransaction();
 
         // Гарантируем актуальность границ всей БД перед началом фильтрации
         db.UpdateExt(true);
 
-        BlockTableRecord ms = (BlockTableRecord)tr.GetObject(msId, OpenMode.ForRead);
+        BlockTableRecord ms = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
 
         foreach (ObjectId id in ms)
         {
-            if (tr.GetObject(id, OpenMode.ForRead) is not Entity ent)
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent)
             {
                 continue;
             }
@@ -106,7 +106,7 @@ internal static class ModelSpaceTrimmer
             }
         }
 
-        tr.Commit();
+        trx.Commit();
         log.Debug($"ModelSpaceTrimmer.TrimOutside erased={erased}");
         return erased;
     }

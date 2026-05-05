@@ -3,8 +3,8 @@ using Serilog.Core;
 namespace AutoBIMFusion.Application.Combine.Layouts;
 
 /// <summary>
-/// Переводит содержимое вспомогательного viewport'а (узла) в модельные координаты
-/// главного viewport'а и выполняет операции над наборами объектов Model Space.
+/// Переводит содержимое вспомогательного vpt'а (узла) в модельные координаты
+/// главного vpt'а и выполняет операции над наборами объектов Model Space.
 ///
 /// Математика: MainModelFromAuxModel = MainModelFromPaper ∘ PaperFromAuxModel.
 ///
@@ -232,7 +232,7 @@ internal static class ViewportTransformer
         using IdMapping map = [];
         CloneTransformResult result = new();
 
-        using (Transaction tr = db.TransactionManager.StartTransaction())
+        using (Transaction trx = db.TransactionManager.StartTransaction())
         {
             db.DeepCloneObjects(validIds, ownerId, map, false);
 
@@ -240,7 +240,7 @@ internal static class ViewportTransformer
             {
                 if (pair.IsCloned && pair.IsPrimary)
                 {
-                    if (tr.GetObject(pair.Value, OpenMode.ForWrite) is Entity e)
+                    if (trx.GetObject(pair.Value, OpenMode.ForWrite) is Entity e)
                     {
                         try
                         {
@@ -255,7 +255,7 @@ internal static class ViewportTransformer
                     }
                 }
             }
-            tr.Commit();
+            trx.Commit();
         }
 
         DrawOrderPreserver.Restore(db, ownerId, sourceOrder, map, log);
@@ -308,7 +308,7 @@ internal static class ViewportTransformer
         }
 
         int erased = 0;
-        using Transaction tr = db.TransactionManager.StartTransaction();
+        using Transaction trx = db.TransactionManager.StartTransaction();
 
         foreach (ObjectId id in auxEntities)
         {
@@ -322,14 +322,14 @@ internal static class ViewportTransformer
                 continue;
             }
 
-            if (tr.GetObject(id, OpenMode.ForWrite) is Entity e && !e.IsErased)
+            if (trx.GetObject(id, OpenMode.ForWrite) is Entity e && !e.IsErased)
             {
                 e.Erase();
                 erased++;
             }
         }
 
-        tr.Commit();
+        trx.Commit();
         log.Information($"EraseEntitiesOutsideMainWindow: erased={erased} of {auxEntities.Count}, inMain={inMain.Count}");
         return erased;
     }
@@ -344,13 +344,13 @@ internal static class ViewportTransformer
     {
         int unlocked = 0;
 
-        using Transaction tr = db.TransactionManager.StartTransaction();
+        using Transaction trx = db.TransactionManager.StartTransaction();
 
-        TextStyleTable tt = (TextStyleTable)tr.GetObject(db.TextStyleTableId, OpenMode.ForRead);
+        TextStyleTable tt = (TextStyleTable)trx.GetObject(db.TextStyleTableId, OpenMode.ForRead);
 
         foreach (ObjectId tsId in tt)
         {
-            TextStyleTableRecord ts = (TextStyleTableRecord)tr.GetObject(tsId, OpenMode.ForRead);
+            TextStyleTableRecord ts = (TextStyleTableRecord)trx.GetObject(tsId, OpenMode.ForRead);
 
             if (ts.TextSize > 0.0)
             {
@@ -360,7 +360,7 @@ internal static class ViewportTransformer
             }
         }
 
-        tr.Commit();
+        trx.Commit();
         log.Information($"UnlockTextStylesHeight: разблокировано {unlocked} текстовых стилей");
     }
 }

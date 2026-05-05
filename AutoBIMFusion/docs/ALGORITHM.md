@@ -33,11 +33,11 @@
 
 ### С видовыми экранами
 
-1. Главный viewport выбирается через `ViewportInfo.PickMainViewport`.
-2. Рабочий масштаб main viewport зажимается до `1:100` для более мелких масштабов.
+1. Главный vpt выбирается через `ViewportInfo.PickMainViewport`.
+2. Рабочий масштаб main vpt зажимается до `1:100` для более мелких масштабов.
 3. Для геометрии используется `effectiveMultiplier` / `clampRatio`.
-4. Для размерных стилей используется отдельный `dimensionMultiplier` из исходного масштаба main viewport.
-5. Aux viewports клонируют и трансформируют свои Model Space объекты в координаты main viewport.
+4. Для размерных стилей используется отдельный `dimensionMultiplier` из исходного масштаба main vpt.
+5. Aux viewports клонируют и трансформируют свои Model Space объекты в координаты main vpt.
 6. Остатки объектов aux viewports за пределами main window удаляются.
 7. Paper Space переносится в Model Space через матрицу `BuildPaperToMainMatrix`.
 

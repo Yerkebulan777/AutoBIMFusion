@@ -58,7 +58,7 @@ internal static class CombineOrchestrator
             }
 
             log.Information($"Вставлен лист '{layoutName}'");
-            return CombineResult.Ok(fileName, layoutName);
+            return CombineResult.Ok(fileName);
         }
         catch (System.Exception ex)
         {

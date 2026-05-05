@@ -23,23 +23,22 @@ internal static class ViewportLayoutExporter
             db.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
             db.CloseInput(true);
 
-            db.Insunits = UnitsValue.Millimeters;
-            db.Measurement = MeasurementValue.Metric;
+            ExtentsUtils.SyncUnits(db);
 
-            using (Transaction tr = db.TransactionManager.StartTransaction())
+            using (Transaction trx = db.TransactionManager.StartTransaction())
             {
-                BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+                BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
 
                 foreach (ObjectId btrId in bt)
                 {
-                    BlockTableRecord btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForWrite);
+                    BlockTableRecord btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForWrite);
 
                     if (!btr.IsFromExternalReference)
                     {
                         btr.Units = UnitsValue.Millimeters;
                     }
                 }
-                tr.Commit();
+                trx.Commit();
             }
 
             if (!LayoutUtil.TryFindFirstLayout(db, out string layoutName))
@@ -59,7 +58,7 @@ internal static class ViewportLayoutExporter
 
             DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "before-normalize");
 
-            DimensionStyleNormalizer.NormalizeModelSpaceDimensions(
+            DimensionStyleNormalizer.NormalizeDimensions(
                 db,
                 projection.DimensionScales,
                 projection.FallbackMultiplier,

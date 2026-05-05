@@ -147,6 +147,7 @@ internal static class LayoutProjectionProcessor
         }
     }
 
+
     /// <summary>
     /// Зажимает масштаб главного ВЭ до рабочего 1:100 для мелких масштабов (1:50, 1:20, ...).
     /// </summary>
@@ -242,6 +243,7 @@ internal static class LayoutProjectionProcessor
         tr.Commit();
     }
 
+
     /// <summary>
     /// Вычисляет мультипликатор как <c>1.0 / CustomScale</c> для указанного ВЭ.
     /// Используется для <c>effectiveMultiplier</c> (из зажатого ВЭ) и <c>dimensionMultiplier</c> (из исходного ВЭ).
@@ -252,11 +254,13 @@ internal static class LayoutProjectionProcessor
         return viewport.CustomScale > 0.0 ? 1.0 / viewport.CustomScale : 1.0;
     }
 
+
     private static double ComputeArea(Extents3d extents)
     {
         return Max(0.0, extents.MaxPoint.X - extents.MinPoint.X)
              * Max(0.0, extents.MaxPoint.Y - extents.MinPoint.Y);
     }
+
 
     private static void EraseBlockContents(Database db, ObjectId btrId)
     {

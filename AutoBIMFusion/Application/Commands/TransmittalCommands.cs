@@ -211,7 +211,6 @@ public sealed class TransmittalCommands
         }
         catch (System.Exception)
         {
-            //log.Debug($"GetTypesSafe: ошибка загрузки ассембли — {ex.GetType().Name}: {ex.Message}");
             return [];
         }
     }

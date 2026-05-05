@@ -17,13 +17,15 @@ internal static class LoggerFactory
 
     public static string GetCurrentLogFilePath()
     {
-        return Path.Combine(GetLogsDirectory(), $"merge-{DateTime.Today:yyyy-MM-dd}.log");
+        return Path.Combine(GetLogsDirectory(), BuildLogFileName());
     }
 
     public static string GetCurrentLogFilePath(string directoryPath)
     {
-        return Path.Combine(directoryPath, $"merge-{DateTime.Today:yyyy-MM-dd}.log");
+        return Path.Combine(directoryPath, BuildLogFileName());
     }
+
+    private static string BuildLogFileName() => $"merge-{DateTime.Today:yyyy-MM-dd}.log";
 
     public static Logger CreateLoggerInDirectory(string directoryPath)
     {
