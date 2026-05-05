@@ -42,7 +42,7 @@ internal static class LayoutProjectionProcessor
 
     private static LayoutProjectionResult ProjectWithViewports(Database db, string layoutName, IReadOnlyList<ViewportInfo> viewports, Logger log)
     {
-        log.Information($"Выбранный метод масштабирования: ProcessVp ({viewports.Count} vpt'ов)");
+        log.Information($"Выбранный метод масштабирования: ProcessVp ({viewports.Count} viewport'ов)");
 
         ViewportInfo mainOriginal = ViewportInfo.PickMainViewport(viewports);
         ViewportInfo mainClamped = ClampMainViewportScale(mainOriginal, log);
@@ -66,7 +66,7 @@ internal static class LayoutProjectionProcessor
         if (viewports.Count > 1)
         {
             IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
-            RegisterDimensionsInside(db, modelEntities, mainOriginal, effectiveMultiplier, dimensionScales);
+            RegisterDimensionsInside(db, modelEntities, mainOriginal, effectiveMultiplier, dimensionScales, log);
 
             foreach (ViewportInfo aux in viewports)
             {
@@ -83,7 +83,7 @@ internal static class LayoutProjectionProcessor
                     continue;
                 }
 
-                RegisterDimensionsInside(db, modelEntities, aux, effectiveMultiplier, dimensionScales);
+                RegisterDimensionsInside(db, modelEntities, aux, effectiveMultiplier, dimensionScales, log);
 
                 using ViewportTransformer.CloneTransformResult cloneResult = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log, $"aux-VP #{aux.Number}");
                 RegisterClonedDimensions(db, cloneResult.SourceToClone, aux, effectiveMultiplier, dimensionScales);
@@ -93,7 +93,7 @@ internal static class LayoutProjectionProcessor
         else
         {
             IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
-            RegisterDimensionsInside(db, modelEntities, mainOriginal, effectiveMultiplier, dimensionScales);
+            RegisterDimensionsInside(db, modelEntities, mainOriginal, effectiveMultiplier, dimensionScales, log);
         }
 
         ScaleModelSpaceWhenClamped(db, clampRatio, mainOriginal.ViewCenter, log);
@@ -147,6 +147,7 @@ internal static class LayoutProjectionProcessor
         }
     }
 
+
     /// <summary>
     /// Зажимает масштаб главного ВЭ до рабочего 1:100 для мелких масштабов (1:50, 1:20, ...).
     /// </summary>
@@ -158,18 +159,18 @@ internal static class LayoutProjectionProcessor
     /// <see cref="ScaleModelSpaceWhenClamped"/>. Для размерных стилей используется
     /// dimensionMultiplier из исходного ВЭ, а не effectiveMultiplier из зажатого.
     /// </remarks>
-    private static ViewportInfo ClampMainViewportScale(ViewportInfo vpt, Logger log)
+    private static ViewportInfo ClampMainViewportScale(ViewportInfo viewport, Logger log)
     {
-        double multiplier = 1.0 / vpt.CustomScale;
+        double multiplier = 1.0 / viewport.CustomScale;
 
         if (multiplier < MaxScaleMultiplier)
         {
-            log.Information($"VP #{vpt.Number}: масштаб 1:{multiplier:F0} → зажат до 1:{MaxScaleMultiplier:F0}");
-            return vpt with { CustomScale = 1.0 / MaxScaleMultiplier };
+            log.Information($"VP #{viewport.Number}: масштаб 1:{multiplier:F0} → зажат до 1:{MaxScaleMultiplier:F0}");
+            return viewport with { CustomScale = 1.0 / MaxScaleMultiplier };
         }
 
-        log.Information($"VP #{vpt.Number}: масштаб 1:{multiplier:F0}");
-        return vpt;
+        log.Information($"VP #{viewport.Number}: масштаб 1:{multiplier:F0}");
+        return viewport;
     }
 
     private static Extents3d? MovePaperToModelSpace(Database db, string layoutName, Matrix3d matrix, Logger log, string tag = "paper")
@@ -190,58 +191,69 @@ internal static class LayoutProjectionProcessor
         return ModelSpaceTrimmer.ComputeBounds(db, cloneResult.ClonedIds, log);
     }
 
-    private static void RegisterDimensionsInside(Database db, IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> entities, ViewportInfo vpt, double multiplier, ScaleCollector dimensionScales)
+    private static void RegisterDimensionsInside(
+        Database db,
+        IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities,
+        ViewportInfo viewport,
+        double multiplier,
+        ScaleCollector dimensionScales,
+        Logger log)
     {
-        double viewportArea = ComputeArea(vpt.ModelWindow);
+        double viewportArea = ComputeArea(viewport.ModelWindow);
+        int matched = 0;
 
-        using Transaction trx = db.TransactionManager.StartTransaction();
+        using Transaction tr = db.TransactionManager.StartTransaction();
 
-        foreach (ViewportTransformer.ModelEntitySnapshot snapshot in entities)
+        foreach (ViewportTransformer.ModelEntitySnapshot snapshot in modelEntities)
         {
-            if (!snapshot.Id.IsNull && !snapshot.Id.IsErased)
+            if (snapshot.Id.IsNull
+                || snapshot.Id.IsErased
+                || !ExtentsUtils.AabbIntersect(viewport.ModelWindow, snapshot.Extents)
+                || tr.GetObject(snapshot.Id, OpenMode.ForRead, false) is not Dimension)
             {
-                if (ExtentsUtils.AabbIntersect(vpt.ModelWindow, snapshot.Extents))
-                {
-                    if (trx.GetObject(snapshot.Id, OpenMode.ForRead, false) is Dimension)
-                    {
-                        dimensionScales.Register(snapshot.Id, multiplier, viewportArea);
-                    }
-                }
+                continue;
             }
+
+            dimensionScales.Register(snapshot.Id, multiplier, viewportArea);
+            matched++;
         }
 
-        trx.Commit();
+        tr.Commit();
+
+        log.Debug($"VP #{viewport.Number}: registered {matched} model-space dimensions with effective main scale multiplier {multiplier:F6}");
     }
 
-    private static void RegisterClonedDimensions(Database db, IReadOnlyDictionary<ObjectId, ObjectId> sourceToClone, ViewportInfo vpt, double multiplier, ScaleCollector dimensionScales)
+    private static void RegisterClonedDimensions(Database db, IReadOnlyDictionary<ObjectId, ObjectId> sourceToClone, ViewportInfo viewport, double multiplier, ScaleCollector dimensionScales)
     {
-        double viewportArea = ComputeArea(vpt.ModelWindow);
+        double viewportArea = ComputeArea(viewport.ModelWindow);
 
-        using Transaction trx = db.TransactionManager.StartTransaction();
+        using Transaction tr = db.TransactionManager.StartTransaction();
 
         foreach (ObjectId cloneId in sourceToClone.Values)
         {
             if (!cloneId.IsNull && !cloneId.IsErased)
             {
-                if (trx.GetObject(cloneId, OpenMode.ForRead, false) is Dimension)
+                if (tr.GetObject(cloneId, OpenMode.ForRead, false) is Dimension)
                 {
                     dimensionScales.Register(cloneId, multiplier, viewportArea);
                 }
             }
         }
 
-        trx.Commit();
+        tr.Commit();
     }
+
 
     /// <summary>
     /// Вычисляет мультипликатор как <c>1.0 / CustomScale</c> для указанного ВЭ.
     /// Используется для <c>effectiveMultiplier</c> (из зажатого ВЭ) и <c>dimensionMultiplier</c> (из исходного ВЭ).
     /// Результат не зажимается — применяющий код отвечает за допустимые границы.
     /// </summary>
-    private static double ResolveMultiplier(ViewportInfo vpt)
+    private static double ResolveMultiplier(ViewportInfo viewport)
     {
-        return vpt.CustomScale > 0.0 ? 1.0 / vpt.CustomScale : 1.0;
+        return viewport.CustomScale > 0.0 ? 1.0 / viewport.CustomScale : 1.0;
     }
+
 
     private static double ComputeArea(Extents3d extents)
     {
@@ -249,22 +261,23 @@ internal static class LayoutProjectionProcessor
              * Max(0.0, extents.MaxPoint.Y - extents.MinPoint.Y);
     }
 
+
     private static void EraseBlockContents(Database db, ObjectId btrId)
     {
         if (!btrId.IsNull)
         {
-            using Transaction trx = db.TransactionManager.StartTransaction();
-            BlockTableRecord btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
+            using Transaction tr = db.TransactionManager.StartTransaction();
+            BlockTableRecord btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForRead);
 
             foreach (ObjectId id in btr)
             {
-                if (trx.GetObject(id, OpenMode.ForWrite) is Entity entity && !entity.IsErased)
+                if (tr.GetObject(id, OpenMode.ForWrite) is Entity entity && !entity.IsErased)
                 {
                     entity.Erase();
                 }
             }
 
-            trx.Commit();
+            tr.Commit();
         }
     }
 }
