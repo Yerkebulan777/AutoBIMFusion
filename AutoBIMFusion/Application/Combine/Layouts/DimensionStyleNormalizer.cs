@@ -3,25 +3,17 @@ using System.Globalization;
 
 namespace AutoBIMFusion.Application.Combine.Layouts;
 
-/// <summary>
-/// Normalizes model-space dimensions by assigning projection-scale-specific dimension styles
-/// before the source database is cloned into the target drawing.
-/// </summary>
 internal static class DimensionStyleNormalizer
 {
-    private const double Tolerance = 1e-9;
-    private const double ModelSizedDimtxtThreshold = 20.0;
-    private const double MinScaleMultiplier = 0.01;
+    private const double Tolerance = 1e-7;
+	private const double MinScaleMultiplier = 0.01;
+	private const double ModelSizedDimtxtThreshold = 20.0;
 
-    /// <summary>
-    /// Creates or reuses effective projection-scale-specific dimension styles for every model-space dimension,
-    /// clears local DSTYLE XData overrides, assigns the normalized style, and rebuilds the dimension.
-    /// </summary>
-    /// <param name="db">Prepared source database whose Model Space dimensions should be normalized.</param>
-    /// <param name="scaleByDimensionId">Dimension multiplier (1.0 / originalViewport.CustomScale) by source dimension id.</param>
-    /// <param name="fallbackMultiplier">Dimension multiplier from the original (unclamped) main vpt, used when a dimension has no explicit match.</param>
-    /// <param name="log">Logger for normalization diagnostics.</param>
-    internal static void NormalizeModelSpaceDimensions(
+	/// <summary>
+	/// Создает или повторно использует действующие стили разметок, специфичные для масштаба проекции, для каждой размерки в пространстве модели,
+	/// очищает локальные переопределения DSTYLE XData, назначает нормализованный стиль и пересоздает размерку.
+	/// </summary>
+	internal static void NormalizeDimensions(
         Database db,
         IReadOnlyDictionary<ObjectId, double> scaleByDimensionId,
         double fallbackMultiplier,
@@ -33,16 +25,16 @@ internal static class DimensionStyleNormalizer
         int overridesCleared = 0;
         int stylesCreated = 0;
         int fallbackUsed = 0;
+
         HashSet<ObjectId> replacedStyleIds = [];
 
         using Transaction trx = db.TransactionManager.StartTransaction();
 
         DimStyleTable dimStyleTable = (DimStyleTable)trx.GetObject(db.DimStyleTableId, OpenMode.ForRead);
+
         Dictionary<string, ObjectId> styleCache = BuildStyleCache(dimStyleTable, trx);
 
-        BlockTableRecord modelSpace = (BlockTableRecord)trx.GetObject(
-            SymbolUtilityServices.GetBlockModelSpaceId(db),
-            OpenMode.ForRead);
+        BlockTableRecord modelSpace = (BlockTableRecord)trx.GetObject(SymbolUtilityServices.GetBlockModelSpaceId(db), OpenMode.ForRead);
 
         foreach (ObjectId id in modelSpace)
         {
@@ -92,9 +84,7 @@ internal static class DimensionStyleNormalizer
             dimension.DimensionStyle = normalizedStyleId;
             // Геометрия model-space размеров была физически умножена на clampRatio в ScaleModelSpaceWhenClamped.
             // Dimlfac компенсирует это, чтобы показываемое значение соответствовало оригинальной геометрии.
-            dimension.Dimlfac = scaleByDimensionId.ContainsKey(id) && clampRatio > 1.0 + Tolerance
-                ? 1.0 / clampRatio
-                : 1.0;
+            dimension.Dimlfac = scaleByDimensionId.ContainsKey(id) && clampRatio > 1.0 + Tolerance  ? 1.0 / clampRatio : 1.0;
             dimension.RecomputeDimensionBlock(true);
             dimension.RecordGraphicsModified(true);
 
