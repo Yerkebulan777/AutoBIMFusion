@@ -44,10 +44,10 @@ internal static class ViewportTransformer
         Matrix3d tAux = Matrix3d.Displacement(origin - aux.ViewCenter);
         Matrix3d rAux = Matrix3d.Rotation(-aux.ViewTwist, z, origin);
         Matrix3d sAux = Matrix3d.Scaling(aux.CustomScale, origin);
-        Matrix3d tPaper = Matrix3d.Displacement(aux.CenterPaper - main.CenterPaper);
-        Matrix3d sMain = Matrix3d.Scaling(1.0 / main.CustomScale, origin);
         Matrix3d rMain = Matrix3d.Rotation(main.ViewTwist, z, origin);
         Matrix3d tMain = Matrix3d.Displacement(main.ViewCenter - origin);
+        Matrix3d sMain = Matrix3d.Scaling(1.0 / main.CustomScale, origin);
+        Matrix3d tPaper = Matrix3d.Displacement(aux.CenterPaper - main.CenterPaper);
 
         Matrix3d result = tMain * rMain * sMain * tPaper * sAux * rAux * tAux;
 
