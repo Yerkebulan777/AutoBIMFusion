@@ -11,11 +11,6 @@ namespace AutoBIMFusion.Application.Combine.Layouts;
 /// PaperFromAuxModel(p) = CenterPaper_aux + Rot(-twist_aux) * (p - ViewCenter_aux) * scale_aux
 /// MainModelFromPaper(p) = ViewCenter_main + Rot(+twist_main) * (p - CenterPaper_main) / scale_main
 /// </summary>
-/// <remarks>
-/// Entity-specific post-processing after transforms is centralized in
-/// <see cref="EntityTransformUtils"/>.
-/// </remarks>
-
 internal static class ViewportTransformer
 {
     /// <summary>

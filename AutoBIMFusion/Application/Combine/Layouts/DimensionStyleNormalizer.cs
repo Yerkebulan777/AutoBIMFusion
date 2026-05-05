@@ -316,18 +316,15 @@ internal static class DimensionStyleNormalizer
 
     private static string FormatScale(double multiplier)
     {
-        if (!double.IsFinite(multiplier))
+        if (double.IsFinite(multiplier))
         {
-            return "1";
+            double rounded = Math.Round(multiplier);
+            return Math.Abs(multiplier - rounded) < Tolerance
+                ? rounded.ToString("0", CultureInfo.InvariantCulture) : multiplier
+                .ToString("0.######", CultureInfo.InvariantCulture).TrimEnd('0').TrimEnd('.');
         }
 
-        double rounded = Math.Round(multiplier);
-        return Math.Abs(multiplier - rounded) < Tolerance
-            ? rounded.ToString("0", CultureInfo.InvariantCulture)
-            : multiplier
-            .ToString("0.######", CultureInfo.InvariantCulture)
-            .TrimEnd('0')
-            .TrimEnd('.');
+        return string.Empty;
     }
 
     private static bool IsUsableMultiplier(double multiplier)
@@ -335,10 +332,7 @@ internal static class DimensionStyleNormalizer
         return double.IsFinite(multiplier) && multiplier > Tolerance;
     }
 
-    private static double ResolveVisualBakeMultiplier(
-        DimStyleTableRecord sourceStyle,
-        double scaleMultiplier,
-        Logger log)
+    private static double ResolveVisualBakeMultiplier(DimStyleTableRecord sourceStyle, double scaleMultiplier, Logger log)
     {
         if (!IsUsableMultiplier(scaleMultiplier))
         {
