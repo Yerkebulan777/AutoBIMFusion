@@ -66,7 +66,7 @@ internal static class LayoutProjectionProcessor
         if (viewports.Count > 1)
         {
             IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
-            RegisterDimensionsInside(db, modelEntities, mainOriginal, effectiveMultiplier, dimensionScales, log);
+            RegisterDimensionsInside(db, modelEntities, mainOriginal, effectiveMultiplier, dimensionScales);
 
             foreach (ViewportInfo aux in viewports)
             {
@@ -83,7 +83,7 @@ internal static class LayoutProjectionProcessor
                     continue;
                 }
 
-                RegisterDimensionsInside(db, modelEntities, aux, effectiveMultiplier, dimensionScales, log);
+                RegisterDimensionsInside(db, modelEntities, aux, effectiveMultiplier, dimensionScales);
 
                 using ViewportTransformer.CloneTransformResult cloneResult = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log, $"aux-VP #{aux.Number}");
                 RegisterClonedDimensions(db, cloneResult.SourceToClone, aux, effectiveMultiplier, dimensionScales);
@@ -93,7 +93,7 @@ internal static class LayoutProjectionProcessor
         else
         {
             IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
-            RegisterDimensionsInside(db, modelEntities, mainOriginal, effectiveMultiplier, dimensionScales, log);
+            RegisterDimensionsInside(db, modelEntities, mainOriginal, effectiveMultiplier, dimensionScales);
         }
 
         ScaleModelSpaceWhenClamped(db, clampRatio, mainOriginal.ViewCenter, log);
@@ -190,36 +190,27 @@ internal static class LayoutProjectionProcessor
         return ModelSpaceTrimmer.ComputeBounds(db, cloneResult.ClonedIds, log);
     }
 
-    private static void RegisterDimensionsInside(
-        Database db,
-        IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities,
-        ViewportInfo viewport,
-        double multiplier,
-        ScaleCollector dimensionScales,
-        Logger log)
+    private static void RegisterDimensionsInside(Database db, IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities, ViewportInfo viewport, double multiplier, ScaleCollector dimensionScales)
     {
         double viewportArea = ComputeArea(viewport.ModelWindow);
-        int matched = 0;
 
         using Transaction tr = db.TransactionManager.StartTransaction();
 
         foreach (ViewportTransformer.ModelEntitySnapshot snapshot in modelEntities)
         {
-            if (snapshot.Id.IsNull
-                || snapshot.Id.IsErased
-                || !ExtentsUtils.AabbIntersect(viewport.ModelWindow, snapshot.Extents)
-                || tr.GetObject(snapshot.Id, OpenMode.ForRead, false) is not Dimension)
+            if (!snapshot.Id.IsNull && !snapshot.Id.IsErased)
             {
-                continue;
+                if (ExtentsUtils.AabbIntersect(viewport.ModelWindow, snapshot.Extents))
+                {
+                    if (tr.GetObject(snapshot.Id, OpenMode.ForRead, false) is Dimension)
+                    {
+                        dimensionScales.Register(snapshot.Id, multiplier, viewportArea);
+                    }
+                }
             }
-
-            dimensionScales.Register(snapshot.Id, multiplier, viewportArea);
-            matched++;
         }
 
         tr.Commit();
-
-        log.Debug($"VP #{viewport.Number}: registered {matched} model-space dimensions with effective main scale multiplier {multiplier:F6}");
     }
 
     private static void RegisterClonedDimensions(Database db, IReadOnlyDictionary<ObjectId, ObjectId> sourceToClone, ViewportInfo viewport, double multiplier, ScaleCollector dimensionScales)
