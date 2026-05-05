@@ -349,7 +349,7 @@ internal static class DimensionStyleNormalizer
 
             return scaleMultiplier;
         }
-        
+
         return 1.0;
     }
 }
