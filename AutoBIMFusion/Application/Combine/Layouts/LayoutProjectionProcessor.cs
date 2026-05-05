@@ -7,9 +7,68 @@ namespace AutoBIMFusion.Application.Combine.Layouts;
 /// Размещает содержимое проекта в пространстве модели до объединения временного файла DWG.
 /// Обеспечивает ограничение масштаба окна просмотра, сглаживание вспомогательных окон просмотра и перенос в пространство листа.
 /// </summary>
+///
+/// <remarks>
+/// <para>
+/// <b>Система масштабирования размеров (Dimension Scaling)</b>
+/// </para>
+/// <para>
+/// Каждый видовой экран (Viewport) на листе имеет свой масштаб (<c>CustomScale</c>).
+/// При переносе содержимого листа в пространство модели необходимо нормализовать
+/// размерные стили так, чтобы они выглядели одинаково независимо от исходного масштаба вьюпорта.
+/// </para>
+/// <para>
+/// <b>Базовый мультипликатор</b> вычисляется как <c>1.0 / CustomScale</c>.
+/// Например, для вьюпорта 1:50 мультипликатор = 50, для 1:100 = 100, для 2:1 = 0.5.
+/// </para>
+/// <para>
+/// <b>MinScaleMultiplier = 0.01</b> — нижняя граница мультипликатора.
+/// Это критически важно для вьюпортов с масштабом крупнее 1:1 (например, 2:1, 5:1, 10:1),
+/// где <c>CustomScale &gt; 1.0</c> и мультипликатор становится меньше 1.0.
+/// Без этой нижней границы (если установить MinScaleMultiplier = 1.0) такие вьюпорты
+/// получают мультипликатор = 1.0, что приводит к тому, что размерные элементы
+/// (текст, стрелки, выноски) не масштабируются пропорционально и выглядят
+/// несоразмерно крупными на чертеже.
+/// </para>
+/// <para>
+/// <b>MaxScaleMultiplier = 100.0</b> — верхняя граница, предотвращающая
+/// чрезмерное увеличение размерных элементов при масштабах мельче 1:100.
+/// </para>
+/// <para>
+/// <b>Двухуровневое ограничение:</b>
+/// <list type="number">
+///   <item><description>
+///     <c>ClampMainViewportScale</c> — если мультипликатор превышает MaxScaleMultiplier,
+///     масштаб самого вьюпорта принудительно уменьшается, а разница компенсируется
+///     через <c>ScaleModelSpaceWhenClamped</c> (clampRatio).
+///   </description></item>
+///   <item><description>
+///     <c>ResolveMultiplier</c> — финальный мультипликатор для размерных стилей
+///     зажимается в диапазон [MinScaleMultiplier, MaxScaleMultiplier].
+///   </description></item>
+/// </list>
+/// </para>
+/// <para>
+/// Полученный <c>effectiveMultiplier</c> передаётся в <see cref="DimensionStyleNormalizer"/>,
+/// который создаёт копии размерных стилей с визуальными свойствами (Dimtxt, Dimasz и т.д.),
+/// умноженными на этот коэффициент, и сбрасывает Dimscale = 1.0.
+/// </para>
+/// </remarks>
 internal static class LayoutProjectionProcessor
 {
-    private const double MinScaleMultiplier = 1.0;
+    /// <summary>
+    /// Нижняя граница мультипликатора размеров.
+    /// Значение 0.01 позволяет корректно масштабировать размеры во вьюпортах
+    /// с масштабом крупнее 1:1 (например, 2:1 → multiplier = 0.5, 100:1 → multiplier = 0.01).
+    /// Если установить 1.0, все такие вьюпорты получат multiplier = 1.0,
+    /// и размерные элементы не будут уменьшаться пропорционально, что приводит
+    /// к визуально некорректному отображению (слишком крупный текст и стрелки).
+    /// </summary>
+    private const double MinScaleMultiplier = 0.01;
+    /// <summary>
+    /// Верхняя граница мультипликатора размеров.
+    /// Предотвращает чрезмерное увеличение размерных элементов при масштабах мельче 1:100.
+    /// </summary>
     private const double MaxScaleMultiplier = 100.0;
 
     internal sealed record LayoutProjectionResult(Extents3d? FrameBounds, IReadOnlyDictionary<ObjectId, double> DimensionScales, double FallbackMultiplier);
@@ -233,8 +292,29 @@ internal static class LayoutProjectionProcessor
     }
 
     /// <summary>
-    /// ??? Этот момент с масштабами может быть не совсем корректным!.
+    /// Вычисляет итоговый мультипликатор размерного стиля для указанного вьюпорта.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Мультипликатор = 1.0 / CustomScale. Это число показывает, во сколько раз
+    /// нужно увеличить визуальные свойства размерного стиля (текст, стрелки, выноски),
+    /// чтобы они выглядели на листе так же, как в пространстве модели.
+    /// </para>
+    /// <para>
+    /// Примеры:
+    /// <list type="bullet">
+    ///   <item><description>Вьюпорт 1:100 (CustomScale = 0.01) → multiplier = 100</description></item>
+    ///   <item><description>Вьюпорт 1:50  (CustomScale = 0.02) → multiplier = 50</description></item>
+    ///   <item><description>Вьюпорт 1:1   (CustomScale = 1.0)  → multiplier = 1</description></item>
+    ///   <item><description>Вьюпорт 2:1   (CustomScale = 2.0)  → multiplier = 0.5</description></item>
+    ///   <item><description>Вьюпорт 10:1  (CustomScale = 10.0) → multiplier = 0.1</description></item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// Результат зажимается в диапазон [MinScaleMultiplier, MaxScaleMultiplier],
+    /// чтобы избежать экстремальных значений, которые привели бы к нечитаемым размерам.
+    /// </para>
+    /// </remarks>
     private static double ResolveMultiplier(ViewportInfo viewport)
     {
         double multiplier = viewport.CustomScale > 0.0 ? 1.0 / viewport.CustomScale : 1.0;
