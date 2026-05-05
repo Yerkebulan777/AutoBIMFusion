@@ -299,8 +299,7 @@ internal static class LayoutProjectionProcessor
     /// </remarks>
     private static double ResolveMultiplier(ViewportInfo viewport)
     {
-        double multiplier = viewport.CustomScale > 0.0 ? 1.0 / viewport.CustomScale : 1.0;
-        return Math.Clamp(multiplier, MinScaleMultiplier, MaxScaleMultiplier);
+        return viewport.CustomScale > 0.0 ? 1.0 / viewport.CustomScale : 1.0;
     }
 
     private static double ComputeArea(Extents3d extents)
