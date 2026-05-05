@@ -164,32 +164,8 @@ internal static class DimensionStyleNormalizer
             return 0;
         }
 
-        int purged = 0;
         using Transaction tr = db.TransactionManager.StartTransaction();
-
-        foreach (ObjectId styleId in candidates)
-        {
-            if (styleId.IsNull || styleId.IsErased || styleId == currentDimStyleId)
-            {
-                continue;
-            }
-
-            try
-            {
-                if (tr.GetObject(styleId, OpenMode.ForWrite, false) is DimStyleTableRecord style
-                    && !style.IsErased)
-                {
-                    string styleName = style.Name;
-                    style.Erase();
-                    purged++;
-                    log.Debug("[DIM-NORMALIZE] purged unused replaced dimension style \"{StyleName}\".", styleName);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                log.Debug("[DIM-NORMALIZE] skipped replaced dimension style {Handle}: {Reason}", styleId.Handle, ex.Message);
-            }
-        }
+        int purged = DwgOptimizer.ErasePurgedObjects(tr, candidates, log);
 
         tr.Commit();
         return purged;

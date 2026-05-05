@@ -23,8 +23,7 @@ internal static class ViewportLayoutExporter
             db.ReadDwgFile(sourceFilePath, FileOpenMode.OpenForReadAndAllShare, true, string.Empty);
             db.CloseInput(true);
 
-            db.Insunits = UnitsValue.Millimeters;
-            db.Measurement = MeasurementValue.Metric;
+            ExtentsUtils.SyncUnits(db);
 
             using (Transaction tr = db.TransactionManager.StartTransaction())
             {

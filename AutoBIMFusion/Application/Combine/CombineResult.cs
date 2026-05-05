@@ -8,15 +8,14 @@ namespace AutoBIMFusion.Application.Combine;
 internal sealed record CombineResult(
     bool Success,
     string FileName,
-    string? BlockName = null,
     bool IsSkipped = false,
     string? Message = null)
 {
     private const int DefaultMaxLength = 125;
 
-    public static CombineResult Ok(string fileName, string? blockName = null)
+    public static CombineResult Ok(string fileName)
     {
-        return new(true, fileName, blockName);
+        return new(true, fileName);
     }
 
     public static CombineResult Fail(string fileName, string? message, string fallback = "Ошибка")

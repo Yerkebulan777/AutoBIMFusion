@@ -90,6 +90,17 @@ internal static class DwgOptimizer
             return 0;
         }
 
+        int erased = ErasePurgedObjects(tr, candidates, log);
+
+        tr.Commit();
+        return erased;
+    }
+
+    /// <summary>
+    /// Удаляет объекты, оставшиеся в коллекции после вызова <see cref="Database.Purge"/>.
+    /// </summary>
+    internal static int ErasePurgedObjects(Transaction tr, ObjectIdCollection candidates, Logger log)
+    {
         int erased = 0;
         foreach (ObjectId id in candidates)
         {
@@ -106,11 +117,10 @@ internal static class DwgOptimizer
             }
             catch (System.Exception ex)
             {
-                log.Warning($"Не удалось удалить объект {id.Handle}: {ex.Message}");
+                log.Debug($"Purge: не удалось удалить объект {id.Handle} — {ex.Message}");
             }
         }
 
-        tr.Commit();
         return erased;
     }
 
