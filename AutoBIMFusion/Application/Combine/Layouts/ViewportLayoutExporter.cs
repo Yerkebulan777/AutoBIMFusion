@@ -63,6 +63,7 @@ internal static class ViewportLayoutExporter
                 db,
                 projection.DimensionScales,
                 projection.FallbackMultiplier,
+                projection.ClampRatio,
                 log);
 
             DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "after-normalize");

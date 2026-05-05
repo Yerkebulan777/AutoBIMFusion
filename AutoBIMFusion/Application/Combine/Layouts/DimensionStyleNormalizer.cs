@@ -25,6 +25,7 @@ internal static class DimensionStyleNormalizer
         Database db,
         IReadOnlyDictionary<ObjectId, double> scaleByDimensionId,
         double fallbackMultiplier,
+        double clampRatio,
         Logger log)
     {
         int scanned = 0;
@@ -70,7 +71,7 @@ internal static class DimensionStyleNormalizer
 
             if (!styleCache.TryGetValue(newStyleName, out ObjectId normalizedStyleId))
             {
-                normalizedStyleId = CreateScaledStyle(dimStyleTable, sourceStyle, newStyleName, multiplier, tr, log);
+                normalizedStyleId = CreateScaledStyle(dimStyleTable, sourceStyle, newStyleName, multiplier, clampRatio, tr, log);
                 styleCache[newStyleName] = normalizedStyleId;
                 stylesCreated++;
 
@@ -89,7 +90,11 @@ internal static class DimensionStyleNormalizer
             }
 
             dimension.DimensionStyle = normalizedStyleId;
-            dimension.Dimlfac = 1.0;
+            // Геометрия model-space размеров была физически умножена на clampRatio в ScaleModelSpaceWhenClamped.
+            // Dimlfac компенсирует это, чтобы показываемое значение соответствовало оригинальной геометрии.
+            dimension.Dimlfac = scaleByDimensionId.ContainsKey(id) && clampRatio > 1.0 + Tolerance
+                ? 1.0 / clampRatio
+                : 1.0;
             dimension.RecomputeDimensionBlock(true);
             dimension.RecordGraphicsModified(true);
 
@@ -263,6 +268,7 @@ internal static class DimensionStyleNormalizer
         DimStyleTableRecord sourceStyle,
         string styleName,
         double scaleMultiplier,
+        double clampRatio,
         Transaction tr,
         Logger log)
     {
@@ -274,7 +280,7 @@ internal static class DimensionStyleNormalizer
         DimStyleTableRecord scaledStyle = (DimStyleTableRecord)sourceStyle.Clone();
         scaledStyle.Name = styleName;
 
-        double visualMultiplier = ResolveVisualBakeMultiplier(sourceStyle, scaleMultiplier, log);
+        double visualMultiplier = ResolveVisualBakeMultiplier(sourceStyle, scaleMultiplier, clampRatio, log);
         NormalizeStyleVisualScale(scaledStyle, visualMultiplier);
         scaledStyle.Dimscale = 1.0;
         scaledStyle.Dimlfac = 1.0;
@@ -306,12 +312,11 @@ internal static class DimensionStyleNormalizer
         style.Dimtfill = 0;
     }
 
-    private static double ScaleVisualValue(double value, double multiplier, int baseValue = 5)
+    private static double ScaleVisualValue(double value, double multiplier)
     {
         if (double.IsFinite(value) && Math.Abs(value) > Tolerance)
         {
-            double scaledValue = value * multiplier;
-            return Math.Round(scaledValue / baseValue, MidpointRounding.AwayFromZero) * baseValue;
+            return Math.Round(value * multiplier, 4, MidpointRounding.AwayFromZero);
         }
 
         return value;
@@ -340,19 +345,22 @@ internal static class DimensionStyleNormalizer
         return double.IsFinite(multiplier) && multiplier > Tolerance;
     }
 
-    private static double ResolveVisualBakeMultiplier(DimStyleTableRecord sourceStyle, double scaleMultiplier, Logger log)
+    private static double ResolveVisualBakeMultiplier(DimStyleTableRecord sourceStyle, double scaleMultiplier, double clampRatio, Logger log)
     {
         if (IsUsableMultiplier(scaleMultiplier))
         {
             if (double.IsFinite(sourceStyle.Dimtxt) && sourceStyle.Dimtxt > ModelSizedDimtxtThreshold)
             {
+                // Стиль уже имеет model-size текст (калиброван под оригинальный масштаб ВЭ).
+                // После clampRatio-масштабирования геометрии визуальные свойства нужно также умножить
+                // на clampRatio, чтобы пропорции сохранились на уровне effectiveMultiplier.
                 log.Information(
-                    "[DIM-NORMALIZE] style \"{StyleName}\" already has model-sized Dimtxt={Dimtxt}; Dimscale will be reset without multiplying visual values by effective scale={Scale}.",
+                    "[DIM-NORMALIZE] style \"{StyleName}\" already has model-sized Dimtxt={Dimtxt}; applying clampRatio={ClampRatio} to align with scaled geometry.",
                     sourceStyle.Name,
                     sourceStyle.Dimtxt,
-                    FormatScale(scaleMultiplier));
+                    FormatScale(clampRatio));
 
-                return 1.0;
+                return clampRatio;
             }
 
             return scaleMultiplier;

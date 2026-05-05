@@ -170,14 +170,14 @@ internal static class LayoutProjectionProcessor
 
         if (paperIds.Count == 0)
         {
-            return new LayoutProjectionResult(null, new Dictionary<ObjectId, double>(), MaxScaleMultiplier, 1.0);
+            return new LayoutProjectionResult(null, new Dictionary<ObjectId, double>(), MaxScaleMultiplier);
         }
 
         Extents3d? paperBounds = ModelSpaceTrimmer.ComputeBounds(db, paperIds, log);
 
         if (!paperBounds.HasValue)
         {
-            return new LayoutProjectionResult(null, new Dictionary<ObjectId, double>(), MaxScaleMultiplier, 1.0);
+            return new LayoutProjectionResult(null, new Dictionary<ObjectId, double>(), MaxScaleMultiplier);
         }
 
         Point3d minPt = paperBounds.Value.MinPoint;
@@ -185,7 +185,7 @@ internal static class LayoutProjectionProcessor
 
         ViewportTransformer.UnlockTextStylesHeight(db, log);
         Extents3d? frameBounds = MovePaperToModelSpace(db, layoutName, matrix, log, "paper-no-vp");
-        return new LayoutProjectionResult(frameBounds, new Dictionary<ObjectId, double>(), MaxScaleMultiplier, 1.0);
+        return new LayoutProjectionResult(frameBounds, new Dictionary<ObjectId, double>(), MaxScaleMultiplier);
     }
 
 
