@@ -217,17 +217,13 @@ internal static class DimensionStyleNormalizer
     /// Входящий multiplier поступает из <c>dimensionMultiplier</c> (1.0 / mainOriginal.CustomScale) —
     /// не из зажатого effectiveMultiplier — поэтому урезание до 100 было бы неверным.
     /// </remarks>
-    private static double ResolveMultiplier(
-        ObjectId dimensionId,
-        IReadOnlyDictionary<ObjectId, double> scaleByDimensionId,
-        double fallbackMultiplier,
-        out bool fallbackUsed)
+    private static double ResolveMultiplier(ObjectId dimensionId, IReadOnlyDictionary<ObjectId, double> scaleByDimensionId, double fallback, out bool fallbackUsed)
     {
         fallbackUsed = !scaleByDimensionId.TryGetValue(dimensionId, out double multiplier);
 
         if (fallbackUsed)
         {
-            multiplier = fallbackMultiplier;
+            multiplier = fallback;
         }
 
         return !IsUsableMultiplier(multiplier) ? 1.0 : Math.Max(multiplier, MinScaleMultiplier);
