@@ -57,7 +57,6 @@ namespace AutoBIMFusion.Application.Combine.Layouts;
 internal static class LayoutProjectionProcessor
 {
     private const double MaxScaleMultiplier = 100.0;
-    private const double MinScaleMultiplier = 0.01;
 
     internal sealed record LayoutProjectionResult(Extents3d? FrameBounds, IReadOnlyDictionary<ObjectId, double> DimensionScales, double FallbackMultiplier);
 
@@ -199,7 +198,7 @@ internal static class LayoutProjectionProcessor
     {
         double multiplier = 1.0 / viewport.CustomScale;
 
-        if (multiplier > MaxScaleMultiplier)
+        if (multiplier < MaxScaleMultiplier)
         {
             log.Information($"VP #{viewport.Number}: масштаб 1:{multiplier:F0} → зажат до 1:{MaxScaleMultiplier:F0}");
             return viewport with { CustomScale = 1.0 / MaxScaleMultiplier };
