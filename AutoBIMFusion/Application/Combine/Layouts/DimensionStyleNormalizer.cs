@@ -121,8 +121,8 @@ internal static class DimensionStyleNormalizer
     }
 
     /// <summary>
-    /// Deletes only replaced source dimension styles that AutoCAD reports as purgeable after
-    /// every model-space dimension has been reassigned to a normalized style.
+    /// Удаляет только заменённые стили разметок исходного пространства, которые AutoCAD помечает как подлежащие удалению после того,
+    /// как все размерки в пространстве модели будут переназначены на нормализованный стиль.
     /// </summary>
     private static int PurgeUnusedReplacedStyles(Database db, IReadOnlyCollection<ObjectId> replacedStyleIds, Logger log)
     {
@@ -190,7 +190,7 @@ internal static class DimensionStyleNormalizer
     {
         style = null!;
 
-        ObjectId resolvedStyleId = !styleId.IsNull && !styleId.IsErased  ? styleId : db.Dimstyle;
+        ObjectId resolvedStyleId = !styleId.IsNull && !styleId.IsErased ? styleId : db.Dimstyle;
 
         if (resolvedStyleId.IsNull || resolvedStyleId.IsErased)
         {
