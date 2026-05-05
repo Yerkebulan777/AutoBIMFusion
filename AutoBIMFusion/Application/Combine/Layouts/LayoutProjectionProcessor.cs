@@ -14,7 +14,7 @@ internal static class LayoutProjectionProcessor
 
     internal sealed record LayoutProjectionResult(Extents3d? FrameBounds, IReadOnlyDictionary<ObjectId, double> DimensionScales, double FallbackMultiplier);
 
-    private sealed class DimensionScaleAccumulator
+    private sealed class ScaleCollector
     {
         private readonly Dictionary<ObjectId, DimensionScaleCandidate> _candidates = [];
 
@@ -40,20 +40,20 @@ internal static class LayoutProjectionProcessor
 
     private readonly record struct DimensionScaleCandidate(double Multiplier, double ViewportArea);
 
-    internal static LayoutProjectionResult ProjectLayoutToModelSpace(Database db, string layoutName, IReadOnlyList<LayoutViewportInfo> viewports, Logger log)
+    internal static LayoutProjectionResult ProjectLayoutToModelSpace(Database db, string layoutName, IReadOnlyList<ViewportInfo> viewports, Logger log)
     {
         return viewports.Count == 0 ? ProjectNoViewport(db, layoutName, log) : ProjectWithViewports(db, layoutName, viewports, log);
     }
 
-    private static LayoutProjectionResult ProjectWithViewports(Database db, string layoutName, IReadOnlyList<LayoutViewportInfo> viewports, Logger log)
+    private static LayoutProjectionResult ProjectWithViewports(Database db, string layoutName, IReadOnlyList<ViewportInfo> viewports, Logger log)
     {
         log.Information($"Выбранный метод масштабирования: ProcessVp ({viewports.Count} viewport'ов)");
 
-        LayoutViewportInfo mainOriginal = LayoutViewportInfo.PickMainViewport(viewports);
-        LayoutViewportInfo mainClamped = ClampMainViewportScale(mainOriginal, log);
+        ViewportInfo mainOriginal = ViewportInfo.PickMainViewport(viewports);
+        ViewportInfo mainClamped = ClampMainViewportScale(mainOriginal, log);
         double clampRatio = mainOriginal.CustomScale / mainClamped.CustomScale;
         double effectiveMultiplier = ResolveMultiplier(mainClamped);
-        DimensionScaleAccumulator dimensionScales = new();
+        ScaleCollector dimensionScales = new();
 
         log.Information(
             $"VP main#{mainOriginal.Number}: исходный scale={mainOriginal.CustomScale:F6}, " +
@@ -69,7 +69,7 @@ internal static class LayoutProjectionProcessor
             IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
             RegisterDimensionsInside(db, modelEntities, mainOriginal, effectiveMultiplier, dimensionScales, log);
 
-            foreach (LayoutViewportInfo aux in viewports)
+            foreach (ViewportInfo aux in viewports)
             {
                 if (aux.VpId == mainOriginal.VpId)
                 {
@@ -148,7 +148,7 @@ internal static class LayoutProjectionProcessor
         }
     }
 
-    private static LayoutViewportInfo ClampMainViewportScale(LayoutViewportInfo viewport, Logger log)
+    private static ViewportInfo ClampMainViewportScale(ViewportInfo viewport, Logger log)
     {
         double multiplier = 1.0 / viewport.CustomScale;
 
@@ -183,9 +183,9 @@ internal static class LayoutProjectionProcessor
     private static void RegisterDimensionsInside(
         Database db,
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities,
-        LayoutViewportInfo viewport,
+        ViewportInfo viewport,
         double multiplier,
-        DimensionScaleAccumulator dimensionScales,
+        ScaleCollector dimensionScales,
         Logger log)
     {
         double viewportArea = ComputeArea(viewport.ModelWindow);
@@ -212,12 +212,7 @@ internal static class LayoutProjectionProcessor
         log.Debug($"VP #{viewport.Number}: registered {matched} model-space dimensions with effective main scale multiplier {multiplier:F6}");
     }
 
-    private static void RegisterClonedDimensions(
-        Database db,
-        IReadOnlyDictionary<ObjectId, ObjectId> sourceToClone,
-        LayoutViewportInfo viewport,
-        double multiplier,
-        DimensionScaleAccumulator dimensionScales)
+    private static void RegisterClonedDimensions(Database db, IReadOnlyDictionary<ObjectId, ObjectId> sourceToClone, ViewportInfo viewport, double multiplier, ScaleCollector dimensionScales)
     {
         double viewportArea = ComputeArea(viewport.ModelWindow);
 
@@ -225,11 +220,12 @@ internal static class LayoutProjectionProcessor
 
         foreach (ObjectId cloneId in sourceToClone.Values)
         {
-            if (!cloneId.IsNull
-                && !cloneId.IsErased
-                && tr.GetObject(cloneId, OpenMode.ForRead, false) is Dimension)
+            if (!cloneId.IsNull && !cloneId.IsErased)
             {
-                dimensionScales.Register(cloneId, multiplier, viewportArea);
+                if (tr.GetObject(cloneId, OpenMode.ForRead, false) is Dimension)
+                {
+                    dimensionScales.Register(cloneId, multiplier, viewportArea);
+                }
             }
         }
 
@@ -239,7 +235,7 @@ internal static class LayoutProjectionProcessor
     /// <summary>
     /// ??? Этот момент с масштабами может быть не совсем корректным!.
     /// </summary>
-    private static double ResolveMultiplier(LayoutViewportInfo viewport)
+    private static double ResolveMultiplier(ViewportInfo viewport)
     {
         double multiplier = viewport.CustomScale > 0.0 ? 1.0 / viewport.CustomScale : 1.0;
         return Math.Clamp(multiplier, MinScaleMultiplier, MaxScaleMultiplier);

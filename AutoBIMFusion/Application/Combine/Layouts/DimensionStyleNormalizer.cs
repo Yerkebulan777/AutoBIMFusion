@@ -298,11 +298,15 @@ internal static class DimensionStyleNormalizer
         style.Dimtfill = 0;
     }
 
-    private static double ScaleVisualValue(double value, double multiplier)
+    private static double ScaleVisualValue(double value, double multiplier, int baseValue = 5)
     {
-        return double.IsFinite(value) && Math.Abs(value) > Tolerance
-            ? value * multiplier
-            : value;
+        if (double.IsFinite(value) && Math.Abs(value) > Tolerance)
+        {
+            double scaledValue = value * multiplier;
+            return Math.Round(scaledValue / baseValue) * baseValue;
+        }
+
+        return value;
     }
 
     private static string BuildScaledStyleName(string baseStyleName, double multiplier)

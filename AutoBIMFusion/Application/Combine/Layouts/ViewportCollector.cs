@@ -6,9 +6,9 @@
 /// </summary>
 internal static class ViewportCollector
 {
-    internal static List<LayoutViewportInfo> Collect(Database db, string layoutName)
+    internal static List<ViewportInfo> Collect(Database db, string layoutName)
     {
-        List<LayoutViewportInfo> result = [];
+        List<ViewportInfo> result = [];
 
         using Transaction tr = db.TransactionManager.StartTransaction();
         DBDictionary layoutDict = (DBDictionary)tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
@@ -49,7 +49,7 @@ internal static class ViewportCollector
             Extents3d window = ComputeModelWindow(vp);
             Point3d viewCenterWcs = GetViewCenterWcs(vp);
 
-            LayoutViewportInfo info = new(
+            ViewportInfo info = new(
                 VpId: id,
                 Number: vp.Number,
                 CenterPaper: vp.CenterPoint,

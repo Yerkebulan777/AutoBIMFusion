@@ -18,8 +18,14 @@ namespace AutoBIMFusion.Application.Combine.Layouts;
 
 internal static class ViewportTransformer
 {
+    /// <summary>
+    /// Снимок состояния сущности модели, включая её идентификатор и границы.
+    /// </summary>
     internal sealed record ModelEntitySnapshot(ObjectId Id, Extents3d Extents);
 
+    /// <summary>
+    /// Результат клонирования и трансформации сущностей модели.
+    /// </summary>
     internal sealed class CloneTransformResult : IDisposable
     {
         internal ObjectIdCollection ClonedIds { get; } = [];
@@ -35,7 +41,7 @@ internal static class ViewportTransformer
     /// <summary>
     /// Матрица переноса «модель aux-VP → модель main-VP».
     /// </summary>
-    internal static Matrix3d BuildMatrix(LayoutViewportInfo main, LayoutViewportInfo aux, Logger log)
+    internal static Matrix3d BuildMatrix(ViewportInfo main, ViewportInfo aux, Logger log)
     {
         Vector3d z = Vector3d.ZAxis;
         Point3d origin = Point3d.Origin;
@@ -63,7 +69,7 @@ internal static class ViewportTransformer
     /// Матрица переноса «бумага → модель main-VP». Используется для содержимого Paper Space
     /// (рамка, штамп, тексты) когда его пересаживают в Model Space через главный VP.
     /// </summary>
-    internal static Matrix3d BuildPaperToMainMatrix(LayoutViewportInfo main, Logger log)
+    internal static Matrix3d BuildPaperToMainMatrix(ViewportInfo main, Logger log)
     {
         Vector3d z = Vector3d.ZAxis;
         Point3d origin = Point3d.Origin;

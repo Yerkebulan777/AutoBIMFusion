@@ -4,7 +4,7 @@ namespace AutoBIMFusion.Application.Combine.Layouts;
 /// Снимок Viewport'а с листа: положение на бумаге, параметры вида модели, масштаб.
 /// CoverageScore используется для выбора главного viewport.
 /// </summary>
-internal sealed record LayoutViewportInfo(
+internal sealed record ViewportInfo(
     ObjectId VpId,
     int Number,
     Point3d CenterPaper,
@@ -23,7 +23,7 @@ internal sealed record LayoutViewportInfo(
     /// </summary>
     public double CoverageScore => CustomScale > 0 ? PaperArea / CustomScale : 0;
 
-    internal static LayoutViewportInfo PickMainViewport(IReadOnlyList<LayoutViewportInfo> vps)
+    internal static ViewportInfo PickMainViewport(IReadOnlyList<ViewportInfo> vps)
     {
         ArgumentNullException.ThrowIfNull(vps);
 
@@ -32,7 +32,7 @@ internal sealed record LayoutViewportInfo(
             throw new ArgumentException("Список viewport'ов пуст.", nameof(vps));
         }
 
-        LayoutViewportInfo best = vps[0];
+        ViewportInfo best = vps[0];
         double bestScore = best.CoverageScore;
 
         for (int i = 1; i < vps.Count; i++)

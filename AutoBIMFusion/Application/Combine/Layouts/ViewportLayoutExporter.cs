@@ -48,7 +48,7 @@ internal static class ViewportLayoutExporter
                 return null;
             }
 
-            List<LayoutViewportInfo> vps = ViewportCollector.Collect(db, layoutName);
+            List<ViewportInfo> vps = ViewportCollector.Collect(db, layoutName);
 
             LayoutProjectionProcessor.LayoutProjectionResult projection = LayoutProjectionProcessor.ProjectLayoutToModelSpace(db, layoutName, vps, log);
 
