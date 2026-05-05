@@ -57,11 +57,15 @@ internal static class ViewportLayoutExporter
                 _ = ModelSpaceTrimmer.TrimOutside(db, projection.FrameBounds.Value, log);
             }
 
+            DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "before-normalize");
+
             DimensionStyleNormalizer.NormalizeModelSpaceDimensions(
                 db,
                 projection.DimensionScales,
                 projection.FallbackMultiplier,
                 log);
+
+            DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "after-normalize");
 
             return db;
         }

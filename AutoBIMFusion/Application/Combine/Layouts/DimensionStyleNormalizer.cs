@@ -12,15 +12,14 @@ internal static class DimensionStyleNormalizer
     private const double Tolerance = 1e-9;
     private const double ModelSizedDimtxtThreshold = 20.0;
     private const double MinScaleMultiplier = 0.01;
-    private const double MaxScaleMultiplier = 100.0;
 
     /// <summary>
     /// Creates or reuses effective projection-scale-specific dimension styles for every model-space dimension,
     /// clears local DSTYLE XData overrides, assigns the normalized style, and rebuilds the dimension.
     /// </summary>
     /// <param name="db">Prepared source database whose Model Space dimensions should be normalized.</param>
-    /// <param name="scaleByDimensionId">Effective clamped main viewport multiplier by source dimension id.</param>
-    /// <param name="fallbackMultiplier">Effective clamped main viewport multiplier used when a dimension has no explicit match.</param>
+    /// <param name="scaleByDimensionId">Dimension multiplier (1.0 / originalViewport.CustomScale) by source dimension id.</param>
+    /// <param name="fallbackMultiplier">Dimension multiplier from the original (unclamped) main viewport, used when a dimension has no explicit match.</param>
     /// <param name="log">Logger for normalization diagnostics.</param>
     internal static void NormalizeModelSpaceDimensions(
         Database db,
@@ -91,7 +90,6 @@ internal static class DimensionStyleNormalizer
 
             dimension.DimensionStyle = normalizedStyleId;
             dimension.Dimlfac = 1.0;
-            dimension.TextRotation = 0.0;
             dimension.RecomputeDimensionBlock(true);
             dimension.RecordGraphicsModified(true);
 
@@ -234,6 +232,16 @@ internal static class DimensionStyleNormalizer
         return true;
     }
 
+    /// <summary>
+    /// Возвращает мультипликатор для нормализации размерного стиля конкретного размера.
+    /// </summary>
+    /// <remarks>
+    /// Верхнего предела нет намеренно: масштабы крупнее 1:100 (1:200, 1:500 и т.д.) должны давать
+    /// корректный мультипликатор без урезания. Нижний предел <see cref="MinScaleMultiplier"/> = 0.01
+    /// защищает от деления на ноль и экстремально мелких значений при масштабах крупнее 1:1.
+    /// Входящий multiplier поступает из <c>dimensionMultiplier</c> (1.0 / mainOriginal.CustomScale) —
+    /// не из зажатого effectiveMultiplier — поэтому урезание до 100 было бы неверным.
+    /// </remarks>
     private static double ResolveMultiplier(
         ObjectId dimensionId,
         IReadOnlyDictionary<ObjectId, double> scaleByDimensionId,
@@ -247,7 +255,7 @@ internal static class DimensionStyleNormalizer
             multiplier = fallbackMultiplier;
         }
 
-        return !IsUsableMultiplier(multiplier) ? 1.0 : Math.Clamp(multiplier, MinScaleMultiplier, MaxScaleMultiplier);
+        return !IsUsableMultiplier(multiplier) ? 1.0 : Math.Max(multiplier, MinScaleMultiplier);
     }
 
     private static ObjectId CreateScaledStyle(
@@ -303,7 +311,7 @@ internal static class DimensionStyleNormalizer
         if (double.IsFinite(value) && Math.Abs(value) > Tolerance)
         {
             double scaledValue = value * multiplier;
-            return Math.Round(scaledValue / baseValue) * baseValue;
+            return Math.Round(scaledValue / baseValue, MidpointRounding.AwayFromZero) * baseValue;
         }
 
         return value;

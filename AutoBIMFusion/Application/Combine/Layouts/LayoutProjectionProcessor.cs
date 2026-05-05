@@ -10,48 +10,55 @@ namespace AutoBIMFusion.Application.Combine.Layouts;
 ///
 /// <remarks>
 /// <para>
-/// <b>Система масштабирования размеров (Dimension Scaling)</b>
+/// <b>Два независимых мультипликатора (КРИТИЧЕСКИ ВАЖНО — не путать)</b>
 /// </para>
 /// <para>
-/// Каждый видовой экран (Viewport) на листе имеет свой масштаб (<c>CustomScale</c>).
-/// При переносе содержимого листа в пространство модели необходимо нормализовать
-/// размерные стили так, чтобы они выглядели одинаково независимо от исходного масштаба вьюпорта.
+/// В пайплайне существуют два отдельных мультипликатора с разными назначениями:
 /// </para>
-/// <para>
-/// <b>Базовый мультипликатор</b> вычисляется как <c>1.0 / CustomScale</c>.
-/// Например, для вьюпорта 1:50 мультипликатор = 50, для 1:100 = 100, для 2:1 = 0.5.
-/// </para>
-/// <para>
-/// <b>MinScaleMultiplier = 0.01</b> — нижняя граница мультипликатора.
-/// Это критически важно для вьюпортов с масштабом крупнее 1:1 (например, 2:1, 5:1, 10:1),
-/// где <c>CustomScale &gt; 1.0</c> и мультипликатор становится меньше 1.0.
-/// Без этой нижней границы (если установить MinScaleMultiplier = 1.0) такие вьюпорты
-/// получают мультипликатор = 1.0, что приводит к тому, что размерные элементы
-/// (текст, стрелки, выноски) не масштабируются пропорционально и выглядят
-/// несоразмерно крупными на чертеже.
-/// </para>
-/// <para>
-/// <b>MaxScaleMultiplier = 100.0</b> — верхняя граница, предотвращающая
-/// чрезмерное увеличение размерных элементов при масштабах мельче 1:100.
-/// </para>
-/// <para>
-/// <b>Двухуровневое ограничение:</b>
 /// <list type="number">
-///   <item><description>
-///     <c>ClampMainViewportScale</c> — если мультипликатор превышает MaxScaleMultiplier,
-///     масштаб самого вьюпорта принудительно уменьшается, а разница компенсируется
-///     через <c>ScaleModelSpaceWhenClamped</c> (clampRatio).
-///   </description></item>
-///   <item><description>
-///     <c>ResolveMultiplier</c> — финальный мультипликатор для размерных стилей
-///     зажимается в диапазон [MinScaleMultiplier, MaxScaleMultiplier].
-///   </description></item>
+///   <item>
+///     <term><c>effectiveMultiplier</c></term>
+///     <description>
+///       Вычисляется из <b>зажатого</b> ВЭ (<c>mainClamped</c>).
+///       Используется <b>только для масштабирования геометрии объектов</b> через
+///       <c>ScaleModelSpaceWhenClamped</c> (clampRatio) и построения матриц трансформации.
+///       Не передаётся в нормализатор размерных стилей.
+///     </description>
+///   </item>
+///   <item>
+///     <term><c>dimensionMultiplier</c></term>
+///     <description>
+///       Вычисляется из <b>исходного</b> ВЭ (<c>mainOriginal</c>) как <c>1.0 / mainOriginal.CustomScale</c>.
+///       Используется <b>только для нормализации размерных стилей</b> — задаёт, во сколько раз нужно
+///       умножить визуальные свойства стиля (Dimtxt, Dimasz и т.д.), чтобы размер выглядел корректно
+///       на итоговом чертеже. Передаётся в <see cref="DimensionStyleNormalizer"/> через
+///       <see cref="LayoutProjectionResult.FallbackMultiplier"/> и <see cref="LayoutProjectionResult.DimensionScales"/>.
+///     </description>
+///   </item>
 /// </list>
+/// <para>
+/// <b>Почему два разных мультипликатора?</b>
 /// </para>
 /// <para>
-/// Полученный <c>effectiveMultiplier</c> передаётся в <see cref="DimensionStyleNormalizer"/>,
-/// который создаёт копии размерных стилей с визуальными свойствами (Dimtxt, Dimasz и т.д.),
-/// умноженными на этот коэффициент, и сбрасывает Dimscale = 1.0.
+/// <c>ClampMainViewportScale</c> принудительно переводит мелкие масштабы (1:50, 1:20 и т.д.)
+/// в рабочий масштаб 1:100, чтобы компенсировать геометрию через clampRatio.
+/// Если бы этот же мультипликатор использовался для размерных стилей, то, например, для ВЭ 1:50
+/// стили получали бы коэффициент 100 вместо 50 — вдвое завышенный.
+/// Для масштабов крупнее 1:100 (например, 1:200, 1:500) зажатия не происходит,
+/// поэтому <c>effectiveMultiplier == dimensionMultiplier</c>, но для более мелких масштабов они расходятся.
+/// </para>
+/// <para>
+/// <b><c>ClampMainViewportScale</c> — условие <c>multiplier &lt; MaxScaleMultiplier</c></b>
+/// </para>
+/// <para>
+/// Зажатие срабатывает когда мультипликатор МЕНЬШЕ 100 (масштаб мельче 1:100, например 1:50 → multiplier=50).
+/// НЕ менять условие на <c>&gt;</c> — это сломает масштабирование объектов для всех масштабов кроме 1:100.
+/// Зажатие нужно именно для мелких масштабов, чтобы нормализовать геометрию к рабочему 1:100.
+/// </para>
+/// <para>
+/// <b>MaxScaleMultiplier = 100.0</b> — рабочий масштаб для геометрических трансформаций объектов.
+/// Нормализатор размерных стилей (<see cref="DimensionStyleNormalizer"/>) верхнего предела не имеет —
+/// это намеренно, чтобы масштабы 1:200, 1:500 и крупнее давали корректные визуальные свойства.
 /// </para>
 /// </remarks>
 internal static class LayoutProjectionProcessor
@@ -99,12 +106,16 @@ internal static class LayoutProjectionProcessor
         ViewportInfo mainClamped = ClampMainViewportScale(mainOriginal, log);
         double clampRatio = mainOriginal.CustomScale / mainClamped.CustomScale;
         double effectiveMultiplier = ResolveMultiplier(mainClamped);
+        // Мультипликатор для размерных стилей: берётся из исходного (нестесненного) масштаба ВЭ,
+        // чтобы визуальные свойства стилей (Dimtxt, Dimasz и др.) соответствовали фактическому
+        // масштабу чертежа, а не приведённому для трансформации объектов.
+        double dimensionMultiplier = mainOriginal.CustomScale > 0.0 ? 1.0 / mainOriginal.CustomScale : effectiveMultiplier;
         ScaleCollector dimensionScales = new();
 
         log.Information(
             $"VP main#{mainOriginal.Number}: исходный scale={mainOriginal.CustomScale:F6}, " +
             $"рабочий scale={mainClamped.CustomScale:F6}, clampRatio={clampRatio:F6}, " +
-            $"dimensionMultiplier={effectiveMultiplier:F6}, " +
+            $"effectiveMultiplier={effectiveMultiplier:F6}, dimensionMultiplier={dimensionMultiplier:F6}, " +
             $"центр={ExtentsUtils.FormatPoint(mainOriginal.ViewCenter)}");
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
@@ -113,7 +124,7 @@ internal static class LayoutProjectionProcessor
         if (viewports.Count > 1)
         {
             IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
-            RegisterDimensionsInside(db, modelEntities, mainOriginal, effectiveMultiplier, dimensionScales, log);
+            RegisterDimensionsInside(db, modelEntities, mainOriginal, dimensionMultiplier, dimensionScales, log);
 
             foreach (ViewportInfo aux in viewports)
             {
@@ -130,17 +141,17 @@ internal static class LayoutProjectionProcessor
                     continue;
                 }
 
-                RegisterDimensionsInside(db, modelEntities, aux, effectiveMultiplier, dimensionScales, log);
+                RegisterDimensionsInside(db, modelEntities, aux, dimensionMultiplier, dimensionScales, log);
 
                 using ViewportTransformer.CloneTransformResult cloneResult = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log, $"aux-VP #{aux.Number}");
-                RegisterClonedDimensions(db, cloneResult.SourceToClone, aux, effectiveMultiplier, dimensionScales);
+                RegisterClonedDimensions(db, cloneResult.SourceToClone, aux, dimensionMultiplier, dimensionScales);
                 _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow, log);
             }
         }
         else
         {
             IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
-            RegisterDimensionsInside(db, modelEntities, mainOriginal, effectiveMultiplier, dimensionScales, log);
+            RegisterDimensionsInside(db, modelEntities, mainOriginal, dimensionMultiplier, dimensionScales, log);
         }
 
         ScaleModelSpaceWhenClamped(db, clampRatio, mainOriginal.ViewCenter, log);
@@ -148,7 +159,7 @@ internal static class LayoutProjectionProcessor
         // Содержимое бумаги проецируется через ограниченную основную область просмотра, поскольку пространство модели
         // уже было приведено к указанному выше ограниченному масштабу.
         Extents3d? frameBounds = MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainClamped, log), log);
-        return new LayoutProjectionResult(frameBounds, dimensionScales.ToDictionary(), effectiveMultiplier);
+        return new LayoutProjectionResult(frameBounds, dimensionScales.ToDictionary(), dimensionMultiplier);
     }
 
     private static LayoutProjectionResult ProjectNoViewport(Database db, string layoutName, Logger log)
@@ -194,6 +205,17 @@ internal static class LayoutProjectionProcessor
         }
     }
 
+    /// <summary>
+    /// Зажимает масштаб главного ВЭ до рабочего 1:100 для мелких масштабов (1:50, 1:20, ...).
+    /// </summary>
+    /// <remarks>
+    /// Условие <c>multiplier &lt; MaxScaleMultiplier</c> намеренно: зажатие нужно именно для мелких
+    /// масштабов, где multiplier &lt; 100 (например, 1:50 → multiplier=50).
+    /// НЕ менять на <c>&gt;</c> — это сломает масштабирование объектов.
+    /// Разница между исходным и зажатым масштабом компенсируется через clampRatio в
+    /// <see cref="ScaleModelSpaceWhenClamped"/>. Для размерных стилей используется
+    /// dimensionMultiplier из исходного ВЭ, а не effectiveMultiplier из зажатого.
+    /// </remarks>
     private static ViewportInfo ClampMainViewportScale(ViewportInfo viewport, Logger log)
     {
         double multiplier = 1.0 / viewport.CustomScale;
@@ -279,23 +301,10 @@ internal static class LayoutProjectionProcessor
     }
 
     /// <summary>
-    /// Вычисляет итоговый мультипликатор размерного стиля для указанного vp.
-    ///     /// Мультипликатор = 1.0 / CustomScale. Это число показывает, во сколько раз
-    /// нужно увеличить визуальные свойства размерного стиля (текст, стрелки, выноски),
-    /// чтобы они выглядели на листе так же, как в пространстве модели.
+    /// Вычисляет мультипликатор как <c>1.0 / CustomScale</c> для указанного ВЭ.
+    /// Используется для <c>effectiveMultiplier</c> (из зажатого ВЭ) и <c>dimensionMultiplier</c> (из исходного ВЭ).
+    /// Результат не зажимается — применяющий код отвечает за допустимые границы.
     /// </summary>
-    /// <remarks>
-    /// Примеры:
-    /// <list type="bullet">
-    ///   <item><description>Вьюпорт 1:100 (CustomScale = 0.01) → multiplier = 100</description></item>
-    ///   <item><description>Вьюпорт 1:50  (CustomScale = 0.02) → multiplier = 50</description></item>
-    ///   <item><description>Вьюпорт 1:1   (CustomScale = 1.0)  → multiplier = 1</description></item>
-    ///   <item><description>Вьюпорт 2:1   (CustomScale = 2.0)  → multiplier = 0.5</description></item>
-    ///   <item><description>Вьюпорт 10:1  (CustomScale = 10.0) → multiplier = 0.1</description></item>
-    /// </list>
-    /// Результат зажимается в диапазон [MinScaleMultiplier, MaxScaleMultiplier],
-    /// чтобы избежать экстремальных значений, которые привели бы к нечитаемым размерам.
-    /// </remarks>
     private static double ResolveMultiplier(ViewportInfo viewport)
     {
         return viewport.CustomScale > 0.0 ? 1.0 / viewport.CustomScale : 1.0;
