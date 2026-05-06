@@ -36,7 +36,7 @@
 1. Главный vpt выбирается через `ViewportInfo.PickMainViewport`.
 2. Рабочий масштаб main vpt зажимается до `1:100` для более мелких масштабов.
 3. Для общей геометрии используется `clampRatio`; матрицы aux/main строятся из параметров исходных vpt.
-4. Размеры, видимые в конкретном vpt, до клонирования получают стиль вида `{OldName}_{Scale}`.
+4. Размеры, видимые в конкретном vpt, до клонирования получают стиль вида `{OldName}_{Scale}` и экземплярный `Dimlfac`.
 5. Aux viewports клонируют и трансформируют свои Model Space объекты в координаты main vpt.
 6. После aux-клонирования исходные размеры, оставшиеся в main window, повторно получают стиль main vpt.
 7. Остатки объектов aux viewports за пределами main window удаляются.
@@ -46,10 +46,11 @@
 
 1. Если рассчитана рамка листа, `ModelSpaceTrimmer.TrimOutside` удаляет объекты вне рамки.
 2. `DimensionStyleNormalizer.NormalizeDimensionStyleForViewport` клонирует текущий стиль размера, если стиль `{OldName}_{Scale}` еще не создан; при clamp VP суффикс использует итоговый рабочий множитель.
-3. Перед установкой `Dimscale = 1.0` визуальные параметры (`Dimtxt`, `Dimasz`, `Dimgap` и др.) умножаются на исходный `Dimscale` с учетом `clampRatio`; при некорректном `Dimscale` используется масштаб vpt.
+3. Перед установкой `Dimscale = 1.0` визуальные параметры (`Dimtxt`, `Dimasz`, `Dimgap` и др.) умножаются на исходный `Dimscale` с учетом `clampRatio`; при некорректном `Dimscale` используется масштаб vpt. Стиль отвечает только за визуальный размер.
 4. DSTYLE overrides очищаются через общую логику `DimensionUtils`, включая XData и extension dictionary записи `ACAD_DSTYLE...`.
-5. После трансформаций все Model Space размеры и используемые ими стили получают `Dimlfac = 1.0`, затем размеры пересчитываются через `RecomputeDimensionBlock(true)`.
-6. Диагностика пишет снимок `source-after-normalize-before-clone`.
+5. Экземпляр размера отвечает за числовую поправку измерения: при clamp Model Space получает `Dimlfac = 1 / clampRatio`, без clamp ожидается `Dimlfac = 1.0`.
+6. После трансформаций используемые размерные стили получают `Dimlfac = 1.0`, экземплярные `Dimlfac` сохраняются, затем размеры пересчитываются через `RecomputeDimensionBlock(true)`.
+7. Диагностика пишет снимок `source-after-normalize-before-clone`.
 
 ## 5. Вставка в целевой чертеж
 

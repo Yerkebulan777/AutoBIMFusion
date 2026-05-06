@@ -22,7 +22,7 @@ internal static class EntityTransformUtils
             EvaluateHatch(hatch);
         }
 
-        // Размеры получают Viewport-стиль до клонирования, а линейный масштаб сбрасывается после трансформаций.
+        // Размеры получают Viewport-стиль и свой линейный масштаб до клонирования.
 
         return new TransformResult(true, false);
     }

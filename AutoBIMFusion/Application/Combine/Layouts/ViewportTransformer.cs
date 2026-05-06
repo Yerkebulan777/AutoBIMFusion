@@ -290,6 +290,7 @@ internal static class ViewportTransformer
     {
         double vpScale = ResolveViewportScale(viewport);
         double finalVpScale = DimensionStyleNormalizer.ResolveFinalViewportMultiplier(vpScale, styleScaleMultiplier);
+        double linearDimensionScale = ResolveLinearDimensionScaleForClamp(styleScaleMultiplier);
         int normalized = 0;
         int overridesCleared = 0;
 
@@ -322,6 +323,7 @@ internal static class ViewportTransformer
             }
 
             dimension.DimensionStyle = normalizedStyleId;
+            dimension.Dimlfac = linearDimensionScale;
             dimension.RecomputeDimensionBlock(true);
             dimension.RecordGraphicsModified(true);
             normalized++;
@@ -330,12 +332,13 @@ internal static class ViewportTransformer
         trx.Commit();
 
         log.Debug(
-            "VP #{Number}: normalized {Count} dimensions with vpScale={Scale:F6}, styleScaleMultiplier={StyleScaleMultiplier:F6}, finalVpScale={FinalScale:F6}, overridesCleared={OverridesCleared}",
+            "VP #{Number}: normalized {Count} dimensions with vpScale={Scale:F6}, styleScaleMultiplier={StyleScaleMultiplier:F6}, finalVpScale={FinalScale:F6}, dimlfac={Dimlfac:F6}, overridesCleared={OverridesCleared}",
             viewport.Number,
             normalized,
             vpScale,
             styleScaleMultiplier,
             finalVpScale,
+            linearDimensionScale,
             overridesCleared);
 
         return normalized;
@@ -361,6 +364,8 @@ internal static class ViewportTransformer
                 continue;
             }
 
+            double linearDimensionScale = NormalizeLinearDimensionScale(dimension.Dimlfac);
+
             if (DimensionUtils.TryRemoveDimensionStyleOverrides(dimension))
             {
                 overridesCleared++;
@@ -377,7 +382,7 @@ internal static class ViewportTransformer
                 stylesFinalized++;
             }
 
-            dimension.Dimlfac = 1.0;
+            dimension.Dimlfac = linearDimensionScale;
             dimension.RecomputeDimensionBlock(true);
             dimension.RecordGraphicsModified(true);
             finalized++;
@@ -481,5 +486,20 @@ internal static class ViewportTransformer
     private static double ResolveViewportScale(ViewportInfo viewport)
     {
         return viewport.CustomScale > 0.0 ? 1.0 / viewport.CustomScale : 1.0;
+    }
+
+    private static double ResolveLinearDimensionScaleForClamp(double clampRatio)
+    {
+        return IsUsableScale(clampRatio) ? 1.0 / clampRatio : 1.0;
+    }
+
+    private static double NormalizeLinearDimensionScale(double linearScale)
+    {
+        return IsUsableScale(linearScale) ? linearScale : 1.0;
+    }
+
+    private static bool IsUsableScale(double scale)
+    {
+        return double.IsFinite(scale) && scale > 1e-9;
     }
 }
