@@ -22,8 +22,8 @@ internal static class DimensionStyleNormalizer
         }
 
         string baseName = NormalizeBaseName(sourceStyle.Name);
-        double effectiveViewportMultiplier = NormalizeScale(viewportMultiplier) * NormalizeScale(styleScaleMultiplier);
-        string normalizedStyleName = $"{baseName}_{FormatScale(effectiveViewportMultiplier)}";
+        double finalViewportMultiplier = ResolveFinalViewportMultiplier(viewportMultiplier, styleScaleMultiplier);
+        string normalizedStyleName = $"{baseName}_{FormatScale(finalViewportMultiplier)}";
 
         DimStyleTable dimStyleTable = (DimStyleTable)trx.GetObject(db.DimStyleTableId, OpenMode.ForRead);
         if (dimStyleTable.Has(normalizedStyleName))
@@ -87,6 +87,11 @@ internal static class DimensionStyleNormalizer
     {
         double baseMultiplier = IsUsableScale(sourceStyle.Dimscale) ? sourceStyle.Dimscale : NormalizeScale(viewportMultiplier);
         return baseMultiplier * NormalizeScale(styleScaleMultiplier);
+    }
+
+    internal static double ResolveFinalViewportMultiplier(double viewportMultiplier, double styleScaleMultiplier)
+    {
+        return NormalizeScale(viewportMultiplier) * NormalizeScale(styleScaleMultiplier);
     }
 
     private static double NormalizeScale(double scale)

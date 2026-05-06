@@ -289,6 +289,7 @@ internal static class ViewportTransformer
         Logger log)
     {
         double vpScale = ResolveViewportScale(viewport);
+        double finalVpScale = DimensionStyleNormalizer.ResolveFinalViewportMultiplier(vpScale, styleScaleMultiplier);
         int normalized = 0;
         int overridesCleared = 0;
 
@@ -329,11 +330,12 @@ internal static class ViewportTransformer
         trx.Commit();
 
         log.Debug(
-            "VP #{Number}: normalized {Count} dimensions with vpScale={Scale:F6}, styleScaleMultiplier={StyleScaleMultiplier:F6}, overridesCleared={OverridesCleared}",
+            "VP #{Number}: normalized {Count} dimensions with vpScale={Scale:F6}, styleScaleMultiplier={StyleScaleMultiplier:F6}, finalVpScale={FinalScale:F6}, overridesCleared={OverridesCleared}",
             viewport.Number,
             normalized,
             vpScale,
             styleScaleMultiplier,
+            finalVpScale,
             overridesCleared);
 
         return normalized;
