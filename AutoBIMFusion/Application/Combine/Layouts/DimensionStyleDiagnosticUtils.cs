@@ -122,8 +122,7 @@ internal static class DimensionStyleDiagnosticUtils
         string properties = string.Join(", ", DimStyleProperties.Select(p => $"{p.Name}={FormatPropertyValue(style, p)}"));
 
         return
-            $"styleName=\"{Escape(style.Name)}\", styleHandle={style.Handle}, " +
-            $"objectId={FormatObjectId(style.ObjectId)}, " +
+            $"styleName=\"{Escape(style.Name)}\", styleHandle={style.Handle},  objectId={FormatObjectId(style.ObjectId)}, " +
             $"isDependent={style.IsDependent}, isResolved={ReadOptionalBool(style, "IsResolved")}, " +
             $"properties={{ {properties} }}";
     }
