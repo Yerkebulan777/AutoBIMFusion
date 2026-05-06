@@ -43,7 +43,7 @@ AutoBIMFusion/
 | `ViewportLayoutExporter` | Открывает DWG в фоновой `Database(false, true)` и готовит Model Space к merge |
 | `LayoutProjectionProcessor` | Перенос Paper Space в Model Space, main/aux vpt projection, scale clamp |
 | `ViewportTransformer` | Матрицы трансформации, clone/transform, erase outside main VP, draw order |
-| `DimensionStyleNormalizer` | Пересоздание используемых размерных стилей в metric source DB до клонирования |
+| `DimensionStyleNormalizer` | Создание Viewport-специфичного размерного стиля для текущего размера |
 | `DimensionStyleDiagnosticUtils` | Диагностические снимки размерных и текстовых стилей |
 | `BlockInserter` | `WblockCloneObjects` + расстановка по оси X |
 | `RasterImagePathFixer` | Копирование растров и перевод путей в относительные |
@@ -69,7 +69,7 @@ CombineCommands
 
 Подготовка каждого исходного DWG выполняется в фоновой `Database(false, true)` после `ReadDwgFile` и `CloseInput(true)`. Временный DWG-файл для подготовки не создается. `ExtentsUtils.SyncUnits` задает `Insunits = Millimeters` и `Measurement = Metric`; `MEASUREINIT` не меняется, потому что это registry-переменная для новых чертежей.
 
-Перед `WblockCloneObjects` `DimensionStyleNormalizer.RecreateMetricDimStyles` удаляет layout-размеры и legacy leaders из временной source DB, пересоздает Model Space размерные стили с именем `{OldName}_VP-{Scale}_Metric`, очищает DSTYLE overrides у размеров и принудительно задает `Dimscale = 1.0`, `Dimlfac = 1.0`. `MLeader` только логируются: они используют `MLeaderStyle`, а не `DimStyleTableRecord`.
+Во время обработки каждого Viewport `ViewportTransformer.NormalizeDimensionsInsideViewport` назначает видимым Model Space размерам стиль `{OldName}_{Scale}` до aux-клонирования и трансформации. `DimensionStyleNormalizer.NormalizeDimensionStyleForViewport` клонирует текущий `DimStyleTableRecord`, запекает исходный `Dimscale` в визуальные параметры (`Dimtxt`, `Dimasz`, `Dimgap` и др.) и задает стилю `Dimscale = 1.0`. После трансформаций `ViewportTransformer.FinalizeModelSpaceDimensionLinearScales` очищает DSTYLE overrides, задает `Dimlfac = 1.0` размерам и их стилям, затем пересчитывает dimension blocks.
 
 ## 6. Сборка и пакеты
 

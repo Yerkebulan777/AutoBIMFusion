@@ -22,8 +22,7 @@ internal static class EntityTransformUtils
             EvaluateHatch(hatch);
         }
 
-        // Размерные стили и DSTYLE XData нормализуются после проекции sourceDb,
-        // когда известен effective multiplier рабочего clamped main VP.
+        // Размеры получают Viewport-стиль до клонирования, а линейный масштаб сбрасывается после трансформаций.
 
         return new TransformResult(true, false);
     }

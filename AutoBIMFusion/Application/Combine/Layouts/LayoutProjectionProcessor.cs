@@ -7,33 +7,7 @@ internal static class LayoutProjectionProcessor
 {
     private const double MaxScaleMultiplier = 100.0;
 
-    internal sealed record LayoutProjectionResult(Extents3d? FrameBounds, IReadOnlyDictionary<ObjectId, double> DimensionScales, double FallbackMultiplier, double ClampRatio);
-
-    private sealed class ScaleCollector
-    {
-        private readonly Dictionary<ObjectId, DimensionScaleCandidate> _candidates = [];
-
-        internal void Register(ObjectId dimensionId, double multiplier, double viewportArea)
-        {
-            if (dimensionId.IsNull || dimensionId.IsErased || !double.IsFinite(multiplier) || multiplier <= 0.0)
-            {
-                return;
-            }
-
-            if (!_candidates.TryGetValue(dimensionId, out DimensionScaleCandidate existing)
-                || viewportArea < existing.ViewportArea)
-            {
-                _candidates[dimensionId] = new DimensionScaleCandidate(multiplier, viewportArea);
-            }
-        }
-
-        internal IReadOnlyDictionary<ObjectId, double> ToDictionary()
-        {
-            return _candidates.ToDictionary(pair => pair.Key, pair => pair.Value.Multiplier);
-        }
-    }
-
-    private readonly record struct DimensionScaleCandidate(double Multiplier, double ViewportArea);
+    internal sealed record LayoutProjectionResult(Extents3d? FrameBounds);
 
     internal static LayoutProjectionResult ProjectLayoutToModelSpace(Database db, string layoutName, IReadOnlyList<ViewportInfo> viewports, Logger log)
     {
@@ -48,16 +22,11 @@ internal static class LayoutProjectionProcessor
         ViewportInfo mainClamped = ClampMainViewportScale(mainOriginal, log);
         double clampRatio = mainOriginal.CustomScale / mainClamped.CustomScale;
         double effectiveMultiplier = ResolveMultiplier(mainClamped);
-        // Мультипликатор для размерных стилей: берётся из исходного (нестесненного) масштаба ВЭ,
-        // чтобы визуальные свойства стилей (Dimtxt, Dimasz и др.) соответствовали фактическому
-        // масштабу чертежа, а не приведённому для трансформации объектов.
-        double dimensionMultiplier = mainOriginal.CustomScale > 0.0 ? 1.0 / mainOriginal.CustomScale : effectiveMultiplier;
-        ScaleCollector dimensionScales = new();
 
         log.Information(
             $"VP main#{mainOriginal.Number}: исходный scale={mainOriginal.CustomScale:F6}, " +
             $"рабочий scale={mainClamped.CustomScale:F6}, clampRatio={clampRatio:F6}, " +
-            $"effectiveMultiplier={effectiveMultiplier:F6}, dimensionMultiplier={dimensionMultiplier:F6}, " +
+            $"effectiveMultiplier={effectiveMultiplier:F6}, " +
             $"центр={ExtentsUtils.FormatPoint(mainOriginal.ViewCenter)}");
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
@@ -66,7 +35,7 @@ internal static class LayoutProjectionProcessor
         if (viewports.Count > 1)
         {
             IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
-            RegisterDimensionsInside(db, modelEntities, mainOriginal, effectiveMultiplier, dimensionScales, log);
+            _ = ViewportTransformer.NormalizeDimensionsInsideViewport(db, modelEntities, mainOriginal, log);
 
             foreach (ViewportInfo aux in viewports)
             {
@@ -83,17 +52,17 @@ internal static class LayoutProjectionProcessor
                     continue;
                 }
 
-                RegisterDimensionsInside(db, modelEntities, aux, effectiveMultiplier, dimensionScales, log);
+                _ = ViewportTransformer.NormalizeDimensionsInsideViewport(db, modelEntities, aux, log);
 
                 using ViewportTransformer.CloneTransformResult cloneResult = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log, $"aux-VP #{aux.Number}");
-                RegisterClonedDimensions(db, cloneResult.SourceToClone, aux, effectiveMultiplier, dimensionScales);
                 _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow, log);
+                _ = ViewportTransformer.NormalizeDimensionsInsideViewport(db, modelEntities, mainOriginal, log);
             }
         }
         else
         {
             IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
-            RegisterDimensionsInside(db, modelEntities, mainOriginal, effectiveMultiplier, dimensionScales, log);
+            _ = ViewportTransformer.NormalizeDimensionsInsideViewport(db, modelEntities, mainOriginal, log);
         }
 
         ScaleModelSpaceWhenClamped(db, clampRatio, mainOriginal.ViewCenter, log);
@@ -101,7 +70,8 @@ internal static class LayoutProjectionProcessor
         // Содержимое бумаги проецируется через ограниченную основную область просмотра, поскольку пространство модели
         // уже было приведено к указанному выше ограниченному масштабу.
         Extents3d? frameBounds = MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainClamped, log), log);
-        return new LayoutProjectionResult(frameBounds, dimensionScales.ToDictionary(), effectiveMultiplier, clampRatio);
+        _ = ViewportTransformer.FinalizeModelSpaceDimensionLinearScales(db, log);
+        return new LayoutProjectionResult(frameBounds);
     }
 
     private static LayoutProjectionResult ProjectNoViewport(Database db, string layoutName, Logger log)
@@ -112,14 +82,14 @@ internal static class LayoutProjectionProcessor
 
         if (paperIds.Count == 0)
         {
-            return new LayoutProjectionResult(null, new Dictionary<ObjectId, double>(), MaxScaleMultiplier, 1.0);
+            return new LayoutProjectionResult(null);
         }
 
         Extents3d? paperBounds = ModelSpaceTrimmer.ComputeBounds(db, paperIds, log);
 
         if (!paperBounds.HasValue)
         {
-            return new LayoutProjectionResult(null, new Dictionary<ObjectId, double>(), MaxScaleMultiplier, 1.0);
+            return new LayoutProjectionResult(null);
         }
 
         Point3d minPt = paperBounds.Value.MinPoint;
@@ -127,7 +97,8 @@ internal static class LayoutProjectionProcessor
 
         ViewportTransformer.UnlockTextStylesHeight(db, log);
         Extents3d? frameBounds = MovePaperToModelSpace(db, layoutName, matrix, log, "paper-no-vp");
-        return new LayoutProjectionResult(frameBounds, new Dictionary<ObjectId, double>(), MaxScaleMultiplier, 1.0);
+        _ = ViewportTransformer.FinalizeModelSpaceDimensionLinearScales(db, log);
+        return new LayoutProjectionResult(frameBounds);
     }
 
 
@@ -156,8 +127,8 @@ internal static class LayoutProjectionProcessor
     /// масштабов, где multiplier &lt; 100 (например, 1:50 → multiplier=50).
     /// НЕ менять на <c>&gt;</c> — это сломает масштабирование объектов.
     /// Разница между исходным и зажатым масштабом компенсируется через clampRatio в
-    /// <see cref="ScaleModelSpaceWhenClamped"/>. Для размерных стилей используется
-    /// dimensionMultiplier из исходного ВЭ, а не effectiveMultiplier из зажатого.
+    /// <see cref="ScaleModelSpaceWhenClamped"/>. Размерные стили нормализуются по масштабу
+    /// конкретного исходного ВЭ до клонирования.
     /// </remarks>
     private static ViewportInfo ClampMainViewportScale(ViewportInfo viewport, Logger log)
     {
@@ -191,76 +162,15 @@ internal static class LayoutProjectionProcessor
         return ModelSpaceTrimmer.ComputeBounds(db, cloneResult.ClonedIds, log);
     }
 
-    private static void RegisterDimensionsInside(
-        Database db,
-        IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities,
-        ViewportInfo viewport,
-        double multiplier,
-        ScaleCollector dimensionScales,
-        Logger log)
-    {
-        double viewportArea = ComputeArea(viewport.ModelWindow);
-        int matched = 0;
-
-        using Transaction tr = db.TransactionManager.StartTransaction();
-
-        foreach (ViewportTransformer.ModelEntitySnapshot snapshot in modelEntities)
-        {
-            if (snapshot.Id.IsNull
-                || snapshot.Id.IsErased
-                || !ExtentsUtils.AabbIntersect(viewport.ModelWindow, snapshot.Extents)
-                || tr.GetObject(snapshot.Id, OpenMode.ForRead, false) is not Dimension)
-            {
-                continue;
-            }
-
-            dimensionScales.Register(snapshot.Id, multiplier, viewportArea);
-            matched++;
-        }
-
-        tr.Commit();
-
-        log.Debug($"VP #{viewport.Number}: registered {matched} model-space dimensions with effective main scale multiplier {multiplier:F6}");
-    }
-
-    private static void RegisterClonedDimensions(Database db, IReadOnlyDictionary<ObjectId, ObjectId> sourceToClone, ViewportInfo viewport, double multiplier, ScaleCollector dimensionScales)
-    {
-        double viewportArea = ComputeArea(viewport.ModelWindow);
-
-        using Transaction tr = db.TransactionManager.StartTransaction();
-
-        foreach (ObjectId cloneId in sourceToClone.Values)
-        {
-            if (!cloneId.IsNull && !cloneId.IsErased)
-            {
-                if (tr.GetObject(cloneId, OpenMode.ForRead, false) is Dimension)
-                {
-                    dimensionScales.Register(cloneId, multiplier, viewportArea);
-                }
-            }
-        }
-
-        tr.Commit();
-    }
-
-
     /// <summary>
     /// Вычисляет мультипликатор как <c>1.0 / CustomScale</c> для указанного ВЭ.
-    /// Используется для <c>effectiveMultiplier</c> (из зажатого ВЭ) и <c>dimensionMultiplier</c> (из исходного ВЭ).
+    /// Используется для <c>effectiveMultiplier</c> из зажатого ВЭ.
     /// Результат не зажимается — применяющий код отвечает за допустимые границы.
     /// </summary>
     private static double ResolveMultiplier(ViewportInfo viewport)
     {
         return viewport.CustomScale > 0.0 ? 1.0 / viewport.CustomScale : 1.0;
     }
-
-
-    private static double ComputeArea(Extents3d extents)
-    {
-        return Max(0.0, extents.MaxPoint.X - extents.MinPoint.X)
-             * Max(0.0, extents.MaxPoint.Y - extents.MinPoint.Y);
-    }
-
 
     private static void EraseBlockContents(Database db, ObjectId btrId)
     {

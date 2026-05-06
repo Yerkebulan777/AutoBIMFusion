@@ -285,6 +285,106 @@ internal static class ViewportTransformer
         return result;
     }
 
+    internal static int NormalizeDimensionsInsideViewport(Database db, IReadOnlyList<ModelEntitySnapshot> modelEntities, ViewportInfo viewport, Logger log)
+    {
+        double vpScale = ResolveViewportScale(viewport);
+        int normalized = 0;
+        int overridesCleared = 0;
+
+        using Transaction trx = db.TransactionManager.StartTransaction();
+
+        foreach (ModelEntitySnapshot snapshot in modelEntities)
+        {
+            if (snapshot.Id.IsNull
+                || snapshot.Id.IsErased
+                || !ExtentsUtils.AabbIntersect(viewport.ModelWindow, snapshot.Extents)
+                || trx.GetObject(snapshot.Id, OpenMode.ForWrite, false) is not Dimension dimension)
+            {
+                continue;
+            }
+
+            if (DimensionUtils.TryRemoveDimensionStyleOverrides(dimension))
+            {
+                overridesCleared++;
+            }
+
+            ObjectId normalizedStyleId = DimensionStyleNormalizer.NormalizeDimensionStyleForViewport(dimension.DimensionStyle, db, vpScale, trx);
+            if (normalizedStyleId.IsNull)
+            {
+                continue;
+            }
+
+            dimension.DimensionStyle = normalizedStyleId;
+            dimension.RecomputeDimensionBlock(true);
+            dimension.RecordGraphicsModified(true);
+            normalized++;
+        }
+
+        trx.Commit();
+
+        log.Debug(
+            "VP #{Number}: normalized {Count} dimensions with vpScale={Scale:F6}, overridesCleared={OverridesCleared}",
+            viewport.Number,
+            normalized,
+            vpScale,
+            overridesCleared);
+
+        return normalized;
+    }
+
+    internal static int FinalizeModelSpaceDimensionLinearScales(Database db, Logger log)
+    {
+        int finalized = 0;
+        int stylesFinalized = 0;
+        int overridesCleared = 0;
+        HashSet<ObjectId> finalizedStyleIds = [];
+        ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
+
+        using Transaction trx = db.TransactionManager.StartTransaction();
+        BlockTableRecord modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
+
+        foreach (ObjectId id in modelSpace)
+        {
+            if (id.IsNull
+                || id.IsErased
+                || trx.GetObject(id, OpenMode.ForWrite, false) is not Dimension dimension)
+            {
+                continue;
+            }
+
+            if (DimensionUtils.TryRemoveDimensionStyleOverrides(dimension))
+            {
+                overridesCleared++;
+            }
+
+            ObjectId styleId = ResolveDimensionStyleId(db, dimension.DimensionStyle);
+            if (!styleId.IsNull
+                && !styleId.IsErased
+                && finalizedStyleIds.Add(styleId)
+                && trx.GetObject(styleId, OpenMode.ForWrite, false) is DimStyleTableRecord style
+                && !style.IsErased)
+            {
+                style.Dimlfac = 1.0;
+                stylesFinalized++;
+            }
+
+            dimension.Dimlfac = 1.0;
+            dimension.RecomputeDimensionBlock(true);
+            dimension.RecordGraphicsModified(true);
+            finalized++;
+        }
+
+        trx.Commit();
+
+        log.Information(
+            "FinalizeModelSpaceDimensionLinearScales: dimensions={Dimensions}, styles={Styles}, overridesCleared={OverridesCleared}",
+            finalized,
+            stylesFinalized,
+            overridesCleared);
+
+        return finalized;
+    }
+
     /// <summary>
     /// Удаляет из модели оригинальные объекты вспомогательного VP, которые НЕ входят в окно
     /// главного VP. Вызывается после DeepCloneAndTransform для каждого aux VP.
@@ -362,5 +462,15 @@ internal static class ViewportTransformer
 
         trx.Commit();
         log.Information($"UnlockTextStylesHeight: разблокировано {unlocked} текстовых стилей");
+    }
+
+    private static ObjectId ResolveDimensionStyleId(Database db, ObjectId styleId)
+    {
+        return !styleId.IsNull && !styleId.IsErased ? styleId : db.Dimstyle;
+    }
+
+    private static double ResolveViewportScale(ViewportInfo viewport)
+    {
+        return viewport.CustomScale > 0.0 ? 1.0 / viewport.CustomScale : 1.0;
     }
 }

@@ -42,8 +42,7 @@ internal static class CombineOrchestrator
                 return CombineResult.Warn(fileName, "Пустой файл");
             }
 
-            // Размерные стили нормализуются превентивно внутри PrepareDatabaseForMerge:
-            // каждый размер получает стиль с масштабом рабочего clamped main VP до WblockCloneObjects.
+            // Размеры нормализуются при обработке каждого Viewport до клонирования aux-геометрии.
 
             Extents3d? worldBounds;
             using (targetDoc.LockDocument())

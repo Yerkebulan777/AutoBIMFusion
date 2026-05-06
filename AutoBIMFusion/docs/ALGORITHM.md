@@ -36,20 +36,20 @@
 1. Главный vpt выбирается через `ViewportInfo.PickMainViewport`.
 2. Рабочий масштаб main vpt зажимается до `1:100` для более мелких масштабов.
 3. Для геометрии используется `effectiveMultiplier` / `clampRatio`.
-4. Для размерных стилей используется отдельный `dimensionMultiplier` из исходного масштаба main vpt.
+4. Размеры, видимые в конкретном vpt, до клонирования получают стиль вида `{OldName}_{Scale}`.
 5. Aux viewports клонируют и трансформируют свои Model Space объекты в координаты main vpt.
-6. Остатки объектов aux viewports за пределами main window удаляются.
-7. Paper Space переносится в Model Space через матрицу `BuildPaperToMainMatrix`.
+6. После aux-клонирования исходные размеры, оставшиеся в main window, повторно получают стиль main vpt.
+7. Остатки объектов aux viewports за пределами main window удаляются.
+8. Paper Space переносится в Model Space через матрицу `BuildPaperToMainMatrix`.
 
 ## 4. Тримминг и размеры
 
 1. Если рассчитана рамка листа, `ModelSpaceTrimmer.TrimOutside` удаляет объекты вне рамки.
-2. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `before-normalize`.
-3. `DimensionStyleNormalizer.RecreateMetricDimStyles` удаляет layout-размеры/legacy leaders из временной source DB, пересоздает используемые Model Space dim styles как `{OldName}_VP-{Scale}_Metric` и назначает их до `WblockCloneObjects`.
+2. `DimensionStyleNormalizer.NormalizeDimensionStyleForViewport` клонирует текущий стиль размера, если стиль `{OldName}_{Scale}` еще не создан.
+3. Перед установкой `Dimscale = 1.0` визуальные параметры (`Dimtxt`, `Dimasz`, `Dimgap` и др.) умножаются на исходный `Dimscale`; при некорректном `Dimscale` используется масштаб vpt.
 4. DSTYLE overrides очищаются через общую логику `DimensionUtils`, включая XData и extension dictionary записи `ACAD_DSTYLE...`.
-5. Новые стили и обработанные размеры получают `Dimscale = 1.0` и `Dimlfac = 1.0`; `MLeader` только логируются, потому что используют отдельный `MLeaderStyle`.
-6. Старые замененные и неиспользуемые аннотативные размерные стили удаляются через `Database.Purge`, если AutoCAD считает их unreferenced.
-7. Диагностика повторяется стадией `after-normalize`.
+5. После трансформаций все Model Space размеры и используемые ими стили получают `Dimlfac = 1.0`, затем размеры пересчитываются через `RecomputeDimensionBlock(true)`.
+6. Диагностика пишет снимок `after-normalize`.
 
 ## 5. Вставка в целевой чертеж
 
