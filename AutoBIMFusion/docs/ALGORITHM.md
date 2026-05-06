@@ -45,8 +45,8 @@
 ## 4. Тримминг и размеры
 
 1. Если рассчитана рамка листа, `ModelSpaceTrimmer.TrimOutside` удаляет объекты вне рамки.
-2. `DimensionStyleNormalizer.NormalizeDimensionStyleForViewport` клонирует текущий стиль размера, если стиль `{OldName}_{Scale}` еще не создан.
-3. Перед установкой `Dimscale = 1.0` визуальные параметры (`Dimtxt`, `Dimasz`, `Dimgap` и др.) умножаются на исходный `Dimscale`; при некорректном `Dimscale` используется масштаб vpt.
+2. `DimensionStyleNormalizer.NormalizeDimensionStyleForViewport` клонирует текущий стиль размера, если стиль `{OldName}_{Scale}` еще не создан; при clamp VP суффикс использует итоговый рабочий множитель.
+3. Перед установкой `Dimscale = 1.0` визуальные параметры (`Dimtxt`, `Dimasz`, `Dimgap` и др.) умножаются на исходный `Dimscale` с учетом `clampRatio`; при некорректном `Dimscale` используется масштаб vpt.
 4. DSTYLE overrides очищаются через общую логику `DimensionUtils`, включая XData и extension dictionary записи `ACAD_DSTYLE...`.
 5. После трансформаций все Model Space размеры и используемые ими стили получают `Dimlfac = 1.0`, затем размеры пересчитываются через `RecomputeDimensionBlock(true)`.
 6. Диагностика пишет снимок `source-after-normalize-before-clone`.

@@ -281,7 +281,12 @@ internal static class ViewportTransformer
         return result;
     }
 
-    internal static int NormalizeDimensionsInsideViewport(Database db, IReadOnlyList<ModelEntitySnapshot> modelEntities, ViewportInfo viewport, Logger log)
+    internal static int NormalizeDimensionsInsideViewport(
+        Database db,
+        IReadOnlyList<ModelEntitySnapshot> modelEntities,
+        ViewportInfo viewport,
+        double styleScaleMultiplier,
+        Logger log)
     {
         double vpScale = ResolveViewportScale(viewport);
         int normalized = 0;
@@ -304,7 +309,12 @@ internal static class ViewportTransformer
                 overridesCleared++;
             }
 
-            ObjectId normalizedStyleId = DimensionStyleNormalizer.NormalizeDimensionStyleForViewport(dimension.DimensionStyle, db, vpScale, trx);
+            ObjectId normalizedStyleId = DimensionStyleNormalizer.NormalizeDimensionStyleForViewport(
+                dimension.DimensionStyle,
+                db,
+                vpScale,
+                styleScaleMultiplier,
+                trx);
             if (normalizedStyleId.IsNull)
             {
                 continue;
@@ -319,10 +329,11 @@ internal static class ViewportTransformer
         trx.Commit();
 
         log.Debug(
-            "VP #{Number}: normalized {Count} dimensions with vpScale={Scale:F6}, overridesCleared={OverridesCleared}",
+            "VP #{Number}: normalized {Count} dimensions with vpScale={Scale:F6}, styleScaleMultiplier={StyleScaleMultiplier:F6}, overridesCleared={OverridesCleared}",
             viewport.Number,
             normalized,
             vpScale,
+            styleScaleMultiplier,
             overridesCleared);
 
         return normalized;

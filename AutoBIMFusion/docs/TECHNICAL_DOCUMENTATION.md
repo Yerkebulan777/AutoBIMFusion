@@ -69,7 +69,7 @@ CombineCommands
 
 Подготовка каждого исходного DWG выполняется в фоновой `Database(false, true)` после `ReadDwgFile` и `CloseInput(true)`. Временный DWG-файл для подготовки не создается. `ExtentsUtils.SyncUnits` задает `Insunits = Millimeters` и `Measurement = Metric`; `MEASUREINIT` не меняется, потому что это registry-переменная для новых чертежей.
 
-Во время обработки каждого Viewport `ViewportTransformer.NormalizeDimensionsInsideViewport` назначает видимым Model Space размерам стиль `{OldName}_{Scale}` до aux-клонирования и трансформации. `DimensionStyleNormalizer.NormalizeDimensionStyleForViewport` клонирует текущий `DimStyleTableRecord`, запекает исходный `Dimscale` в визуальные параметры (`Dimtxt`, `Dimasz`, `Dimgap` и др.) и задает стилю `Dimscale = 1.0`. После трансформаций `ViewportTransformer.FinalizeModelSpaceDimensionLinearScales` очищает DSTYLE overrides, задает `Dimlfac = 1.0` размерам и их стилям, затем пересчитывает dimension blocks.
+Во время обработки каждого Viewport `ViewportTransformer.NormalizeDimensionsInsideViewport` назначает видимым Model Space размерам стиль `{OldName}_{Scale}` до aux-клонирования и трансформации. Если главный VP зажат до рабочего масштаба 1:100, суффикс и визуальные параметры стиля рассчитываются по итоговому множителю с учетом `clampRatio`. `DimensionStyleNormalizer.NormalizeDimensionStyleForViewport` клонирует текущий `DimStyleTableRecord`, запекает исходный `Dimscale` в визуальные параметры (`Dimtxt`, `Dimasz`, `Dimgap` и др.) и задает стилю `Dimscale = 1.0`. После трансформаций `ViewportTransformer.FinalizeModelSpaceDimensionLinearScales` очищает DSTYLE overrides, задает `Dimlfac = 1.0` размерам и их стилям, затем пересчитывает dimension blocks.
 
 ## 6. Сборка и пакеты
 

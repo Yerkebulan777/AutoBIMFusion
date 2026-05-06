@@ -6,7 +6,12 @@ internal static class DimensionStyleNormalizer
 {
     private const double Tolerance = 1e-9;
 
-    internal static ObjectId NormalizeDimensionStyleForViewport(ObjectId currentStyleId, Database db, double vpScale, Transaction trx)
+    internal static ObjectId NormalizeDimensionStyleForViewport(
+        ObjectId currentStyleId,
+        Database db,
+        double viewportMultiplier,
+        double styleScaleMultiplier,
+        Transaction trx)
     {
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(trx);
@@ -17,7 +22,8 @@ internal static class DimensionStyleNormalizer
         }
 
         string baseName = NormalizeBaseName(sourceStyle.Name);
-        string normalizedStyleName = $"{baseName}_{FormatScale(vpScale)}";
+        double effectiveViewportMultiplier = NormalizeScale(viewportMultiplier) * NormalizeScale(styleScaleMultiplier);
+        string normalizedStyleName = $"{baseName}_{FormatScale(effectiveViewportMultiplier)}";
 
         DimStyleTable dimStyleTable = (DimStyleTable)trx.GetObject(db.DimStyleTableId, OpenMode.ForRead);
         if (dimStyleTable.Has(normalizedStyleName))
@@ -34,7 +40,7 @@ internal static class DimensionStyleNormalizer
         normalizedStyle.CopyFrom(sourceStyle);
         normalizedStyle.Name = normalizedStyleName;
 
-        ApplyViewportMetricSettings(normalizedStyle, ResolveVisualMultiplier(sourceStyle, vpScale));
+        ApplyViewportMetricSettings(normalizedStyle, ResolveVisualMultiplier(sourceStyle, viewportMultiplier, styleScaleMultiplier));
 
         ObjectId normalizedStyleId = dimStyleTable.Add(normalizedStyle);
         trx.AddNewlyCreatedDBObject(normalizedStyle, true);
@@ -77,9 +83,10 @@ internal static class DimensionStyleNormalizer
         style.Dimscale = 1.0;
     }
 
-    private static double ResolveVisualMultiplier(DimStyleTableRecord sourceStyle, double vpScale)
+    private static double ResolveVisualMultiplier(DimStyleTableRecord sourceStyle, double viewportMultiplier, double styleScaleMultiplier)
     {
-        return IsUsableScale(sourceStyle.Dimscale) ? sourceStyle.Dimscale : NormalizeScale(vpScale);
+        double baseMultiplier = IsUsableScale(sourceStyle.Dimscale) ? sourceStyle.Dimscale : NormalizeScale(viewportMultiplier);
+        return baseMultiplier * NormalizeScale(styleScaleMultiplier);
     }
 
     private static double NormalizeScale(double scale)

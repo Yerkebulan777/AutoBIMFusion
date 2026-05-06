@@ -33,7 +33,7 @@ internal static class LayoutProjectionProcessor
         if (viewports.Count > 1)
         {
             IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
-            _ = ViewportTransformer.NormalizeDimensionsInsideViewport(db, modelEntities, mainOriginal, log);
+            _ = ViewportTransformer.NormalizeDimensionsInsideViewport(db, modelEntities, mainOriginal, clampRatio, log);
 
             foreach (ViewportInfo aux in viewports)
             {
@@ -50,17 +50,17 @@ internal static class LayoutProjectionProcessor
                     continue;
                 }
 
-                _ = ViewportTransformer.NormalizeDimensionsInsideViewport(db, modelEntities, aux, log);
+                _ = ViewportTransformer.NormalizeDimensionsInsideViewport(db, modelEntities, aux, clampRatio, log);
 
                 using ViewportTransformer.CloneTransformResult cloneResult = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log);
                 _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow, log);
-                _ = ViewportTransformer.NormalizeDimensionsInsideViewport(db, modelEntities, mainOriginal, log);
+                _ = ViewportTransformer.NormalizeDimensionsInsideViewport(db, modelEntities, mainOriginal, clampRatio, log);
             }
         }
         else
         {
             IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
-            _ = ViewportTransformer.NormalizeDimensionsInsideViewport(db, modelEntities, mainOriginal, log);
+            _ = ViewportTransformer.NormalizeDimensionsInsideViewport(db, modelEntities, mainOriginal, clampRatio, log);
         }
 
         ScaleModelSpaceWhenClamped(db, clampRatio, mainOriginal.ViewCenter, log);
@@ -126,7 +126,7 @@ internal static class LayoutProjectionProcessor
     /// НЕ менять на <c>&gt;</c> — это сломает масштабирование объектов.
     /// Разница между исходным и зажатым масштабом компенсируется через clampRatio в
     /// <see cref="ScaleModelSpaceWhenClamped"/>. Размерные стили нормализуются по масштабу
-    /// конкретного исходного ВЭ до клонирования.
+    /// итогового рабочего масштаба с учетом clamp.
     /// </remarks>
     private static ViewportInfo ClampMainViewportScale(ViewportInfo viewport, Logger log)
     {
