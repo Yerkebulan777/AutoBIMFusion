@@ -95,4 +95,4 @@ CombineCommands
 - Основной логгер: `LoggerFactory.GetSharedLogger()`.
 - Все активные команды пишут в `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle\Contents\Logs\merge-YYYY-MM-DD.log`.
 - `DiagnosticSink` дублирует сообщения в `Debug.WriteLine` или `Trace.WriteLine`.
-- Размерные стили диагностируются стадиями `before-normalize`, `after-normalize`, `after-merge`; пересоздание пишет сводку `[DIM-METRIC]`.
+- Размерные стили диагностируются стадиями `source-after-normalize-before-clone` и `after-merge`; нормализация Viewport пишет отдельные debug/info-сообщения.

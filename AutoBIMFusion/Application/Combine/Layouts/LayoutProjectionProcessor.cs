@@ -21,12 +21,10 @@ internal static class LayoutProjectionProcessor
         ViewportInfo mainOriginal = ViewportInfo.PickMainViewport(viewports);
         ViewportInfo mainClamped = ClampMainViewportScale(mainOriginal, log);
         double clampRatio = mainOriginal.CustomScale / mainClamped.CustomScale;
-        double effectiveMultiplier = ResolveMultiplier(mainClamped);
 
         log.Information(
             $"VP main#{mainOriginal.Number}: исходный scale={mainOriginal.CustomScale:F6}, " +
             $"рабочий scale={mainClamped.CustomScale:F6}, clampRatio={clampRatio:F6}, " +
-            $"effectiveMultiplier={effectiveMultiplier:F6}, " +
             $"центр={ExtentsUtils.FormatPoint(mainOriginal.ViewCenter)}");
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
@@ -54,7 +52,7 @@ internal static class LayoutProjectionProcessor
 
                 _ = ViewportTransformer.NormalizeDimensionsInsideViewport(db, modelEntities, aux, log);
 
-                using ViewportTransformer.CloneTransformResult cloneResult = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log, $"aux-VP #{aux.Number}");
+                using ViewportTransformer.CloneTransformResult cloneResult = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log);
                 _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow, log);
                 _ = ViewportTransformer.NormalizeDimensionsInsideViewport(db, modelEntities, mainOriginal, log);
             }
@@ -96,7 +94,7 @@ internal static class LayoutProjectionProcessor
         Matrix3d matrix = Matrix3d.Scaling(MaxScaleMultiplier, Point3d.Origin) * Matrix3d.Displacement(Point3d.Origin - minPt);
 
         ViewportTransformer.UnlockTextStylesHeight(db, log);
-        Extents3d? frameBounds = MovePaperToModelSpace(db, layoutName, matrix, log, "paper-no-vp");
+        Extents3d? frameBounds = MovePaperToModelSpace(db, layoutName, matrix, log);
         _ = ViewportTransformer.FinalizeModelSpaceDimensionLinearScales(db, log);
         return new LayoutProjectionResult(frameBounds);
     }
@@ -144,7 +142,7 @@ internal static class LayoutProjectionProcessor
         return viewport;
     }
 
-    private static Extents3d? MovePaperToModelSpace(Database db, string layoutName, Matrix3d matrix, Logger log, string tag = "paper")
+    private static Extents3d? MovePaperToModelSpace(Database db, string layoutName, Matrix3d matrix, Logger log)
     {
         ObjectId paperBtrId = LayoutUtil.GetLayoutBtrId(db, layoutName);
         using ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
@@ -155,21 +153,11 @@ internal static class LayoutProjectionProcessor
         }
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
-        using ViewportTransformer.CloneTransformResult cloneResult = ViewportTransformer.DeepCloneAndTransform(db, paperIds, paperBtrId, msId, matrix, log, tag);
+        using ViewportTransformer.CloneTransformResult cloneResult = ViewportTransformer.DeepCloneAndTransform(db, paperIds, paperBtrId, msId, matrix, log);
 
         EraseBlockContents(db, paperBtrId);
 
         return ModelSpaceTrimmer.ComputeBounds(db, cloneResult.ClonedIds, log);
-    }
-
-    /// <summary>
-    /// Вычисляет мультипликатор как <c>1.0 / CustomScale</c> для указанного ВЭ.
-    /// Используется для <c>effectiveMultiplier</c> из зажатого ВЭ.
-    /// Результат не зажимается — применяющий код отвечает за допустимые границы.
-    /// </summary>
-    private static double ResolveMultiplier(ViewportInfo viewport)
-    {
-        return viewport.CustomScale > 0.0 ? 1.0 / viewport.CustomScale : 1.0;
     }
 
     private static void EraseBlockContents(Database db, ObjectId btrId)

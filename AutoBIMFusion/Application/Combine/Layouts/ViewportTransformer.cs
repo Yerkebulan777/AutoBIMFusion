@@ -25,8 +25,6 @@ internal static class ViewportTransformer
     {
         internal ObjectIdCollection ClonedIds { get; } = [];
 
-        internal Dictionary<ObjectId, ObjectId> SourceToClone { get; } = [];
-
         public void Dispose()
         {
             ClonedIds.Dispose();
@@ -210,8 +208,7 @@ internal static class ViewportTransformer
         ObjectId sourceOwnerId,
         ObjectId ownerId,
         Matrix3d matrix,
-        Logger log,
-        string sourceName)
+        Logger log)
     {
         IReadOnlyList<ObjectId> sourceOrder = DrawOrderPreserver.Capture(db, sourceOwnerId, sourceIds, log);
 
@@ -246,7 +243,6 @@ internal static class ViewportTransformer
                         {
                             _ = EntityTransformUtils.TransformEntity(e, matrix);
                             _ = result.ClonedIds.Add(pair.Value);
-                            result.SourceToClone[pair.Key] = pair.Value;
                         }
                         catch (System.Exception ex)
                         {
