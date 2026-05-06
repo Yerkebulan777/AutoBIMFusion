@@ -1,12 +1,12 @@
-# Graph Report - AutoBIMFusion  (2026-05-05)
+# Graph Report - AutoBIMFusion  (2026-05-06)
 
 ## Corpus Check
-- 39 files · ~17,578 words
+- 39 files · ~17,540 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 249 nodes · 425 edges · 17 communities detected
-- Extraction: 77% EXTRACTED · 23% INFERRED · 0% AMBIGUOUS · INFERRED: 99 edges (avg confidence: 0.8)
+- 248 nodes · 420 edges · 17 communities detected
+- Extraction: 77% EXTRACTED · 23% INFERRED · 0% AMBIGUOUS · INFERRED: 97 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -38,7 +38,7 @@
 7. `TextStyleCommands` - 10 edges
 8. `ViewportTransformer` - 9 edges
 9. `DimensionUtils` - 8 edges
-10. `LoggerFactory` - 8 edges
+10. `CombineCommands` - 7 edges
 
 ## Surprising Connections (you probably didn't know these)
 - None detected - all connections are within the same source files.
@@ -46,40 +46,40 @@
 ## Communities
 
 ### Community 0 - "Community 0"
-Cohesion: 0.11
-Nodes (5): LayoutProjectionProcessor, ScaleCollector, ModelSpaceTrimmer, PickMainViewport(), ViewportTransformer
+Cohesion: 0.12
+Nodes (5): LayoutProjectionProcessor, ScaleCollector, PickMainViewport(), ViewportTransformer, LayoutUtil
 
 ### Community 1 - "Community 1"
-Cohesion: 0.09
-Nodes (9): BlockInserter, Fail(), Ok(), Warn(), CombineOrchestrator, ExtentsUtils, StringUtils, LayoutUtil (+1 more)
+Cohesion: 0.12
+Nodes (4): BlockInserter, ExtentsUtils, ModelSpaceTrimmer, ViewportLayoutExporter
 
 ### Community 2 - "Community 2"
 Cohesion: 0.15
-Nodes (3): RasterImagePathFixer, TransmittalCommands, RibbonIconLoader
+Nodes (3): TransmittalCommands, RasterImagePathFixer, RibbonIconLoader
 
 ### Community 3 - "Community 3"
-Cohesion: 0.18
-Nodes (3): CombineStatistics, CombineCommands, UiDialogService
-
-### Community 4 - "Community 4"
 Cohesion: 0.17
 Nodes (3): JoinCommands, LineInfo, SmartTextCommands
 
+### Community 4 - "Community 4"
+Cohesion: 0.18
+Nodes (3): CombineStatistics, CombineCommands, UiDialogService
+
 ### Community 5 - "Community 5"
+Cohesion: 0.13
+Nodes (8): CombineOrchestrator, Fail(), Ok(), Warn(), IComparer, StringUtils, FileUtil, WindowsNaturalComparer
+
+### Community 6 - "Community 6"
 Cohesion: 0.24
 Nodes (1): DimensionStyleNormalizer
 
-### Community 6 - "Community 6"
+### Community 7 - "Community 7"
 Cohesion: 0.28
 Nodes (1): DimensionStyleDiagnosticUtils
 
-### Community 7 - "Community 7"
+### Community 8 - "Community 8"
 Cohesion: 0.33
 Nodes (1): TextStyleCommands
-
-### Community 8 - "Community 8"
-Cohesion: 0.31
-Nodes (3): ILogEventSink, DiagnosticSink, LoggerFactory
 
 ### Community 9 - "Community 9"
 Cohesion: 0.24
@@ -90,16 +90,16 @@ Cohesion: 0.22
 Nodes (3): AutoBIMFusionExtension, IExtensionApplication, RibbonBuilder
 
 ### Community 11 - "Community 11"
+Cohesion: 0.31
+Nodes (3): ILogEventSink, DiagnosticSink, LoggerFactory
+
+### Community 12 - "Community 12"
 Cohesion: 0.39
 Nodes (1): DimensionUtils
 
-### Community 12 - "Community 12"
+### Community 13 - "Community 13"
 Cohesion: 0.28
 Nodes (2): DrawOrderPreserver, EntityTransformUtils
-
-### Community 13 - "Community 13"
-Cohesion: 0.25
-Nodes (3): IComparer, FileUtil, WindowsNaturalComparer
 
 ### Community 14 - "Community 14"
 Cohesion: 0.48
@@ -116,15 +116,15 @@ Nodes (2): ICommand, ButtonCommandHandler
 ## Knowledge Gaps
 - **1 isolated node(s):** `LineInfo`
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Community 5`** (17 nodes): `DimensionStyleNormalizer.cs`, `DimensionStyleNormalizer`, `.BuildScaledStyleName()`, `.BuildStyleCache()`, `.CreateScaledStyle()`, `.FormatChange()`, `.FormatScale()`, `.FormatStyleVisualChanges()`, `.FormatValue()`, `.IsUsableMultiplier()`, `.NormalizeDimensions()`, `.NormalizeStyleVisualScale()`, `.PurgeUnusedReplacedStyles()`, `.ResolveMultiplier()`, `.ResolveVisualBakeMultiplier()`, `.ScaleVisualValue()`, `.TryResolveStyleRecord()`
+- **Thin community `Community 6`** (17 nodes): `DimensionStyleNormalizer.cs`, `DimensionStyleNormalizer`, `.BuildScaledStyleName()`, `.BuildStyleCache()`, `.CreateScaledStyle()`, `.FormatChange()`, `.FormatScale()`, `.FormatStyleVisualChanges()`, `.FormatValue()`, `.IsUsableMultiplier()`, `.NormalizeDimensions()`, `.NormalizeStyleVisualScale()`, `.PurgeUnusedReplacedStyles()`, `.ResolveMultiplier()`, `.ResolveVisualBakeMultiplier()`, `.ScaleVisualValue()`, `.TryResolveStyleRecord()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 6`** (16 nodes): `DimensionStyleDiagnosticUtils.cs`, `.ToString()`, `DimensionStyleDiagnosticUtils`, `.AddUsedDimensionStyleId()`, `.CollectUsedDimensionStyleIds()`, `.Escape()`, `.F()`, `.FormatColor()`, `.FormatDimensionStyle()`, `.FormatObjectId()`, `.FormatPropertyValue()`, `.FormatTextStyle()`, `.FormatValue()`, `.LogStyleSnapshot()`, `.ReadOptionalBool()`, `.ShouldLogDimensionStyle()`
+- **Thin community `Community 7`** (16 nodes): `DimensionStyleDiagnosticUtils.cs`, `.ToString()`, `DimensionStyleDiagnosticUtils`, `.AddUsedDimensionStyleId()`, `.CollectUsedDimensionStyleIds()`, `.Escape()`, `.F()`, `.FormatColor()`, `.FormatDimensionStyle()`, `.FormatObjectId()`, `.FormatPropertyValue()`, `.FormatTextStyle()`, `.FormatValue()`, `.LogStyleSnapshot()`, `.ReadOptionalBool()`, `.ShouldLogDimensionStyle()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 7`** (11 nodes): `TextStyleCommands.cs`, `TextStyleCommands`, `.BuildSignature()`, `.ChooseMasterStyle()`, `.CollectStyles()`, `.DeleteStyles()`, `.MergeTextStyles()`, `.Normalize()`, `.ReassignBlockAttributes()`, `.ReassignStyles()`, `.ReassignStylesInBlock()`
+- **Thin community `Community 8`** (11 nodes): `TextStyleCommands`, `.BuildSignature()`, `.ChooseMasterStyle()`, `.CollectStyles()`, `.DeleteStyles()`, `.MergeTextStyles()`, `.Normalize()`, `.ReassignBlockAttributes()`, `.ReassignStyles()`, `.ReassignStylesInBlock()`, `TextStyleCommands.cs`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 11`** (9 nodes): `DimensionUtils.cs`, `DimensionUtils`, `.IsControlString()`, `.IsDimensionStyleOverrideMarker()`, `.IsRegApp()`, `.SkipOverridePayload()`, `.TryRemoveAcadDimensionStyleOverrideSection()`, `.TryRemoveDimensionStyleOverrides()`, `.TryRemoveDimensionStyleOverrideSection()`
+- **Thin community `Community 12`** (9 nodes): `DimensionUtils.cs`, `DimensionUtils`, `.IsControlString()`, `.IsDimensionStyleOverrideMarker()`, `.IsRegApp()`, `.SkipOverridePayload()`, `.TryRemoveAcadDimensionStyleOverrideSection()`, `.TryRemoveDimensionStyleOverrides()`, `.TryRemoveDimensionStyleOverrideSection()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 12`** (9 nodes): `DrawOrderPreserver.cs`, `EntityTransformUtils.cs`, `DrawOrderPreserver`, `.Capture()`, `.Restore()`, `EntityTransformUtils`, `.EvaluateHatch()`, `.TransformEntity()`, `.DeepCloneAndTransform()`
+- **Thin community `Community 13`** (9 nodes): `DrawOrderPreserver.cs`, `EntityTransformUtils.cs`, `DrawOrderPreserver`, `.Capture()`, `.Restore()`, `EntityTransformUtils`, `.EvaluateHatch()`, `.TransformEntity()`, `.DeepCloneAndTransform()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 14`** (7 nodes): `DwgOptimizer.cs`, `DwgOptimizer`, `.AddDictionaryIds()`, `.AddTableIds()`, `.ErasePurgedObjects()`, `.Optimize()`, `.PurgePass()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -136,13 +136,15 @@ Nodes (2): ICommand, ButtonCommandHandler
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `ViewportTransformer` connect `Community 0` to `Community 9`, `Community 12`?**
-  _High betweenness centrality (0.044) - this node is a cross-community bridge._
-- **Why does `LoggerFactory` connect `Community 8` to `Community 4`?**
-  _High betweenness centrality (0.042) - this node is a cross-community bridge._
+- **Why does `ViewportTransformer` connect `Community 0` to `Community 9`, `Community 13`, `Community 1`?**
+  _High betweenness centrality (0.051) - this node is a cross-community bridge._
+- **Why does `LoggerFactory` connect `Community 11` to `Community 3`?**
+  _High betweenness centrality (0.046) - this node is a cross-community bridge._
 - **What connects `LineInfo` to the rest of the system?**
   _1 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.11 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.12 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.09 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.12 - nodes in this community are weakly interconnected._
+- **Should `Community 5` be split into smaller, more focused modules?**
+  _Cohesion score 0.13 - nodes in this community are weakly interconnected._

@@ -32,15 +32,13 @@ public sealed class CombineCommands
             return;
         }
 
-        Logger bootstrapLog = LoggerFactory.GetSharedLogger();
+        Logger log = LoggerFactory.GetSharedLogger();
 
         if (!await _mergeGate.WaitAsync(0))
         {
-            bootstrapLog.Warning($"{commandName}: операция уже запущена.");
+            log.Warning($"{commandName}: операция уже запущена.");
             return;
         }
-
-        Logger? commandLog = null;
 
         try
         {
@@ -51,12 +49,9 @@ public sealed class CombineCommands
                 return;
             }
 
-            commandLog = LoggerFactory.CreateLoggerInDirectory(sourceFolder!);
-            Logger log = commandLog;
-
             log.Information($"Запуск {commandName}...");
             log.Information($"Исходная папка: {sourceFolder}");
-            log.Information($"Файл лога: {LoggerFactory.GetCurrentLogFilePath(sourceFolder!)}");
+            log.Information($"Файл лога: {LoggerFactory.GetCurrentLogFilePath()}");
 
             string savePath = BuildSavePath(sourceFolder!);
             log.Information($"Путь сохранения: {savePath}");
@@ -105,13 +100,12 @@ public sealed class CombineCommands
         }
         catch (System.Exception ex)
         {
-            (commandLog ?? bootstrapLog).Error(ex, $"Ошибка {commandName}");
+            log.Error(ex, $"Ошибка {commandName}");
         }
         finally
         {
             _ = _mergeGate.Release();
-            (commandLog ?? bootstrapLog).Information($"Завершение {commandName}.");
-            commandLog?.Dispose();
+            log.Information($"Завершение {commandName}.");
         }
     }
 

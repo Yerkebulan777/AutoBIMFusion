@@ -20,18 +20,7 @@ internal static class LoggerFactory
         return Path.Combine(GetLogsDirectory(), BuildLogFileName());
     }
 
-    public static string GetCurrentLogFilePath(string directoryPath)
-    {
-        return Path.Combine(directoryPath, BuildLogFileName());
-    }
-
     private static string BuildLogFileName() => $"merge-{DateTime.Today:yyyy-MM-dd}.log";
-
-    public static Logger CreateLoggerInDirectory(string directoryPath)
-    {
-        string logFile = GetCurrentLogFilePath(directoryPath);
-        return CreateFileLoggerCore(logFile);
-    }
 
     private static Logger CreateFileLogger()
     {

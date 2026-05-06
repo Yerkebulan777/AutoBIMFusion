@@ -1,12 +1,12 @@
 # Техническая документация AutoBIMFusion
 
-**Последнее обновление:** 2026-05-05
+**Последнее обновление:** 2026-05-06
 
 ## 1. Обзор
 
 AutoBIMFusion — плагин AutoCAD .NET для AutoCAD 2025-2027. Проект `AutoBIMFusion.csproj` собирается как `net8.0`, `x64`; общий `Directory.Build.props` содержит `net10.0-windows`, но проект переопределяет TargetFramework.
 
-Плагин автоматизирует объединение DWG, очистку текстов и текстовых стилей, объединение линий и создание eTransmit ZIP-пакетов.
+Активная команда плагина объединяет DWG-файлы. Команды очистки текстов, текстовых стилей, объединения линий и создания eTransmit ZIP-пакетов временно архивированы.
 
 ## 2. Структура проекта
 
@@ -14,7 +14,8 @@ AutoBIMFusion — плагин AutoCAD .NET для AutoCAD 2025-2027. Проек
 AutoBIMFusion/
   Application/
     AcadSupport/      # RAII-скоупы системных переменных AutoCAD
-    Commands/         # Точки входа AutoCAD CommandMethod
+    Commands/         # Активные точки входа AutoCAD CommandMethod
+      Archive/        # Архивные команды, исключенные из сборки
     Combine/          # Пайплайн объединения DWG
       Layouts/        # Layout, vpt, трансформации, размеры, extents
     Ribbon/           # Ribbon-кнопки; исключается при CoreConsoleDiagnostics=true
@@ -28,10 +29,8 @@ AutoBIMFusion/
 | Команда | Класс | Назначение | Ribbon |
 |---|---|---|---|
 | `MERGEDWG` | `CombineCommands` | Пакетное объединение DWG из выбранной папки | Да |
-| `SMART_MERGE_TEXT` | `SmartTextCommands` | Объединение близких `TEXT` / `MTEXT` в один `MText` | Да |
-| `MERGE_TEXT_STYLES` | `TextStyleCommands` | Слияние дублирующихся текстовых стилей | Да |
-| `JOIN_LINES` | `JoinCommands` | Склейка коллинеарных коротких `LINE` | Да |
-| `CREATE_ETRANSMIT_ZIP` | `TransmittalCommands` | Создание ZIP-пакета eTransmit | Нет |
+
+Архивные команды `SMART_MERGE_TEXT`, `MERGE_TEXT_STYLES`, `JOIN_LINES` и `CREATE_ETRANSMIT_ZIP` находятся в `Application/Commands/Archive` и исключены из компиляции через `AutoBIMFusion.csproj`.
 
 `MERGEDWG_DIAG_TEST` не зарегистрирована в текущем коде. Скрипт `tools/Run-MergeDwgDiagTest.ps1` все еще вызывает эту команду; это отражено в известных проблемах.
 
@@ -79,7 +78,7 @@ CombineCommands
 - Serilog: `4.0.0`; `Serilog.Sinks.File`: `6.0.0`.
 - Runtime dependencies Serilog копируются в bundle; AutoCAD host DLLs не должны копироваться как runtime assets.
 
-`CoreConsoleDiagnostics=true` добавляет `CORECONSOLE_DIAGNOSTICS`, исключает `AutoBIMFusionExtension.cs`, весь `Application/Ribbon/**` и `Microsoft.WindowsDesktop.App`.
+`CoreConsoleDiagnostics=true` добавляет `CORECONSOLE_DIAGNOSTICS`, исключает `AutoBIMFusionExtension.cs`, весь `Application/Ribbon/**` и `Microsoft.WindowsDesktop.App`. Архивные команды в `Application/Commands/Archive/**` исключаются из сборки всегда.
 
 ## 7. Управление ресурсами
 
@@ -91,7 +90,7 @@ CombineCommands
 
 ## 8. Логирование
 
-- Основной логгер: `LoggerFactory.GetSharedLogger()` или `LoggerFactory.CreateLoggerInDirectory(sourceFolder)`.
-- Команда `MERGEDWG` пишет лог рядом с выбранной исходной папкой.
+- Основной логгер: `LoggerFactory.GetSharedLogger()`.
+- Все активные команды пишут в `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle\Contents\Logs\merge-YYYY-MM-DD.log`.
 - `DiagnosticSink` дублирует сообщения в `Debug.WriteLine` или `Trace.WriteLine`.
 - Размерные стили диагностируются стадиями `before-normalize`, `after-normalize`, `after-merge`.

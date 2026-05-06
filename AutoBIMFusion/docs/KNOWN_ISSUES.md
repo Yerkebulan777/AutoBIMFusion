@@ -1,8 +1,8 @@
 # Известные проблемы и решения
 
-**Последнее обновление:** 2026-05-05
+**Последнее обновление:** 2026-05-06
 
-Файл содержит актуальные риски и спорные архитектурные решения. Активные AutoCAD-команды в текущем коде: `MERGEDWG`, `SMART_MERGE_TEXT`, `MERGE_TEXT_STYLES`, `JOIN_LINES`, `CREATE_ETRANSMIT_ZIP`.
+Файл содержит актуальные риски и спорные архитектурные решения. Активная AutoCAD-команда в текущем коде: `MERGEDWG`. Команды `SMART_MERGE_TEXT`, `MERGE_TEXT_STYLES`, `JOIN_LINES` и `CREATE_ETRANSMIT_ZIP` находятся в `Application/Commands/Archive` и исключены из сборки.
 
 ---
 

@@ -9,10 +9,8 @@ AutoBIMFusion — плагин AutoCAD .NET для AutoCAD 2025-2027. Основ
 | Команда | Назначение | Ribbon |
 | :--- | :--- | :--- |
 | `MERGEDWG` | Рекурсивно находит DWG, экспортирует первый Layout каждого файла в Model Space и вставляет результат в текущий чертеж. | Да |
-| `SMART_MERGE_TEXT` | Группирует близкорасположенные объекты `TEXT` / `MTEXT` и заменяет группу на один `MText`. | Да |
-| `MERGE_TEXT_STYLES` | Находит дубликаты текстовых стилей, переназначает объекты на мастер-стиль и удаляет лишние стили. | Да |
-| `JOIN_LINES` | Объединяет коллинеарные короткие отрезки `LINE` на одном слое/цвете в длинные сегменты. | Да |
-| `CREATE_ETRANSMIT_ZIP` | Создает пакет AutoCAD eTransmit ZIP для текущего сохраненного чертежа. | Нет |
+
+Команды `SMART_MERGE_TEXT`, `MERGE_TEXT_STYLES`, `JOIN_LINES` и `CREATE_ETRANSMIT_ZIP` временно перемещены в `Application/Commands/Archive` и исключены из сборки, поэтому AutoCAD их не регистрирует.
 
 `tools/Run-MergeDwgDiagTest.ps1` сейчас запускает `MERGEDWG_DIAG_TEST`, но такой `[CommandMethod]` отсутствует в текущем коде. Поэтому headless diagnostic documented as known issue, а не как рабочий acceptance test.
 
@@ -25,6 +23,8 @@ AutoBIMFusion — плагин AutoCAD .NET для AutoCAD 2025-2027. Основ
 5. **`DimensionStyleNormalizer`**: нормализует размерные стили до `WblockCloneObjects`, очищает DSTYLE overrides и сохраняет визуальный масштаб размеров.
 6. **`BlockInserter`**: клонирует нативные объекты через `WblockCloneObjects` и раскладывает листы вдоль оси X с зазором 10%.
 7. **Финализация**: `RasterImagePathFixer`, диагностический снимок стилей, `DwgOptimizer`, сохранение в `DwgVersion.AC1032`, затем `REGENALL` и `ZOOM EXTENTS`.
+
+Логи всех активных команд пишутся в `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle\Contents\Logs\merge-YYYY-MM-DD.log`.
 
 ## Сборка
 
