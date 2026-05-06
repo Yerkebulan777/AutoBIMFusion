@@ -19,8 +19,8 @@ AutoBIMFusion — плагин AutoCAD .NET для AutoCAD 2025-2027. Основ
 1. **`CombineCommands`**: точка входа `MERGEDWG`, выбор папки, защита от параллельного запуска через `SemaphoreSlim`, прогресс и финальное сохранение.
 2. **`FileUtil`**: собирает `.dwg` рекурсивно до 3 уровней, пропускает файлы с префиксом `#` и файлы больше 15 МБ, сортирует естественным порядком.
 3. **`CombineOrchestrator`**: проверяет каждый DWG, готовит фоновые базы и вызывает вставку.
-4. **`ViewportLayoutExporter` / `LayoutProjectionProcessor`**: открывает исходный DWG в `Database(false, true)`, без временного DWG-файла, переносит выбранный Paper Space Layout в Model Space.
-5. **`DimensionStyleNormalizer`**: нормализует размерные стили до `WblockCloneObjects`, очищает DSTYLE overrides и сохраняет визуальный масштаб размеров.
+4. **`ViewportLayoutExporter` / `LayoutProjectionProcessor`**: открывает исходный DWG в `Database(false, true)`, без временного DWG-файла, переводит source DB в millimeters/metric и переносит выбранный Paper Space Layout в Model Space.
+5. **`DimensionStyleNormalizer`**: пересоздает используемые Model Space размерные стили в metric source DB до `WblockCloneObjects`, очищает DSTYLE overrides и сохраняет визуальный масштаб размеров через стили `{OldName}_VP-{Scale}_Metric`.
 6. **`BlockInserter`**: клонирует нативные объекты через `WblockCloneObjects` и раскладывает листы вдоль оси X с зазором 10%.
 7. **Финализация**: `RasterImagePathFixer`, диагностический снимок стилей, `DwgOptimizer`, сохранение в `DwgVersion.AC1032`, затем `REGENALL` и `ZOOM EXTENTS`.
 

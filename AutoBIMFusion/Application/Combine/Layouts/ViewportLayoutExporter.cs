@@ -58,7 +58,7 @@ internal static class ViewportLayoutExporter
 
             DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "source-before-normalize");
 
-            DimensionStyleNormalizer.NormalizeDimensions(
+            DimensionStyleNormalizer.RecreateMetricDimStyles(
                 db,
                 projection.DimensionScales,
                 projection.FallbackMultiplier,

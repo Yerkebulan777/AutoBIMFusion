@@ -213,6 +213,7 @@ internal static class ExtentsUtils
     /// <summary>
     /// Нормализует единицы измерения базы данных к миллиметрам и метрической системе.
     /// Единая точка синхронизации единиц для всего пайплайна слияния.
+    /// MEASUREINIT намеренно не меняется: это registry-переменная для новых чертежей, а не состояние source DB.
     /// </summary>
     /// <param name="db">База данных AutoCAD.</param>
     internal static void SyncUnits(Database db)

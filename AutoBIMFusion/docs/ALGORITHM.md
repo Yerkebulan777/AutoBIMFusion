@@ -1,6 +1,6 @@
 # Алгоритм работы AutoBIMFusion
 
-**Последнее обновление:** 2026-05-05
+**Последнее обновление:** 2026-05-06
 
 ## 1. Запуск и выбор файлов
 
@@ -17,7 +17,7 @@
 1. `FileUtil.TryValidateDwg` проверяет наличие, ненулевой размер и возможность открыть файл как DWG.
 2. `ViewportLayoutExporter.PrepareDatabaseForMerge` открывает файл в фоновой базе `new Database(false, true)`.
 3. После `ReadDwgFile` вызывается `CloseInput(true)`.
-4. База переводится в метрические единицы: `Insunits = Millimeters`, `Measurement = Metric`; единицы не-xref block table records также приводятся к millimeters.
+4. База переводится в метрические единицы: `Insunits = Millimeters`, `Measurement = Metric`; `MEASUREINIT` не меняется, потому что это registry-переменная для новых чертежей. Единицы не-xref block table records также приводятся к millimeters.
 5. Выбирается первый Layout по `TabOrder`, отличный от Model Space.
 6. `ViewportCollector` собирает viewports выбранного листа.
 
@@ -45,10 +45,11 @@
 
 1. Если рассчитана рамка листа, `ModelSpaceTrimmer.TrimOutside` удаляет объекты вне рамки.
 2. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `before-normalize`.
-3. `DimensionStyleNormalizer.NormalizeModelSpaceDimensions` назначает размерам scaled styles до `WblockCloneObjects`.
-4. DSTYLE overrides очищаются через общую логику `DimensionUtils`.
-5. `Dimscale` и `Dimlfac` нормализуются к `1.0`.
-6. Диагностика повторяется стадией `after-normalize`.
+3. `DimensionStyleNormalizer.RecreateMetricDimStyles` удаляет layout-размеры/legacy leaders из временной source DB, пересоздает используемые Model Space dim styles как `{OldName}_VP-{Scale}_Metric` и назначает их до `WblockCloneObjects`.
+4. DSTYLE overrides очищаются через общую логику `DimensionUtils`, включая XData и extension dictionary записи `ACAD_DSTYLE...`.
+5. Новые стили и обработанные размеры получают `Dimscale = 1.0` и `Dimlfac = 1.0`; `MLeader` только логируются, потому что используют отдельный `MLeaderStyle`.
+6. Старые замененные и неиспользуемые аннотативные размерные стили удаляются через `Database.Purge`, если AutoCAD считает их unreferenced.
+7. Диагностика повторяется стадией `after-normalize`.
 
 ## 5. Вставка в целевой чертеж
 

@@ -43,7 +43,7 @@ AutoBIMFusion/
 | `ViewportLayoutExporter` | Открывает DWG в фоновой `Database(false, true)` и готовит Model Space к merge |
 | `LayoutProjectionProcessor` | Перенос Paper Space в Model Space, main/aux vpt projection, scale clamp |
 | `ViewportTransformer` | Матрицы трансформации, clone/transform, erase outside main VP, draw order |
-| `DimensionStyleNormalizer` | Нормализация размерных стилей до клонирования |
+| `DimensionStyleNormalizer` | Пересоздание используемых размерных стилей в metric source DB до клонирования |
 | `DimensionStyleDiagnosticUtils` | Диагностические снимки размерных и текстовых стилей |
 | `BlockInserter` | `WblockCloneObjects` + расстановка по оси X |
 | `RasterImagePathFixer` | Копирование растров и перевод путей в относительные |
@@ -67,7 +67,9 @@ CombineCommands
   -> SaveAs(DwgVersion.AC1032)
 ```
 
-Подготовка каждого исходного DWG выполняется в фоновой `Database(false, true)` после `ReadDwgFile` и `CloseInput(true)`. Временный DWG-файл для подготовки не создается.
+Подготовка каждого исходного DWG выполняется в фоновой `Database(false, true)` после `ReadDwgFile` и `CloseInput(true)`. Временный DWG-файл для подготовки не создается. `ExtentsUtils.SyncUnits` задает `Insunits = Millimeters` и `Measurement = Metric`; `MEASUREINIT` не меняется, потому что это registry-переменная для новых чертежей.
+
+Перед `WblockCloneObjects` `DimensionStyleNormalizer.RecreateMetricDimStyles` удаляет layout-размеры и legacy leaders из временной source DB, пересоздает Model Space размерные стили с именем `{OldName}_VP-{Scale}_Metric`, очищает DSTYLE overrides у размеров и принудительно задает `Dimscale = 1.0`, `Dimlfac = 1.0`. `MLeader` только логируются: они используют `MLeaderStyle`, а не `DimStyleTableRecord`.
 
 ## 6. Сборка и пакеты
 
@@ -93,4 +95,4 @@ CombineCommands
 - Основной логгер: `LoggerFactory.GetSharedLogger()`.
 - Все активные команды пишут в `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle\Contents\Logs\merge-YYYY-MM-DD.log`.
 - `DiagnosticSink` дублирует сообщения в `Debug.WriteLine` или `Trace.WriteLine`.
-- Размерные стили диагностируются стадиями `before-normalize`, `after-normalize`, `after-merge`.
+- Размерные стили диагностируются стадиями `before-normalize`, `after-normalize`, `after-merge`; пересоздание пишет сводку `[DIM-METRIC]`.

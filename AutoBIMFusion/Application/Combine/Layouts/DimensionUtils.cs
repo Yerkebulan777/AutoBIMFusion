@@ -8,6 +8,7 @@ namespace AutoBIMFusion.Application.Combine.Layouts;
 internal static class DimensionUtils
 {
     private const string AcadRegAppName = "ACAD";
+    private const string AcadDimensionStyleDictionaryPrefix = "ACAD_DSTYLE";
     private const string LegacyDstyleRegAppName = "DSTYLE";
     private const string DimensionStyleOverrideMarker = "DSTYLE";
 
@@ -20,46 +21,91 @@ internal static class DimensionUtils
     {
         try
         {
-            ResultBuffer? xdata = dim.XData;
-            if (xdata is null)
-            {
-                return false;
-            }
+            bool xdataChanged = TryRemoveDimensionStyleXDataOverrides(dim);
+            bool dictionaryChanged = TryRemoveDimensionStyleDictionaryOverrides(dim);
 
-            TypedValue[] values;
-            using (xdata)
-            {
-                values = xdata.AsArray();
-            }
-
-            if (!TryRemoveDimensionStyleOverrideSection(values, out List<TypedValue> cleanedValues))
-            {
-                return false;
-            }
-
-            if (!dim.IsWriteEnabled)
-            {
-                dim.UpgradeOpen();
-            }
-
-            if (cleanedValues.Count == 0)
-            {
-                dim.XData = null;
-            }
-            else
-            {
-                using ResultBuffer cleaned = new(cleanedValues.ToArray());
-                dim.XData = cleaned;
-            }
-
-            return true;
+            return xdataChanged || dictionaryChanged;
         }
-        catch (System.Exception ex)
+        catch (Autodesk.AutoCAD.Runtime.Exception ex)
         {
             LoggerFactory.GetSharedLogger().Warning(ex, "Не удалось удалить переопределения DSTYLE для размера {Handle}", dim.Handle);
         }
 
         return false;
+    }
+
+    private static bool TryRemoveDimensionStyleXDataOverrides(Dimension dim)
+    {
+        ResultBuffer? xdata = dim.XData;
+        if (xdata is null)
+        {
+            return false;
+        }
+
+        TypedValue[] values;
+        using (xdata)
+        {
+            values = xdata.AsArray();
+        }
+
+        if (!TryRemoveDimensionStyleOverrideSection(values, out List<TypedValue> cleanedValues))
+        {
+            return false;
+        }
+
+        if (!dim.IsWriteEnabled)
+        {
+            dim.UpgradeOpen();
+        }
+
+        if (cleanedValues.Count == 0)
+        {
+            dim.XData = null;
+        }
+        else
+        {
+            using ResultBuffer cleaned = new(cleanedValues.ToArray());
+            dim.XData = cleaned;
+        }
+
+        return true;
+    }
+
+    private static bool TryRemoveDimensionStyleDictionaryOverrides(Dimension dim)
+    {
+        if (dim.ExtensionDictionary.IsNull || dim.ExtensionDictionary.IsErased)
+        {
+            return false;
+        }
+
+        DBDictionary extensionDictionary = (DBDictionary)dim.Database.TransactionManager.TopTransaction.GetObject(dim.ExtensionDictionary, OpenMode.ForRead);
+        List<ObjectId> overrideIds = [];
+
+        foreach (DBDictionaryEntry entry in extensionDictionary)
+        {
+            if (entry.Key.StartsWith(AcadDimensionStyleDictionaryPrefix, StringComparison.OrdinalIgnoreCase)
+                && !entry.Value.IsNull
+                && !entry.Value.IsErased)
+            {
+                overrideIds.Add(entry.Value);
+            }
+        }
+
+        if (overrideIds.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (ObjectId overrideId in overrideIds)
+        {
+            DBObject overrideObject = dim.Database.TransactionManager.TopTransaction.GetObject(overrideId, OpenMode.ForWrite);
+            if (!overrideObject.IsErased)
+            {
+                overrideObject.Erase();
+            }
+        }
+
+        return true;
     }
 
     private static bool TryRemoveDimensionStyleOverrideSection(TypedValue[] values, out List<TypedValue> cleanedValues)
