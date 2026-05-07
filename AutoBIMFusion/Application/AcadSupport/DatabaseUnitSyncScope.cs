@@ -16,6 +16,9 @@ internal sealed class DatabaseUnitSyncScope : IDisposable
 
     public DatabaseUnitSyncScope(Database sourceDb, Database targetDb)
     {
+        ArgumentNullException.ThrowIfNull(sourceDb);
+        ArgumentNullException.ThrowIfNull(targetDb);
+
         _targetDb = targetDb;
         _originalUnits = targetDb.Insunits;
         _originalMeasurement = targetDb.Measurement;
