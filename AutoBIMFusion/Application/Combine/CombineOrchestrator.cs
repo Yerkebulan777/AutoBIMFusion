@@ -1,4 +1,3 @@
-using AutoBIMFusion.Application.AcadSupport;
 using AutoBIMFusion.Application.Combine.Layouts;
 using AutoBIMFusion.Application.Utils;
 using Autodesk.AutoCAD.ApplicationServices;
@@ -46,7 +45,6 @@ internal static class CombineOrchestrator
 
             Extents3d? worldBounds;
             using (targetDoc.LockDocument())
-            using (new AcadUnitScalingOverrideScope())
             {
                 worldBounds = inserter.InsertNativeObjects(targetDoc.Database, sourceDb, layoutName, bounds.Value);
                 if (worldBounds is not null)

@@ -74,7 +74,7 @@
 
 | Проблема | Исправление |
 |---|---|
-| Дублирование XData-парсинга | Общая логика оставлена в `DimensionUtils`. |
+| Скрытое масштабирование при `WblockCloneObjects` (метрика ↔ имперская) | Введён `DatabaseUnitSyncScope`; ручные swap'ы Insunits и пост-очистка DSTYLE удалены (см. `docs/LEGACY_UNIT_WORKAROUNDS.md`). |
 | Мёртвые методы диагностики размеров | Удалены из `DimensionStyleDiagnosticUtils`. |
 | Класс-обёртка `FolderSelector` | Удалён; `CombineCommands` вызывает `UiDialogService` напрямую. |
 | Дублирование scope-логики системных переменных | Общая логика вынесена в `ManagedSystemVariable` / scope helpers. |

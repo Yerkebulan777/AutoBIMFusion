@@ -47,7 +47,7 @@
 1. Если рассчитана рамка листа, `ModelSpaceTrimmer.TrimOutside` удаляет объекты вне рамки.
 2. `DimensionStyleNormalizer.NormalizeDimensionStyleForViewport` клонирует текущий стиль размера, если стиль `{OldName}_{Scale}` еще не создан; при clamp VP суффикс использует итоговый рабочий множитель.
 3. Перед установкой `Dimscale = 1.0` визуальные параметры (`Dimtxt`, `Dimasz`, `Dimgap` и др.) умножаются на исходный `Dimscale` с учетом `clampRatio`; при некорректном `Dimscale` используется масштаб vpt. Стиль отвечает только за визуальный размер.
-4. DSTYLE overrides очищаются через общую логику `DimensionUtils`, включая XData и extension dictionary записи `ACAD_DSTYLE...`.
+4. DSTYLE overrides не возникают: `DatabaseUnitSyncScope` устраняет первопричину (см. `Application/AcadSupport/DatabaseUnitSyncScope.cs`).
 5. Экземпляр размера отвечает за числовую поправку измерения: при clamp Model Space получает `Dimlfac = 1 / clampRatio`, без clamp ожидается `Dimlfac = 1.0`.
 6. После трансформаций используемые размерные стили получают `Dimlfac = 1.0`, экземплярные `Dimlfac` сохраняются, затем размеры пересчитываются через `RecomputeDimensionBlock(true)`.
 7. Диагностика пишет снимок `source-after-normalize-before-clone`.
@@ -57,8 +57,8 @@
 *Реализовано в `BlockInserter.InsertNativeObjects`.*
 
 1. `CombineOrchestrator` берет `DocumentLock` на целевой документ.
-2. `AcadUnitScalingOverrideScope` временно подавляет автоматическое масштабирование вставки.
-3. `ExtentsUtils.SyncUnits` синхронизирует units/measurement.
+2. `ExtentsUtils.SyncUnits` приводит target к мм/метрика.
+3. `WblockCloneObjects` оборачивается в `DatabaseUnitSyncScope`: единицы target временно выравниваются с source, чтобы AutoCAD не применял скрытое масштабирование (метрика ↔ имперская).
 4. Model Space entities подготовленной source DB клонируются через `WblockCloneObjects` с `DuplicateRecordCloning.Ignore`.
 5. К каждому клону применяется displacement.
 6. Следующий лист размещается справа от предыдущего; зазор равен 10% от максимального габарита, но не меньше 1.0.
