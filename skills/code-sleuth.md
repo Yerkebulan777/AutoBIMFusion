@@ -19,8 +19,8 @@ winget install BurntSushi.ripgrep.MSVC
 ## AutoBIMFusion repo checks
 
 ```powershell
-# Registered AutoCAD commands
-rg -n "\[CommandMethod" AutoBIMFusion/Application/Commands
+# Compiled AutoCAD commands, excluding archived commands
+rg -n "\[CommandMethod" AutoBIMFusion/Application/Commands --glob "!**/Archive/**"
 
 # Command classes and AutoCAD entry points
 rg -n "CommandMethod|IExtensionApplication|ExtensionApplication|CommandClass" AutoBIMFusion
@@ -38,7 +38,11 @@ rg -n "TargetFramework|AcadPackageVersion|AcadInteropPackageVersion|PackageVersi
 rg -n "Merge[C]ommands|Merge[O]rchestrator|Create[E]TransmitZip|Merge[T]extStyles|MERGEDWG_DIAG_TEST" README.md AGENTS.md AutoBIMFusion/docs skills
 ```
 
-Current registered commands are `MERGEDWG`, `SMART_MERGE_TEXT`, `MERGE_TEXT_STYLES`, `JOIN_LINES`, and `CREATE_ETRANSMIT_ZIP`. `tools/Run-MergeDwgDiagTest.ps1` references `MERGEDWG_DIAG_TEST`, but that command is not registered in the current C# sources.
+Current compiled command is `MERGEDWG`.
+
+Archived commands `SMART_MERGE_TEXT`, `MERGE_TEXT_STYLES`, `JOIN_LINES`, and `CREATE_ETRANSMIT_ZIP` are under `AutoBIMFusion/Application/Commands/Archive` and excluded by `AutoBIMFusion.csproj`.
+
+`tools/Run-MergeDwgDiagTest.ps1` references `MERGEDWG_DIAG_TEST`, but that command is not registered in the current C# sources.
 
 ## AutoCAD API lookup
 
@@ -48,8 +52,8 @@ Use official AutoCAD docs and NuGet XML docs first:
 # Find AutoCAD type references in package XML docs
 rg "Database" "$env:USERPROFILE\.nuget\packages\autocad.net" --glob "*.xml"
 
-# Find command patterns in this repo
-rg -n "\[CommandMethod" AutoBIMFusion --glob "*.cs"
+# Find command patterns in this repo, excluding archived commands
+rg -n "\[CommandMethod" AutoBIMFusion --glob "*.cs" --glob "!Application/Commands/Archive/**"
 
 # Find entity type checks
 rg -n " is (DBText|MText|Line|Dimension|Entity)|DxfName" AutoBIMFusion/Application --glob "*.cs"

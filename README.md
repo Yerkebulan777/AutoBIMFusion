@@ -1,8 +1,10 @@
 # AutoBIMFusion
 
-AutoBIMFusion — плагин AutoCAD .NET для AutoCAD 2025-2027. Основная команда `MERGEDWG` объединяет DWG-файлы из выбранной папки в активный чертеж, сохраняя импортированную геометрию как редактируемые нативные объекты Model Space.
+AutoBIMFusion — плагин AutoCAD .NET для AutoCAD 2025-2027.
 
-Фактический проект `AutoBIMFusion/AutoBIMFusion.csproj` таргетит `net8.0` и `x64`. Общий `Directory.Build.props` содержит `net10.0-windows`, но проект переопределяет TargetFramework на `net8.0`.
+Активная команда `MERGEDWG` объединяет DWG-файлы из выбранной папки в текущий чертеж. Импортированная геометрия переносится в Model Space как редактируемые нативные объекты AutoCAD.
+
+Проект `AutoBIMFusion/AutoBIMFusion.csproj` собирается под `net8.0`, `x64`. Общий `Directory.Build.props` содержит `net10.0-windows`, но проект явно переопределяет `TargetFramework`.
 
 ## Команды
 
@@ -10,21 +12,21 @@ AutoBIMFusion — плагин AutoCAD .NET для AutoCAD 2025-2027. Основ
 | :--- | :--- | :--- |
 | `MERGEDWG` | Рекурсивно находит DWG, экспортирует первый Layout каждого файла в Model Space и вставляет результат в текущий чертеж. | Да |
 
-Команды `SMART_MERGE_TEXT`, `MERGE_TEXT_STYLES`, `JOIN_LINES` и `CREATE_ETRANSMIT_ZIP` временно перемещены в `Application/Commands/Archive` и исключены из сборки, поэтому AutoCAD их не регистрирует.
+Команды `SMART_MERGE_TEXT`, `MERGE_TEXT_STYLES`, `JOIN_LINES` и `CREATE_ETRANSMIT_ZIP` находятся в `Application/Commands/Archive` и исключены из компиляции. AutoCAD их не регистрирует.
 
-`tools/Run-MergeDwgDiagTest.ps1` сейчас запускает `MERGEDWG_DIAG_TEST`, но такой `[CommandMethod]` отсутствует в текущем коде. Поэтому headless diagnostic documented as known issue, а не как рабочий acceptance test.
+`tools/Run-MergeDwgDiagTest.ps1` вызывает `MERGEDWG_DIAG_TEST`, но такой команды в C# сейчас нет. Скрипт считается известной проблемой, а не acceptance test.
 
 ## Процесс слияния
 
-1. **`CombineCommands`**: точка входа `MERGEDWG`, выбор папки, защита от параллельного запуска через `SemaphoreSlim`, прогресс и финальное сохранение.
-2. **`FileUtil`**: собирает `.dwg` рекурсивно до 3 уровней, пропускает файлы с префиксом `#` и файлы больше 15 МБ, сортирует естественным порядком.
-3. **`CombineOrchestrator`**: проверяет каждый DWG, готовит фоновые базы и вызывает вставку.
-4. **`ViewportLayoutExporter` / `LayoutProjectionProcessor`**: открывает исходный DWG в `Database(false, true)`, без временного DWG-файла, переводит source DB в millimeters/metric и переносит выбранный Paper Space Layout в Model Space.
-5. **`DimensionStyleNormalizer`**: пересоздает используемые Model Space размерные стили в metric source DB до `WblockCloneObjects`, очищает DSTYLE overrides и сохраняет визуальный масштаб размеров через стили `{OldName}_VP-{Scale}_Metric`.
-6. **`BlockInserter`**: клонирует нативные объекты через `WblockCloneObjects` и раскладывает листы вдоль оси X с зазором 10%.
-7. **Финализация**: `RasterImagePathFixer`, диагностический снимок стилей, `DwgOptimizer`, сохранение в `DwgVersion.AC1032`, затем `REGENALL` и `ZOOM EXTENTS`.
+1. `CombineCommands`: запускает `MERGEDWG`, выбирает папку, блокирует параллельный запуск, показывает прогресс и сохраняет результат.
+2. `FileUtil`: собирает `.dwg` до 3 уровней вложенности, пропускает файлы с префиксом `#` и файлы больше 15 МБ, сортирует естественным порядком.
+3. `CombineOrchestrator`: проверяет DWG, готовит фоновую базу и вставляет результат в целевой чертеж.
+4. `ViewportLayoutExporter` / `LayoutProjectionProcessor`: открывают исходный DWG через `Database(false, true)`, переводят базу в millimeters/metric и переносят первый Paper Space Layout в Model Space.
+5. `DimensionStyleNormalizer`: создает viewport-специфичные размерные стили, очищает DSTYLE overrides и сохраняет визуальный масштаб размеров.
+6. `BlockInserter`: клонирует объекты через `WblockCloneObjects` и раскладывает листы по оси X с зазором 10%.
+7. Финализация: копирование растров, снимок размерных стилей, `DwgOptimizer`, `SaveAs(DwgVersion.AC1032)`, `REGENALL`, `ZOOM EXTENTS`.
 
-Логи всех активных команд пишутся в `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle\Contents\Logs\merge-YYYY-MM-DD.log`.
+Лог пишется в `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle\Contents\Logs\merge-YYYY-MM-DD.log`.
 
 ## Сборка
 
@@ -48,7 +50,12 @@ dotnet clean AutoBIMFusion.slnx -c DebugA26
 | 2026 | A26 | `25.1` | `2026.0` | `ACAD2026` |
 | 2027 | A27 | `26.0` | `2026.0` | `ACAD2027` |
 
-NuGet versions централизованы в `Directory.Packages.props`: `AutoCAD.NET` использует `$(AcadPackageVersion).*`, `AutoCAD.NET.Interop` использует `$(AcadInteropPackageVersion).*`, Serilog зафиксирован на `4.0.0`, `Serilog.Sinks.File` на `6.0.0`.
+Версии NuGet централизованы в `Directory.Packages.props`:
+
+- `AutoCAD.NET`: `$(AcadPackageVersion).*`
+- `AutoCAD.NET.Interop`: `$(AcadInteropPackageVersion).*`
+- `Serilog`: `4.0.0`
+- `Serilog.Sinks.File`: `6.0.0`
 
 ## Headless diagnostics
 
@@ -58,7 +65,7 @@ NuGet versions централизованы в `Directory.Packages.props`: `Auto
 .\tools\Run-MergeDwgDiagTest.ps1 -SkipBuild
 ```
 
-Скрипт строит core bundle с `/p:CoreConsoleDiagnostics=true`, разворачивает его в локальный output и запускает `accoreconsole.exe`. На текущем коде сценарий заблокирован, потому что команда `MERGEDWG_DIAG_TEST` не зарегистрирована.
+Скрипт строит core bundle с `/p:CoreConsoleDiagnostics=true`, разворачивает его в локальный output и запускает `accoreconsole.exe`. Сценарий сейчас нерабочий: команда `MERGEDWG_DIAG_TEST` не зарегистрирована.
 
 ## Документация
 
