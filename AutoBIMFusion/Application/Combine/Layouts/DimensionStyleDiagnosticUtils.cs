@@ -50,6 +50,7 @@ internal static class DimensionStyleDiagnosticUtils
         }
 
         List<string> textStyles = [];
+
         foreach (ObjectId id in textStyleTable)
         {
             TextStyleTableRecord style = (TextStyleTableRecord)trx.GetObject(id, OpenMode.ForRead);
