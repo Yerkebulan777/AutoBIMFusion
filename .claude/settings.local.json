@@ -4,7 +4,9 @@
       "PowerShell(git *)",
       "Bash(git rm *)",
       "Bash(git commit -m ' *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git -C C:/Users/y.zhumabayev/Repository/AutoBIMFusion log --oneline -1)",
+      "Bash(git -C C:/Users/y.zhumabayev/Repository/AutoBIMFusion status --short)"
     ]
   }
 }

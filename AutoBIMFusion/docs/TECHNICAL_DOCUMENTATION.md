@@ -94,7 +94,7 @@ CombineCommands
 - Любая запись в активный документ выполняется внутри `using (doc.LockDocument())`.
 - Транзакции создаются через `TransactionManager.StartTransaction()` и завершаются `Commit()`.
 - Фоновые `Database` уничтожаются через `using`.
-- `AcadWarningSuppressScope` и `AcadUnitScalingOverrideScope` восстанавливают системные переменные AutoCAD через RAII.
+- `AcadWarningSuppressScope` восстанавливает системные переменные AutoCAD через RAII; `DatabaseUnitSyncScope` синхронизирует `Insunits`/`Measurement` target с source на время `WblockCloneObjects`.
 - AutoCAD API остается на основном потоке; API не потокобезопасен.
 
 ## 8. Логирование

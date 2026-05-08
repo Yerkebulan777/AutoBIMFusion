@@ -1,3 +1,4 @@
+using AutoBIMFusion.Application.AcadSupport;
 using AutoBIMFusion.Application.Combine.Layouts;
 using Serilog.Core;
 
@@ -40,16 +41,6 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
 
             using (Transaction trx = sourceDb.TransactionManager.StartTransaction())
             {
-                BlockTable bt = (BlockTable)trx.GetObject(sourceDb.BlockTableId, OpenMode.ForRead);
-
-                foreach (ObjectId btrId in bt)
-                {
-                    if (trx.GetObject(btrId, OpenMode.ForWrite) is BlockTableRecord btr && !btr.IsFromExternalReference)
-                    {
-                        btr.Units = targetDb.Insunits;
-                    }
-                }
-
                 BlockTableRecord ms = (BlockTableRecord)trx.GetObject(sourceMsId, OpenMode.ForRead);
 
                 foreach (ObjectId id in ms)
@@ -68,58 +59,40 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
                 return null;
             }
 
-            UnitsValue originalTargetDbUnits = targetDb.Insunits;
-            MeasurementValue originalTargetDbMeasurement = targetDb.Measurement;
             Extents3d? worldBounds = null;
             int clonedCount = 0;
 
-            try
+            using Transaction targetTr = targetDb.TransactionManager.StartTransaction();
+
+            using IdMapping map = new();
+            using (new DatabaseUnitSyncScope(sourceDb, targetDb))
             {
-                using Transaction targetTr = targetDb.TransactionManager.StartTransaction();
-                BlockTableRecord targetMs = (BlockTableRecord)targetTr.GetObject(targetMsId, OpenMode.ForWrite);
-                UnitsValue originalTargetMsUnits = targetMs.Units;
-
-                targetDb.Insunits = sourceDb.Insunits;
-                targetDb.Measurement = sourceDb.Measurement;
-                targetMs.Units = targetDb.Insunits;
-
-                using IdMapping map = new();
                 targetDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Ignore, false);
+            }
 
-                foreach (IdPair pair in map)
+            foreach (IdPair pair in map)
+            {
+                if (!pair.IsCloned || !pair.IsPrimary)
                 {
-                    if (!pair.IsCloned || !pair.IsPrimary)
-                    {
-                        continue;
-                    }
-
-                    if (targetTr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
-                    {
-                        ent.TransformBy(displacement);
-                        clonedCount++;
-
-                        Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
-                        if (ext.HasValue)
-                        {
-                            worldBounds = worldBounds.HasValue
-                                ? ExtentsUtils.Union(worldBounds.Value, ext.Value)
-                                : ext.Value;
-                        }
-                    }
+                    continue;
                 }
 
-                targetDb.Insunits = originalTargetDbUnits;
-                targetDb.Measurement = originalTargetDbMeasurement;
-                targetMs.Units = originalTargetMsUnits;
+                if (targetTr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
+                {
+                    ent.TransformBy(displacement);
+                    clonedCount++;
 
-                targetTr.Commit();
+                    Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
+                    if (ext.HasValue)
+                    {
+                        worldBounds = worldBounds.HasValue
+                            ? ExtentsUtils.Union(worldBounds.Value, ext.Value)
+                            : ext.Value;
+                    }
+                }
             }
-            finally
-            {
-                targetDb.Insunits = originalTargetDbUnits;
-                targetDb.Measurement = originalTargetDbMeasurement;
-                ExtentsUtils.SyncUnits(targetDb);
-            }
+
+            targetTr.Commit();
 
             if (clonedCount == 0)
             {

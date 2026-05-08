@@ -1,0 +1,35 @@
+namespace AutoBIMFusion.Application.AcadSupport;
+
+/// <summary>
+/// RAII-скоуп для обхода бага AutoCAD при <c>WblockCloneObjects</c> и <c>Database.Insert</c>.
+/// Когда у source и target разные <c>Insunits</c>/<c>Measurement</c> (метрическая ↔ имперская),
+/// ядро AutoCAD скрыто применяет масштаб к клонируемой геометрии: появляются DSTYLE-переопределения
+/// у размеров, плывут <c>ScaleFactor</c> блоков, штриховки и типы линий.
+/// На время клонирования скоуп выравнивает единицы target по source и гарантированно
+/// возвращает оригинальные значения в <see cref="Dispose"/> (даже при исключении).
+/// </summary>
+internal sealed class DatabaseUnitSyncScope : IDisposable
+{
+    private readonly Database _targetDb;
+    private readonly UnitsValue _originalUnits;
+    private readonly MeasurementValue _originalMeasurement;
+
+    public DatabaseUnitSyncScope(Database sourceDb, Database targetDb)
+    {
+        ArgumentNullException.ThrowIfNull(sourceDb);
+        ArgumentNullException.ThrowIfNull(targetDb);
+
+        _targetDb = targetDb;
+        _originalUnits = targetDb.Insunits;
+        _originalMeasurement = targetDb.Measurement;
+
+        _targetDb.Insunits = sourceDb.Insunits;
+        _targetDb.Measurement = sourceDb.Measurement;
+    }
+
+    public void Dispose()
+    {
+        _targetDb.Insunits = _originalUnits;
+        _targetDb.Measurement = _originalMeasurement;
+    }
+}

@@ -63,15 +63,3 @@ internal sealed class AcadWarningSuppressScope : SysVarScope
     }
 }
 
-/// <summary>
-/// Устанавливает единицы вставки блоков (INSUNITSDEFSOURCE и INSUNITSDEFTARGET = 4 = мм)
-/// для корректного масштабирования при WblockCloneObjects.
-/// </summary>
-internal sealed class AcadUnitScalingOverrideScope : SysVarScope
-{
-    public AcadUnitScalingOverrideScope()
-    {
-        Set("INSUNITSDEFSOURCE", 4);
-        Set("INSUNITSDEFTARGET", 4);
-    }
-}

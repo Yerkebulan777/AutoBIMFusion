@@ -292,7 +292,6 @@ internal static class ViewportTransformer
         double finalVpScale = DimensionStyleNormalizer.ResolveFinalViewportMultiplier(vpScale, styleScaleMultiplier);
         double linearDimensionScale = ResolveLinearDimensionScaleForClamp(styleScaleMultiplier);
         int normalized = 0;
-        int overridesCleared = 0;
 
         using Transaction trx = db.TransactionManager.StartTransaction();
 
@@ -304,11 +303,6 @@ internal static class ViewportTransformer
                 || trx.GetObject(snapshot.Id, OpenMode.ForWrite, false) is not Dimension dimension)
             {
                 continue;
-            }
-
-            if (DimensionUtils.TryRemoveDimensionStyleOverrides(dimension))
-            {
-                overridesCleared++;
             }
 
             ObjectId normalizedStyleId = DimensionStyleNormalizer.NormalizeDimensionStyleForViewport(
@@ -332,14 +326,13 @@ internal static class ViewportTransformer
         trx.Commit();
 
         log.Debug(
-            "VP #{Number}: normalized {Count} dimensions with vpScale={Scale:F6}, styleScaleMultiplier={StyleScaleMultiplier:F6}, finalVpScale={FinalScale:F6}, dimlfac={Dimlfac:F6}, overridesCleared={OverridesCleared}",
+            "VP #{Number}: normalized {Count} dimensions with vpScale={Scale:F6}, styleScaleMultiplier={StyleScaleMultiplier:F6}, finalVpScale={FinalScale:F6}, dimlfac={Dimlfac:F6}",
             viewport.Number,
             normalized,
             vpScale,
             styleScaleMultiplier,
             finalVpScale,
-            linearDimensionScale,
-            overridesCleared);
+            linearDimensionScale);
 
         return normalized;
     }
@@ -348,7 +341,6 @@ internal static class ViewportTransformer
     {
         int finalized = 0;
         int stylesFinalized = 0;
-        int overridesCleared = 0;
         HashSet<ObjectId> finalizedStyleIds = [];
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
@@ -365,11 +357,6 @@ internal static class ViewportTransformer
             }
 
             double linearDimensionScale = NormalizeLinearDimensionScale(dimension.Dimlfac);
-
-            if (DimensionUtils.TryRemoveDimensionStyleOverrides(dimension))
-            {
-                overridesCleared++;
-            }
 
             ObjectId styleId = ResolveDimensionStyleId(db, dimension.DimensionStyle);
             if (!styleId.IsNull
@@ -391,10 +378,9 @@ internal static class ViewportTransformer
         trx.Commit();
 
         log.Information(
-            "FinalizeModelSpaceDimensionLinearScales: dimensions={Dimensions}, styles={Styles}, overridesCleared={OverridesCleared}",
+            "FinalizeModelSpaceDimensionLinearScales: dimensions={Dimensions}, styles={Styles}",
             finalized,
-            stylesFinalized,
-            overridesCleared);
+            stylesFinalized);
 
         return finalized;
     }
