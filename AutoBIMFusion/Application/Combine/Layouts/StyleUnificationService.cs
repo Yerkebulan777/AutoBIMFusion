@@ -96,36 +96,30 @@ internal static class StyleUnificationService
         dsr.Dimtxt = 2.5;
         dsr.Dimtad = 1;
         dsr.Dimjust = 0;
-        dsr.Dimgap = 0.25;
+        dsr.Dimgap = 0.5;
         dsr.Dimtih = false;
         dsr.Dimtoh = false;
         dsr.Dimtfill = 0;
 
         // 2. СИМВОЛЫ И СТРЕЛКИ
-        dsr.Dimasz = 1.5;
-        dsr.Dimtsz = 1.5;
+        dsr.Dimasz = 1.25;
+        dsr.Dimtsz = 1.25;
         dsr.Dimsah = true;
 
         // 3. ЛИНИИ
-        dsr.Dimlwd = LineWeight.ByBlock;
-        dsr.Dimlwe = LineWeight.ByBlock;
         dsr.Dimexe = 1.25;
         dsr.Dimexo = 0.0;
         dsr.Dimdli = 5.0;
-        dsr.Dimdle = 0.0;
-        dsr.Dimsd1 = false;
-        dsr.Dimsd2 = false;
-        dsr.Dimse1 = false;
-        dsr.Dimse2 = false;
+        dsr.Dimdle = 3.0;
 
         // 4. РАЗМЕЩЕНИЕ
-        dsr.Dimatfit = 1;
-        dsr.Dimtmove = 0;
+        dsr.Dimatfit = 3;
+        dsr.Dimtmove = 1;
         dsr.Dimtofl = true;
         dsr.Dimtix = false;
         dsr.Dimsoxd = false;
         dsr.Dimupt = false;
-        dsr.Dimscale = 1.0;
+        dsr.Dimscale = 10.0;
 
         // 5. ОСНОВНЫЕ ЕДИНИЦЫ
         dsr.Dimlunit = 2;
