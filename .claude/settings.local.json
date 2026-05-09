@@ -6,7 +6,13 @@
       "Bash(git commit -m ' *)",
       "Bash(git add *)",
       "Bash(git -C C:/Users/y.zhumabayev/Repository/AutoBIMFusion log --oneline -1)",
-      "Bash(git -C C:/Users/y.zhumabayev/Repository/AutoBIMFusion status --short)"
+      "Bash(git -C C:/Users/y.zhumabayev/Repository/AutoBIMFusion status --short)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in d.items\\(\\) if 'recent' in k.lower\\(\\) or 'folder' in k.lower\\(\\) or 'path' in k.lower\\(\\) or 'project' in k.lower\\(\\)}, indent=2\\)\\)\")",
+      "Bash(grep -E \"[A-Z]:\\\\\\\\\\\\\\\\|Users\")",
+      "Bash(xxd \"/c/Users/y.zhumabayev/AppData/Roaming/Claude/Local Storage/leveldb/003603.log\")",
+      "Bash(python3 -m json.tool)",
+      "Bash(python3 -c ' *)",
+      "PowerShell(Get-ChildItem \"$env:APPDATA\\\\Claude\\\\Local Storage\\\\leveldb\\\\\")"
     ]
   }
 }
