@@ -3,9 +3,9 @@ namespace AutoBIMFusion.Application.Combine.Layouts;
 internal static class DimensionStyleNormalizer
 {
     private const string AcadRegAppName = "ACAD";
-    private const string AcadDimensionStyleDictionaryPrefix = "ACAD_DSTYLE";
     private const string LegacyDstyleRegAppName = "DSTYLE";
     private const string DimensionStyleOverrideMarker = "DSTYLE";
+    private const string AcadDimensionStyleDictionaryPrefix = "ACAD_DSTYLE";
 
     /// <summary>
     /// Назначает эталонный стиль всем скопированным размерам и удаляет DSTYLE overrides.
