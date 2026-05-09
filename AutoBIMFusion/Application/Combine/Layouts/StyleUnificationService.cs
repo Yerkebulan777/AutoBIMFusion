@@ -119,7 +119,7 @@ internal static class StyleUnificationService
         dsr.Dimse2 = false;
 
         // 4. РАЗМЕЩЕНИЕ
-        dsr.Dimatfit = 3;
+        dsr.Dimatfit = 1;
         dsr.Dimtmove = 0;
         dsr.Dimtofl = true;
         dsr.Dimtix = false;
