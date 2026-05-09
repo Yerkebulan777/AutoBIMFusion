@@ -21,13 +21,20 @@ internal sealed class DatabaseUnitSyncScope : IDisposable
         ArgumentNullException.ThrowIfNull(targetDb);
 
         _sourceDb = sourceDb;
+        _originalDimalt = sourceDb.Dimalt;
         _originalUnits = sourceDb.Insunits;
         _originalMeasurement = sourceDb.Measurement;
-        _originalDimalt = sourceDb.Dimalt;
 
-        // Source подгоняется под target, чтобы WblockCloneObjects не создавал масштабные overrides.
-        _sourceDb.Insunits = targetDb.Insunits;
-        _sourceDb.Measurement = targetDb.Measurement;
+        if (_sourceDb.Insunits != targetDb.Insunits)
+        {
+            _sourceDb.Insunits = UnitsValue.Millimeters;
+        }
+
+        if (_sourceDb.Measurement != MeasurementValue.Metric)
+        {
+            _sourceDb.Measurement = MeasurementValue.Metric;
+        }
+
         _sourceDb.Dimalt = targetDb.Dimalt;
     }
 
