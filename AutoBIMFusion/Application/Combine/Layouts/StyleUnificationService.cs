@@ -91,10 +91,10 @@ internal static class StyleUnificationService
 
     private static void ApplyGostDimensionStyleDefaults(DimStyleTableRecord dsr, ObjectId textStyleId)
     {
-        dsr.Dimtxsty = textStyleId; // Ссылка на текстовый стиль 
+        dsr.Dimtxsty = textStyleId; // Ссылка на текстовый стиль
         dsr.Dimtxt = 2.5;  // Высота текста размерных надписей
-        dsr.Dimasz = 2.5;  // Размер стрелок
         dsr.Dimtsz = 2.5;  // Высота текста размерных линий
+        dsr.Dimasz = 2.5;  // Размер стрелок
         dsr.Dimexe = 1.25; // Длина выносной линии
         dsr.Dimexo = 0.5; // Смещение выносной линии
         dsr.Dimgap = 1.0;  // Промежуток между текстом и линией размерной надписи
