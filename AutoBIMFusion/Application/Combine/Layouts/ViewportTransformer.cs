@@ -89,9 +89,6 @@ internal static class ViewportTransformer
     /// </summary>
     internal static void ScaleModelSpaceObjects(Database db, Matrix3d matrix, double ratio, Logger log)
     {
-        int total = 0;
-        int scaled = 0;
-
         Dictionary<string, int> errorTypes = [];
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
@@ -103,8 +100,6 @@ internal static class ViewportTransformer
         {
             if (trx.GetObject(id, OpenMode.ForWrite) is Entity ent)
             {
-                total++;
-
                 if (ent is Viewport)
                 {
                     continue;
@@ -130,8 +125,6 @@ internal static class ViewportTransformer
                     {
                         log.Warning($"[АНОМАЛИЯ МАСШТАБА] Тип: {entType}, Handle: {handle}. Диагональ ДО: {oldDig:F2}, ПОСЛЕ: {newDig:F2}");
                     }
-
-                    scaled++;
                 }
                 catch (System.Exception ex)
                 {
@@ -149,8 +142,6 @@ internal static class ViewportTransformer
         }
 
         trx.Commit();
-
-        log.Information($"ScaleModelSpaceObjects завершен: ratio={ratio:F6}, total={total}, scaled={scaled}");
 
         if (errorTypes.Count > 0)
         {
@@ -340,7 +331,6 @@ internal static class ViewportTransformer
     internal static int FinalizeModelSpaceDimensionLinearScales(Database db, Logger log)
     {
         int finalized = 0;
-        int stylesFinalized = 0;
         HashSet<ObjectId> finalizedStyleIds = [];
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
@@ -366,7 +356,6 @@ internal static class ViewportTransformer
                 && !style.IsErased)
             {
                 style.Dimlfac = 1.0;
-                stylesFinalized++;
             }
 
             dimension.Dimlfac = linearDimensionScale;
@@ -376,11 +365,6 @@ internal static class ViewportTransformer
         }
 
         trx.Commit();
-
-        log.Information(
-            "FinalizeModelSpaceDimensionLinearScales: dimensions={Dimensions}, styles={Styles}",
-            finalized,
-            stylesFinalized);
 
         return finalized;
     }
@@ -430,7 +414,6 @@ internal static class ViewportTransformer
         }
 
         trx.Commit();
-        log.Information($"EraseEntitiesOutsideMainWindow: erased={erased} of {auxEntities.Count}, inMain={inMain.Count}");
         return erased;
     }
 
@@ -442,8 +425,6 @@ internal static class ViewportTransformer
     /// </summary>
     internal static void UnlockTextStylesHeight(Database db, Logger log)
     {
-        int unlocked = 0;
-
         using Transaction trx = db.TransactionManager.StartTransaction();
 
         TextStyleTable tt = (TextStyleTable)trx.GetObject(db.TextStyleTableId, OpenMode.ForRead);
@@ -456,12 +437,10 @@ internal static class ViewportTransformer
             {
                 ts.UpgradeOpen();
                 ts.TextSize = 0.0;
-                unlocked++;
             }
         }
 
         trx.Commit();
-        log.Information($"UnlockTextStylesHeight: разблокировано {unlocked} текстовых стилей");
     }
 
     private static ObjectId ResolveDimensionStyleId(Database db, ObjectId styleId)

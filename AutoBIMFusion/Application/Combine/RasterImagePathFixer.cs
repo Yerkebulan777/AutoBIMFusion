@@ -30,7 +30,6 @@ internal static class RasterImagePathFixer
         }
 
         DBDictionary dict = (DBDictionary)trx.GetObject(dictId, OpenMode.ForRead);
-        int fixedCount = 0;
 
         foreach (DBDictionaryEntry entry in dict)
         {
@@ -67,8 +66,6 @@ internal static class RasterImagePathFixer
                 {
                     def.SourceFileName = existingRelativePath;
                     def.Load();
-                    fixedCount++;
-                    log.Debug($"RasterImage повторно использует файл: {existingRelativePath}");
                     continue;
                 }
 
@@ -83,8 +80,6 @@ internal static class RasterImagePathFixer
                 copiedBySourcePath[resolvedPath] = uniqueFileName;
                 def.SourceFileName = uniqueFileName; // относительный путь к папке DWG
                 def.Load(); // Правило 2: загружаем определение после смены пути
-                fixedCount++;
-                log.Information($"RasterImage скопирован: {resolvedPath} -> {uniqueFileName}");
             }
             catch (System.Exception ex)
             {
@@ -93,11 +88,6 @@ internal static class RasterImagePathFixer
         }
 
         trx.Commit();
-
-        if (fixedCount > 0)
-        {
-            log.Information($"RasterImagePathFixer: обработано {fixedCount} изображений");
-        }
     }
 
     private static (string DestinationPath, string FileName) BuildUniqueDestination(

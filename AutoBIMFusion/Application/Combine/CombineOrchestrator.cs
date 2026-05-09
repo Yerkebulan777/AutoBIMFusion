@@ -25,8 +25,6 @@ internal static class CombineOrchestrator
 
         try
         {
-            log.Information($"Файл: {fileName}");
-
             using Database? sourceDb = ViewportLayoutExporter.PrepareDatabaseForMerge(filePath, fileName, log);
 
             if (sourceDb == null)
@@ -60,7 +58,6 @@ internal static class CombineOrchestrator
                 return CombineResult.Fail(fileName, "Не удалось вставить объекты");
             }
 
-            log.Information($"Вставлен лист '{layoutName}'");
             return CombineResult.Ok(fileName);
         }
         catch (System.Exception ex)

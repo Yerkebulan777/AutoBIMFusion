@@ -16,16 +16,9 @@ internal static class LayoutProjectionProcessor
 
     private static LayoutProjectionResult ProjectWithViewports(Database db, string layoutName, IReadOnlyList<ViewportInfo> viewports, Logger log)
     {
-        log.Information($"Выбранный метод масштабирования: ProcessVp ({viewports.Count} viewport'ов)");
-
         ViewportInfo mainOriginal = ViewportInfo.PickMainViewport(viewports);
         ViewportInfo mainClamped = ClampMainViewportScale(mainOriginal, log);
         double clampRatio = mainOriginal.CustomScale / mainClamped.CustomScale;
-
-        log.Information(
-            $"VP main#{mainOriginal.Number}: исходный scale={mainOriginal.CustomScale:F6}, " +
-            $"рабочий scale={mainClamped.CustomScale:F6}, clampRatio={clampRatio:F6}, " +
-            $"центр={ExtentsUtils.FormatPoint(mainOriginal.ViewCenter)}");
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
@@ -74,8 +67,6 @@ internal static class LayoutProjectionProcessor
 
     private static LayoutProjectionResult ProjectNoViewport(Database db, string layoutName, Logger log)
     {
-        log.Information($"Выбранный метод масштабирования: ProcessNoVp (масштаб по умолчанию 1:100)");
-
         using ObjectIdCollection paperIds = LayoutUtil.GetPaperSpaceEntities(db, layoutName, excludeViewports: true);
 
         if (paperIds.Count == 0)
@@ -109,8 +100,6 @@ internal static class LayoutProjectionProcessor
         {
             Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, center);
 
-            log.Information($"Применяем clampRatio={clampRatio:F6} к Model Space вокруг {ExtentsUtils.FormatPoint(center)}");
-
             ViewportTransformer.UnlockTextStylesHeight(db, log);
             ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
         }
@@ -134,11 +123,9 @@ internal static class LayoutProjectionProcessor
 
         if (multiplier < MaxScaleMultiplier)
         {
-            log.Information($"VP #{viewport.Number}: масштаб 1:{multiplier:F0} → зажат до 1:{MaxScaleMultiplier:F0}");
             return viewport with { CustomScale = 1.0 / MaxScaleMultiplier };
         }
 
-        log.Information($"VP #{viewport.Number}: масштаб 1:{multiplier:F0}");
         return viewport;
     }
 

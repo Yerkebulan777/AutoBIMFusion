@@ -105,7 +105,6 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
             _rightMax = worldBounds.Value.MaxPoint.X;
             _hasPlacedObjects = true;
 
-            log.Information($"{sourceName}: вставлено {clonedCount} объектов");
             return worldBounds;
         }
         catch (System.Exception ex)

@@ -49,12 +49,7 @@ public sealed class CombineCommands
                 return;
             }
 
-            log.Information($"Запуск {commandName}...");
-            log.Information($"Исходная папка: {sourceFolder}");
-            log.Information($"Файл лога: {LoggerFactory.GetCurrentLogFilePath()}");
-
             string savePath = BuildSavePath(sourceFolder!);
-            log.Information($"Путь сохранения: {savePath}");
 
             string[] dwgFiles = FileUtil.GetFiles(sourceFolder!, log: log);
             if (dwgFiles.Length == 0)
@@ -67,6 +62,14 @@ public sealed class CombineCommands
 
                 return;
             }
+
+            log.Information(
+                "{Command}: старт, files={FileCount}, source=\"{SourceFolder}\", save=\"{SavePath}\", log=\"{LogPath}\"",
+                commandName,
+                dwgFiles.Length,
+                sourceFolder,
+                savePath,
+                LoggerFactory.GetCurrentLogFilePath());
 
             const double gapPercent = 0.1;
             CombineStatistics stats = new();
@@ -105,7 +108,6 @@ public sealed class CombineCommands
         finally
         {
             _ = _mergeGate.Release();
-            log.Information($"Завершение {commandName}.");
         }
     }
 

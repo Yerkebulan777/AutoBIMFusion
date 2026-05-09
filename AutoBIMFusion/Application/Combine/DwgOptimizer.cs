@@ -17,9 +17,6 @@ internal static class DwgOptimizer
 
     public static void Optimize(Database db, Logger log)
     {
-        log.Information("Очистка (Purge)...");
-
-        int totalPurged = 0;
         int passes = 0;
 
         while (passes < MaxPurgePasses)
@@ -30,17 +27,7 @@ internal static class DwgOptimizer
                 break;
             }
 
-            totalPurged += passCount;
             passes++;
-        }
-
-        if (totalPurged > 0)
-        {
-            log.Information($"Очищено: {totalPurged} объектов (проходов: {passes})");
-        }
-        else
-        {
-            log.Information("Очистка: неиспользуемых объектов нет");
         }
     }
 
@@ -117,7 +104,7 @@ internal static class DwgOptimizer
             }
             catch (System.Exception ex)
             {
-                log.Debug($"Purge: не удалось удалить объект {id.Handle} — {ex.Message}");
+                log.Debug(ex, "Purge: не удалось удалить объект {Handle}", id.Handle);
             }
         }
 
@@ -144,7 +131,7 @@ internal static class DwgOptimizer
         }
         catch (System.Exception ex)
         {
-            log.Debug($"Purge: таблица {tableId.Handle} недоступна — {ex.Message}");
+            log.Debug(ex, "Purge: таблица {Handle} недоступна", tableId.Handle);
         }
     }
 
@@ -169,7 +156,7 @@ internal static class DwgOptimizer
         }
         catch (System.Exception ex)
         {
-            log.Debug($"Purge: словарь {dictId.Handle} недоступен — {ex.Message}");
+            log.Debug(ex, "Purge: словарь {Handle} недоступен", dictId.Handle);
         }
     }
 }

@@ -43,7 +43,6 @@ internal static class FileUtil
 
         files.Sort((x, y) => NaturalComparer.Compare(Path.GetRelativePath(rootPath, x), Path.GetRelativePath(rootPath, y)));
 
-        log?.Information($"Найдено DWG: {files.Count}");
         return [.. files];
     }
 
