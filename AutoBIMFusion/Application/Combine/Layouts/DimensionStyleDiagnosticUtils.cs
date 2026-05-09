@@ -67,21 +67,21 @@ internal static class DimensionStyleDiagnosticUtils
     {
         DimensionStyleSnapshot snapshot = BuildSnapshot(db, stage);
 
-        log.Information($"[STYLE-SNAPSHOT] stage={stage}, dimStyles={snapshot.DimensionStyles.Count}, textStyles={snapshot.TextStyles.Count}");
+        log.Information(FormatStyleSnapshotHeader(snapshot));
 
         foreach (DimensionStyleSnapshotEntry style in snapshot.DimensionStyles.Values.OrderBy(s => s.StyleName, StringComparer.OrdinalIgnoreCase))
         {
-            log.Information($"[DIM-STYLE-SUMMARY] stage={stage}, {FormatDimensionStyleSummary(style)}");
+            log.Information(FormatStageLine("[DIM-STYLE-SUMMARY]", stage, FormatDimensionStyleSummary(style)));
         }
 
         foreach (DimensionStyleSnapshotEntry style in snapshot.DimensionStyles.Values.OrderBy(s => s.FullLogLine, StringComparer.OrdinalIgnoreCase))
         {
-            log.Information($"[DIM-STYLE] stage={stage}, {style.FullLogLine}");
+            log.Information(FormatStageLine("[DIM-STYLE]", stage, style.FullLogLine));
         }
 
         foreach (string style in snapshot.TextStyles.Order(StringComparer.OrdinalIgnoreCase))
         {
-            log.Information($"[TEXT-STYLE] stage={stage}, {style}");
+            log.Information(FormatStageLine("[TEXT-STYLE]", stage, style));
         }
 
         LogSnapshotDiff(snapshot, log);
@@ -232,12 +232,56 @@ internal static class DimensionStyleDiagnosticUtils
 
     private static string FormatDimensionStyle(DimStyleTableRecord style)
     {
-        string properties = string.Join(", ", DimStyleProperties.Select(p => $"{p.Name}={FormatPropertyValue(style, p)}"));
+        StringBuilder builder = new();
+        _ = builder
+            .Append("styleName=\"").Append(Escape(style.Name)).Append("\", ")
+            .Append("styleHandle=").Append(style.Handle).Append(",  ")
+            .Append("objectId=").Append(FormatObjectId(style.ObjectId)).Append(", ")
+            .Append("isDependent=").Append(style.IsDependent).Append(", ")
+            .Append("isResolved=").Append(ReadOptionalBool(style, "IsResolved")).Append(", ")
+            .Append("properties={ ");
 
-        return
-            $"styleName=\"{Escape(style.Name)}\", styleHandle={style.Handle},  objectId={FormatObjectId(style.ObjectId)}, " +
-            $"isDependent={style.IsDependent}, isResolved={ReadOptionalBool(style, "IsResolved")}, " +
-            $"properties={{ {properties} }}";
+        AppendDimStyleProperties(builder, style);
+        _ = builder.Append(" }");
+
+        return builder.ToString();
+    }
+
+    private static string FormatStyleSnapshotHeader(DimensionStyleSnapshot snapshot)
+    {
+        StringBuilder builder = new();
+        _ = builder
+            .Append("[STYLE-SNAPSHOT] stage=").Append(snapshot.Stage)
+            .Append(", dimStyles=").Append(snapshot.DimensionStyles.Count)
+            .Append(", textStyles=").Append(snapshot.TextStyles.Count);
+
+        return builder.ToString();
+    }
+
+    private static string FormatStageLine(string prefix, string stage, string payload)
+    {
+        StringBuilder builder = new();
+        _ = builder
+            .Append(prefix)
+            .Append(" stage=").Append(stage)
+            .Append(", ").Append(payload);
+
+        return builder.ToString();
+    }
+
+    private static void AppendDimStyleProperties(StringBuilder builder, DimStyleTableRecord style)
+    {
+        bool hasPrevious = false;
+        foreach (PropertyInfo property in DimStyleProperties)
+        {
+            if (hasPrevious)
+            {
+                _ = builder.Append(", ");
+            }
+
+            _ = builder.Append(property.Name).Append('=').Append(FormatPropertyValue(style, property));
+            hasPrevious = true;
+        }
     }
 
     private static string FormatDimensionStyleSummary(DimensionStyleSnapshotEntry style)
@@ -311,7 +355,7 @@ internal static class DimensionStyleDiagnosticUtils
 
         if (previousSnapshot is null)
         {
-            log.Information($"[DIM-STYLE-DIFF] from={previousStage}, to={snapshot.Stage}, status=missing-baseline");
+            log.Information(FormatDiffStatus(previousStage, snapshot.Stage, "missing-baseline"));
             return;
         }
 
@@ -329,9 +373,7 @@ internal static class DimensionStyleDiagnosticUtils
                 continue;
             }
 
-            log.Information(
-                $"[DIM-STYLE-DIFF] from={previousSnapshot.Stage}, to={snapshot.Stage}, change=removed, " +
-                FormatDiffStyleIdentity(previousStyle));
+            log.Information(FormatRemovedDiff(previousSnapshot.Stage, snapshot.Stage, previousStyle));
         }
     }
 
@@ -344,9 +386,7 @@ internal static class DimensionStyleDiagnosticUtils
                 continue;
             }
 
-            log.Information(
-                $"[DIM-STYLE-DIFF] from={previousSnapshot.Stage}, to={snapshot.Stage}, change=added, " +
-                $"{FormatDiffStyleIdentity(currentStyle)}, values={{ {FormatProperties(currentStyle.SummaryProperties)} }}");
+            log.Information(FormatAddedDiff(previousSnapshot.Stage, snapshot.Stage, currentStyle));
         }
     }
 
@@ -368,25 +408,81 @@ internal static class DimensionStyleDiagnosticUtils
                 continue;
             }
 
-            string usageChange = usageChanged
-                ? $", usedByDimensions={previousStyle.UsedByDimensions}->{currentStyle.UsedByDimensions}"
-                : string.Empty;
-
-            log.Information(
-                $"[DIM-STYLE-DIFF] from={previousSnapshot.Stage}, to={snapshot.Stage}, change=changed, " +
-                $"{FormatDiffStyleIdentity(currentStyle)}{usageChange}, properties={{ {changedProperties} }}");
+            log.Information(FormatChangedDiff(previousSnapshot.Stage, snapshot.Stage, previousStyle, currentStyle, changedProperties, usageChanged));
         }
     }
 
-    private static string FormatDiffStyleIdentity(DimensionStyleSnapshotEntry style)
+    private static void AppendDiffPrefix(StringBuilder builder, string fromStage, string toStage, string change)
     {
-        return $"key={style.ComparisonKey}, styleName=\"{Escape(style.StyleName)}\", styleHandle={style.StyleHandle}";
+        _ = builder
+            .Append("[DIM-STYLE-DIFF] from=").Append(fromStage)
+            .Append(", to=").Append(toStage)
+            .Append(", change=").Append(change)
+            .Append(", ");
     }
 
-    private static string FormatProperties(IReadOnlyDictionary<string, string> properties)
+    private static void AppendDiffStyleIdentity(StringBuilder builder, DimensionStyleSnapshotEntry style)
+    {
+        _ = builder
+            .Append("key=").Append(style.ComparisonKey)
+            .Append(", styleName=\"").Append(Escape(style.StyleName)).Append('"')
+            .Append(", styleHandle=").Append(style.StyleHandle);
+    }
+
+    private static string FormatDiffStatus(string fromStage, string toStage, string status)
     {
         StringBuilder builder = new();
-        AppendProperties(builder, properties);
+        _ = builder
+            .Append("[DIM-STYLE-DIFF] from=").Append(fromStage)
+            .Append(", to=").Append(toStage)
+            .Append(", status=").Append(status);
+
+        return builder.ToString();
+    }
+
+    private static string FormatRemovedDiff(string fromStage, string toStage, DimensionStyleSnapshotEntry style)
+    {
+        StringBuilder builder = new();
+        AppendDiffPrefix(builder, fromStage, toStage, "removed");
+        AppendDiffStyleIdentity(builder, style);
+
+        return builder.ToString();
+    }
+
+    private static string FormatAddedDiff(string fromStage, string toStage, DimensionStyleSnapshotEntry style)
+    {
+        StringBuilder builder = new();
+        AppendDiffPrefix(builder, fromStage, toStage, "added");
+        AppendDiffStyleIdentity(builder, style);
+        _ = builder.Append(", values={ ");
+        AppendProperties(builder, style.SummaryProperties);
+        _ = builder.Append(" }");
+
+        return builder.ToString();
+    }
+
+    private static string FormatChangedDiff(
+        string fromStage,
+        string toStage,
+        DimensionStyleSnapshotEntry previousStyle,
+        DimensionStyleSnapshotEntry currentStyle,
+        string changedProperties,
+        bool usageChanged)
+    {
+        StringBuilder builder = new();
+        AppendDiffPrefix(builder, fromStage, toStage, "changed");
+        AppendDiffStyleIdentity(builder, currentStyle);
+
+        if (usageChanged)
+        {
+            _ = builder
+                .Append(", usedByDimensions=")
+                .Append(previousStyle.UsedByDimensions)
+                .Append("->")
+                .Append(currentStyle.UsedByDimensions);
+        }
+
+        _ = builder.Append(", properties={ ").Append(changedProperties).Append(" }");
         return builder.ToString();
     }
 
@@ -433,14 +529,24 @@ internal static class DimensionStyleDiagnosticUtils
     private static string FormatTextStyle(TextStyleTableRecord style)
     {
         Autodesk.AutoCAD.GraphicsInterface.FontDescriptor font = style.Font;
-        return
-            $"styleName=\"{Escape(style.Name)}\", styleHandle={style.Handle}, " +
-            $"styleFile=\"{Escape(style.FileName)}\", styleBigFont=\"{Escape(style.BigFontFileName)}\", " +
-            $"styleTypeface=\"{Escape(font.TypeFace)}\", styleBold={font.Bold}, styleItalic={font.Italic}, " +
-            $"styleCharacterSet={font.CharacterSet}, stylePitchAndFamily={font.PitchAndFamily}, " +
-            $"styleIsShapeFile={style.IsShapeFile}, styleIsVertical={style.IsVertical}, " +
-            $"styleTextSize={F(style.TextSize)}, styleXScale={F(style.XScale)}, " +
-            $"styleObliquingAngle={F(style.ObliquingAngle)}";
+        StringBuilder builder = new();
+        _ = builder
+            .Append("styleName=\"").Append(Escape(style.Name)).Append("\", ")
+            .Append("styleHandle=").Append(style.Handle).Append(", ")
+            .Append("styleFile=\"").Append(Escape(style.FileName)).Append("\", ")
+            .Append("styleBigFont=\"").Append(Escape(style.BigFontFileName)).Append("\", ")
+            .Append("styleTypeface=\"").Append(Escape(font.TypeFace)).Append("\", ")
+            .Append("styleBold=").Append(font.Bold).Append(", ")
+            .Append("styleItalic=").Append(font.Italic).Append(", ")
+            .Append("styleCharacterSet=").Append(font.CharacterSet).Append(", ")
+            .Append("stylePitchAndFamily=").Append(font.PitchAndFamily).Append(", ")
+            .Append("styleIsShapeFile=").Append(style.IsShapeFile).Append(", ")
+            .Append("styleIsVertical=").Append(style.IsVertical).Append(", ")
+            .Append("styleTextSize=").Append(F(style.TextSize)).Append(", ")
+            .Append("styleXScale=").Append(F(style.XScale)).Append(", ")
+            .Append("styleObliquingAngle=").Append(F(style.ObliquingAngle));
+
+        return builder.ToString();
     }
 
     private static string FormatColor(Color color)
