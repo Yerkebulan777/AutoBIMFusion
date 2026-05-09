@@ -12,7 +12,9 @@
       "Bash(xxd \"/c/Users/y.zhumabayev/AppData/Roaming/Claude/Local Storage/leveldb/003603.log\")",
       "Bash(python3 -m json.tool)",
       "Bash(python3 -c ' *)",
-      "PowerShell(Get-ChildItem \"$env:APPDATA\\\\Claude\\\\Local Storage\\\\leveldb\\\\\")"
+      "PowerShell(Get-ChildItem \"$env:APPDATA\\\\Claude\\\\Local Storage\\\\leveldb\\\\\")",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__browser_batch"
     ]
   }
 }
