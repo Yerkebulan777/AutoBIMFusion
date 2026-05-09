@@ -4,6 +4,14 @@ using System.Runtime.Versioning;
 
 namespace AutoBIMFusion.Application.Combine.Layouts;
 
+internal sealed record PreparedSourceDatabase(
+    Database Db,
+    double TargetVisualScale,
+    double LinearScaleMultiplier) : IDisposable
+{
+    public void Dispose() => Db.Dispose();
+}
+
 /// <summary>
 /// Экспортирует первый макет исходного файла DWG во временный файл DWG, содержащий только пространство модели.
 /// Данный метод сохраняет за собой управление общим процессом и делегирует обработку проекции окна просмотра
@@ -12,7 +20,7 @@ namespace AutoBIMFusion.Application.Combine.Layouts;
 [SupportedOSPlatform("Windows")]
 internal static class ViewportLayoutExporter
 {
-    public static Database? PrepareDatabaseForMerge(string sourceFilePath, string fileName, Logger log)
+    public static PreparedSourceDatabase? PrepareDatabaseForMerge(string sourceFilePath, string fileName, Logger log)
     {
         ArgumentNullException.ThrowIfNull(sourceFilePath);
 
@@ -44,6 +52,7 @@ internal static class ViewportLayoutExporter
             if (!LayoutUtil.TryFindFirstLayout(db, out string layoutName))
             {
                 log.Warning($"{fileName}: листы не найдены");
+                db.Dispose();
                 return null;
             }
 
@@ -60,7 +69,7 @@ internal static class ViewportLayoutExporter
 
             DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "source-after-normalize-before-clone");
 
-            return db;
+            return new PreparedSourceDatabase(db, projection.TargetVisualScale, projection.LinearScaleMultiplier);
         }
         catch (System.Exception)
         {

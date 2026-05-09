@@ -25,28 +25,33 @@ internal static class CombineOrchestrator
 
         try
         {
-            using Database? sourceDb = ViewportLayoutExporter.PrepareDatabaseForMerge(filePath, fileName, log);
+            using PreparedSourceDatabase? prepared = ViewportLayoutExporter.PrepareDatabaseForMerge(filePath, fileName, log);
 
-            if (sourceDb == null)
+            if (prepared == null)
             {
                 return CombineResult.Warn(fileName, "Листы не найдены");
             }
 
-            Extents3d? bounds = ExtentsUtils.GetDatabaseExtents(sourceDb);
+            Extents3d? bounds = ExtentsUtils.GetDatabaseExtents(prepared.Db);
 
             if (!bounds.HasValue)
             {
                 return CombineResult.Warn(fileName, "Пустой файл");
             }
 
-            // Размеры нормализуются при обработке каждого Viewport до клонирования aux-геометрии.
-
             Extents3d? worldBounds;
             using (targetDoc.LockDocument())
             {
                 DimensionStyleDiagnosticUtils.LogStyleSnapshot(targetDoc.Database, log, "target-before-clone");
 
-                worldBounds = inserter.InsertNativeObjects(targetDoc.Database, sourceDb, layoutName, bounds.Value);
+                worldBounds = inserter.InsertNativeObjects(
+                    targetDoc.Database,
+                    prepared.Db,
+                    layoutName,
+                    bounds.Value,
+                    prepared.TargetVisualScale,
+                    prepared.LinearScaleMultiplier);
+
                 if (worldBounds is not null)
                 {
                     DimensionStyleDiagnosticUtils.LogStyleSnapshot(targetDoc.Database, log, "target-after-clone");

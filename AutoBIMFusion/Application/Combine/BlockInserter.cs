@@ -16,16 +16,16 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
     /// <summary>
     /// Клонирует все сущности из Model Space исходного DWG в Model Space целевой базы,
     /// затем смещает их в рассчитанную позицию для последовательной раскладки по оси X.
+    /// Пост-обработка размеров происходит после смещения, чтобы RecomputeDimensionBlock
+    /// использовал финальные координаты.
     /// </summary>
-    /// <param name="targetDb">Целевая база данных чертежа, в которую выполняется вставка.</param>
-    /// <param name="sourceFilePath">Полный путь к исходному DWG-файлу.</param>
-    /// <param name="sourceName">Человекочитаемое имя источника для логирования.</param>
-    /// <param name="sourceBounds">Границы исходного содержимого, используемые для расчёта смещения.</param>
-    /// <returns>
-    /// Границы вставленных объектов в мировой системе координат,
-    /// либо <see langword="null"/>, если вставка не выполнена.
-    /// </returns>
-    public Extents3d? InsertNativeObjects(Database targetDb, Database sourceDb, string sourceName, Extents3d sourceBounds)
+    public Extents3d? InsertNativeObjects(
+        Database targetDb,
+        Database sourceDb,
+        string sourceName,
+        Extents3d sourceBounds,
+        double targetVisualScale,
+        double linearScaleMultiplier)
     {
         Point3d insertPt = CalcInsertionPoint(sourceBounds);
         Matrix3d displacement = Matrix3d.Displacement(new Vector3d(insertPt.X, insertPt.Y, insertPt.Z));
@@ -36,13 +36,14 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
 
             ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
             ObjectId targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
-            // Цель цикла: собрать уже подготовленные объекты для клонирования в targetDb.
+
             using ObjectIdCollection sourceIds = [];
 
-            using (Transaction trx = sourceDb.TransactionManager.StartTransaction())
+            using (Transaction srcTrx = sourceDb.TransactionManager.StartTransaction())
             {
-                BlockTableRecord ms = (BlockTableRecord)trx.GetObject(sourceMsId, OpenMode.ForRead);
+                StyleUnificationService.NormalizeTextStyleNames(sourceDb, srcTrx);
 
+                BlockTableRecord ms = (BlockTableRecord)srcTrx.GetObject(sourceMsId, OpenMode.ForRead);
                 foreach (ObjectId id in ms)
                 {
                     if (!id.IsNull && !id.IsErased)
@@ -51,7 +52,7 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
                     }
                 }
 
-                trx.Commit();
+                srcTrx.Commit();
             }
 
             if (sourceIds.Count == 0)
@@ -63,6 +64,8 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
             int clonedCount = 0;
 
             using Transaction targetTr = targetDb.TransactionManager.StartTransaction();
+
+            ObjectId stdDimStyleId = StyleUnificationService.GetOrCreateStandardDimensionStyle(targetDb, targetTr, "ISOCPEUR");
 
             using IdMapping map = new();
             using (new DatabaseUnitSyncScope(sourceDb, targetDb))
@@ -92,6 +95,8 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
                 }
             }
 
+            DimensionCleanupHelper.UnifyClonedDimensions(map, targetTr, stdDimStyleId, targetVisualScale, linearScaleMultiplier);
+
             targetTr.Commit();
 
             if (clonedCount == 0)
@@ -114,11 +119,6 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
         }
     }
 
-    /// <summary>
-    /// Вычисляет точку вставки следующего блока с учётом уже размещённых объектов и заданного зазора.
-    /// </summary>
-    /// <param name="bounds">Границы вставляемого содержимого в локальных координатах.</param>
-    /// <returns>Точка смещения для приведения содержимого в целевые координаты.</returns>
     private Point3d CalcInsertionPoint(Extents3d bounds)
     {
         double width = Max(0, bounds.MaxPoint.X - bounds.MinPoint.X);
