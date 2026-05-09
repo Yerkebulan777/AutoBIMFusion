@@ -133,23 +133,22 @@ internal static class DimensionStyleDiagnosticUtils
         AddDimensionStyleUsage(db.Dimstyle, null, usageByStyleId);
 
         BlockTable blockTable = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
+
         foreach (ObjectId blockId in blockTable)
         {
-            if (trx.GetObject(blockId, OpenMode.ForRead, false) is not BlockTableRecord block || block.IsErased)
-            {
-                continue;
-            }
+            DBObject blockObj = trx.GetObject(blockId, OpenMode.ForRead, false);
 
-            foreach (ObjectId entityId in block)
+            if (blockObj is BlockTableRecord block && !block.IsErased)
             {
-                if (entityId.IsNull || entityId.IsErased)
+                foreach (ObjectId entityId in block)
                 {
-                    continue;
-                }
-
-                if (trx.GetObject(entityId, OpenMode.ForRead, false) is Dimension dimension)
-                {
-                    AddDimensionStyleUsage(dimension.DimensionStyle, dimension.Handle.ToString(), usageByStyleId);
+                    if (!entityId.IsNull && !entityId.IsErased)
+                    {
+                        if (trx.GetObject(entityId, OpenMode.ForRead, false) is Dimension dimension)
+                        {
+                            AddDimensionStyleUsage(dimension.DimensionStyle, dimension.Handle.ToString(), usageByStyleId);
+                        }
+                    }
                 }
             }
         }
@@ -608,12 +607,9 @@ internal static class DimensionStyleDiagnosticUtils
     private static string ReadOptionalBool(DimStyleTableRecord style, string propertyName)
     {
         PropertyInfo? property = typeof(DimStyleTableRecord).GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public);
-        if (property is null || property.PropertyType != typeof(bool) || property.GetIndexParameters().Length > 0)
-        {
-            return "n/a";
-        }
-
-        return FormatPropertyValue(style, property);
+        return property is null || property.PropertyType != typeof(bool) || property.GetIndexParameters().Length > 0
+            ? "n/a"
+            : FormatPropertyValue(style, property);
     }
 
     private static string F(double value)
