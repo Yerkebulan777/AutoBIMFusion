@@ -109,9 +109,10 @@ internal static class StyleUnificationService
         // 3. ЛИНИИ
         dsr.Dimexe = 1.5;
         dsr.Dimexo = 1.5;
-        dsr.Dimfxlen = 0;
         dsr.Dimdli = 5.0;
         dsr.Dimdle = 3.0;
+        dsr.Dimfxlen = 0;
+        dsr.DimfxlenOn = false;
 
         // 4. РАЗМЕЩЕНИЕ
         dsr.Dimatfit = 3;
