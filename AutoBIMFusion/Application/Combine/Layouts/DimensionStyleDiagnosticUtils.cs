@@ -40,6 +40,7 @@ internal static class DimensionStyleDiagnosticUtils
         HashSet<ObjectId> usedDimensionStyleIds = CollectUsedDimensionStyleIds(db, trx);
 
         List<string> dimStyles = [];
+
         foreach (ObjectId id in dimStyleTable)
         {
             DimStyleTableRecord style = (DimStyleTableRecord)trx.GetObject(id, OpenMode.ForRead);
@@ -213,12 +214,21 @@ internal static class DimensionStyleDiagnosticUtils
         return double.IsFinite(value) ? value.ToString("F6", CultureInfo.InvariantCulture) : "n/a";
     }
 
+    /// <summary>
+    /// Escapes special characters in a string for safe inclusion in a quoted context.
+    /// </summary>
+    /// <remarks>This method replaces backslashes (\), double quotes (") with their escaped forms, and
+    /// converts carriage return and line feed characters to \r and \n, respectively. This is useful when preparing
+    /// strings for serialization or display in formats that require escaping of these characters.</remarks>
+    /// <param name="value">The string to escape. If null, an empty string is used.</param>
+    /// <returns>A string with backslashes, double quotes, carriage returns, and line feeds replaced by their escaped
+    /// representations.</returns>
     private static string Escape(string? value)
     {
         return (value ?? string.Empty)
-                .Replace("\\", "\\\\", StringComparison.Ordinal)
-                .Replace("\"", "\\\"", StringComparison.Ordinal)
-                .Replace("\r", "\\r", StringComparison.Ordinal)
-                .Replace("\n", "\\n", StringComparison.Ordinal);
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("\"", "\\\"", StringComparison.Ordinal)
+            .Replace("\r", "\\r", StringComparison.Ordinal)
+            .Replace("\n", "\\n", StringComparison.Ordinal);
     }
 }
