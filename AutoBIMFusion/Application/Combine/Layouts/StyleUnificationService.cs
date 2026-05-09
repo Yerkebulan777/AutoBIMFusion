@@ -96,7 +96,7 @@ internal static class StyleUnificationService
         dsr.Dimtxt = 2.5;
         dsr.Dimtad = 1;
         dsr.Dimjust = 0;
-        dsr.Dimgap = 1.0;
+        dsr.Dimgap = 0.3;
         dsr.Dimtih = false;
         dsr.Dimtoh = false;
         dsr.Dimtfill = 0;
