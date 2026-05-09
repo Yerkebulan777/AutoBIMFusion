@@ -49,6 +49,8 @@ internal static class ViewportLayoutExporter
 
             List<ViewportInfo> vps = ViewportCollector.Collect(db, layoutName);
 
+            DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "source-before-normalize");
+
             LayoutProjectionProcessor.LayoutProjectionResult projection = LayoutProjectionProcessor.ProjectLayoutToModelSpace(db, layoutName, vps, log);
 
             if (projection.FrameBounds.HasValue)

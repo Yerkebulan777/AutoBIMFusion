@@ -46,6 +46,8 @@ internal static class CombineOrchestrator
             Extents3d? worldBounds;
             using (targetDoc.LockDocument())
             {
+                DimensionStyleDiagnosticUtils.LogStyleSnapshot(targetDoc.Database, log, "target-before-clone");
+
                 worldBounds = inserter.InsertNativeObjects(targetDoc.Database, sourceDb, layoutName, bounds.Value);
                 if (worldBounds is not null)
                 {
