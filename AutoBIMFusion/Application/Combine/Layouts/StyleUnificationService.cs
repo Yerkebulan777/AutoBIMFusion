@@ -94,7 +94,7 @@ internal static class StyleUnificationService
         dsr.Dimtxsty = textStyleId; // Ссылка на текстовый стиль
         dsr.Dimtxt = 2.5;  // Высота текста размерных надписей
         dsr.Dimtsz = 2.5;  // Высота текста размерных линий
-        dsr.Dimasz = 1.5;  // Размер стрелок
+        dsr.Dimasz = 2.5;  // Размер стрелок
         dsr.Dimexe = 1.25; // Длина выносной линии
         dsr.Dimexo = 0.5; // Смещение выносной линии
         dsr.Dimgap = 0.5;  // Промежуток между текстом и линией размерной надписи

@@ -8,4 +8,5 @@
         <BuildType Name="ReleaseA27" />
     </Configurations>
     <Project Path="AutoBIMFusion/AutoBIMFusion.csproj" />
+    <Project Path="AutoBIMFusion.Tests/AutoBIMFusion.Tests.csproj" />
 </Solution>

@@ -35,11 +35,11 @@
 ### С видовыми экранами
 
 1. Главный vpt выбирается через `ViewportInfo.PickMainViewport`.
-2. Рабочий масштаб main vpt зажимается (`ClampMainViewportScale`) до `1:100` для более мелких масштабов (когда `1/scale < 100`, т.е. 1:50, 1:20 и др.); `clampRatio = originalScale / clampedScale`.
+2. Рабочий масштаб main vpt нормализуется до `1:100` для всех масштабов; `geometryScale = originalScale / (1/100)`, а `Dimlfac = 1 / geometryScale` сохраняет числовые значения размеров.
 3. `ViewportTransformer.CollectModelEntitiesWithExtents` снимает снимок объектов Model Space.
 4. Для каждого aux viewport: строится матрица `BuildMatrix(main, aux)`, отбираются объекты внутри его модельного окна, выполняется `DeepCloneAndTransform`, удаляются исходные объекты за пределами main window (`EraseEntitiesOutsideMainWindow`).
-5. Если `clampRatio > 1`: `ScaleModelSpaceObjects` масштабирует Model Space вокруг `ViewCenter` main vpt на `clampRatio`.
-6. Paper Space переносится в Model Space через матрицу `BuildPaperToMainMatrix(mainClamped)`.
+5. Если `geometryScale != 1`: `ScaleModelSpaceObjects` масштабирует Model Space вокруг `ViewCenter` main vpt к рабочему масштабу `1:100`.
+6. Paper Space переносится в Model Space через матрицу `BuildPaperToMainMatrix(mainNormalized)`.
 
 ## 4. Тримминг и размеры
 

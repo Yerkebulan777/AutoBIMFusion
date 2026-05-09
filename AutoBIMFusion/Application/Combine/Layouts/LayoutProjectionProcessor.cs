@@ -5,8 +5,6 @@ namespace AutoBIMFusion.Application.Combine.Layouts;
 
 internal static class LayoutProjectionProcessor
 {
-    private const double MaxScaleMultiplier = 100.0;
-
     internal sealed record LayoutProjectionResult(
         Extents3d? FrameBounds,
         double TargetVisualScale,
@@ -20,8 +18,8 @@ internal static class LayoutProjectionProcessor
     private static LayoutProjectionResult ProjectWithViewports(Database db, string layoutName, IReadOnlyList<ViewportInfo> viewports, Logger log)
     {
         ViewportInfo mainOriginal = ViewportInfo.PickMainViewport(viewports);
-        ViewportInfo mainClamped = ClampMainViewportScale(mainOriginal, log);
-        double clampRatio = mainOriginal.CustomScale / mainClamped.CustomScale;
+        ViewportScaleNormalization scale = ViewportScaleNormalizer.Normalize(mainOriginal.CustomScale);
+        ViewportInfo mainNormalized = mainOriginal with { CustomScale = scale.WorkingCustomScale };
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
@@ -49,14 +47,11 @@ internal static class LayoutProjectionProcessor
             }
         }
 
-        ScaleModelSpaceWhenClamped(db, clampRatio, mainOriginal.ViewCenter, log);
+        NormalizeModelSpaceScale(db, scale.GeometryScale, mainOriginal.ViewCenter, log);
 
-        Extents3d? frameBounds = MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainClamped, log), log);
+        Extents3d? frameBounds = MovePaperToModelSpace(db, layoutName, ViewportTransformer.BuildPaperToMainMatrix(mainNormalized, log), log);
 
-        double targetVisualScale = 1.0 / mainClamped.CustomScale;
-        double linearScaleMultiplier = 1.0 / clampRatio;
-
-        return new LayoutProjectionResult(frameBounds, targetVisualScale, linearScaleMultiplier);
+        return new LayoutProjectionResult(frameBounds, scale.TargetVisualScale, scale.LinearScaleMultiplier);
     }
 
     private static LayoutProjectionResult ProjectNoViewport(Database db, string layoutName, Logger log)
@@ -65,56 +60,33 @@ internal static class LayoutProjectionProcessor
 
         if (paperIds.Count == 0)
         {
-            return new LayoutProjectionResult(null, MaxScaleMultiplier, 1.0);
+            return new LayoutProjectionResult(null, ViewportScaleNormalizer.WorkingScaleMultiplier, 1.0);
         }
 
         Extents3d? paperBounds = ModelSpaceTrimmer.ComputeBounds(db, paperIds, log);
 
         if (!paperBounds.HasValue)
         {
-            return new LayoutProjectionResult(null, MaxScaleMultiplier, 1.0);
+            return new LayoutProjectionResult(null, ViewportScaleNormalizer.WorkingScaleMultiplier, 1.0);
         }
 
         Point3d minPt = paperBounds.Value.MinPoint;
-        Matrix3d matrix = Matrix3d.Scaling(MaxScaleMultiplier, Point3d.Origin) * Matrix3d.Displacement(Point3d.Origin - minPt);
+        Matrix3d matrix = Matrix3d.Scaling(ViewportScaleNormalizer.WorkingScaleMultiplier, Point3d.Origin) * Matrix3d.Displacement(Point3d.Origin - minPt);
 
         Extents3d? frameBounds = MovePaperToModelSpace(db, layoutName, matrix, log);
-        return new LayoutProjectionResult(frameBounds, MaxScaleMultiplier, 1.0);
+        return new LayoutProjectionResult(frameBounds, ViewportScaleNormalizer.WorkingScaleMultiplier, 1.0);
     }
 
     /// <summary>
-    /// Масштабирует объекты Model Space вокруг указанного центра, если clampRatio превышает 1.0.
+    /// Масштабирует объекты Model Space вокруг указанного центра до рабочего масштаба 1:100.
     /// </summary>
-    private static void ScaleModelSpaceWhenClamped(Database db, double clampRatio, Point3d center, Logger log)
+    private static void NormalizeModelSpaceScale(Database db, double geometryScale, Point3d center, Logger log)
     {
-        if (clampRatio > 1.0 + 1e-9)
+        if (Abs(geometryScale - 1.0) > 1e-9)
         {
-            Matrix3d scaleMatrix = Matrix3d.Scaling(clampRatio, center);
-            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, clampRatio, log);
+            Matrix3d scaleMatrix = Matrix3d.Scaling(geometryScale, center);
+            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, geometryScale, log);
         }
-    }
-
-    /// <summary>
-    /// Зажимает масштаб главного ВЭ до рабочего 1:100 для мелких масштабов (1:50, 1:20, ...).
-    /// </summary>
-    /// <remarks>
-    /// Условие <c>multiplier &lt; MaxScaleMultiplier</c> намеренно: зажатие нужно именно для мелких
-    /// масштабов, где multiplier &lt; 100 (например, 1:50 → multiplier=50).
-    /// НЕ менять на <c>&gt;</c> — это сломает масштабирование объектов.
-    /// Разница между исходным и зажатым масштабом компенсируется через clampRatio в
-    /// <see cref="ScaleModelSpaceWhenClamped"/>. linearScaleMultiplier = 1/clampRatio компенсирует
-    /// числовые значения размеров, завышенные из-за масштабирования геометрии.
-    /// </remarks>
-    private static ViewportInfo ClampMainViewportScale(ViewportInfo viewport, Logger log)
-    {
-        double multiplier = 1.0 / viewport.CustomScale;
-
-        if (multiplier < MaxScaleMultiplier)
-        {
-            return viewport with { CustomScale = 1.0 / MaxScaleMultiplier };
-        }
-
-        return viewport;
     }
 
     private static Extents3d? MovePaperToModelSpace(Database db, string layoutName, Matrix3d matrix, Logger log)
