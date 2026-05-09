@@ -91,21 +91,21 @@ internal static class StyleUnificationService
 
     private static void ApplyGostDimensionStyleDefaults(DimStyleTableRecord dsr, ObjectId textStyleId)
     {
-        dsr.Dimtxsty = textStyleId;
-        dsr.Dimtxt = 2.5;
-        dsr.Dimasz = 2.5;
-        dsr.Dimtsz = 2.5;
-        dsr.Dimexe = 1.25;
-        dsr.Dimexo = 0.625;
-        dsr.Dimgap = 1.0;
-        dsr.Dimtad = 1;
-        dsr.Dimtih = false;
-        dsr.Dimtoh = false;
-        dsr.Dimtmove = 1;
-        dsr.Dimtfill = 0;
-        dsr.Dimscale = 1.0;
-        dsr.Dimlfac = 1.0;
-        dsr.Dimdec = 0;
+        dsr.Dimtxsty = textStyleId; // Ссылка на текстовый стиль 
+        dsr.Dimtxt = 2.5;  // Высота текста размерных надписей
+        dsr.Dimasz = 2.5;  // Размер стрелок
+        dsr.Dimtsz = 2.5;  // Высота текста размерных линий
+        dsr.Dimexe = 1.25; // Длина выносной линии
+        dsr.Dimexo = 0.5; // Смещение выносной линии
+        dsr.Dimgap = 1.0;  // Промежуток между текстом и линией размерной надписи
+        dsr.Dimtad = 1; // Выравнивание текста размерной надписи
+        dsr.Dimtih = false; // Вписать текст в размерную линию
+        dsr.Dimtoh = false; // Вписать текст в выносную линию
+        dsr.Dimtmove = 1; // Перемещение текста размерной надписи
+        dsr.Dimtfill = 0; // Заполнение текста размерной надписи
+        dsr.Dimscale = 1.0; // Масштаб размерной надписи
+        dsr.Dimlfac = 1.0; // Коэффициент длины линии
+        dsr.Dimdec = 0; // Количество знаков после запятой
         dsr.Annotative = AnnotativeStates.False;
     }
 
