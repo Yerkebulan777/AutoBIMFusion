@@ -94,25 +94,19 @@ internal static class StyleUnificationService
         // 1. ТЕКСТ
         dsr.Dimtxsty = textStyleId;
         dsr.Dimtxt = 2.5;
-        dsr.Dimclrt = Color.FromColorIndex(ColorMethod.ByBlock, 0);
         dsr.Dimtad = 1;
         dsr.Dimjust = 0;
         dsr.Dimgap = 1.0;
         dsr.Dimtih = false;
         dsr.Dimtoh = false;
         dsr.Dimtfill = 0;
-        dsr.Dimtfrac = 1.0;
 
         // 2. СИМВОЛЫ И СТРЕЛКИ
-        dsr.Dimasz = 1.25; // блок засечки масштабируется, визуальный результат = 2.5
+        dsr.Dimasz = 1.25;
         dsr.Dimtsz = 0.0;
         dsr.Dimsah = false;
-        dsr.Dimldrblk = ObjectId.Null;
-        dsr.Dimcen = -2.5;
 
         // 3. ЛИНИИ
-        dsr.Dimclrd = Color.FromColorIndex(ColorMethod.ByBlock, 0);
-        dsr.Dimclre = Color.FromColorIndex(ColorMethod.ByBlock, 0);
         dsr.Dimlwd = LineWeight.ByBlock;
         dsr.Dimlwe = LineWeight.ByBlock;
         dsr.Dimexe = 1.25;
@@ -153,13 +147,6 @@ internal static class StyleUnificationService
         dsr.Dimtzin = 8;
         dsr.Dimtolj = 1;
         dsr.Dimtfac = 1.0;
-
-        // 7. АЛЬТЕРНАТИВНЫЕ ЕДИНИЦЫ
-        dsr.Dimalt = false;
-        dsr.Dimaltu = 2;
-        dsr.Dimaltd = 2;
-        dsr.Dimaltf = 25.4;
-        dsr.Dimaltz = 8;
 
         // 8. АННОТАТИВНОСТЬ
         dsr.Annotative = AnnotativeStates.False;
