@@ -119,7 +119,7 @@ internal static class StyleUnificationService
         dsr.Dimtix = false;
         dsr.Dimsoxd = false;
         dsr.Dimupt = false;
-        dsr.Dimscale = 10.0;
+        dsr.Dimscale = 1.0;
 
         // 5. ОСНОВНЫЕ ЕДИНИЦЫ
         dsr.Dimlunit = 2;
