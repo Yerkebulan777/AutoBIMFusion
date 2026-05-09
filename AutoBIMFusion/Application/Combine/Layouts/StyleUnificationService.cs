@@ -104,7 +104,7 @@ internal static class StyleUnificationService
         dsr.Dimtfrac = 1.0;
 
         // 2. СИМВОЛЫ И СТРЕЛКИ
-        dsr.Dimasz = 2.5;
+        dsr.Dimasz = 1.25; // блок засечки масштабируется, визуальный результат = 2.5
         dsr.Dimtsz = 0.0;
         dsr.Dimsah = false;
         dsr.Dimldrblk = ObjectId.Null;
