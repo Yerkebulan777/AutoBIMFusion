@@ -130,6 +130,7 @@ internal static class DimensionStyleDiagnosticUtils
     private static Dictionary<ObjectId, DimensionStyleUsage> CollectDimensionStyleUsage(Database db, Transaction trx)
     {
         Dictionary<ObjectId, DimensionStyleUsage> usageByStyleId = [];
+
         AddDimensionStyleUsage(db.Dimstyle, null, usageByStyleId);
 
         BlockTable blockTable = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
