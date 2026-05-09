@@ -89,15 +89,6 @@ Archived command classes are excluded from builds but still exist under `Applica
 
 ---
 
-## Knowledge graph
-
-A pre-built graph (285 nodes, 528 edges) lives at `graphify-out/`.
-
-- Before architectural work, read `graphify-out/GRAPH_REPORT.md` (or navigate `graphify-out/wiki/index.md` if present).
-- After modifying code files, run `graphify update .` to keep the graph current (AST-only, no LLM cost).
-
----
-
 ## Skills
 
 Agentic skill guides are in `skills/`:
