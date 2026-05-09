@@ -22,7 +22,7 @@ AutoBIMFusion — плагин AutoCAD .NET для AutoCAD 2025-2027.
 2. `FileUtil`: собирает `.dwg` до 3 уровней вложенности, пропускает файлы с префиксом `#` и файлы больше 15 МБ, сортирует естественным порядком.
 3. `CombineOrchestrator`: проверяет DWG, готовит фоновую базу и вставляет результат в целевой чертеж.
 4. `ViewportLayoutExporter` / `LayoutProjectionProcessor`: открывают исходный DWG через `Database(false, true)`, переводят базу в millimeters/metric и переносят первый Paper Space Layout в Model Space.
-5. `DimensionStyleNormalizer`: создает viewport-специфичные размерные стили, очищает DSTYLE overrides и сохраняет визуальный масштаб размеров.
+5. `DimensionStyleNormalizer`: назначает скопированным размерам чистый AutoBIM-стиль, очищает DSTYLE overrides и сохраняет визуальный масштаб размеров.
 6. `BlockInserter`: клонирует объекты через `WblockCloneObjects` и раскладывает листы по оси X с зазором 10%.
 7. Финализация: копирование растров, снимок размерных стилей, `DwgOptimizer`, `SaveAs(DwgVersion.AC1032)`, `REGENALL`, `ZOOM EXTENTS`.
 

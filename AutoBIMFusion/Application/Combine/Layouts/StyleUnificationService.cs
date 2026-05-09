@@ -63,12 +63,14 @@ internal static class StyleUnificationService
         string dimStyleName = $"AutoBIM-{fontName}";
 
         DimStyleTable dst = (DimStyleTable)trx.GetObject(targetDb.DimStyleTableId, OpenMode.ForRead);
+        ObjectId textStyleId = GetOrCreateTextStyle(targetDb, trx, fontName);
+
         if (dst.Has(dimStyleName))
         {
-            return dst[dimStyleName];
+            DimStyleTableRecord existing = (DimStyleTableRecord)trx.GetObject(dst[dimStyleName], OpenMode.ForWrite);
+            ApplyGostDimensionStyleDefaults(existing, textStyleId);
+            return existing.ObjectId;
         }
-
-        ObjectId textStyleId = GetOrCreateTextStyle(targetDb, trx, fontName);
 
         if (!dst.IsWriteEnabled)
         {
@@ -77,28 +79,34 @@ internal static class StyleUnificationService
 
         DimStyleTableRecord dsr = new()
         {
-            Name = dimStyleName,
-            Dimtxsty = textStyleId,
-            Dimtxt = 2.5,
-            Dimasz = 2.5,
-            Dimtsz = 2.5,
-            Dimexe = 1.25,
-            Dimexo = 0.625,
-            Dimgap = 1.0,
-            Dimtad = 1,
-            Dimtih = true,
-            Dimtoh = true,
-            Dimtmove = 1,
-            Dimtfill = 0,
-            Dimscale = 1.0,
-            Dimlfac = 1.0,
-            Dimdec = 0,
-            Annotative = AnnotativeStates.False
+            Name = dimStyleName
         };
+
+        ApplyGostDimensionStyleDefaults(dsr, textStyleId);
 
         ObjectId id = dst.Add(dsr);
         trx.AddNewlyCreatedDBObject(dsr, true);
         return id;
+    }
+
+    private static void ApplyGostDimensionStyleDefaults(DimStyleTableRecord dsr, ObjectId textStyleId)
+    {
+        dsr.Dimtxsty = textStyleId;
+        dsr.Dimtxt = 2.5;
+        dsr.Dimasz = 2.5;
+        dsr.Dimtsz = 2.5;
+        dsr.Dimexe = 1.25;
+        dsr.Dimexo = 0.625;
+        dsr.Dimgap = 1.0;
+        dsr.Dimtad = 1;
+        dsr.Dimtih = false;
+        dsr.Dimtoh = false;
+        dsr.Dimtmove = 1;
+        dsr.Dimtfill = 0;
+        dsr.Dimscale = 1.0;
+        dsr.Dimlfac = 1.0;
+        dsr.Dimdec = 0;
+        dsr.Annotative = AnnotativeStates.False;
     }
 
     private static ObjectId GetOrCreateTextStyle(Database targetDb, Transaction trx, string fontName)
