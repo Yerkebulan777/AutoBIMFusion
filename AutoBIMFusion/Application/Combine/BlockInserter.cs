@@ -95,7 +95,7 @@ internal sealed class BlockInserter(double gapPercent, Logger log)
                 }
             }
 
-            DimensionCleanupHelper.UnifyClonedDimensions(map, targetTr, stdDimStyleId, targetVisualScale, linearScaleMultiplier);
+            DimensionStyleNormalizer.NormalizeClonedDimensions(map, targetTr, stdDimStyleId, targetVisualScale, linearScaleMultiplier);
 
             targetTr.Commit();
 

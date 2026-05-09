@@ -63,12 +63,14 @@ internal static class StyleUnificationService
         string dimStyleName = $"AutoBIM-{fontName}";
 
         DimStyleTable dst = (DimStyleTable)trx.GetObject(targetDb.DimStyleTableId, OpenMode.ForRead);
+        ObjectId textStyleId = GetOrCreateTextStyle(targetDb, trx, fontName);
+
         if (dst.Has(dimStyleName))
         {
-            return dst[dimStyleName];
+            DimStyleTableRecord existing = (DimStyleTableRecord)trx.GetObject(dst[dimStyleName], OpenMode.ForWrite);
+            ApplyGostDimensionStyleDefaults(existing, textStyleId);
+            return existing.ObjectId;
         }
-
-        ObjectId textStyleId = GetOrCreateTextStyle(targetDb, trx, fontName);
 
         if (!dst.IsWriteEnabled)
         {
@@ -77,28 +79,34 @@ internal static class StyleUnificationService
 
         DimStyleTableRecord dsr = new()
         {
-            Name = dimStyleName,
-            Dimtxsty = textStyleId,
-            Dimtxt = 2.5,
-            Dimasz = 2.5,
-            Dimtsz = 2.5,
-            Dimexe = 1.25,
-            Dimexo = 0.625,
-            Dimgap = 1.0,
-            Dimtad = 1,
-            Dimtih = true,
-            Dimtoh = true,
-            Dimtmove = 1,
-            Dimtfill = 0,
-            Dimscale = 1.0,
-            Dimlfac = 1.0,
-            Dimdec = 0,
-            Annotative = AnnotativeStates.False
+            Name = dimStyleName
         };
+
+        ApplyGostDimensionStyleDefaults(dsr, textStyleId);
 
         ObjectId id = dst.Add(dsr);
         trx.AddNewlyCreatedDBObject(dsr, true);
         return id;
+    }
+
+    private static void ApplyGostDimensionStyleDefaults(DimStyleTableRecord dsr, ObjectId textStyleId)
+    {
+        dsr.Dimtxsty = textStyleId; // Ссылка на текстовый стиль 
+        dsr.Dimtxt = 2.5;  // Высота текста размерных надписей
+        dsr.Dimasz = 2.5;  // Размер стрелок
+        dsr.Dimtsz = 2.5;  // Высота текста размерных линий
+        dsr.Dimexe = 1.25; // Длина выносной линии
+        dsr.Dimexo = 0.5; // Смещение выносной линии
+        dsr.Dimgap = 1.0;  // Промежуток между текстом и линией размерной надписи
+        dsr.Dimtad = 1; // Выравнивание текста размерной надписи
+        dsr.Dimtih = false; // Вписать текст в размерную линию
+        dsr.Dimtoh = false; // Вписать текст в выносную линию
+        dsr.Dimtmove = 1; // Перемещение текста размерной надписи
+        dsr.Dimtfill = 0; // Заполнение текста размерной надписи
+        dsr.Dimscale = 1.0; // Масштаб размерной надписи
+        dsr.Dimlfac = 1.0; // Коэффициент длины линии
+        dsr.Dimdec = 0; // Количество знаков после запятой
+        dsr.Annotative = AnnotativeStates.False;
     }
 
     private static ObjectId GetOrCreateTextStyle(Database targetDb, Transaction trx, string fontName)
