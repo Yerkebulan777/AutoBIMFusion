@@ -9,7 +9,10 @@ internal sealed record PreparedSourceDatabase(
     double TargetVisualScale,
     double LinearScaleMultiplier) : IDisposable
 {
-    public void Dispose() => Db.Dispose();
+    public void Dispose()
+    {
+        Db.Dispose();
+    }
 }
 
 /// <summary>

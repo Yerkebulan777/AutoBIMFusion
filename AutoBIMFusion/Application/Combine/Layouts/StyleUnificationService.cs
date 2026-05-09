@@ -22,7 +22,7 @@ internal static class StyleUnificationService
                 continue;
             }
 
-            allNames.Add(ts.Name);
+            _ = allNames.Add(ts.Name);
 
             if (ts.Name == "Standard" || ts.Name.StartsWith('*'))
             {
@@ -48,9 +48,9 @@ internal static class StyleUnificationService
                 ts.UpgradeOpen();
             }
 
-            allNames.Remove(ts.Name);
+            _ = allNames.Remove(ts.Name);
             ts.Name = newName;
-            allNames.Add(newName);
+            _ = allNames.Add(newName);
         }
     }
 
@@ -169,17 +169,9 @@ internal static class StyleUnificationService
 
     private static string ResolveBaseFontName(TextStyleTableRecord ts)
     {
-        if (!string.IsNullOrWhiteSpace(ts.FileName))
-        {
-            return Path.GetFileNameWithoutExtension(ts.FileName);
-        }
-
-        if (!string.IsNullOrWhiteSpace(ts.Font.TypeFace))
-        {
-            return ts.Font.TypeFace;
-        }
-
-        return ts.Name;
+        return !string.IsNullOrWhiteSpace(ts.FileName)
+            ? Path.GetFileNameWithoutExtension(ts.FileName)
+            : !string.IsNullOrWhiteSpace(ts.Font.TypeFace) ? ts.Font.TypeFace : ts.Name;
     }
 
     private static string MakeUnique(string candidate, HashSet<string> existing, string currentName)

@@ -58,12 +58,7 @@ internal static class CombineOrchestrator
                 }
             }
 
-            if (worldBounds is null)
-            {
-                return CombineResult.Fail(fileName, "Не удалось вставить объекты");
-            }
-
-            return CombineResult.Ok(fileName);
+            return worldBounds is null ? CombineResult.Fail(fileName, "Не удалось вставить объекты") : CombineResult.Ok(fileName);
         }
         catch (System.Exception ex)
         {
