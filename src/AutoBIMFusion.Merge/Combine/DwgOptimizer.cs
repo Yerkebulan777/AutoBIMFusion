@@ -2,7 +2,7 @@ using Serilog.Core;
 
 using AutoBIMFusion.AutoCAD.Helpers;
 
-namespace AutoBIMFusion.Merge;
+namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
 /// Выполняет глубокую программную очистку (Purge) базы данных DWG

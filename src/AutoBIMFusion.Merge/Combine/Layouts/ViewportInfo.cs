@@ -1,4 +1,4 @@
-namespace AutoBIMFusion.Merge.Layouts;
+namespace AutoBIMFusion.Merge.Combine.Layouts;
 
 /// <summary>
 /// Снимок Viewport'а с листа: положение на бумаге, параметры вида модели, масштаб.

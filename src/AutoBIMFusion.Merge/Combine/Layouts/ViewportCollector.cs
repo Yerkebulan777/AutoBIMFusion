@@ -1,4 +1,4 @@
-namespace AutoBIMFusion.Merge.Layouts;
+namespace AutoBIMFusion.Merge.Combine.Layouts;
 
 /// <summary>
 /// Перечисляет активные Viewport'ы указанного листа и собирает LayoutViewportInfo.

@@ -1,6 +1,6 @@
 using Serilog.Core;
 
-namespace AutoBIMFusion.Merge.Layouts;
+namespace AutoBIMFusion.Merge.Combine.Layouts;
 
 /// <summary>
 /// Захват и восстановление draw order (`SortentsTable`) при клонировании

@@ -1,4 +1,4 @@
-namespace AutoBIMFusion.Merge.Layouts;
+namespace AutoBIMFusion.Merge.Combine.Layouts;
 
 internal readonly record struct ViewportScaleNormalization(
     double WorkingCustomScale,

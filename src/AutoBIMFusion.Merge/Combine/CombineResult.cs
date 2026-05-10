@@ -1,6 +1,6 @@
 using AutoBIMFusion.AutoCAD.Helpers;
 
-namespace AutoBIMFusion.Merge;
+namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
 /// Результат слияния одного DWG-файла.

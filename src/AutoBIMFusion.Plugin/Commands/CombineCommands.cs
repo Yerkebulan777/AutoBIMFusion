@@ -1,6 +1,5 @@
 using AutoBIMFusion.AutoCAD.AcadSupport;
 using AutoBIMFusion.Merge;
-using AutoBIMFusion.Merge.Layouts;
 using AutoBIMFusion.AutoCAD;
 using AutoBIMFusion.AutoCAD.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
@@ -11,6 +10,8 @@ using System.Runtime.Versioning;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 using AutoBIMFusion.AutoCAD.Helpers;
+using AutoBIMFusion.Merge.Combine.Layouts;
+using AutoBIMFusion.Merge.Combine;
 
 namespace AutoBIMFusion.Plugin.Commands;
 

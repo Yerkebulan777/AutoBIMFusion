@@ -3,10 +3,9 @@ using Serilog.Core;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
-
 using AutoBIMFusion.AutoCAD.Helpers;
 
-namespace AutoBIMFusion.Merge.Layouts;
+namespace AutoBIMFusion.Merge.Combine.Layouts;
 
 /// <summary>
 /// Диагностические утилиты для логирования состояния размерных и текстовых стилей базы данных.

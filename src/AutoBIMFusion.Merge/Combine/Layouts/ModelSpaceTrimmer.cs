@@ -2,7 +2,7 @@ using Serilog.Core;
 
 using AutoBIMFusion.AutoCAD.Helpers;
 
-namespace AutoBIMFusion.Merge.Layouts;
+namespace AutoBIMFusion.Merge.Combine.Layouts;
 
 /// <summary>
 /// Удаляет из Model Space всё, что полностью лежит вне рамки-штампа (frameBounds).

@@ -1,8 +1,8 @@
 using Serilog.Core;
-
 using AutoBIMFusion.AutoCAD.Helpers;
+using AutoBIMFusion.Merge.Layouts;
 
-namespace AutoBIMFusion.Merge.Layouts;
+namespace AutoBIMFusion.Merge.Combine.Layouts;
 
 /// <summary>
 /// Утилита для разбиения (Explode) блоков, попадающих в границы видовых экранов,

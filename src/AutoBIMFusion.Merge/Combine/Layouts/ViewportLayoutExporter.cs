@@ -3,6 +3,7 @@ using Serilog.Core;
 using System.Runtime.Versioning;
 
 using AutoBIMFusion.AutoCAD.Helpers;
+using AutoBIMFusion.Merge.Combine.Layouts;
 
 namespace AutoBIMFusion.Merge.Layouts;
 

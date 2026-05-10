@@ -1,4 +1,4 @@
-namespace AutoBIMFusion.Merge;
+namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
 /// Статистика операции слияния DWG-файлов.
@@ -35,4 +35,3 @@ public sealed class CombineStatistics
         return $"Всего: {TotalFiles}, Успешно: {Successful}, Пропущено: {Skipped}, Ошибок: {Failed}";
     }
 }
-
