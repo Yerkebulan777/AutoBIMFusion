@@ -1,4 +1,4 @@
-using Autodesk.AutoCAD.ApplicationServices;
+using AutoBIMFusion.AutoCAD.Helpers;
 
 namespace AutoBIMFusion.Merge.Combine.Layouts;
 
@@ -39,8 +39,10 @@ internal static class StyleUnificationService
         foreach (ObjectId tsId in toRename)
         {
             TextStyleTableRecord ts = (TextStyleTableRecord)trx.GetObject(tsId, OpenMode.ForRead);
-            string newName = BuildStyleName(ts);
-            newName = MakeUnique(newName, allNames, ts.Name);
+
+            string newName = StyleUtils.BuildStyleName(ts);
+
+            newName = StyleUtils.MakeUnique(newName, allNames, ts.Name);
 
             if (StringComparer.OrdinalIgnoreCase.Equals(newName, ts.Name))
             {
@@ -66,8 +68,8 @@ internal static class StyleUnificationService
     internal static void ApplyGostToAllStyles(Database sourceDb, Transaction trx, string fontName = "ISOCPEUR")
     {
         DimStyleTable dst = (DimStyleTable)trx.GetObject(sourceDb.DimStyleTableId, OpenMode.ForRead);
-        ObjectId textStyleId = GetOrCreateTextStyle(sourceDb, trx, fontName);
-        ObjectId arrowBlockId = GetArrowBlockId(sourceDb, trx);
+        ObjectId textStyleId = StyleUtils.GetOrCreateTextStyle(sourceDb, trx, fontName);
+        ObjectId arrowBlockId = StyleUtils.GetArrowBlockId(sourceDb, trx);
 
         foreach (ObjectId dsId in dst)
         {
@@ -95,9 +97,9 @@ internal static class StyleUnificationService
         string dimStyleName = $"AutoBIM-{fontName}";
 
         DimStyleTable dst = (DimStyleTable)trx.GetObject(targetDb.DimStyleTableId, OpenMode.ForRead);
-        ObjectId textStyleId = GetOrCreateTextStyle(targetDb, trx, fontName);
+        ObjectId textStyleId = StyleUtils.GetOrCreateTextStyle(targetDb, trx, fontName);
 
-        ObjectId arrowBlockId = GetArrowBlockId(targetDb, trx);
+        ObjectId arrowBlockId = StyleUtils.GetArrowBlockId(targetDb, trx);
 
         if (dst.Has(dimStyleName))
         {
@@ -166,6 +168,7 @@ internal static class StyleUnificationService
         dsr.Dimrnd = 0.5;            // округление значения
         dsr.Dimlfac = 1.0;           // коэффициент масштаба единиц
         dsr.Dimzin = 8;              // подавление нулей
+        dsr.Dimgap = 0.5;            // отступ текста от линии (повтор, но для надежности)
         dsr.Dimaunit = 1;            // формат угловых единиц
         dsr.Dimadec = 0;             // точность углов
         dsr.Dimazin = 2;             // подавление нулей в углах
@@ -182,125 +185,5 @@ internal static class StyleUnificationService
 
         // 8. АННОТАТИВНОСТЬ
         dsr.Annotative = AnnotativeStates.False;
-    }
-
-    private static ObjectId GetOrCreateTextStyle(Database targetDb, Transaction trx, string fontName)
-    {
-        TextStyleTable tt = (TextStyleTable)trx.GetObject(targetDb.TextStyleTableId, OpenMode.ForRead);
-
-        if (tt.Has(fontName))
-        {
-            TextStyleTableRecord existing = (TextStyleTableRecord)trx.GetObject(tt[fontName], OpenMode.ForRead);
-            if (existing.TextSize > 0.0)
-            {
-                existing.UpgradeOpen();
-                existing.TextSize = 0.0;
-            }
-
-            return tt[fontName];
-        }
-
-        if (!tt.IsWriteEnabled)
-        {
-            tt.UpgradeOpen();
-        }
-
-        TextStyleTableRecord ts = new()
-        {
-            Name = fontName,
-            FileName = fontName + ".shx",
-            TextSize = 0.0
-        };
-
-        ObjectId id = tt.Add(ts);
-        trx.AddNewlyCreatedDBObject(ts, true);
-        return id;
-    }
-
-    /// <summary>
-    /// Метод для гарантированного получения ObjectId системного блока стрелки.
-    /// </summary>
-    public static ObjectId GetArrowBlockId(Database db, Transaction trx, string arrowName = "_ArchTick")
-    {
-        ObjectId arrObjId = db.Dimblk;
-
-        object obj = Application.GetSystemVariable("DIMBLK");
-
-        if (obj is string oldArrName && !string.IsNullOrEmpty(oldArrName))
-        {
-            try
-            {
-                Application.SetSystemVariable("DIMBLK", arrowName);
-            }
-            catch
-            {
-                return arrObjId;
-            }
-
-            if (!string.IsNullOrEmpty(oldArrName))
-            {
-                Application.SetSystemVariable("DIMBLK", oldArrName);
-            }
-
-            BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
-
-            if (bt.Has(arrowName))
-            {
-                arrObjId = bt[arrowName];
-            }
-        }
-
-        return arrObjId;
-    }
-
-    private static string BuildStyleName(TextStyleTableRecord ts)
-    {
-        string fontBase = ResolveBaseFontName(ts);
-
-        Autodesk.AutoCAD.GraphicsInterface.FontDescriptor font = ts.Font;
-
-        string heightPart = ts.TextSize > 0 ? ts.TextSize.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
-
-        string modifiers = (font.Bold ? "B" : string.Empty) + (font.Italic ? "I" : string.Empty);
-
-        string name = fontBase;
-
-        if (heightPart.Length > 0)
-        {
-            name += "-" + heightPart;
-        }
-
-        if (modifiers.Length > 0)
-        {
-            name += "-" + modifiers;
-        }
-
-        return string.IsNullOrWhiteSpace(name) ? "TextStyle" : name;
-    }
-
-    private static string ResolveBaseFontName(TextStyleTableRecord ts)
-    {
-        return !string.IsNullOrWhiteSpace(ts.FileName)
-            ? Path.GetFileNameWithoutExtension(ts.FileName)
-            : !string.IsNullOrWhiteSpace(ts.Font.TypeFace) ? ts.Font.TypeFace : ts.Name;
-    }
-
-    private static string MakeUnique(string candidate, HashSet<string> existing, string currentName)
-    {
-        if (!existing.Contains(candidate) || StringComparer.OrdinalIgnoreCase.Equals(candidate, currentName))
-        {
-            return candidate;
-        }
-
-        for (int i = 2; i < 1000; i++)
-        {
-            string suffixed = $"{candidate}_{i}";
-            if (!existing.Contains(suffixed))
-            {
-                return suffixed;
-            }
-        }
-
-        return candidate;
     }
 }

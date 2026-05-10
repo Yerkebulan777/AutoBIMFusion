@@ -1,5 +1,7 @@
 using Serilog.Core;
 
+using AutoBIMFusion.AutoCAD.Helpers;
+
 namespace AutoBIMFusion.Merge;
 
 /// <summary>

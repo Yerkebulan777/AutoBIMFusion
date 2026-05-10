@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using AutoBIMFusion.AutoCAD.AcadSupport;
 using Autodesk.AutoCAD.DatabaseServices;
 
+using AutoBIMFusion.AutoCAD.Helpers;
+
 namespace AutoBIMFusion.Merge.Layouts;
 
 internal static class DimensionStyleNormalizer

@@ -4,6 +4,8 @@ using System.Globalization;
 using System.Reflection;
 using System.Text;
 
+using AutoBIMFusion.AutoCAD.Helpers;
+
 namespace AutoBIMFusion.Merge.Layouts;
 
 /// <summary>

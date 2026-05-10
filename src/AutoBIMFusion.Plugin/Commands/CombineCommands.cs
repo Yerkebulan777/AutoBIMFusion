@@ -10,6 +10,8 @@ using System.Runtime.Versioning;
 
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
+using AutoBIMFusion.AutoCAD.Helpers;
+
 namespace AutoBIMFusion.Plugin.Commands;
 
 [SupportedOSPlatform("Windows")]

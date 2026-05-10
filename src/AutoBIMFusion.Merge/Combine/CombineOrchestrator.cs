@@ -4,6 +4,8 @@ using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
 using System.Runtime.Versioning;
 
+using AutoBIMFusion.AutoCAD.Helpers;
+
 namespace AutoBIMFusion.Merge;
 
 /// <summary>

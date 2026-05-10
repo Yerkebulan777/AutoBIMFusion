@@ -1,3 +1,5 @@
+using AutoBIMFusion.AutoCAD.Helpers;
+
 namespace AutoBIMFusion.Merge;
 
 /// <summary>
