@@ -44,6 +44,7 @@ internal static class DimensionStyleNormalizer
             dim.TextRotation = 0.0;
             dim.Dimscale = targetVisualScale;
             dim.Dimlfac = linearScaleMultiplier;
+            dim.ResetTextPosition();
             dim.RecomputeDimensionBlock(true);
         }
     }
