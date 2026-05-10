@@ -42,6 +42,7 @@ public sealed class BlockInserter(double gapPercent, Logger log)
             using (Transaction srcTrx = sourceDb.TransactionManager.StartTransaction())
             {
                 StyleUnificationService.NormalizeTextStyleNames(sourceDb, srcTrx);
+                StyleUnificationService.ApplyGostToAllStyles(sourceDb, srcTrx);
 
                 BlockTableRecord ms = (BlockTableRecord)srcTrx.GetObject(sourceMsId, OpenMode.ForRead);
                 foreach (ObjectId id in ms)

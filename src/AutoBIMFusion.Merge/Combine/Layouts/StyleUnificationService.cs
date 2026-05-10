@@ -55,6 +55,34 @@ internal static class StyleUnificationService
     }
 
     /// <summary>
+    /// Применяет параметры ГОСТ (высота текста, стрелки, отступы) ко всем размерным стилям
+    /// в ИСХОДНОЙ базе данных. Это заставляет AutoCAD автоматически пересчитать
+    /// свойство TextPosition (DXF 11) у всех размеров до того, как они будут клонированы.
+    /// </summary>
+    internal static void ApplyGostToAllStyles(Database sourceDb, Transaction trx, string fontName = "ISOCPEUR")
+    {
+        DimStyleTable dst = (DimStyleTable)trx.GetObject(sourceDb.DimStyleTableId, OpenMode.ForRead);
+        ObjectId textStyleId = GetOrCreateTextStyle(sourceDb, trx, fontName);
+        ObjectId arrowBlockId = GetArrowBlockId(sourceDb, trx);
+
+        foreach (ObjectId dsId in dst)
+        {
+            DimStyleTableRecord ds = (DimStyleTableRecord)trx.GetObject(dsId, OpenMode.ForRead);
+            if (ds.IsErased || ds.IsDependent)
+            {
+                continue;
+            }
+
+            if (!ds.IsWriteEnabled)
+            {
+                ds.UpgradeOpen();
+            }
+
+            ApplyGostDimensionStyle(ds, textStyleId, arrowBlockId);
+        }
+    }
+
+    /// <summary>
     /// Создаёт (или возвращает существующий) эталонный размерный стиль AutoBIM в целевой БД.
     /// TextSize связанного текстового стиля строго = 0.0 — иначе AutoCAD игнорирует Dimtxt.
     /// </summary>
@@ -263,4 +291,3 @@ internal static class StyleUnificationService
         return candidate;
     }
 }
-
