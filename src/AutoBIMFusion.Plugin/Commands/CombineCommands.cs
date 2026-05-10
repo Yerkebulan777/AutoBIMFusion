@@ -2,7 +2,7 @@ using AutoBIMFusion.AutoCAD.AcadSupport;
 using AutoBIMFusion.Merge;
 using AutoBIMFusion.Merge.Layouts;
 using AutoBIMFusion.AutoCAD;
-using AutoBIMFusion.Infrastructure.Logging;
+using AutoBIMFusion.AutoCAD.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
 using System.Diagnostics;

@@ -10,6 +10,7 @@ public static class UiDialogService
         folderPath = string.Empty;
 
         Type? dialogType = ResolveWinFormsType("System.Windows.Forms.FolderBrowserDialog");
+
         if (dialogType is null)
         {
             ShowMessage("Диалог выбора папки недоступен в текущем режиме AutoCAD.", "MERGEDWG");

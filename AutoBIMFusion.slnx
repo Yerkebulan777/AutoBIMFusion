@@ -11,13 +11,7 @@
     <Project Path="src/AutoBIMFusion.AutoCAD/AutoBIMFusion.AutoCAD.csproj">
         <Platform Project="x64" />
     </Project>
-    <Project Path="src/AutoBIMFusion.Infrastructure/AutoBIMFusion.Infrastructure.csproj">
-        <Platform Project="x64" />
-    </Project>
     <Project Path="src/AutoBIMFusion.Merge/AutoBIMFusion.Merge.csproj">
-        <Platform Project="x64" />
-    </Project>
-    <Project Path="src/AutoBIMFusion.Plugin/AutoBIMFusion.Plugin.csproj">
         <Platform Project="x64" />
     </Project>
 </Solution>

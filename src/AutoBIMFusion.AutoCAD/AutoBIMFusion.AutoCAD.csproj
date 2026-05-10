@@ -22,6 +22,7 @@
     <ItemGroup>
         <PackageReference Include="AutoCAD.NET" ExcludeAssets="runtime" />
         <PackageReference Include="Serilog" />
+        <PackageReference Include="Serilog.Sinks.File" />
     </ItemGroup>
 
 </Project>

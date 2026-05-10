@@ -77,7 +77,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\AutoBIMFusion.AutoCAD\AutoBIMFusion.AutoCAD.csproj" />
-        <ProjectReference Include="..\AutoBIMFusion.Infrastructure\AutoBIMFusion.Infrastructure.csproj" />
         <ProjectReference Include="..\AutoBIMFusion.Merge\AutoBIMFusion.Merge.csproj" />
     </ItemGroup>
 
@@ -90,7 +89,7 @@
         <PropertyGroup>
             <GeneratedPackageContentsPath>$(IntermediateOutputPath)PackageContents.xml</GeneratedPackageContentsPath>
             <BundleOutputDir>$(TargetDir)$(BundleName)</BundleOutputDir>
-            <BundleOutputContentsDir>$(BundleOutputDir)\Contents</BundleOutputContentsDir>
+            <BundleOutputContentsDir>$(BundleOutputDir)\Contents</BundleOutputDir>
             <AutoCADDeployRootDir Condition="'$(DeployForAllUsers)' == 'true'">$(AutoCADAllUsersPluginsDir)</AutoCADDeployRootDir>
             <AutoCADDeployRootDir Condition="'$(DeployForAllUsers)' != 'true'">$(AutoCADUserPluginsDir)</AutoCADDeployRootDir>
             <DeployBundleDir>$(AutoCADDeployRootDir)$(BundleName)</DeployBundleDir>
