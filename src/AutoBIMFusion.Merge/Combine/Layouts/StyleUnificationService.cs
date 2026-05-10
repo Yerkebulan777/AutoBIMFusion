@@ -217,17 +217,10 @@ internal static class StyleUnificationService
         return id;
     }
 
-    private static ObjectId GetArrowBlockId(Database db, Transaction trx)
-    {
-        BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
-
-        return bt.Has("_ArchTick") ? bt["_ArchTick"] : db.Dimblk;
-    }
-
     /// <summary>
     /// Метод для гарантированного получения ObjectId системного блока стрелки.
     /// </summary>
-    public static ObjectId GetArrowObjectId(Database db, Transaction trx, string arrowName)
+    public static ObjectId GetArrowBlockId(Database db, Transaction trx, string arrowName = "_ArchTick")
     {
         ObjectId arrObjId = db.Dimblk;
 
