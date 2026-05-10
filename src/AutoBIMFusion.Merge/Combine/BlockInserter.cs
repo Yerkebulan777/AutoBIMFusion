@@ -65,8 +65,6 @@ public sealed class BlockInserter(double gapPercent, Logger log)
 
             using Transaction targetTr = targetDb.TransactionManager.StartTransaction();
 
-            ObjectId stdDimStyleId = StyleUnificationService.GetOrCreateStandardDimensionStyle(targetDb, targetTr, "ISOCPEUR");
-
             using IdMapping map = new();
             using (new DatabaseUnitSyncScope(sourceDb, targetDb))
             {
@@ -95,7 +93,7 @@ public sealed class BlockInserter(double gapPercent, Logger log)
                 }
             }
 
-            DimensionStyleNormalizer.NormalizeClonedDimensions(map, targetTr, stdDimStyleId, targetVisualScale, linearScaleMultiplier);
+            DimensionStyleNormalizer.NormalizeClonedStyles(map, targetTr, targetVisualScale, linearScaleMultiplier);
 
             targetTr.Commit();
 
@@ -132,4 +130,3 @@ public sealed class BlockInserter(double gapPercent, Logger log)
         return new Point3d(insertX, -bounds.MinPoint.Y, 0);
     }
 }
-

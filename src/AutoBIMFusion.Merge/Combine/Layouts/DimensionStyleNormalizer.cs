@@ -1,75 +1,65 @@
+using System.Collections.Generic;
+using AutoBIMFusion.AutoCAD.AcadSupport;
+using Autodesk.AutoCAD.DatabaseServices;
+
 namespace AutoBIMFusion.Merge.Layouts;
 
 internal static class DimensionStyleNormalizer
 {
-    /// <summary>
-    /// Назначает эталонный стиль всем скопированным размерам и сбрасывает DSTYLE overrides.
-    /// Вызывать после TransformBy, чтобы RecomputeDimensionBlock использовал финальные координаты.
-    /// </summary>
-    internal static void NormalizeClonedDimensions(
+    internal static void NormalizeClonedStyles(
         IdMapping idMap,
         Transaction trx,
-        ObjectId targetDimStyleId,
         double targetVisualScale,
         double linearScaleMultiplier)
     {
-        DimStyleTableRecord styleRec = (DimStyleTableRecord)trx.GetObject(targetDimStyleId, OpenMode.ForRead);
-        HashSet<ObjectId> normalizedDimensions = [];
+        // Проход 1: патчим клонированные стили — размеры не трогаем
+        HashSet<ObjectId> clonedStyleIds = [];
 
         foreach (IdPair pair in idMap)
         {
             if (!pair.IsCloned || pair.Value.IsNull || pair.Value.IsErased)
-            {
                 continue;
-            }
 
-            if (!normalizedDimensions.Add(pair.Value))
+            DBObject obj = trx.GetObject(pair.Value, OpenMode.ForWrite, false);
+
+            switch (obj)
             {
-                continue;
+                // TextSize = 0 обязателен: иначе AutoCAD игнорирует Dimtxt
+                // и умножает TextSize напрямую на Dimscale → неверный масштаб текста
+                case TextStyleTableRecord ts:
+                    ts.TextSize = 0.0;
+                    break;
+
+                case DimStyleTableRecord ds:
+                    ds.Dimscale = targetVisualScale;
+                    ds.Dimlfac = linearScaleMultiplier;
+                    clonedStyleIds.Add(pair.Value);
+                    break;
             }
+        }
+
+        // Проход 2: для размеров чей стиль НЕ был клонирован
+        // применяем масштаб как per-dimension DVAR поверх существующего стиля
+        // SetDimstyleData здесь не вызываем — Dimtxt не меняется → TextPosition валидна
+        HashSet<ObjectId> processedDims = [];
+
+        foreach (IdPair pair in idMap)
+        {
+            if (!pair.IsCloned || !pair.IsPrimary || pair.Value.IsNull || pair.Value.IsErased)
+                continue;
+
+            if (!processedDims.Add(pair.Value))
+                continue;
 
             if (trx.GetObject(pair.Value, OpenMode.ForWrite, false) is not Dimension dim)
-            {
                 continue;
-            }
 
-            dim.DimensionStyle = targetDimStyleId;
-            dim.SetDimstyleData(styleRec);
+            if (clonedStyleIds.Contains(dim.DimensionStyle))
+                continue; // стиль уже пропатчен — размер унаследует правильный масштаб
 
-            dim.TextRotation = 0.0;
-            dim.Dimtmove = 0;
             dim.Dimscale = targetVisualScale;
             dim.Dimlfac = linearScaleMultiplier;
-            DimensionTextAnchor.AnchorTextToMidpoint(dim);
             dim.RecomputeDimensionBlock(true);
         }
-    }
-
-    /// <summary>
-    /// Полный сброс визуального состояния размера с применением нового стиля.
-    /// Не удаляет и не пересоздаёт объект — ObjectId и Handle сохраняются.
-    /// </summary>
-    internal static void HardResetDimensionStyle(ObjectId dimId, ObjectId newStyleId)
-    {
-        Database db = dimId.Database;
-        using Transaction trx = db.TransactionManager.StartTransaction();
-
-        if (trx.GetObject(dimId, OpenMode.ForWrite, false) is not Dimension dim)
-        {
-            trx.Commit();
-            return;
-        }
-
-        DimStyleTableRecord styleRec = (DimStyleTableRecord)trx.GetObject(newStyleId, OpenMode.ForRead);
-
-        dim.DimensionStyle = newStyleId;
-        dim.SetDimstyleData(styleRec);
-
-        dim.TextRotation = 0.0;
-        dim.Dimtmove = 0;
-        DimensionTextAnchor.AnchorTextToMidpoint(dim);
-        dim.RecomputeDimensionBlock(true);
-
-        trx.Commit();
     }
 }
