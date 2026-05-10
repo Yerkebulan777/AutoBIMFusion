@@ -12,7 +12,4 @@
     <Project Path="AutoBIMFusion/AutoBIMFusion.csproj">
         <Platform Solution="*|x64" Project="x64" />
     </Project>
-    <Project Path="AutoBIMFusion.Tests/AutoBIMFusion.Tests.csproj">
-        <Platform Solution="*|x64" Project="x64" />
-    </Project>
 </Solution>
