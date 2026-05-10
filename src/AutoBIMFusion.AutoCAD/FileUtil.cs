@@ -47,7 +47,9 @@ public static class FileUtil
     }
 
     /// <summary>
-    /// Проверяет доступность и структуру DWG.
+    /// Проверяет доступность файла и его ненулевой размер.
+    /// Структурная валидация DWG выполняется позже в PrepareDatabaseForMerge,
+    /// что исключает двойное открытие файла.
     /// </summary>
     public static bool TryValidateDwg(string path, out string warn)
     {
@@ -60,18 +62,12 @@ public static class FileUtil
 
         try
         {
-            using (FileStream fs = new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            if (new FileInfo(path).Length == 0)
             {
-                if (fs.Length == 0)
-                {
-                    warn = "Пустой файл";
-                    return false;
-                }
+                warn = "Пустой файл";
+                return false;
             }
 
-            using Database db = new(false, true);
-            db.ReadDwgFile(path, FileOpenMode.OpenForReadAndReadShare, true, string.Empty);
-            db.CloseInput(true);
             return true;
         }
         catch (System.Exception ex)
@@ -81,5 +77,3 @@ public static class FileUtil
         }
     }
 }
-
-

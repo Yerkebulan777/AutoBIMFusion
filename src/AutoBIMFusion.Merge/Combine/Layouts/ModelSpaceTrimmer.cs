@@ -71,9 +71,6 @@ internal static class ModelSpaceTrimmer
 
         using Transaction trx = db.TransactionManager.StartTransaction();
 
-        // Гарантируем актуальность границ всей БД перед началом фильтрации
-        db.UpdateExt(true);
-
         BlockTableRecord ms = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
 
         foreach (ObjectId id in ms)
@@ -113,4 +110,3 @@ internal static class ModelSpaceTrimmer
 
 
 }
-

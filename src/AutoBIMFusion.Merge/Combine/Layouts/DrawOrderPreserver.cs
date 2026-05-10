@@ -18,7 +18,9 @@ internal static class DrawOrderPreserver
             return [];
         }
 
-        HashSet<ObjectId> filter = [.. filterIds.Cast<ObjectId>()];
+        HashSet<ObjectId> filter = new(filterIds.Count);
+        foreach (ObjectId id in filterIds)
+            filter.Add(id);
 
         using Transaction trx = db.TransactionManager.StartTransaction();
         BlockTableRecord btr = (BlockTableRecord)trx.GetObject(sourceBtrId, OpenMode.ForRead);
@@ -103,4 +105,3 @@ internal static class DrawOrderPreserver
         log.Debug($"DrawOrderPreserver.Restore: reordered={orderedTargets.Count}, missingMapping={missingMapping}");
     }
 }
-
