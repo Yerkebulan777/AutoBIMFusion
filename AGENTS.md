@@ -19,6 +19,9 @@ dotnet build AutoBIMFusion.slnx -c DebugA26 /p:CoreConsoleDiagnostics=true
 
 # Smoke test
 dotnet run --project tests/AutoBIMFusion.Tests/AutoBIMFusion.Tests.csproj -c DebugA26
+
+# Unit tests
+dotnet test tests/AutoBIMFusion.Tests/AutoBIMFusion.Tests.csproj -c DebugA26
 ```
 
 Only `src/AutoBIMFusion.Plugin` creates and deploys the `.bundle` to `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`.
@@ -42,6 +45,10 @@ NuGet versions are centrally managed in `Directory.Packages.props`. `AutoCAD.NET
 
 - **Auto-load:** After build, launch AutoCAD — the plugin loads automatically from `%AppData%\Autodesk\ApplicationPlugins\`.
 - **Manual load:** AutoCAD command line → `NETLOAD` → select `AutoBIMFusion.dll`.
+- **Unit Tests:**
+  - Projects: `tests/AutoBIMFusion.Tests` targets `xUnit`.
+  - Execution: `dotnet test tests/AutoBIMFusion.Tests/AutoBIMFusion.Tests.csproj -c DebugA26`.
+  - Adding tests: Follow `xUnit` patterns. Tests for `AutoBIMFusion.Merge` internals are supported via `InternalsVisibleTo` in `src/AutoBIMFusion.Merge/AssemblyInfo.cs`.
 - **Headless diagnostic test:**
 
 ```powershell
@@ -91,7 +98,7 @@ src/
     └── Logging/                       ← Serilog wiring
 
 tests/
-└── AutoBIMFusion.Tests/               ← executable smoke-test
+└── AutoBIMFusion.Tests/               ← xUnit tests & executable smoke-test
 
 docs/                                  ← repo-level documentation
 ```
@@ -139,6 +146,9 @@ Layout internals should remain `internal` unless plugin orchestration requires a
 ---
 
 ## Skills
+
+- **Code Style:** Follow existing patterns. Use `internal` for logic not required by the Plugin. Use `using` scopes from `AutoBIMFusion.AutoCAD.AcadSupport` for AutoCAD state management (System variables, units).
+- **AutoCAD API:** Strictly main-thread only. Always use `DocumentLock` for database modifications.
 
 Agentic skill guides are in `skills/`:
 
