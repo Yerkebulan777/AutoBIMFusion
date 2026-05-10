@@ -91,7 +91,7 @@ public static class DwgOptimizer
         int erased = 0;
         foreach (ObjectId id in candidates)
         {
-            if (id.IsNull || id.IsErased)
+            if (!id.IsValidForOperation())
             {
                 continue;
             }
@@ -123,7 +123,7 @@ public static class DwgOptimizer
             SymbolTable table = (SymbolTable)trx.GetObject(tableId, OpenMode.ForRead);
             foreach (ObjectId id in table)
             {
-                if (!id.IsNull && !id.IsErased)
+                if (id.IsValidForOperation())
                 {
                     _ = target.Add(id);
                 }
@@ -148,7 +148,7 @@ public static class DwgOptimizer
             foreach (DBDictionaryEntry entry in dict)
             {
                 ObjectId id = entry.Value;
-                if (!id.IsNull && !id.IsErased)
+                if (id.IsValidForOperation())
                 {
                     _ = target.Add(id);
                 }

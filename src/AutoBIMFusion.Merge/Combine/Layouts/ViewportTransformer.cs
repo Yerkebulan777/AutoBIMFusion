@@ -39,13 +39,16 @@ internal static class ViewportTransformer
         Vector3d z = Vector3d.ZAxis;
         Point3d origin = Point3d.Origin;
 
+        // PaperFromAuxModel: tAux -> rAux -> sAux
         Matrix3d tAux = Matrix3d.Displacement(origin - aux.ViewCenter);
         Matrix3d rAux = Matrix3d.Rotation(-aux.ViewTwist, z, origin);
         Matrix3d sAux = Matrix3d.Scaling(aux.CustomScale, origin);
+
+        // MainModelFromPaper: tPaper -> sMain -> rMain -> tMain
+        Matrix3d tPaper = Matrix3d.Displacement(aux.CenterPaper - main.CenterPaper);
+        Matrix3d sMain = Matrix3d.Scaling(1.0 / main.CustomScale, origin);
         Matrix3d rMain = Matrix3d.Rotation(main.ViewTwist, z, origin);
         Matrix3d tMain = Matrix3d.Displacement(main.ViewCenter - origin);
-        Matrix3d sMain = Matrix3d.Scaling(1.0 / main.CustomScale, origin);
-        Matrix3d tPaper = Matrix3d.Displacement(aux.CenterPaper - main.CenterPaper);
 
         Matrix3d result = tMain * rMain * sMain * tPaper * sAux * rAux * tAux;
 
@@ -67,6 +70,7 @@ internal static class ViewportTransformer
         Vector3d z = Vector3d.ZAxis;
         Point3d origin = Point3d.Origin;
 
+        // PaperToMain: tPaper -> sMain -> rMain -> tMain
         Matrix3d tPaper = Matrix3d.Displacement(origin - main.CenterPaper);
         Matrix3d sMain = Matrix3d.Scaling(1.0 / main.CustomScale, origin);
         Matrix3d rMain = Matrix3d.Rotation(main.ViewTwist, z, origin);
@@ -206,7 +210,7 @@ internal static class ViewportTransformer
         using ObjectIdCollection validIds = [];
         foreach (ObjectId id in sourceIds)
         {
-            if (!id.IsNull && !id.IsErased)
+            if (id.IsValidForOperation())
             {
                 _ = validIds.Add(id);
             }
