@@ -1,9 +1,9 @@
 using Serilog.Core;
 
 using AutoBIMFusion.AutoCAD.Helpers;
-using AutoBIMFusion.Merge.Combine.Layouts;
+using AutoBIMFusion.Merge.Layouts;
 
-namespace AutoBIMFusion.Merge.Layouts;
+namespace AutoBIMFusion.Merge.Combine.Layouts;
 
 internal static class LayoutProjectionProcessor
 {
