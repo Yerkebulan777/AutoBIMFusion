@@ -70,7 +70,7 @@ internal static class StyleUnificationService
         if (dst.Has(dimStyleName))
         {
             DimStyleTableRecord existing = (DimStyleTableRecord)trx.GetObject(dst[dimStyleName], OpenMode.ForWrite);
-            ApplyGostDimensionStyleDefaults(existing, textStyleId, arrowBlockId);
+            ApplyGostDimensionStyle(existing, textStyleId, arrowBlockId);
             return existing.ObjectId;
         }
 
@@ -84,14 +84,14 @@ internal static class StyleUnificationService
             Name = dimStyleName
         };
 
-        ApplyGostDimensionStyleDefaults(dsr, textStyleId, arrowBlockId);
+        ApplyGostDimensionStyle(dsr, textStyleId, arrowBlockId);
 
         ObjectId id = dst.Add(dsr);
         trx.AddNewlyCreatedDBObject(dsr, true);
         return id;
     }
 
-    private static void ApplyGostDimensionStyleDefaults(DimStyleTableRecord dsr, ObjectId textStyleId, ObjectId arrowBlockId)
+    private static void ApplyGostDimensionStyle(DimStyleTableRecord dsr, ObjectId textStyleId, ObjectId arrowBlockId)
     {
         // 1. ТЕКСТ
         dsr.Dimtxsty = textStyleId;  // стиль текста размера
