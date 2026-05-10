@@ -29,4 +29,10 @@
         <DefineConstants>$(DefineConstants);ACAD2027</DefineConstants>
     </PropertyGroup>
 
+    <!-- Debug launch: start the matching AutoCAD version for attaching the debugger -->
+    <PropertyGroup Condition="'$(Configuration)' == 'DebugA25' Or '$(Configuration)' == 'DebugA26' Or '$(Configuration)' == 'DebugA27'">
+        <StartAction>Program</StartAction>
+        <StartProgram>C:\Program Files\Autodesk\AutoCAD $(AcadVersion)\acad.exe</StartProgram>
+    </PropertyGroup>
+
 </Project>
