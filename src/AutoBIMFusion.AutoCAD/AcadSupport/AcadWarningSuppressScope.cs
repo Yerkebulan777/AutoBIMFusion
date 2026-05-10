@@ -3,15 +3,27 @@ using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 namespace AutoBIMFusion.AutoCAD.AcadSupport;
 
 /// <summary>
-/// Базовый RAII-скоуп для временного изменения системных переменных AutoCAD.
-/// Гарантирует восстановление исходных значений при выходе из блока using,
-/// даже при возникновении исключений.
+/// Подавляет диалоги и предупреждения AutoCAD на время операции слияния.
+/// Устанавливает FILEDIA=0, CMDDIA=0, EXPERT=5, PROXYNOTICE=0,
+/// LAYEREVAL=0, LAYERNOTIFY=0, LAYOUTREGENCTL=0, VTENABLE=0.
 /// </summary>
-public abstract class SysVarScope : IDisposable
+public sealed class AcadWarningSuppressScope : IDisposable
 {
     private readonly List<(string Name, object? OldValue, bool IsSet)> _vars = [];
 
-    protected void Set(string name, object value)
+    public AcadWarningSuppressScope()
+    {
+        Set("FILEDIA", 0);
+        Set("CMDDIA", 0);
+        Set("EXPERT", 5);
+        Set("PROXYNOTICE", 0);
+        Set("LAYEREVAL", 0);
+        Set("LAYERNOTIFY", 0);
+        Set("LAYOUTREGENCTL", 0);
+        Set("VTENABLE", 0);
+    }
+
+    private void Set(string name, object value)
     {
         try
         {
@@ -42,26 +54,4 @@ public abstract class SysVarScope : IDisposable
         }
     }
 }
-
-/// <summary>
-/// Подавляет диалоги и предупреждения AutoCAD на время операции слияния.
-/// Устанавливает FILEDIA=0, CMDDIA=0, EXPERT=5, PROXYNOTICE=0,
-/// LAYEREVAL=0, LAYERNOTIFY=0, LAYOUTREGENCTL=0, VTENABLE=0.
-/// </summary>
-public sealed class AcadWarningSuppressScope : SysVarScope
-{
-    public AcadWarningSuppressScope()
-    {
-        Set("FILEDIA", 0);
-        Set("CMDDIA", 0);
-        Set("EXPERT", 5);
-        Set("PROXYNOTICE", 0);
-        Set("LAYEREVAL", 0);
-        Set("LAYERNOTIFY", 0);
-        Set("LAYOUTREGENCTL", 0);
-        Set("VTENABLE", 0);
-    }
-}
-
-
 

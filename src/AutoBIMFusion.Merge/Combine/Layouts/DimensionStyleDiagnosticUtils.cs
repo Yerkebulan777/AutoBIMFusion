@@ -143,7 +143,7 @@ public static class DimensionStyleDiagnosticUtils
             {
                 foreach (ObjectId entityId in block)
                 {
-                    if (!entityId.IsNull && !entityId.IsErased)
+                    if (entityId.IsValidForOperation())
                     {
                         if (trx.GetObject(entityId, OpenMode.ForRead, false) is Dimension dimension)
                         {
@@ -159,7 +159,7 @@ public static class DimensionStyleDiagnosticUtils
 
     private static void AddDimensionStyleUsage(ObjectId styleId, string? dimensionHandle, Dictionary<ObjectId, DimensionStyleUsage> usageByStyleId)
     {
-        if (styleId.IsNull || styleId.IsErased)
+        if (!styleId.IsValidForOperation())
         {
             return;
         }

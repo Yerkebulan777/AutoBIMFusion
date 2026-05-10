@@ -17,7 +17,7 @@ internal static class DimensionStyleNormalizer
 
         foreach (IdPair pair in idMap)
         {
-            if (!pair.IsCloned || pair.Value.IsNull || pair.Value.IsErased)
+            if (!pair.IsCloned || !pair.Value.IsValidForOperation())
                 continue;
 
             DBObject obj = trx.GetObject(pair.Value, OpenMode.ForWrite, false);
@@ -45,7 +45,7 @@ internal static class DimensionStyleNormalizer
 
         foreach (IdPair pair in idMap)
         {
-            if (!pair.IsCloned || !pair.IsPrimary || pair.Value.IsNull || pair.Value.IsErased)
+            if (!pair.IsCloned || !pair.IsPrimary || !pair.Value.IsValidForOperation())
                 continue;
 
             if (!processedDims.Add(pair.Value))

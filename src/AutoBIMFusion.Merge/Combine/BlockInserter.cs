@@ -48,7 +48,7 @@ public sealed class BlockInserter(double gapPercent, Logger log)
                 BlockTableRecord ms = (BlockTableRecord)srcTrx.GetObject(sourceMsId, OpenMode.ForRead);
                 foreach (ObjectId id in ms)
                 {
-                    if (!id.IsNull && !id.IsErased)
+                    if (id.IsValidForOperation())
                     {
                         _ = sourceIds.Add(id);
                     }
