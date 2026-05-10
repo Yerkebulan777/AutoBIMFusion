@@ -1,18 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<PlatformTarget>x64</PlatformTarget>
         <StartAction>Program</StartAction>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<TargetFramework>net8.0</TargetFramework>
+		<AssemblyTitle>AutoBIMFusion</AssemblyTitle>
         <StartProgram>C:\Program Files\Autodesk\AutoCAD $(AcadVersion)\acad.exe</StartProgram>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <PlatformTarget>x64</PlatformTarget>
-        <AssemblyTitle>AutoBIMFusion</AssemblyTitle>
         <Description>Плагин для пакетного объединения DWG-файлов в AutoCAD 2025-2027</Description>
+		<RepositoryUrl>https://github.com/Yerkebulan777/AutoBIMFusion</RepositoryUrl>
         <Company>AutoBIMFusion</Company>
         <Authors>Yerkebulan777</Authors>
         <Product>AutoBIMFusion</Product>
-        <RepositoryUrl>https://github.com/Yerkebulan777/AutoBIMFusion</RepositoryUrl>
         <Version>1.0.0</Version>
         <FileVersion>1.0.0.0</FileVersion>
         <AssemblyVersion>1.0.0.0</AssemblyVersion>
@@ -26,6 +26,7 @@
         <AutoCADUserPluginsDir>$(APPDATA)\Autodesk\ApplicationPlugins\</AutoCADUserPluginsDir>
         <AutoCADAllUsersPluginsDir>$(ProgramData)\Autodesk\ApplicationPlugins\</AutoCADAllUsersPluginsDir>
         <DeployForAllUsers>false</DeployForAllUsers>
+        <Platforms>AnyCPU;x64</Platforms>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(CoreConsoleDiagnostics)' == 'true'">

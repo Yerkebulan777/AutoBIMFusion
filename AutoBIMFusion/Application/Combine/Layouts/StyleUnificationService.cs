@@ -65,7 +65,7 @@ internal static class StyleUnificationService
         DimStyleTable dst = (DimStyleTable)trx.GetObject(targetDb.DimStyleTableId, OpenMode.ForRead);
         ObjectId textStyleId = GetOrCreateTextStyle(targetDb, trx, fontName);
 
-        ObjectId arrowBlockId = GetArrowBlockId(targetDb, trx, "_ArchTick");
+        ObjectId arrowBlockId = GetArrowBlockId(targetDb, trx);
 
         if (dst.Has(dimStyleName))
         {
@@ -94,63 +94,63 @@ internal static class StyleUnificationService
     private static void ApplyGostDimensionStyleDefaults(DimStyleTableRecord dsr, ObjectId textStyleId, ObjectId arrowBlockId)
     {
         // 1. ТЕКСТ
-        dsr.Dimtxsty = textStyleId;
-        dsr.Dimtxt = 2.5;
-        dsr.Dimtad = 1;
-        dsr.Dimjust = 0;
-        dsr.Dimgap = 0.5;
-        dsr.Dimtih = false;
-        dsr.Dimtoh = false;
-        dsr.Dimtfill = 0;
+        dsr.Dimtxsty = textStyleId;  // стиль текста размера
+        dsr.Dimtxt = 2.5;            // высота текста
+        dsr.Dimtad = 1;              // положение текста над размерной линией
+        dsr.Dimjust = 0;             // выравнивание текста по центру
+        dsr.Dimgap = 0.5;            // отступ текста от линии
+        dsr.Dimtih = false;          // текст внутри горизонтально
+        dsr.Dimtoh = false;          // текст снаружи горизонтально
+        dsr.Dimtfill = 0;            // фон текста: без заливки
 
         // 2. СИМВОЛЫ И СТРЕЛКИ
-        dsr.Dimasz = 1.25;
-        dsr.Dimtsz = 1.25;
-        dsr.Dimsah = true;
+        dsr.Dimasz = 1.25;           // размер стрелок
+        dsr.Dimtsz = 1.25;           // размер засечки
+        dsr.Dimsah = true;           // отдельные стрелки для концов
 
         if (!arrowBlockId.IsNull)
         {
-            dsr.Dimblk1 = arrowBlockId;
-            dsr.Dimblk2 = arrowBlockId;
+            dsr.Dimblk1 = arrowBlockId; // стрелка на 1-м конце
+            dsr.Dimblk2 = arrowBlockId; // стрелка на 2-м конце
         }
 
         // 3. ЛИНИИ
-        dsr.Dimexe = 1.5;
-        dsr.Dimexo = 1.5;
-        dsr.Dimdli = 5.0;
-        dsr.Dimdle = 3.0;
-        dsr.Dimfxlen = 0;
-        dsr.DimfxlenOn = false;
+        dsr.Dimexe = 1.5;            // вылет выносной линии за размерную
+        dsr.Dimexo = 1.5;            // отступ выносной от объекта
+        dsr.Dimdli = 5.0;            // шаг базовых размеров
+        dsr.Dimdle = 3.0;            // удлинение размерной линии
+        dsr.Dimfxlen = 0;            // фиксированная длина выносной
+        dsr.DimfxlenOn = false;      // фиксированная длина
 
         // 4. РАЗМЕЩЕНИЕ
-        dsr.Dimatfit = 3;
-        dsr.Dimtmove = 1;
-        dsr.Dimtofl = true;
-        dsr.Dimtix = false;
-        dsr.Dimsoxd = false;
-        dsr.Dimupt = false;
-        dsr.Dimscale = 1.0;
+        dsr.Dimatfit = 3;            // алгоритм подгонки текста/стрелок
+        dsr.Dimtmove = 1;            // поведение при переносе текста
+        dsr.Dimtofl = true;          // рисовать линию при тексте снаружи
+        dsr.Dimtix = false;          // принудительно внутри
+        dsr.Dimsoxd = false;         // подавление вне-размерных линий
+        dsr.Dimupt = false;          // пользовательское положение текста
+        dsr.Dimscale = 1.0;          // общий масштаб размера
 
         // 5. ОСНОВНЫЕ ЕДИНИЦЫ
-        dsr.Dimlunit = 2;
-        dsr.Dimdec = 0;
-        dsr.Dimdsep = ',';
-        dsr.Dimrnd = 0.0;
-        dsr.Dimlfac = 1.0;
-        dsr.Dimzin = 8;
-        dsr.Dimaunit = 0;
-        dsr.Dimadec = 0;
-        dsr.Dimazin = 2;
+        dsr.Dimlunit = 2;            // формат единиц: десятичный
+        dsr.Dimdec = 0;              // точность (знаков после запятой)
+        dsr.Dimdsep = ',';           // десятичный разделитель
+        dsr.Dimrnd = 0.5;            // округление значения
+        dsr.Dimlfac = 1.0;           // коэффициент масштаба единиц
+        dsr.Dimzin = 8;              // подавление нулей
+        dsr.Dimaunit = 1;            // формат угловых единиц
+        dsr.Dimadec = 0;             // точность углов
+        dsr.Dimazin = 2;             // подавление нулей в углах
 
         // 6. ДОПУСКИ
-        dsr.Dimtol = false;
-        dsr.Dimlim = false;
-        dsr.Dimtp = 0.0;
-        dsr.Dimtm = 0.0;
-        dsr.Dimtdec = 2;
-        dsr.Dimtzin = 8;
-        dsr.Dimtolj = 1;
-        dsr.Dimtfac = 1.0;
+        dsr.Dimtol = false;          // допуски
+        dsr.Dimlim = false;          // предельные отклонения
+        dsr.Dimtp = 0.0;             // верхний допуск
+        dsr.Dimtm = 0.0;             // нижний допуск
+        dsr.Dimtdec = 2;             // точность допусков
+        dsr.Dimtzin = 8;             // подавление нулей в допусках
+        dsr.Dimtolj = 1;             // выравнивание допусков
+        dsr.Dimtfac = 1.0;           // масштаб высоты допусков
 
         // 8. АННОТАТИВНОСТЬ
         dsr.Annotative = AnnotativeStates.False;
@@ -189,30 +189,45 @@ internal static class StyleUnificationService
         return id;
     }
 
-    private static ObjectId GetArrowBlockId(Database db, Transaction trx, string blockName)
+    private static ObjectId GetArrowBlockId(Database db, Transaction trx)
     {
         BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
-        if (bt.Has(blockName))
-            return bt[blockName];
 
-        // Принудить AutoCAD создать встроенный блок стрелки
-        db.Dimblk = blockName;
+        if (bt.Has("_ArchTick"))
+        {
+            Console.WriteLine("_ArchTick");
+            return bt["_ArchTick"];
+        }
 
-        return bt.Has(blockName) ? bt[blockName] : ObjectId.Null;
+        if (bt.Has("Двойная засечка"))
+        {
+            Console.WriteLine("Двойная засечка");
+            return bt["Двойная засечка"];
+        }
+
+        return db.Dimblk;
     }
 
     private static string BuildStyleName(TextStyleTableRecord ts)
     {
         string fontBase = ResolveBaseFontName(ts);
 
-        string heightPart = ts.TextSize > 1e-9
-            ? ts.TextSize.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)
-            : string.Empty;
+        string heightPart;
+
+        if (ts.TextSize > 0)
+        {
+            heightPart = ts.TextSize.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        }
+        else
+        {
+            heightPart = string.Empty;
+        }
 
         Autodesk.AutoCAD.GraphicsInterface.FontDescriptor font = ts.Font;
         string modifiers = (font.Bold ? "B" : string.Empty) + (font.Italic ? "I" : string.Empty);
 
         string name = fontBase;
+
         if (heightPart.Length > 0)
         {
             name += "-" + heightPart;
