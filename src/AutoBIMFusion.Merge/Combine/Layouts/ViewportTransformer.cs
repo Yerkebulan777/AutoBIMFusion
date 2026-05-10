@@ -118,7 +118,7 @@ internal static class ViewportTransformer
                 {
                     Extents3d? oldExt = ExtentsUtils.TryGetExtents(ent);
 
-                    EntityTransformUtils.TransformResult transformResult = EntityTransformUtils.TransformEntity(ent, matrix);
+                    EntityTransformUtils.TransformResult transformResult = EntityTransformUtils.TransformEntity(ent, matrix, trx);
 
                     if (transformResult.SkippedAssociativeHatch)
                     {
@@ -238,7 +238,7 @@ internal static class ViewportTransformer
                     {
                         try
                         {
-                            _ = EntityTransformUtils.TransformEntity(e, matrix);
+                            _ = EntityTransformUtils.TransformEntity(e, matrix, trx);
                             _ = result.ClonedIds.Add(pair.Value);
                         }
                         catch (System.Exception ex)
@@ -326,4 +326,3 @@ internal static class ViewportTransformer
         return erased;
     }
 }
-

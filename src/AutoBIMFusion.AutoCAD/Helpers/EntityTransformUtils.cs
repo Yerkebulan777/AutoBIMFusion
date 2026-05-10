@@ -8,7 +8,7 @@ public static class EntityTransformUtils
 {
     public readonly record struct TransformResult(bool Transformed, bool SkippedAssociativeHatch);
 
-    public static TransformResult TransformEntity(Entity entity, Matrix3d matrix)
+    public static TransformResult TransformEntity(Entity entity, Matrix3d matrix, Transaction trx = null)
     {
         if (entity is Hatch { Associative: true })
         {
@@ -25,6 +25,25 @@ public static class EntityTransformUtils
         {
             // Reset any explicit text rotation applied by the matrix transformation
             dim.TextRotation = 0.0;
+        }
+        else if (entity is BlockReference blockRef && trx != null)
+        {
+            foreach (ObjectId attrId in blockRef.AttributeCollection)
+            {
+                if (!attrId.IsNull && !attrId.IsErased)
+                {
+                    if (trx.GetObject(attrId, OpenMode.ForWrite) is AttributeReference attr)
+                    {
+                        // Принудительный пересчет ширины для многострочных атрибутов
+                        if (attr.IsMTextAttribute)
+                        {
+                            attr.UpdateMTextAttribute();
+                        }
+                        // Восстановление базового выравнивания после применения матрицы
+                        attr.AdjustAlignment(entity.Database);
+                    }
+                }
+            }
         }
 
         // Размеры получают Viewport-стиль и свой линейный масштаб до клонирования.
