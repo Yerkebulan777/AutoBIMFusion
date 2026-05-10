@@ -40,7 +40,7 @@ internal static class DimensionStyleNormalizer
             // Чистый стиль не даёт AutoCAD увести текст размера после пересчёта.
             dim.DimensionStyle = targetDimStyleId;
             ClearDimensionStyleOverrides(dim, trx);
-            // Поворот текста сбрасывается на ноль после удаления DSTYLE overrides.
+
             dim.TextRotation = 0.0;
             dim.Dimscale = targetVisualScale;
             dim.Dimlfac = linearScaleMultiplier;
