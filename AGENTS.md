@@ -1,6 +1,6 @@
 # AGENTS.md — AutoBIMFusion
 
-AutoCAD .NET plugin for AutoCAD 2025-2027. `AutoBIMFusion/AutoBIMFusion.csproj` targets `net8.0`, `x64`; `Directory.Build.props` contains a shared `net10.0-windows` value, but the project overrides it.
+AutoCAD .NET plugin for AutoCAD 2025-2027. The plugin project `src/AutoBIMFusion.Plugin/AutoBIMFusion.Plugin.csproj` targets `x64`; A25/A26 configurations target `net8.0`, while A27 targets `net10.0` because `AutoCAD.NET 26.x` does not support `net8.0`.
 Civil 3D and Plant 3D are verticals on the same base platform.
 
 ---
@@ -16,9 +16,12 @@ dotnet clean AutoBIMFusion.slnx -c DebugA26
 
 # Headless/core-console build (strips Ribbon/WPF for accoreconsole.exe)
 dotnet build AutoBIMFusion.slnx -c DebugA26 /p:CoreConsoleDiagnostics=true
+
+# Smoke test
+dotnet run --project tests/AutoBIMFusion.Tests/AutoBIMFusion.Tests.csproj -c DebugA26
 ```
 
-Every build deploys the `.bundle` to `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`.
+Only `src/AutoBIMFusion.Plugin` creates and deploys the `.bundle` to `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`.
 `dotnet clean` removes it. No manual copy needed.
 
 ---
@@ -38,7 +41,7 @@ NuGet versions are centrally managed in `Directory.Packages.props`. `AutoCAD.NET
 ## Running / testing
 
 - **Auto-load:** After build, launch AutoCAD — the plugin loads automatically from `%AppData%\Autodesk\ApplicationPlugins\`.
-- **Manual load:** AutoCAD command line → `NETLOAD` → select the built DLL.
+- **Manual load:** AutoCAD command line → `NETLOAD` → select `AutoBIMFusion.dll`.
 - **Headless diagnostic test:**
 
 ```powershell
@@ -47,7 +50,7 @@ NuGet versions are centrally managed in `Directory.Packages.props`. `AutoCAD.NET
 .\tools\Run-MergeDwgDiagTest.ps1 -SkipBuild
 ```
 
-This script builds a local core-console bundle and then tries to run `MERGEDWG_DIAG_TEST` via `accoreconsole.exe`. Logs are in `AutoBIMFusion\bin\DebugA26-core\diag\`.
+This script builds a local core-console bundle and then tries to run `MERGEDWG_DIAG_TEST` via `accoreconsole.exe`.
 Current code does not register `[CommandMethod("MERGEDWG_DIAG_TEST")]`; treat the script as a known broken diagnostic helper until the command is restored or the script is updated. Do not use it as an acceptance gate.
 
 There is **no CI pipeline**.
@@ -56,10 +59,12 @@ There is **no CI pipeline**.
 
 ## Hard constraints (never violate)
 
+- Public autoload names stay stable: `AutoBIMFusion.bundle`, `AutoBIMFusion.dll`, `./Contents/AutoBIMFusion.dll` in `PackageContents.xml`.
 - Never copy host DLLs to output. AutoCAD/Civil/Plant assemblies must use `ExcludeAssets="runtime"` (NuGet) or `<Private>false</Private>` (direct refs).
 - All AutoCAD API calls must stay on the main thread. The API is not thread-safe.
 - **`DocumentLock` required for every write:** `using (doc.LockDocument()) { ... }`
 - Entry points auto-registered via `[assembly: ExtensionApplication]` and `[assembly: CommandClass]` — no manual registration.
+- `MERGEDWG` stays in the plugin assembly so AutoCAD discovers it reliably.
 - Core-console/headless builds must compile without Ribbon/WPF code.
 - `CoreConsoleDiagnostics=true` excludes `AutoBIMFusionExtension.cs`, all `Ribbon/` code, and the WPF FrameworkReference from compilation.
 
@@ -67,25 +72,69 @@ There is **no CI pipeline**.
 
 ## Architecture
 
-Single project: `AutoBIMFusion/AutoBIMFusion.csproj`
+Multi-project solution:
 
+```text
+src/
+├── AutoBIMFusion.Plugin/
+│   ├── AutoBIMFusionExtension.cs      ← IExtensionApplication entry point
+│   ├── Commands/                      ← active command: MERGEDWG
+│   │   └── Archive/                   ← excluded commands
+│   ├── Ribbon/                        ← excluded when CoreConsoleDiagnostics=true
+│   └── Resources/
+├── AutoBIMFusion.Merge/
+│   └── Combine/                       ← CombineOrchestrator, BlockInserter, layouts, dimensions, optimizer
+├── AutoBIMFusion.AutoCAD/
+│   ├── AcadSupport/                   ← AutoCAD system-variable and unit scopes
+│   └── LayoutUtil, FileUtil, UiDialogService
+└── AutoBIMFusion.Infrastructure/
+    └── Logging/                       ← Serilog wiring
+
+tests/
+└── AutoBIMFusion.Tests/               ← executable smoke-test
+
+docs/                                  ← repo-level documentation
 ```
-AutoBIMFusion/
-├── Application/
-│   ├── AutoBIMFusionExtension.cs   ← IExtensionApplication entry point
-│   ├── Commands/                   ← active command: MERGEDWG
-│   │   └── Archive/                ← excluded commands: SMART_MERGE_TEXT, MERGE_TEXT_STYLES, JOIN_LINES, CREATE_ETRANSMIT_ZIP
-│   ├── Combine/                    ← CombineOrchestrator, BlockInserter, DwgOptimizer, …
-│   ├── Ribbon/                     ← excluded when CoreConsoleDiagnostics=true
-│   └── Utils/
-├── Infrastructure/Logging/         ← Serilog wiring (AILog is most-connected class)
-└── docs/                           ← TECHNICAL_DOCUMENTATION.md, ALGORITHM.md, KNOWN_ISSUES.md
+
+Dependency direction:
+
+```text
+AutoBIMFusion.Plugin -> AutoBIMFusion.Merge -> AutoBIMFusion.AutoCAD
+AutoBIMFusion.Plugin -> AutoBIMFusion.Infrastructure
+AutoBIMFusion.Merge  -> AutoBIMFusion.AutoCAD
+AutoBIMFusion.Tests  -> AutoBIMFusion.Merge
 ```
 
-High-blast-radius classes:
-`DimensionStyleDiagnosticUtils`, `DimensionStyleNormalizer`, `ExtentsUtils`, `ViewportTransformer`, `CombineCommands`, `LayoutProjectionProcessor`, `LoggerFactory`.
+High-blast-radius classes by project:
 
-Archived command classes are excluded from builds but still exist under `Application/Commands/Archive`.
+- `src/AutoBIMFusion.Plugin/Commands/CombineCommands.cs`
+- `src/AutoBIMFusion.Merge/Combine/CombineOrchestrator.cs`
+- `src/AutoBIMFusion.Merge/Combine/BlockInserter.cs`
+- `src/AutoBIMFusion.Merge/Combine/Layouts/LayoutProjectionProcessor.cs`
+- `src/AutoBIMFusion.Merge/Combine/Layouts/ViewportTransformer.cs`
+- `src/AutoBIMFusion.Merge/Combine/Layouts/DimensionStyleNormalizer.cs`
+- `src/AutoBIMFusion.Merge/Combine/Layouts/DimensionStyleDiagnosticUtils.cs`
+- `src/AutoBIMFusion.Merge/Combine/Layouts/ExtentsUtils.cs`
+- `src/AutoBIMFusion.Infrastructure/Logging/LoggerFactory.cs`
+
+Archived command classes are excluded from builds but remain under `src/AutoBIMFusion.Plugin/Commands/Archive`.
+
+---
+
+## Public module boundaries
+
+Keep public surface area narrow. Intended cross-project entry points are:
+
+- `AutoBIMFusion.Merge.CombineOrchestrator.MergeSingleFile(...)`
+- `AutoBIMFusion.Merge.BlockInserter`
+- `AutoBIMFusion.Merge.CombineStatistics`
+- `AutoBIMFusion.Merge.CombineResult`
+- `AutoBIMFusion.Merge.RasterImagePathFixer`
+- `AutoBIMFusion.Merge.DwgOptimizer`
+- `AutoBIMFusion.Infrastructure.Logging.LoggerFactory`
+- required helpers in `AutoBIMFusion.AutoCAD`
+
+Layout internals should remain `internal` unless plugin orchestration requires a public diagnostic hook. `AutoBIMFusion.Merge` exposes internals to `AutoBIMFusion.Tests`.
 
 ---
 

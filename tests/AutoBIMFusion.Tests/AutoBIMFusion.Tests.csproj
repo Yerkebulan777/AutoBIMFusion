@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework Condition="'$(Configuration)' != 'DebugA27' And '$(Configuration)' != 'ReleaseA27'">net8.0</TargetFramework>
+        <TargetFramework Condition="'$(Configuration)' == 'DebugA27' Or '$(Configuration)' == 'ReleaseA27'">net10.0</TargetFramework>
+        <OutputType>Exe</OutputType>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+        <Platforms>x64</Platforms>
+        <ModuleOutputPlatformSegment Condition="'$(Platform)' == 'x64'">x64\</ModuleOutputPlatformSegment>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ModuleProject Include="..\..\src\AutoBIMFusion.Merge\AutoBIMFusion.Merge.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Reference Include="AutoBIMFusion.AutoCAD">
+            <HintPath>..\..\src\AutoBIMFusion.AutoCAD\bin\$(ModuleOutputPlatformSegment)$(Configuration)\$(TargetFramework)\AutoBIMFusion.AutoCAD.dll</HintPath>
+            <Private>true</Private>
+        </Reference>
+        <Reference Include="AutoBIMFusion.Merge">
+            <HintPath>..\..\src\AutoBIMFusion.Merge\bin\$(ModuleOutputPlatformSegment)$(Configuration)\$(TargetFramework)\AutoBIMFusion.Merge.dll</HintPath>
+            <Private>true</Private>
+        </Reference>
+    </ItemGroup>
+
+    <Target Name="BuildModuleProjects" BeforeTargets="ResolveReferences">
+        <MSBuild Projects="@(ModuleProject)" Targets="Restore;Build" Properties="Configuration=$(Configuration);Platform=$(Platform)" BuildInParallel="false" />
+    </Target>
+
+</Project>

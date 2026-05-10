@@ -4,7 +4,42 @@ AutoBIMFusion — плагин AutoCAD .NET для AutoCAD 2025-2027.
 
 Активная команда `MERGEDWG` объединяет DWG-файлы из выбранной папки в текущий чертеж. Импортированная геометрия переносится в Model Space как редактируемые нативные объекты AutoCAD.
 
-Проект `AutoBIMFusion/AutoBIMFusion.csproj` собирается под `net8.0`, `x64`. Общий `Directory.Build.props` содержит `net10.0-windows`, но проект явно переопределяет `TargetFramework`.
+Публичные артефакты автозагрузки сохранены: bundle называется `AutoBIMFusion.bundle`, plugin assembly называется `AutoBIMFusion.dll`, а `PackageContents.xml` продолжает ссылаться на `./Contents/AutoBIMFusion.dll`.
+
+Конфигурации A25/A26 собираются под `net8.0`; A27 собирается под `net10.0`, потому что `AutoCAD.NET 26.x` не поддерживает `net8.0`.
+
+## Структура
+
+```text
+src/
+  AutoBIMFusion.Plugin/         # AutoCAD entrypoint, MERGEDWG, Ribbon, Resources, bundle/deploy targets
+  AutoBIMFusion.Merge/          # DWG merge pipeline: layouts, extents, dimensions, optimizer
+  AutoBIMFusion.AutoCAD/        # Общие AutoCAD helpers и scope-обертки
+  AutoBIMFusion.Infrastructure/ # Logging и инфраструктурные сервисы
+tests/
+  AutoBIMFusion.Tests/          # Executable smoke tests
+docs/
+  TECHNICAL_DOCUMENTATION.md
+  ALGORITHM.md
+  KNOWN_ISSUES.md
+  PROJECT_STRUCTURE.md
+```
+
+Зависимости идут в одну сторону:
+
+```text
+AutoBIMFusion.Plugin
+  -> AutoBIMFusion.Merge
+  -> AutoBIMFusion.AutoCAD
+
+AutoBIMFusion.Plugin
+  -> AutoBIMFusion.Infrastructure
+
+AutoBIMFusion.Tests
+  -> AutoBIMFusion.Merge
+```
+
+Архивные команды `SMART_MERGE_TEXT`, `MERGE_TEXT_STYLES`, `JOIN_LINES` и `CREATE_ETRANSMIT_ZIP` находятся в `src/AutoBIMFusion.Plugin/Commands/Archive` и исключены из компиляции. AutoCAD их не регистрирует.
 
 ## Команды
 
@@ -12,9 +47,7 @@ AutoBIMFusion — плагин AutoCAD .NET для AutoCAD 2025-2027.
 | :--- | :--- | :--- |
 | `MERGEDWG` | Рекурсивно находит DWG, экспортирует первый Layout каждого файла в Model Space и вставляет результат в текущий чертеж. | Да |
 
-Команды `SMART_MERGE_TEXT`, `MERGE_TEXT_STYLES`, `JOIN_LINES` и `CREATE_ETRANSMIT_ZIP` находятся в `Application/Commands/Archive` и исключены из компиляции. AutoCAD их не регистрирует.
-
-`tools/Run-MergeDwgDiagTest.ps1` вызывает `MERGEDWG_DIAG_TEST`, но такой команды в C# сейчас нет. Скрипт считается известной проблемой, а не acceptance test.
+`tools/Run-MergeDwgDiagTest.ps1` вызывает `MERGEDWG_DIAG_TEST`, но такой команды в C# сейчас нет. Скрипт считается известной нерабочей диагностикой, а не acceptance gate.
 
 ## Процесс слияния
 
@@ -40,9 +73,25 @@ dotnet clean AutoBIMFusion.slnx -c DebugA26
 
 Доступные конфигурации: `DebugA25`, `DebugA26`, `DebugA27`, `ReleaseA25`, `ReleaseA26`, `ReleaseA27`.
 
-Сборка автоматически создает и разворачивает bundle в `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`. `dotnet clean` удаляет развернутый bundle.
+Только `src/AutoBIMFusion.Plugin` создает и разворачивает `.bundle` в `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`. Остальные проекты являются class library и не деплоят AutoCAD bundle.
 
-### Версии пакетов
+Headless/core-console сборка:
+
+```powershell
+dotnet build AutoBIMFusion.slnx -c DebugA26 /p:CoreConsoleDiagnostics=true
+```
+
+`CoreConsoleDiagnostics=true` исключает `AutoBIMFusionExtension.cs`, весь `Ribbon/` и WPF framework reference.
+
+## Smoke test
+
+```powershell
+dotnet run --project tests/AutoBIMFusion.Tests/AutoBIMFusion.Tests.csproj -c DebugA26
+```
+
+Тестовый проект сейчас является executable smoke-test и ссылается на `AutoBIMFusion.Merge`. Для внутренних алгоритмов `AutoBIMFusion.Merge` открыт friend access через `InternalsVisibleTo("AutoBIMFusion.Tests")`.
+
+## Версии пакетов
 
 | AutoCAD | Config suffix | `AcadPackageVersion` | `AcadInteropPackageVersion` | Preprocessor |
 |---|---|---|---|---|
@@ -57,18 +106,11 @@ dotnet clean AutoBIMFusion.slnx -c DebugA26
 - `Serilog`: `4.0.0`
 - `Serilog.Sinks.File`: `6.0.0`
 
-## Headless diagnostics
-
-```powershell
-.\tools\Run-MergeDwgDiagTest.ps1
-.\tools\Run-MergeDwgDiagTest.ps1 -Configuration DebugA27 -AutoCADRoot "C:\Program Files\Autodesk\AutoCAD 2027"
-.\tools\Run-MergeDwgDiagTest.ps1 -SkipBuild
-```
-
-Скрипт строит core bundle с `/p:CoreConsoleDiagnostics=true`, разворачивает его в локальный output и запускает `accoreconsole.exe`. Сценарий сейчас нерабочий: команда `MERGEDWG_DIAG_TEST` не зарегистрирована.
+AutoCAD host DLLs не копируются в output и bundle: AutoCAD NuGet references используют `ExcludeAssets="runtime"`.
 
 ## Документация
 
-- [Техническое описание](AutoBIMFusion/docs/TECHNICAL_DOCUMENTATION.md)
-- [Алгоритм слияния](AutoBIMFusion/docs/ALGORITHM.md)
-- [Известные проблемы](AutoBIMFusion/docs/KNOWN_ISSUES.md)
+- [Структура проекта](docs/PROJECT_STRUCTURE.md)
+- [Техническое описание](docs/TECHNICAL_DOCUMENTATION.md)
+- [Алгоритм слияния](docs/ALGORITHM.md)
+- [Известные проблемы](docs/KNOWN_ISSUES.md)
