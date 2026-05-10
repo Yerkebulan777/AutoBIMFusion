@@ -37,14 +37,23 @@ internal static class DimensionStyleNormalizer
                 continue;
             }
 
-            // Чистый стиль не даёт AutoCAD увести текст размера после пересчёта.
-            dim.DimensionStyle = targetDimStyleId;
-            ClearDimensionStyleOverrides(dim, trx);
-
+            // 1. Возвращаем текст на дефолтную позицию ДО любых манипуляций со стилем.
+            // Обнуляет вектор пользовательского смещения в текущем масштабе стиля.
             dim.TextRotation = 0.0;
+            dim.UsingDefaultTextPosition = true;
+
+            // 2. Очистка оверрайдов, затем назначение чистого стиля.
+            ClearDimensionStyleOverrides(dim, trx);
+            dim.DimensionStyle = targetDimStyleId;
+
+            // 3. Масштабы.
             dim.Dimscale = targetVisualScale;
             dim.Dimlfac = linearScaleMultiplier;
+
+            // 4. Повторная фиксация позиции в координатах нового стиля + Z-защита.
             dim.UsingDefaultTextPosition = true;
+            if (dim.Elevation != 0.0) dim.Elevation = 0.0;
+
             dim.RecomputeDimensionBlock(true);
         }
     }
@@ -64,20 +73,25 @@ internal static class DimensionStyleNormalizer
             return;
         }
 
-        // Шаг 1: Очистка XData (ACAD/DSTYLE секции).
+        // Шаг 1: Возврат текста на место ДО смены стиля.
+        // Обнуляет вектор пользовательского смещения текста в текущем масштабе стиля.
+        // TextRotation должен обнуляться первым — иначе UsingDefaultTextPosition не сработает.
+        dim.TextRotation = 0.0;
+        dim.UsingDefaultTextPosition = true;
+
+        // Шаг 2: Очистка XData (ACAD/DSTYLE секции).
         RemoveDimensionStyleXDataOverrides(dim);
 
-        // Шаг 2: Удаление ACAD_DSTYLE из словаря расширений.
+        // Шаг 3: Удаление ACAD_DSTYLE из словаря расширений.
         RemoveAcadDstyleDictionaryEntry(dim, trx);
-
-        // Шаг 3: Сброс поворота текста — ручной TextRotation блокирует UsingDefaultTextPosition.
-        dim.TextRotation = 0.0;
 
         // Шаг 4: Назначение нового стиля.
         dim.DimensionStyle = newStyleId;
 
-        // Шаг 5: Возврат текста на базовую позицию.
+        // Шаг 5: Повторный возврат текста на базовую позицию уже в координатах нового стиля.
         dim.UsingDefaultTextPosition = true;
+        // Защита от улетания в Z-пространстве (Elevation bug).
+        if (dim.Elevation != 0.0) dim.Elevation = 0.0;
 
         // Шаг 6: Перестроение блока размера с финальными координатами.
         dim.RecomputeDimensionBlock(true);
