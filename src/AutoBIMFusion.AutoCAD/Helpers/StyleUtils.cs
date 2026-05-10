@@ -1,6 +1,4 @@
-﻿using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.GraphicsInterface;
+﻿using Autodesk.AutoCAD.GraphicsInterface;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace AutoBIMFusion.AutoCAD.Helpers;
@@ -90,8 +88,8 @@ public static class StyleUtils
         string fontBase = ResolveBaseFontName(ts);
         FontDescriptor font = ts.Font;
 
-        string heightPart = ts.TextSize > 0 
-            ? ts.TextSize.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) 
+        string heightPart = ts.TextSize > 0
+            ? ts.TextSize.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)
             : string.Empty;
 
         string modifiers = (font.Bold ? "B" : string.Empty) + (font.Italic ? "I" : string.Empty);

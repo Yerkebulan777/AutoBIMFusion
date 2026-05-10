@@ -8,7 +8,7 @@ public static class EntityTransformUtils
 {
     public readonly record struct TransformResult(bool Transformed, bool SkippedAssociativeHatch);
 
-    public static TransformResult TransformEntity(Entity entity, Matrix3d matrix, Transaction trx = null)
+    public static TransformResult TransformEntity(Entity entity, Matrix3d matrix, Transaction? trx = null)
     {
         if (entity is Hatch { Associative: true })
         {

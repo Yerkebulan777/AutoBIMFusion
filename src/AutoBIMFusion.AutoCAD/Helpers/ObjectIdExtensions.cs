@@ -9,5 +9,7 @@ public static class ObjectIdExtensions
     /// Проверяет, что ObjectId валиден для операций (не null и не удалён).
     /// </summary>
     public static bool IsValidForOperation(this ObjectId id)
-        => !id.IsNull && !id.IsErased;
+    {
+        return !id.IsNull && !id.IsErased;
+    }
 }
