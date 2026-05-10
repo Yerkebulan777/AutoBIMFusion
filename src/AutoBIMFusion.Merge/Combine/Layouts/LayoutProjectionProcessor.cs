@@ -24,6 +24,18 @@ internal static class LayoutProjectionProcessor
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
+        // Разбиваем блоки внутри всех окон видовых экранов до клонирования и масштабирования,
+        // чтобы текст внутри блоков не искажался при последующих трансформациях.
+        List<Extents3d> allWindows = [mainOriginal.ModelWindow];
+        foreach (ViewportInfo aux in viewports)
+        {
+            if (aux.VpId != mainOriginal.VpId)
+            {
+                allWindows.Add(aux.ModelWindow);
+            }
+        }
+        BlockExplodeUtils.ExplodeBlocksInWindows(db, msId, allWindows, log);
+
         if (viewports.Count > 1)
         {
             IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
