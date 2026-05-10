@@ -123,8 +123,8 @@ internal static class StyleUnificationService
         dsr.Dimtmove = 1;            // поведение при переносе текста
         dsr.Dimtofl = true;          // рисовать линию при тексте снаружи
         dsr.Dimtix = false;          // принудительно внутри
-        dsr.Dimsoxd = false;         // подавление вне-размерных линий
-        dsr.Dimupt = false;          // пользовательское положение текста
+        dsr.Dimsoxd = true;          // подавление вне-размерных линий
+        dsr.Dimupt = true;           // пользовательское положение текста
         dsr.Dimscale = 1.0;          // общий масштаб размера
 
         // 5. ОСНОВНЫЕ ЕДИНИЦЫ
