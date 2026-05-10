@@ -1,4 +1,6 @@
-namespace AutoBIMFusion.Merge.Layouts;
+using Autodesk.AutoCAD.ApplicationServices;
+
+namespace AutoBIMFusion.Merge.Combine.Layouts;
 
 internal static class StyleUnificationService
 {
@@ -11,12 +13,14 @@ internal static class StyleUnificationService
     {
         TextStyleTable tt = (TextStyleTable)trx.GetObject(sourceDb.TextStyleTableId, OpenMode.ForRead);
 
-        List<ObjectId> toRename = [];
         HashSet<string> allNames = new(StringComparer.OrdinalIgnoreCase);
+
+        List<ObjectId> toRename = [];
 
         foreach (ObjectId tsId in tt)
         {
             TextStyleTableRecord ts = (TextStyleTableRecord)trx.GetObject(tsId, OpenMode.ForRead);
+
             if (ts.IsErased || ts.IsDependent)
             {
                 continue;
@@ -217,36 +221,50 @@ internal static class StyleUnificationService
     {
         BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
 
-        if (bt.Has("_ArchTick"))
+        return bt.Has("_ArchTick") ? bt["_ArchTick"] : db.Dimblk;
+    }
+
+    /// <summary>
+    /// Метод для гарантированного получения ObjectId системного блока стрелки.
+    /// </summary>
+    public static ObjectId GetArrowObjectId(Database db, Transaction trx, string arrowName)
+    {
+        ObjectId arrObjId = db.Dimblk;
+
+        object obj = Application.GetSystemVariable("DIMBLK");
+
+        if (obj is string oldArrName && !string.IsNullOrEmpty(oldArrName))
         {
-            Console.WriteLine("_ArchTick");
-            return bt["_ArchTick"];
+            try
+            {
+                Application.SetSystemVariable("DIMBLK", arrowName);
+            }
+            catch
+            {
+                return arrObjId;
+            }
+
+            if (!string.IsNullOrEmpty(oldArrName))
+            {
+                Application.SetSystemVariable("DIMBLK", oldArrName);
+            }
+
+            BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
+
+            if (bt.Has(arrowName))
+            {
+                arrObjId = bt[arrowName];
+            }
         }
 
-        if (bt.Has("Двойная засечка"))
-        {
-            Console.WriteLine("Двойная засечка");
-            return bt["Двойная засечка"];
-        }
-
-        return db.Dimblk;
+        return arrObjId;
     }
 
     private static string BuildStyleName(TextStyleTableRecord ts)
     {
         string fontBase = ResolveBaseFontName(ts);
 
-        string heightPart;
-
-        if (ts.TextSize > 0)
-        {
-            heightPart = ts.TextSize.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
-        }
-        else
-        {
-            heightPart = string.Empty;
-        }
-
+        string heightPart = ts.TextSize > 0 ? ts.TextSize.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
         Autodesk.AutoCAD.GraphicsInterface.FontDescriptor font = ts.Font;
         string modifiers = (font.Bold ? "B" : string.Empty) + (font.Italic ? "I" : string.Empty);
 
