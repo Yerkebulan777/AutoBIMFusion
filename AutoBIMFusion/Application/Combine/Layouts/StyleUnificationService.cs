@@ -65,10 +65,12 @@ internal static class StyleUnificationService
         DimStyleTable dst = (DimStyleTable)trx.GetObject(targetDb.DimStyleTableId, OpenMode.ForRead);
         ObjectId textStyleId = GetOrCreateTextStyle(targetDb, trx, fontName);
 
+        ObjectId arrowBlockId = GetArrowBlockId(targetDb, trx, "_ArchTick");
+
         if (dst.Has(dimStyleName))
         {
             DimStyleTableRecord existing = (DimStyleTableRecord)trx.GetObject(dst[dimStyleName], OpenMode.ForWrite);
-            ApplyGostDimensionStyleDefaults(existing, textStyleId);
+            ApplyGostDimensionStyleDefaults(existing, textStyleId, arrowBlockId);
             return existing.ObjectId;
         }
 
@@ -82,14 +84,14 @@ internal static class StyleUnificationService
             Name = dimStyleName
         };
 
-        ApplyGostDimensionStyleDefaults(dsr, textStyleId);
+        ApplyGostDimensionStyleDefaults(dsr, textStyleId, arrowBlockId);
 
         ObjectId id = dst.Add(dsr);
         trx.AddNewlyCreatedDBObject(dsr, true);
         return id;
     }
 
-    private static void ApplyGostDimensionStyleDefaults(DimStyleTableRecord dsr, ObjectId textStyleId)
+    private static void ApplyGostDimensionStyleDefaults(DimStyleTableRecord dsr, ObjectId textStyleId, ObjectId arrowBlockId)
     {
         // 1. ТЕКСТ
         dsr.Dimtxsty = textStyleId;
@@ -105,6 +107,12 @@ internal static class StyleUnificationService
         dsr.Dimasz = 1.25;
         dsr.Dimtsz = 1.25;
         dsr.Dimsah = true;
+
+        if (!arrowBlockId.IsNull)
+        {
+            dsr.Dimblk1 = arrowBlockId;
+            dsr.Dimblk2 = arrowBlockId;
+        }
 
         // 3. ЛИНИИ
         dsr.Dimexe = 1.5;
@@ -179,6 +187,18 @@ internal static class StyleUnificationService
         ObjectId id = tt.Add(ts);
         trx.AddNewlyCreatedDBObject(ts, true);
         return id;
+    }
+
+    private static ObjectId GetArrowBlockId(Database db, Transaction trx, string blockName)
+    {
+        BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
+        if (bt.Has(blockName))
+            return bt[blockName];
+
+        // Принудить AutoCAD создать встроенный блок стрелки
+        db.Dimblk = blockName;
+
+        return bt.Has(blockName) ? bt[blockName] : ObjectId.Null;
     }
 
     private static string BuildStyleName(TextStyleTableRecord ts)
