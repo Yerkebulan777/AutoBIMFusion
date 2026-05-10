@@ -9,18 +9,15 @@
         <Platform Name="x64" />
     </Configurations>
     <Project Path="src/AutoBIMFusion.AutoCAD/AutoBIMFusion.AutoCAD.csproj">
-        <Platform Solution="*|x64" Project="x64" />
+        <Platform Project="x64" />
     </Project>
     <Project Path="src/AutoBIMFusion.Infrastructure/AutoBIMFusion.Infrastructure.csproj">
-        <Platform Solution="*|x64" Project="x64" />
+        <Platform Project="x64" />
     </Project>
     <Project Path="src/AutoBIMFusion.Merge/AutoBIMFusion.Merge.csproj">
-        <Platform Solution="*|x64" Project="x64" />
+        <Platform Project="x64" />
     </Project>
     <Project Path="src/AutoBIMFusion.Plugin/AutoBIMFusion.Plugin.csproj">
-        <Platform Solution="*|x64" Project="x64" />
-    </Project>
-    <Project Path="tests/AutoBIMFusion.Tests/AutoBIMFusion.Tests.csproj">
-        <Platform Solution="*|x64" Project="x64" />
+        <Platform Project="x64" />
     </Project>
 </Solution>
