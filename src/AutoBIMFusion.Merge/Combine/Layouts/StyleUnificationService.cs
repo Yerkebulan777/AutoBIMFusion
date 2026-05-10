@@ -264,8 +264,10 @@ internal static class StyleUnificationService
     {
         string fontBase = ResolveBaseFontName(ts);
 
-        string heightPart = ts.TextSize > 0 ? ts.TextSize.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
         Autodesk.AutoCAD.GraphicsInterface.FontDescriptor font = ts.Font;
+
+        string heightPart = ts.TextSize > 0 ? ts.TextSize.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+
         string modifiers = (font.Bold ? "B" : string.Empty) + (font.Italic ? "I" : string.Empty);
 
         string name = fontBase;
