@@ -40,7 +40,7 @@ internal static class DimensionStyleNormalizer
             dim.Dimtmove = 0;
             dim.Dimscale = targetVisualScale;
             dim.Dimlfac = linearScaleMultiplier;
-            dim.UsingDefaultTextPosition = true;
+            ResetTextPositionForce(dim);
 
             TouchControlPoints(dim);
             dim.RecomputeDimensionBlock(true);
@@ -69,12 +69,25 @@ internal static class DimensionStyleNormalizer
 
         dim.TextRotation = 0.0;
         dim.Dimtmove = 0;
-        dim.UsingDefaultTextPosition = true;
+        ResetTextPositionForce(dim);
 
         TouchControlPoints(dim);
         dim.RecomputeDimensionBlock(true);
 
         trx.Commit();
+    }
+
+    // AutoCAD игнорирует true, если флаг уже был включён после клонирования.
+    private static void ResetTextPositionForce(Dimension dim)
+    {
+        dim.UsingDefaultTextPosition = false;
+        dim.UsingDefaultTextPosition = true;
+
+        Point3d textPt = dim.TextPosition;
+        if (Math.Abs(textPt.Z) != 0)
+        {
+            dim.TextPosition = new Point3d(textPt.X, textPt.Y, 0);
+        }
     }
 
     // Форсирует пересчёт OCS/WCS — AutoCAD кэширует старую геометрию до явного переприсваивания точек.

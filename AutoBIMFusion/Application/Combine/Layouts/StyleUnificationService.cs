@@ -120,11 +120,11 @@ internal static class StyleUnificationService
 
         // 4. РАЗМЕЩЕНИЕ
         dsr.Dimatfit = 3;            // алгоритм подгонки текста/стрелок
-        dsr.Dimtmove = 1;            // поведение при переносе текста
+        dsr.Dimtmove = 0;            // авторазмещение без выносок при сбросе текста
         dsr.Dimtofl = true;          // рисовать линию при тексте снаружи
         dsr.Dimtix = false;          // принудительно внутри
         dsr.Dimsoxd = true;          // подавление вне-размерных линий
-        dsr.Dimupt = true;           // пользовательское положение текста
+        dsr.Dimupt = false;          // позицию текста рассчитывает AutoCAD
         dsr.Dimscale = 1.0;          // общий масштаб размера
 
         // 5. ОСНОВНЫЕ ЕДИНИЦЫ
