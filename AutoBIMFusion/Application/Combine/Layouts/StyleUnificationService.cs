@@ -107,12 +107,8 @@ internal static class StyleUnificationService
         dsr.Dimasz = 1.25;           // размер стрелок
         dsr.Dimtsz = 1.25;           // размер засечки
         dsr.Dimsah = true;           // отдельные стрелки для концов
-
-        if (!arrowBlockId.IsNull)
-        {
-            dsr.Dimblk1 = arrowBlockId; // стрелка на 1-м конце
-            dsr.Dimblk2 = arrowBlockId; // стрелка на 2-м конце
-        }
+        dsr.Dimblk1 = arrowBlockId;  // стрелка на 1-м конце
+        dsr.Dimblk2 = arrowBlockId;  // стрелка на 2-м конце
 
         // 3. ЛИНИИ
         dsr.Dimexe = 1.5;            // вылет выносной линии за размерную
