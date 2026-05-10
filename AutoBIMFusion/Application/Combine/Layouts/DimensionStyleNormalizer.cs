@@ -37,20 +37,20 @@ internal static class DimensionStyleNormalizer
                 continue;
             }
 
-            // 1. Возвращаем текст на дефолтную позицию ДО любых манипуляций со стилем.
-            // Обнуляет вектор пользовательского смещения в текущем масштабе стиля.
-            dim.TextRotation = 0.0;
-            dim.UsingDefaultTextPosition = true;
-
-            // 2. Очистка оверрайдов, затем назначение чистого стиля.
-            ClearDimensionStyleOverrides(dim, trx);
+            // 1. Назначаем стиль до очистки — AutoCAD не подтягивает значения старого стиля при очистке оверрайдов.
             dim.DimensionStyle = targetDimStyleId;
+            ClearDimensionStyleOverrides(dim, trx);
+
+            // 2. Сбрасываем правило перемещения текста и его поворот.
+            dim.Dimtmove = 0;
+            dim.TextRotation = 0.0;
 
             // 3. Масштабы.
             dim.Dimscale = targetVisualScale;
             dim.Dimlfac = linearScaleMultiplier;
 
-            // 4. Повторная фиксация позиции в координатах нового стиля + Z-защита.
+            // 4. Toggle hack: AutoCAD не обновляет позицию при простом true — нужно передёрнуть.
+            dim.UsingDefaultTextPosition = false;
             dim.UsingDefaultTextPosition = true;
             if (dim.Elevation != 0.0) dim.Elevation = 0.0;
 
@@ -79,19 +79,25 @@ internal static class DimensionStyleNormalizer
         dim.TextRotation = 0.0;
         dim.UsingDefaultTextPosition = true;
 
-        // Шаг 2: Очистка XData (ACAD/DSTYLE секции).
-        RemoveDimensionStyleXDataOverrides(dim);
+        // Шаг 2: Очистка всех переопределений стиля (XData и словарь расширений).
+        ClearDimensionStyleOverrides(dim, trx);
 
-        // Шаг 3: Удаление ACAD_DSTYLE из словаря расширений.
-        RemoveAcadDstyleDictionaryEntry(dim, trx);
+        // Шаг 3: Сброс поворота текста и правила его перемещения.
+        dim.TextRotation = 0.0;
+        dim.Dimtmove = 0;
 
         // Шаг 4: Назначение нового стиля.
         dim.DimensionStyle = newStyleId;
 
-        // Шаг 5: Повторный возврат текста на базовую позицию уже в координатах нового стиля.
+        // Шаг 5: Toggle hack — AutoCAD не обновляет позицию при простом true, нужно передёрнуть.
+        dim.UsingDefaultTextPosition = false;
         dim.UsingDefaultTextPosition = true;
-        // Защита от улетания в Z-пространстве (Elevation bug).
-        if (dim.Elevation != 0.0) dim.Elevation = 0.0;
+        // Явный сброс Z-координаты текста (Elevation bug).
+        Point3d textPos = dim.TextPosition;
+        if (textPos.Z != 0)
+        {
+            dim.TextPosition = new Point3d(textPos.X, textPos.Y, 0);
+        }
 
         // Шаг 6: Перестроение блока размера с финальными координатами.
         dim.RecomputeDimensionBlock(true);
