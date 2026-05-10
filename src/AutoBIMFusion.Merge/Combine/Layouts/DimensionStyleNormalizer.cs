@@ -54,12 +54,28 @@ internal static class DimensionStyleNormalizer
             if (trx.GetObject(pair.Value, OpenMode.ForWrite, false) is not Dimension dim)
                 continue;
 
-            if (clonedStyleIds.Contains(dim.DimensionStyle))
-                continue; // стиль уже пропатчен — размер унаследует правильный масштаб
+            bool needsRecompute = false;
 
-            dim.Dimscale = targetVisualScale;
-            dim.Dimlfac = linearScaleMultiplier;
-            dim.RecomputeDimensionBlock(true);
+            // 1. Force text rotation to 0 to remove any overrides
+            if (dim.TextRotation != 0.0)
+            {
+                dim.TextRotation = 0.0;
+                needsRecompute = true;
+            }
+
+            // 2. Apply scale overrides if the style was NOT cloned
+            if (!clonedStyleIds.Contains(dim.DimensionStyle))
+            {
+                dim.Dimscale = targetVisualScale;
+                dim.Dimlfac = linearScaleMultiplier;
+                needsRecompute = true;
+            }
+
+            // 3. Recompute if any changes were made
+            if (needsRecompute)
+            {
+                dim.RecomputeDimensionBlock(true);
+            }
         }
     }
 }

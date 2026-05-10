@@ -21,6 +21,11 @@ internal static class EntityTransformUtils
         {
             EvaluateHatch(hatch);
         }
+        else if (entity is Dimension dim)
+        {
+            // Reset any explicit text rotation applied by the matrix transformation
+            dim.TextRotation = 0.0;
+        }
 
         // Размеры получают Viewport-стиль и свой линейный масштаб до клонирования.
 
@@ -39,4 +44,3 @@ internal static class EntityTransformUtils
         }
     }
 }
-
