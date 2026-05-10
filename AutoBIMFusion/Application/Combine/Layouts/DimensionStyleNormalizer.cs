@@ -49,6 +49,42 @@ internal static class DimensionStyleNormalizer
         }
     }
 
+    /// <summary>
+    /// Полный сброс визуального состояния размера с применением нового стиля.
+    /// Не удаляет и не пересоздаёт объект — ObjectId и Handle сохраняются.
+    /// </summary>
+    internal static void HardResetDimensionStyle(ObjectId dimId, ObjectId newStyleId)
+    {
+        Database db = dimId.Database;
+        using Transaction trx = db.TransactionManager.StartTransaction();
+
+        if (trx.GetObject(dimId, OpenMode.ForWrite, false) is not Dimension dim)
+        {
+            trx.Commit();
+            return;
+        }
+
+        // Шаг 1: Очистка XData (ACAD/DSTYLE секции).
+        RemoveDimensionStyleXDataOverrides(dim);
+
+        // Шаг 2: Удаление ACAD_DSTYLE из словаря расширений.
+        RemoveAcadDstyleDictionaryEntry(dim, trx);
+
+        // Шаг 3: Сброс поворота текста — ручной TextRotation блокирует UsingDefaultTextPosition.
+        dim.TextRotation = 0.0;
+
+        // Шаг 4: Назначение нового стиля.
+        dim.DimensionStyle = newStyleId;
+
+        // Шаг 5: Возврат текста на базовую позицию.
+        dim.UsingDefaultTextPosition = true;
+
+        // Шаг 6: Перестроение блока размера с финальными координатами.
+        dim.RecomputeDimensionBlock(true);
+
+        trx.Commit();
+    }
+
     private static void ClearDimensionStyleOverrides(Dimension dim, Transaction trx)
     {
         // Overrides от WblockCloneObjects могут хранить неверный масштаб 304.8.
@@ -116,6 +152,35 @@ internal static class DimensionStyleNormalizer
         }
 
         return overrideIds.Count > 0;
+    }
+
+    private static void RemoveAcadDstyleDictionaryEntry(Dimension dim, Transaction trx)
+    {
+        if (dim.ExtensionDictionary.IsNull || dim.ExtensionDictionary.IsErased)
+        {
+            return;
+        }
+
+        // ACAD_DSTYLE хранит локальные переопределения стиля, которые AutoCAD применяет
+        // поверх DimensionStyle. Пока эта запись существует, смена стиля не даёт эффекта.
+        DBDictionary dict = (DBDictionary)trx.GetObject(
+            dim.ExtensionDictionary, OpenMode.ForWrite, false);
+
+        if (!dict.Contains(AcadDimensionStyleDictionaryPrefix))
+        {
+            return;
+        }
+
+        ObjectId removedId = dict.Remove(AcadDimensionStyleDictionaryPrefix);
+
+        if (!removedId.IsNull && !removedId.IsErased)
+        {
+            DBObject obj = trx.GetObject(removedId, OpenMode.ForWrite, false);
+            if (!obj.IsErased)
+            {
+                obj.Erase();
+            }
+        }
     }
 
     private static bool RemoveDimensionStyleOverrideSections(TypedValue[] values, out List<TypedValue> cleanedValues)
