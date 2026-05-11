@@ -1,4 +1,4 @@
-﻿using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 
 namespace SioForgeCAD.Commun.Mist
@@ -12,6 +12,7 @@ namespace SioForgeCAD.Commun.Mist
             using (Transaction tr = db.TransactionManager.StartTransaction())
             {
                 DBDictionary nod = (DBDictionary)tr.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
+
                 string myDictName = Generic.GetExtensionDLLName();
 
                 DBDictionary myDict;

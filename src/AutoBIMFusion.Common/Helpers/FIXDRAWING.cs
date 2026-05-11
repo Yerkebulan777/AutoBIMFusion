@@ -1,10 +1,7 @@
-﻿using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.EditorInput;
-using Autodesk.AutoCAD.Geometry;
 using SioForgeCAD.Commun;
 using SioForgeCAD.Commun.Extensions;
 
-namespace SioForgeCAD.Functions
+namespace AutoBIMFusion.Common.Helpers
 {
     public static class FIXDRAWING
     {
@@ -12,87 +9,104 @@ namespace SioForgeCAD.Functions
         {
             Editor ed = Generic.GetEditor();
             Database db = Generic.GetDatabase();
-            //Settings :
+
+            // Configure plot stamp settings
             Generic.Command("_-PLOTSTAMP", "_LOG", "_NO", "plot.log", "");
 
+            // Audit and correct drawing errors
+            Generic.Command("_AUDIT", "_YES");
 
-            //Audit
-            Generic.Command("_AUDIT", "_YES"); //Evaluates the integrity of a drawing and corrects some errors.
-
-            //Save current layout
+            // Save current layout
             LayoutManager lm = LayoutManager.Current;
-            var SavedCurrentLayout = lm.CurrentLayout;
+            string SavedCurrentLayout = lm.CurrentLayout;
 
-            //ModelSpace
-            Generic.WriteMessage("Modification des variables dans l'espace object...");
+            // Set ModelSpace settings
+            Generic.WriteMessage("Modifying variables in model space...");
             lm.SetCurrentLayoutId(ed.GetModelLayout().ObjectId);
             ApplyPreferedSystemVariable();
 
-            Generic.Command("_BASE", new Point3d(0, 0, 0)); //Sets the insertion base point for the current drawing.
+            // Set insertion base point to origin
+            Generic.Command("_BASE", new Point3d(0, 0, 0));
             Generic.Command("_SNAP", "_OFF");
-            Generic.Command("_INSUNITS", 6); //6 == Meters //Specifies a drawing-units value for automatic scaling of blocks, images, or xrefs when inserted or attached to a drawing. https://help.autodesk.com/view/ACD/2024/ENU/?guid=GUID-A58A87BB-482B-4042-A00A-EEF55A2B4FD8
+            // Set drawing units to meters
+            Generic.Command("_INSUNITS", 6);
             Generic.Command("_-UNITS", 2, 4, 1, 4, 0, "_NO");
             Generic.Command("_INSBASE", Point3d.Origin);
 
             db.SetAnnotativeScale("1:1", 1, 1);
 
-
-            //Layouts (for variables like PSLTSCALE
+            // Apply settings to all layouts
             foreach (Layout layout in ed.GetAllLayout())
             {
-                Generic.WriteMessage($"Modification des variables sur la présentation \"{layout.LayoutName}\"...");
+                Generic.WriteMessage($"Modifying variables on layout \"{layout.LayoutName}\"...");
                 lm.CurrentLayout = layout.LayoutName;
                 ApplyPreferedSystemVariable();
             }
 
-            //Reset current layout
+            // Restore previous layout
             lm.CurrentLayout = SavedCurrentLayout;
         }
 
-
+        /// <summary>
+        /// Applies a predefined set of system variable settings to ensure consistent drawing behavior and appearance.
+        /// </summary>
         public static void ApplyPreferedSystemVariable()
         {
-            Generic.SetSystemVariable("UCSFOLLOW", 0); //Generates a plan view whenever you change from one UCS to another.  
-            Generic.SetSystemVariable("UCSDETECT", 0);
-            Generic.SetSystemVariable("UCSICON", 3); //Le paramètre de cette variable système est spécifique à une fenêtre ou à une présentation. 3 = Actif: affiche l'icône SCU à l'origine, si possible.  https://help.autodesk.com/view/ACDLT/2026/FRA/?guid=GUID-BCC7DA63-7F74-4F61-8605-E36A010FD33A
-            Generic.SetSystemVariable("ROLLOVERTIPS", 0);
-            Generic.SetSystemVariable("QPMODE", -1);
-            Generic.SetSystemVariable("CETRANSPARENCY", -1); //Sets the transparency level for new objects. -1 (ByLayer) 
-            Generic.SetSystemVariable("FILLMODE", 1); //Specifies whether hatches and fills, 2D solids, and wide polylines are filled in. 
-            Generic.SetSystemVariable("XCOMPAREENABLE", 0);
-            Generic.SetSystemVariable("LINESMOOTHING", 1);
-            Generic.SetSystemVariable("HPASSOC", 1); //Controls whether hatches and fills are associative. 1=Hatches and fills are associated with their defining boundary objects and are updated when the boundary objects change
-            Generic.SetSystemVariable("DRAWORDERCTL", 3); //Controls the default display behavior of overlapping objects when they are created or edited. 
-            Generic.SetSystemVariable("SORTENTS", 127);//Controls object sorting in support of draw order for several operations. 
-            Generic.SetSystemVariable("WIPEOUTFRAME", 2); //Controls the display of frames for wipeout objects. 2 = Frames are displayed, but not plotted https://help.autodesk.com/view/ACD/2025/ENU/?guid=GUID-AF1A9E90-35FB-4A49-AA39-E3456B4F264D
-            Generic.SetSystemVariable("LINEFADING", 1);
-            Generic.SetSystemVariable("MEASUREMENT", 1);//Controls whether the current drawing uses imperial or metric hatch pattern and linetype files. 0 (imperial) or 1 (metric)
-            Generic.SetSystemVariable("MEASUREINIT", 1); //Controls whether a drawing you start from scratch uses imperial or metric default settings.  0 (imperial) or 1 (metric)
-            Generic.SetSystemVariable("INSUNITS", 6);//Specifies a drawing-units value for automatic scaling of blocks, images, or xrefs when inserted or attached to a drawing.  https://help.autodesk.com/view/ACD/2024/ENU/?guid=GUID-A58A87BB-482B-4042-A00A-EEF55A2B4FD8
-            Generic.SetSystemVariable("PICKADD", 2); //2 = Turns on PICKADD. Each object selected, either individually or by windowing, is added to the current selection set. If the SELECT command is used, keeps objects selected after the command ends.https://help.autodesk.com/view/ACD/2025/ENU/?guid=GUID-47C2A568-30EE-4F07-916F-884CDE25CBCA
-            Generic.SetSystemVariable("PICKAUTO", 5);
-            Generic.SetSystemVariable("HIDEXREFSCALES", 1);
-            Generic.SetSystemVariable("INDEXCTL", 0);
-            Generic.SetSystemVariable("LOCKUI", 0);
-            Generic.SetSystemVariable("UCSDETECT", 0);
+            // UCS settings
+            Generic.SetSystemVariable("UCSFOLLOW", 0);     // Disable plan view generation on UCS change
+            Generic.SetSystemVariable("UCSDETECT", 0);     // Disable automatic UCS detection
+            Generic.SetSystemVariable("UCSICON", 3);       // Show UCS icon at origin when active
 
-            Generic.SetSystemVariable("TRIMEXTENDMODE", 0); //Controls whether the TRIM and EXTEND commands use streamlined inputs. 0 = Standard operation https://help.autodesk.com/view/CIV3D/2024/ENU/?guid=GUID-52B3803E-FADC-4D7B-9BF2-A176C7FB7535
-            Generic.SetSystemVariable("EDGEMODE", 1);
-            Generic.SetSystemVariable("PSLTSCALE", 0); //Controls the linetype scaling of objects displayed in paper space viewports. 
-            Generic.SetSystemVariable("LTSCALE", 1); //Sets the global linetype scale factor. Use LTSCALE to change the scale factor of linetypes for all objects in a drawing
-            Generic.SetSystemVariable("CELTSCALE", 1); //Sets the current object linetype scaling factor. - Sets the linetype scaling for new objects relative to the LTSCALE command setting
-            Generic.SetSystemVariable("MSLTSCALE", 1); //Scales linetypes displayed on the model tab by the annotation scale. 
-            Generic.SetSystemVariable("HPSCALE", 1); //Scales linetypes displayed on the model tab by the annotation scale. 
-            Generic.SetSystemVariable("HIDEXREFSCALES", 1); //Determines whether scales contained in external references display in the annotative scale list for the current drawing. //1 (Scales don't display)
-            Generic.SetSystemVariable("VISRETAIN", 1); //Controls the properties of xref-dependent layers.  https://help.autodesk.com/view/ACDLT/2022/ENU/?guid=GUID-897B1672-4E09-42E0-B857-A9D1F96ED671
-            Generic.SetSystemVariable("XREFNOTIFY", 2); //Controls the notification for updated or missing xrefs. https://help.autodesk.com/view/ACDLT/2022/ENU/?guid=GUID-D97BECAD-2380-4CA3-896C-A6896BE112F7
-            Generic.SetSystemVariable("HPLAYER", "."); //Specifies a default layer for new hatches and fills in the current drawing.  https://help.autodesk.com/view/ACDLT/2023/ENU/?guid=GUID-8B64F625-7DD2-4264-8E59-3936F0992070
-            Generic.SetSystemVariable("FILEDIA", 1); //display of file navigation dialog boxes. https://help.autodesk.com/view/ACD/2024/ENU/?guid=GUID-99736BD7-E60E-4F4A-83F7-436B6F9C67A1
-            //Generic.SetSystemVariable("DYNMODE", 0); //Turns Dynamic Input features on and off. : 0=All Dynamic Input features, including dynamic prompts, off 
-            Generic.SetSystemVariable("DYNMODE", 3); //Turns Dynamic Input features on and off. 3 = Both pointer input and dimensional input on https://help.autodesk.com/view/ACD/2025/ENU/?guid=GUID-1ED138FF-2679-45C4-9C2C-332A821C9D12
+            // Interface and input settings
+            Generic.SetSystemVariable("ROLLOVERTIPS", 0);  // Disable rollover tooltips
+            Generic.SetSystemVariable("QPMODE", -1);       // Quick properties mode
+            Generic.SetSystemVariable("FILEDIA", 1);       // Enable file navigation dialog
+            Generic.SetSystemVariable("DYNMODE", 3);       // Enable pointer and dimensional input
 
-            Generic.SetSystemVariable("EPDFSHX", 0);
-            Generic.SetSystemVariable("PDFSHX", 0); //
+            // Object transparency and display
+            Generic.SetSystemVariable("CETRANSPARENCY", -1);      // Set transparency to ByLayer
+            Generic.SetSystemVariable("FILLMODE", 1);             // Enable hatches and fills
+            Generic.SetSystemVariable("XCOMPAREENABLE", 0);       // Disable external reference comparison
+            Generic.SetSystemVariable("LINESMOOTHING", 1);        // Enable line smoothing
+            Generic.SetSystemVariable("WIPEOUTFRAME", 2);         // Display wipeout frames (not plotted)
+
+            // Hatch and fill settings
+            Generic.SetSystemVariable("HPASSOC", 1);       // Make hatches associative with boundaries
+            Generic.SetSystemVariable("HPLAYER", ".");     // Use current layer for hatches
+            Generic.SetSystemVariable("HPSCALE", 1);       // Hatch pattern scale
+
+            // Draw order and sorting
+            Generic.SetSystemVariable("DRAWORDERCTL", 3);  // Control display order of overlapping objects
+            Generic.SetSystemVariable("SORTENTS", 127);    // Enable object sorting for draw order
+
+            // Linetype settings
+            Generic.SetSystemVariable("PSLTSCALE", 0);         // Disable linetype scaling in paper space
+            Generic.SetSystemVariable("LTSCALE", 1);           // Global linetype scale factor
+            Generic.SetSystemVariable("CELTSCALE", 1);         // Current linetype scale factor
+            Generic.SetSystemVariable("MSLTSCALE", 1);         // Model space linetype scale by annotation
+            Generic.SetSystemVariable("LINEFADING", 1);        // Enable line fading
+
+            // Units and measurement settings
+            Generic.SetSystemVariable("MEASUREMENT", 1);       // Use metric hatch patterns and linetypes
+            Generic.SetSystemVariable("MEASUREINIT", 1);       // Use metric defaults for new drawings
+            Generic.SetSystemVariable("INSUNITS", 6);          // Auto-scale inserted blocks to meters
+
+            // Selection and editing
+            Generic.SetSystemVariable("PICKADD", 2);           // Add selected objects to selection set
+            Generic.SetSystemVariable("PICKAUTO", 5);          // Auto-select mode
+            Generic.SetSystemVariable("TRIMEXTENDMODE", 0);    // Use standard TRIM/EXTEND operation
+            Generic.SetSystemVariable("EDGEMODE", 1);          // Edge mode for TRIM/EXTEND
+
+            // External reference and scale settings
+            Generic.SetSystemVariable("HIDEXREFSCALES", 1);    // Hide xref scales from annotation list
+            Generic.SetSystemVariable("VISRETAIN", 1);         // Retain xref-dependent layer properties
+            Generic.SetSystemVariable("XREFNOTIFY", 2);        // Notify about updated or missing xrefs
+            Generic.SetSystemVariable("INDEXCTL", 0);          // Disable drawing file indexing
+
+            // Lock and PDF settings
+            Generic.SetSystemVariable("LOCKUI", 0);            // Enable UI element repositioning
+            Generic.SetSystemVariable("EPDFSHX", 0);           // PDF shape settings
+            Generic.SetSystemVariable("PDFSHX", 0);            // PDF shape settings
         }
     }
 }
