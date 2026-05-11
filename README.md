@@ -14,7 +14,7 @@ AutoBIMFusion — плагин AutoCAD .NET для AutoCAD 2025-2027.
 src/
   AutoBIMFusion.Plugin/         # AutoCAD entrypoint, MERGEDWG, Ribbon, Resources, bundle/deploy targets
   AutoBIMFusion.Merge/          # DWG merge pipeline: layouts, extents, dimensions, optimizer
-  AutoBIMFusion.AutoCAD/        # Общие AutoCAD helpers и scope-обертки
+  AutoBIMFusion.Common/        # Общие AutoCAD helpers и scope-обертки
   AutoBIMFusion.Infrastructure/ # Logging и инфраструктурные сервисы
 tests/
   AutoBIMFusion.Tests/          # Executable smoke tests
@@ -30,7 +30,7 @@ docs/
 ```text
 AutoBIMFusion.Plugin
   -> AutoBIMFusion.Merge
-  -> AutoBIMFusion.AutoCAD
+  -> AutoBIMFusion.Common
 
 AutoBIMFusion.Plugin
   -> AutoBIMFusion.Infrastructure

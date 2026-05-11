@@ -1,8 +1,8 @@
-using AutoBIMFusion.AutoCAD.AcadSupport;
+using AutoBIMFusion.Common.AcadSupport;
 using AutoBIMFusion.Merge.Combine.Layouts;
 using Serilog.Core;
 
-using AutoBIMFusion.AutoCAD.Helpers;
+using AutoBIMFusion.Common.Helpers;
 
 namespace AutoBIMFusion.Merge;
 

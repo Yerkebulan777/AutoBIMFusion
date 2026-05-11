@@ -76,7 +76,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\AutoBIMFusion.AutoCAD\AutoBIMFusion.AutoCAD.csproj" />
+        <ProjectReference Include="..\AutoBIMFusion.Common\AutoBIMFusion.Common.csproj" />
         <ProjectReference Include="..\AutoBIMFusion.Merge\AutoBIMFusion.Merge.csproj" />
     </ItemGroup>
 

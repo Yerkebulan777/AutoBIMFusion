@@ -1,10 +1,10 @@
 using AutoBIMFusion.Merge.Layouts;
-using AutoBIMFusion.AutoCAD;
+using AutoBIMFusion.Common;
 using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
 using System.Runtime.Versioning;
 
-using AutoBIMFusion.AutoCAD.Helpers;
+using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Merge.Combine.Layouts;
 using AutoBIMFusion.Merge.Combine;
 

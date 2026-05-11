@@ -25,7 +25,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\AutoBIMFusion.AutoCAD\AutoBIMFusion.AutoCAD.csproj" />
+        <ProjectReference Include="..\AutoBIMFusion.Common\AutoBIMFusion.Common.csproj" />
     </ItemGroup>
 
 </Project>

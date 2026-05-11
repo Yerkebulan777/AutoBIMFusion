@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using AutoBIMFusion.AutoCAD.AcadSupport;
+using AutoBIMFusion.Common.AcadSupport;
 using Autodesk.AutoCAD.DatabaseServices;
 
-using AutoBIMFusion.AutoCAD.Helpers;
+using AutoBIMFusion.Common.Helpers;
 
 namespace AutoBIMFusion.Merge.Combine.Layouts;
 

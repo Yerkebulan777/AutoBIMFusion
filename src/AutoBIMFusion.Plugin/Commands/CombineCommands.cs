@@ -1,17 +1,16 @@
-using AutoBIMFusion.AutoCAD.AcadSupport;
+using AutoBIMFusion.Common.AcadSupport;
 using AutoBIMFusion.Merge;
-using AutoBIMFusion.AutoCAD;
-using AutoBIMFusion.AutoCAD.Logging;
+using AutoBIMFusion.Common;
+using AutoBIMFusion.Merge.Combine;
+using AutoBIMFusion.Common.Helpers;
+using AutoBIMFusion.Common.Logging;
+using AutoBIMFusion.Merge.Combine.Layouts;
 using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
 using System.Diagnostics;
 using System.Runtime.Versioning;
 
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
-
-using AutoBIMFusion.AutoCAD.Helpers;
-using AutoBIMFusion.Merge.Combine.Layouts;
-using AutoBIMFusion.Merge.Combine;
 
 namespace AutoBIMFusion.Plugin.Commands;
 

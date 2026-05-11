@@ -28,7 +28,7 @@ src/
   AutoBIMFusion.Merge/
     Combine/
       Layouts/
-  AutoBIMFusion.AutoCAD/
+  AutoBIMFusion.Common/
     AcadSupport/
     FileUtil.cs
     LayoutUtil.cs
@@ -47,7 +47,7 @@ docs/
 |---|---|---|
 | `AutoBIMFusion.Plugin` | AutoCAD plugin | Entry point, `[CommandMethod]`, Ribbon, Resources, bundle/deploy MSBuild targets |
 | `AutoBIMFusion.Merge` | Class library | Pipeline объединения DWG, layout projection, dimensions, raster path fixing, optimizer |
-| `AutoBIMFusion.AutoCAD` | Class library | Общие AutoCAD helpers, file/layout helpers, system-variable scopes |
+| `AutoBIMFusion.Common` | Class library | Общие AutoCAD helpers, file/layout helpers, system-variable scopes |
 | `AutoBIMFusion.Infrastructure` | Class library | Serilog wiring и инфраструктурные сервисы |
 | `AutoBIMFusion.Tests` | Executable | Smoke-test для алгоритмов без запуска AutoCAD UI |
 
@@ -56,13 +56,13 @@ docs/
 ```text
 AutoBIMFusion.Plugin
   -> AutoBIMFusion.Merge
-  -> AutoBIMFusion.AutoCAD
+  -> AutoBIMFusion.Common
 
 AutoBIMFusion.Plugin
   -> AutoBIMFusion.Infrastructure
 
 AutoBIMFusion.Merge
-  -> AutoBIMFusion.AutoCAD
+  -> AutoBIMFusion.Common
 
 AutoBIMFusion.Tests
   -> AutoBIMFusion.Merge
@@ -94,8 +94,8 @@ AutoBIMFusion.Tests
 | `BlockInserter` | `AutoBIMFusion.Merge` | `WblockCloneObjects` + расстановка по оси X |
 | `RasterImagePathFixer` | `AutoBIMFusion.Merge` | Копирование растров и перевод путей в относительные |
 | `DwgOptimizer` | `AutoBIMFusion.Merge` | Многопроходный `Database.Purge` |
-| `FileUtil` | `AutoBIMFusion.AutoCAD` | DWG enumeration, natural sort, file validation |
-| `LayoutUtil` | `AutoBIMFusion.AutoCAD` | Поиск Paper Space layouts и layout helpers |
+| `FileUtil` | `AutoBIMFusion.Common` | DWG enumeration, natural sort, file validation |
+| `LayoutUtil` | `AutoBIMFusion.Common` | Поиск Paper Space layouts и layout helpers |
 | `LoggerFactory` | `AutoBIMFusion.Infrastructure` | Общий Serilog logger для plugin runtime |
 
 ## 6. Merge pipeline

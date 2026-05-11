@@ -1,6 +1,6 @@
 # Legacy unit-mismatch workarounds
 
-Архив старых обходов проблемы скрытого масштабирования AutoCAD при `WblockCloneObjects` между базами с разными `Insunits`/`Measurement`. Все фрагменты заменены единым `DatabaseUnitSyncScope` (`src/AutoBIMFusion.AutoCAD/AcadSupport/DatabaseUnitSyncScope.cs`), дата 2026-05-07.
+Архив старых обходов проблемы скрытого масштабирования AutoCAD при `WblockCloneObjects` между базами с разными `Insunits`/`Measurement`. Все фрагменты заменены единым `DatabaseUnitSyncScope` (`src/AutoBIMFusion.Common/AcadSupport/DatabaseUnitSyncScope.cs`), дата 2026-05-07.
 
 Пути в исторических фрагментах ниже оставлены как архивный контекст до модульного рефакторинга 2026-05-10.
 

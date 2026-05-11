@@ -14,7 +14,7 @@ A25/A26 конфигурации используют `net8.0`; A27 исполь
 src/
   AutoBIMFusion.Plugin/
   AutoBIMFusion.Merge/
-  AutoBIMFusion.AutoCAD/
+  AutoBIMFusion.Common/
   AutoBIMFusion.Infrastructure/
 tests/
   AutoBIMFusion.Tests/
@@ -24,7 +24,7 @@ tests/
 |---|---|---|
 | `src/AutoBIMFusion.Plugin` | `AutoBIMFusion.dll` | AutoCAD plugin assembly: extension application, command classes, Ribbon, bundle packaging |
 | `src/AutoBIMFusion.Merge` | `AutoBIMFusion.Merge.dll` | DWG merge pipeline and layout algorithms |
-| `src/AutoBIMFusion.AutoCAD` | `AutoBIMFusion.AutoCAD.dll` | Shared AutoCAD helpers and scopes |
+| `src/AutoBIMFusion.Common` | `AutoBIMFusion.Common.dll` | Shared AutoCAD helpers and scopes |
 | `src/AutoBIMFusion.Infrastructure` | `AutoBIMFusion.Infrastructure.dll` | Logging and infrastructure code |
 | `tests/AutoBIMFusion.Tests` | `AutoBIMFusion.Tests.exe` | Smoke-test executable |
 
@@ -34,7 +34,7 @@ tests/
 flowchart TD
     Plugin["AutoBIMFusion.Plugin<br/>AutoBIMFusion.dll"]
     Merge["AutoBIMFusion.Merge"]
-    AutoCAD["AutoBIMFusion.AutoCAD"]
+    AutoCAD["AutoBIMFusion.Common"]
     Infrastructure["AutoBIMFusion.Infrastructure"]
     Tests["AutoBIMFusion.Tests"]
     AutoCADHost["AutoCAD host DLLs<br/>ExcludeAssets=runtime"]
@@ -72,7 +72,7 @@ Keep only cross-project entry points public:
 - `AutoBIMFusion.Merge.RasterImagePathFixer`
 - `AutoBIMFusion.Merge.DwgOptimizer`
 - `AutoBIMFusion.Infrastructure.Logging.LoggerFactory`
-- required helpers under `AutoBIMFusion.AutoCAD`
+- required helpers under `AutoBIMFusion.Common`
 
 Layout algorithms remain internal where possible. `AutoBIMFusion.Merge` exposes internals to `AutoBIMFusion.Tests` for focused smoke testing.
 

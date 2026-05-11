@@ -91,7 +91,7 @@ src/
 │   └── Resources/
 ├── AutoBIMFusion.Merge/
 │   └── Combine/                       ← CombineOrchestrator, BlockInserter, layouts, dimensions, optimizer
-├── AutoBIMFusion.AutoCAD/
+├── AutoBIMFusion.Common/
 │   ├── AcadSupport/                   ← AutoCAD system-variable and unit scopes
 │   └── LayoutUtil, FileUtil, UiDialogService
 └── AutoBIMFusion.Infrastructure/
@@ -106,9 +106,9 @@ docs/                                  ← repo-level documentation
 Dependency direction:
 
 ```text
-AutoBIMFusion.Plugin -> AutoBIMFusion.Merge -> AutoBIMFusion.AutoCAD
+AutoBIMFusion.Plugin -> AutoBIMFusion.Merge -> AutoBIMFusion.Common
 AutoBIMFusion.Plugin -> AutoBIMFusion.Infrastructure
-AutoBIMFusion.Merge  -> AutoBIMFusion.AutoCAD
+AutoBIMFusion.Merge  -> AutoBIMFusion.Common
 AutoBIMFusion.Tests  -> AutoBIMFusion.Merge
 ```
 
@@ -139,7 +139,7 @@ Keep public surface area narrow. Intended cross-project entry points are:
 - `AutoBIMFusion.Merge.RasterImagePathFixer`
 - `AutoBIMFusion.Merge.DwgOptimizer`
 - `AutoBIMFusion.Infrastructure.Logging.LoggerFactory`
-- required helpers in `AutoBIMFusion.AutoCAD`
+- required helpers in `AutoBIMFusion.Common`
 
 Layout internals should remain `internal` unless plugin orchestration requires a public diagnostic hook. `AutoBIMFusion.Merge` exposes internals to `AutoBIMFusion.Tests`.
 
@@ -147,7 +147,7 @@ Layout internals should remain `internal` unless plugin orchestration requires a
 
 ## Skills
 
-- **Code Style:** Follow existing patterns. Use `internal` for logic not required by the Plugin. Use `using` scopes from `AutoBIMFusion.AutoCAD.AcadSupport` for AutoCAD state management (System variables, units).
+- **Code Style:** Follow existing patterns. Use `internal` for logic not required by the Plugin. Use `using` scopes from `AutoBIMFusion.Common.AcadSupport` for AutoCAD state management (System variables, units).
 - **AutoCAD API:** Strictly main-thread only. Always use `DocumentLock` for database modifications.
 
 Agentic skill guides are in `skills/`:
