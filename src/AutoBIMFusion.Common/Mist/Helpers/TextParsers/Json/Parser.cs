@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Serialization;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace SioForgeCAD.Commun.Mist.JSONParser
@@ -27,10 +27,10 @@ namespace SioForgeCAD.Commun.Mist.JSONParser
     // - Parsing of abstract classes or interfaces is NOT supported and will throw an exception.
     public static class Parser
     {
-        [ThreadStatic] static Stack<List<string>> splitArrayPool;
-        [ThreadStatic] static StringBuilder stringBuilder;
-        [ThreadStatic] static Dictionary<Type, Dictionary<string, FieldInfo>> fieldInfoCache;
-        [ThreadStatic] static Dictionary<Type, Dictionary<string, PropertyInfo>> propertyInfoCache;
+        [ThreadStatic] static Stack<List<string>>? splitArrayPool;
+        [ThreadStatic] static StringBuilder? stringBuilder;
+        [ThreadStatic] static Dictionary<Type, Dictionary<string, FieldInfo>>? fieldInfoCache;
+        [ThreadStatic] static Dictionary<Type, Dictionary<string, PropertyInfo>>? propertyInfoCache;
 
         public static T FromJson<T>(this string json)
         {
@@ -132,7 +132,7 @@ namespace SioForgeCAD.Commun.Mist.JSONParser
                     case '"':
                         i = AppendUntilStringEnd(true, i, json);
                         continue;
-                    case ',':
+                    case ',': 
                     case ':':
                         if (parseDepth == 0)
                         {
@@ -394,7 +394,7 @@ namespace SioForgeCAD.Commun.Mist.JSONParser
 
         static object ParseObject(Type type, string json)
         {
-            object instance = FormatterServices.GetUninitializedObject(type);
+            object instance = RuntimeHelpers.GetUninitializedObject(type);
 
             //The list is split into key/value pairs only, this means the split must be divisible by 2 to be valid JSON
             List<string> elems = Split(json);
