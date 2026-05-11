@@ -1,14 +1,13 @@
-using Autodesk.Windows;
 using System.Runtime.Versioning;
 using System.Windows.Input;
+using Autodesk.Windows;
 using App = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Plugin.Ribbon;
 
 /// <summary>
-/// Обработчик команд Ribbon кнопок AutoBIMFusion.
+///     Обработчик команд Ribbon кнопок AutoBIMFusion.
 /// </summary>
-/// 
 [SupportedOSPlatform("windows")]
 internal sealed class ButtonCommandHandler : ICommand
 {
@@ -23,7 +22,7 @@ internal sealed class ButtonCommandHandler : ICommand
 
     public void Execute(object? parameter)
     {
-        string? command = parameter switch
+        var command = parameter switch
         {
             RibbonButton
             {
@@ -33,12 +32,8 @@ internal sealed class ButtonCommandHandler : ICommand
             _ => null
         };
 
-        if (string.IsNullOrWhiteSpace(command))
-        {
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(command)) return;
 
         App.DocumentManager.MdiActiveDocument?.SendStringToExecute(command, true, false, false);
     }
 }
-

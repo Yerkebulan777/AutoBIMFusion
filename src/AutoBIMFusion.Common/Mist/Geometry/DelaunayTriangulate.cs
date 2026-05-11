@@ -1,335 +1,334 @@
-﻿using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.EditorInput;
-using Autodesk.AutoCAD.Geometry;
+﻿using System.Diagnostics;
 using SioForgeCAD.Commun.Drawing;
 using SioForgeCAD.Commun.Extensions;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 
-namespace SioForgeCAD.Commun
+namespace SioForgeCAD.Commun;
+
+public static class DelaunayTriangulate
 {
-    public static class DelaunayTriangulate
+    public static void TriangulateCommand()
     {
-        public static void TriangulateCommand()
+        var doc = Application.DocumentManager.MdiActiveDocument;
+        var db = doc.Database;
+        var ed = doc.Editor;
+        TypedValue[] PointTypedValue = { new(0, "POINT") };
+        var PointSelectionFilter = new SelectionFilter(PointTypedValue);
+        var SelectPointsPromptOption = new PromptSelectionOptions
         {
-            Document doc = Autodesk.AutoCAD.ApplicationServices.Core.Application.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
-            Editor ed = doc.Editor;
-            TypedValue[] PointTypedValue = { new TypedValue(0, "POINT") };
-            SelectionFilter PointSelectionFilter = new SelectionFilter(PointTypedValue);
-            PromptSelectionOptions SelectPointsPromptOption = new PromptSelectionOptions
-            {
-                MessageForAdding = "Select Points:",
-                AllowDuplicates = false
-            };
-            PromptSelectionResult pointSelectionResult = ed.GetSelection(SelectPointsPromptOption, PointSelectionFilter);
-            if (pointSelectionResult.Status == PromptStatus.Error)
-            {
-                return;
-            }
+            MessageForAdding = "Select Points:",
+            AllowDuplicates = false
+        };
+        var pointSelectionResult = ed.GetSelection(SelectPointsPromptOption, PointSelectionFilter);
+        if (pointSelectionResult.Status == PromptStatus.Error) return;
 
-            if (pointSelectionResult.Status == PromptStatus.Cancel)
-            {
-                return;
-            }
+        if (pointSelectionResult.Status == PromptStatus.Cancel) return;
 
-            using (Transaction tr = db.TransactionManager.StartTransaction())
-            {
-                List<DBPoint> PointsSet = new List<DBPoint>();
-                foreach (var PointSelectionSet in pointSelectionResult.Value.GetObjectIds())
-                {
-                    PointsSet.Add(PointSelectionSet.GetDBObject(OpenMode.ForRead) as DBPoint);
-                }
+        using (var tr = db.TransactionManager.StartTransaction())
+        {
+            var PointsSet = new List<DBPoint>();
+            foreach (var PointSelectionSet in pointSelectionResult.Value.GetObjectIds())
+                PointsSet.Add(PointSelectionSet.GetDBObject() as DBPoint);
 
-                foreach (var poly in Triangulate(PointsSet))
-                {
-                    poly.AddToDrawing();
-                }
-                tr.Commit();
-            }
-            Autodesk.AutoCAD.ApplicationServices.Core.Application.UpdateScreen();
+            foreach (var poly in Triangulate(PointsSet)) poly.AddToDrawing();
+            tr.Commit();
         }
 
+        Application.UpdateScreen();
+    }
 
-        public static List<Polyline3d> Triangulate(List<DBPoint> PointsSet)
+
+    public static List<Polyline3d> Triangulate(List<DBPoint> PointsSet)
+    {
+        var db = Generic.GetDatabase();
+        var ed = Generic.GetEditor();
+        var Result = new List<Polyline3d>();
+
+        var numberOfPoints = PointsSet.Count;
+        if (numberOfPoints < 3)
         {
-            Database db = Generic.GetDatabase();
-            Editor ed = Generic.GetEditor();
-            List<Polyline3d> Result = new List<Polyline3d>();
-
-            int numberOfPoints = PointsSet.Count;
-            if (numberOfPoints < 3)
-            {
-                ed.WriteMessage("Minimum 3 points must be selected!");
-                return Result;
-            }
-            int PtsIndex, j, k, numberOfTriangles, numberOfEdges, thinTriangleFoundCount = 0, IgnoredPointWithSameCoordinatesCount = 0;
-
-            // Point coordinates
-            double[] xCoordinates = new double[numberOfPoints + 3];
-            double[] yCoordinates = new double[numberOfPoints + 3];
-            double[] zCoordinates = new double[numberOfPoints + 3];
-            // Triangle definitions
-            int[] vertexPoint1 = new int[(numberOfPoints * 2) + 1];
-            int[] vertexPoint2 = new int[(numberOfPoints * 2) + 1];
-            int[] vertexPoint3 = new int[(numberOfPoints * 2) + 1];
-            // Circumscribed circle
-            double[] centerXValues = new double[(numberOfPoints * 2) + 1];
-            double[] centerYValues = new double[(numberOfPoints * 2) + 1];
-            double[] radiusValues = new double[(numberOfPoints * 2) + 1];
-            double xMin, yMin, xMax, yMax, deltaX, deltaY, xMid, yMid;
-            int[] edge1 = new int[(numberOfPoints * 2) + 1];
-            int[] edge2 = new int[(numberOfPoints * 2) + 1];
-            Transaction tr;
-            using (tr = db.TransactionManager.StartTransaction())
-            {
-                DBPoint PointElement;
-                k = 0;
-                for (PtsIndex = 0; PtsIndex < numberOfPoints; PtsIndex++)
-                {
-                    PointElement = (DBPoint)PointsSet[k];
-                    xCoordinates[PtsIndex] = PointElement.Position[0];
-                    yCoordinates[PtsIndex] = PointElement.Position[1];
-                    zCoordinates[PtsIndex] = PointElement.Position[2];
-                    for (j = 0; j < PtsIndex; j++)
-                    {
-                        if ((xCoordinates[PtsIndex] == xCoordinates[j]) && (yCoordinates[PtsIndex] == yCoordinates[j]))
-                        {
-                            PtsIndex--; numberOfPoints--; IgnoredPointWithSameCoordinatesCount++;
-                        }
-                    }
-                    k++;
-                }
-                tr.Commit();
-            }
-            if (IgnoredPointWithSameCoordinatesCount > 0)
-            {
-                ed.WriteMessage(
-                  "\nIgnored {0} point(s) with same coordinates.",
-                  IgnoredPointWithSameCoordinatesCount
-                );
-            }
-
-            // Supertriangle
-            xMin = xCoordinates[0]; xMax = xMin;
-            yMin = yCoordinates[0]; yMax = yMin;
-            for (PtsIndex = 0; PtsIndex < numberOfPoints; PtsIndex++)
-            {
-                if (xCoordinates[PtsIndex] < xMin)
-                {
-                    xMin = xCoordinates[PtsIndex];
-                }
-
-                if (xCoordinates[PtsIndex] > xMax)
-                {
-                    xMax = xCoordinates[PtsIndex];
-                }
-
-                if (yCoordinates[PtsIndex] < xMin)
-                {
-                    yMin = yCoordinates[PtsIndex];
-                }
-
-                if (yCoordinates[PtsIndex] > xMin)
-                {
-                    yMax = yCoordinates[PtsIndex];
-                }
-            }
-            deltaX = xMax - xMin; deltaY = yMax - yMin;
-            xMid = (xMin + xMax) / 2; yMid = (yMin + yMax) / 2;
-            PtsIndex = numberOfPoints;
-            xCoordinates[PtsIndex] = xMid - (90 * (deltaX + deltaY)) - 100;
-            yCoordinates[PtsIndex] = yMid - (50 * (deltaX + deltaY)) - 100;
-            zCoordinates[PtsIndex] = 0;
-            vertexPoint1[0] = PtsIndex;
-            PtsIndex++;
-            xCoordinates[PtsIndex] = xMid + (90 * (deltaX + deltaY)) + 100;
-            yCoordinates[PtsIndex] = yMid - (50 * (deltaX + deltaY)) - 100;
-            zCoordinates[PtsIndex] = 0;
-            vertexPoint2[0] = PtsIndex;
-            PtsIndex++;
-            xCoordinates[PtsIndex] = xMid;
-            yCoordinates[PtsIndex] = yMid + (100 * (deltaX + deltaY + 1));
-            zCoordinates[PtsIndex] = 0;
-            vertexPoint3[0] = PtsIndex;
-            numberOfTriangles = 1;
-            CalculateCircumscribedCircle(
-              xCoordinates[vertexPoint1[0]], yCoordinates[vertexPoint1[0]], xCoordinates[vertexPoint2[0]],
-              yCoordinates[vertexPoint2[0]], xCoordinates[vertexPoint3[0]], yCoordinates[vertexPoint3[0]],
-              ref centerXValues[0], ref centerYValues[0], ref radiusValues[0]
-            );
-
-            // main loop
-            for (PtsIndex = 0; PtsIndex < numberOfPoints; PtsIndex++)
-            {
-                numberOfEdges = 0;
-                xMin = xCoordinates[PtsIndex]; yMin = yCoordinates[PtsIndex];
-                j = 0;
-                while (j < numberOfTriangles)
-                {
-                    deltaX = centerXValues[j] - xMin; deltaY = centerYValues[j] - yMin;
-                    if (((deltaX * deltaX) + (deltaY * deltaY)) < radiusValues[j])
-                    {
-                        edge1[numberOfEdges] = vertexPoint1[j]; edge2[numberOfEdges] = vertexPoint2[j];
-                        numberOfEdges++;
-                        edge1[numberOfEdges] = vertexPoint2[j]; edge2[numberOfEdges] = vertexPoint3[j];
-                        numberOfEdges++;
-                        edge1[numberOfEdges] = vertexPoint3[j]; edge2[numberOfEdges] = vertexPoint1[j];
-                        numberOfEdges++;
-                        numberOfTriangles--;
-                        vertexPoint1[j] = vertexPoint1[numberOfTriangles];
-                        vertexPoint2[j] = vertexPoint2[numberOfTriangles];
-                        vertexPoint3[j] = vertexPoint3[numberOfTriangles];
-                        centerXValues[j] = centerXValues[numberOfTriangles];
-                        centerYValues[j] = centerYValues[numberOfTriangles];
-                        radiusValues[j] = radiusValues[numberOfTriangles];
-                        j--;
-                    }
-                    j++;
-                }
-
-                for (j = 0; j < numberOfEdges - 1; j++)
-                {
-                    for (k = j + 1; k < numberOfEdges; k++)
-                    {
-                        if ((edge1[j] == edge2[k]) && (edge2[j] == edge1[k]))
-                        {
-                            edge1[j] = -1; edge2[j] = -1; edge1[k] = -1; edge2[k] = -1;
-                        }
-                    }
-                }
-                for (j = 0; j < numberOfEdges; j++)
-                {
-                    if ((edge1[j] >= 0) && (edge2[j] >= 0))
-                    {
-                        vertexPoint1[numberOfTriangles] = edge1[j]; vertexPoint2[numberOfTriangles] = edge2[j]; vertexPoint3[numberOfTriangles] = PtsIndex;
-                        bool IsThinTriangle =
-                          CalculateCircumscribedCircle(
-                            xCoordinates[vertexPoint1[numberOfTriangles]], yCoordinates[vertexPoint1[numberOfTriangles]], xCoordinates[vertexPoint2[numberOfTriangles]],
-                            yCoordinates[vertexPoint2[numberOfTriangles]], xCoordinates[vertexPoint3[numberOfTriangles]], yCoordinates[vertexPoint3[numberOfTriangles]],
-                            ref centerXValues[numberOfTriangles], ref centerYValues[numberOfTriangles], ref radiusValues[numberOfTriangles]
-                          );
-                        if (!IsThinTriangle)
-                        {
-                            thinTriangleFoundCount++;
-                        }
-                        numberOfTriangles++;
-                    }
-                }
-            }
-
-            //removal of outer triangles
-            PtsIndex = 0;
-            while (PtsIndex < numberOfTriangles)
-            {
-                if ((vertexPoint1[PtsIndex] >= numberOfPoints) || (vertexPoint2[PtsIndex] >= numberOfPoints) || (vertexPoint3[PtsIndex] >= numberOfPoints))
-                {
-                    numberOfTriangles--;
-                    vertexPoint1[PtsIndex] = vertexPoint1[numberOfTriangles];
-                    vertexPoint2[PtsIndex] = vertexPoint2[numberOfTriangles];
-                    vertexPoint3[PtsIndex] = vertexPoint3[numberOfTriangles];
-                    centerXValues[PtsIndex] = centerXValues[numberOfTriangles];
-                    centerYValues[PtsIndex] = centerYValues[numberOfTriangles];
-                    radiusValues[PtsIndex] = radiusValues[numberOfTriangles];
-                    PtsIndex--;
-                }
-                PtsIndex++;
-            }
-
-            using (tr = db.TransactionManager.StartTransaction())
-            {
-                BlockTable bt =
-                  (BlockTable)tr.GetObject(
-                    db.BlockTableId,
-                    OpenMode.ForRead,
-                    false
-                  );
-                BlockTableRecord btr = Generic.GetCurrentSpaceBlockTableRecord(tr);
-
-                for (PtsIndex = 0; PtsIndex < numberOfTriangles; PtsIndex++)
-                {
-                    Point3d vertex1 = new Point3d(xCoordinates[vertexPoint1[PtsIndex]], yCoordinates[vertexPoint1[PtsIndex]], zCoordinates[vertexPoint1[PtsIndex]]);
-                    Point3d vertex2 = new Point3d(xCoordinates[vertexPoint2[PtsIndex]], yCoordinates[vertexPoint2[PtsIndex]], zCoordinates[vertexPoint2[PtsIndex]]);
-                    Point3d vertex3 = new Point3d(xCoordinates[vertexPoint3[PtsIndex]], yCoordinates[vertexPoint3[PtsIndex]], zCoordinates[vertexPoint3[PtsIndex]]);
-                    using (Polyline3d poly = new Polyline3d())
-                    {
-                        poly.AddToDrawingCurrentTransaction();
-                        poly.AddVertex(vertex1);
-                        poly.AddVertex(vertex2);
-                        poly.AddVertex(vertex3);
-                        poly.Closed = true;
-                        Result.Add(poly.Clone() as Polyline3d);
-                        poly.Erase();
-                    }
-                }
-
-                tr.Commit();
-            }
-            if (thinTriangleFoundCount > 0)
-            {
-                Debug.WriteLine($"Warning! {thinTriangleFoundCount} thin triangle(s) found! Wrong result possible!");
-            }
+            ed.WriteMessage("Minimum 3 points must be selected!");
             return Result;
         }
 
-        public static bool CalculateCircumscribedCircle(double x1, double y1, double x2, double y2, double x3, double y3, ref double xc, ref double yc, ref double r)
-        {
-            // Calculation of circumscribed circle coordinates and
-            // squared radius
-            const double eps = 1e-6;
-            bool result = true;
-            double m1, m2, mx1, mx2, my1, my2, dx, dy;
+        int PtsIndex,
+            j,
+            k,
+            numberOfTriangles,
+            numberOfEdges,
+            thinTriangleFoundCount = 0,
+            IgnoredPointWithSameCoordinatesCount = 0;
 
-            if ((Math.Abs(y1 - y2) < eps) && (Math.Abs(y2 - y3) < eps))
+        // Point coordinates
+        var xCoordinates = new double[numberOfPoints + 3];
+        var yCoordinates = new double[numberOfPoints + 3];
+        var zCoordinates = new double[numberOfPoints + 3];
+        // Triangle definitions
+        var vertexPoint1 = new int[numberOfPoints * 2 + 1];
+        var vertexPoint2 = new int[numberOfPoints * 2 + 1];
+        var vertexPoint3 = new int[numberOfPoints * 2 + 1];
+        // Circumscribed circle
+        var centerXValues = new double[numberOfPoints * 2 + 1];
+        var centerYValues = new double[numberOfPoints * 2 + 1];
+        var radiusValues = new double[numberOfPoints * 2 + 1];
+        double xMin, yMin, xMax, yMax, deltaX, deltaY, xMid, yMid;
+        var edge1 = new int[numberOfPoints * 2 + 1];
+        var edge2 = new int[numberOfPoints * 2 + 1];
+        Transaction tr;
+        using (tr = db.TransactionManager.StartTransaction())
+        {
+            DBPoint PointElement;
+            k = 0;
+            for (PtsIndex = 0; PtsIndex < numberOfPoints; PtsIndex++)
             {
-                result = false;
-                xc = x1; yc = y1;
+                PointElement = PointsSet[k];
+                xCoordinates[PtsIndex] = PointElement.Position[0];
+                yCoordinates[PtsIndex] = PointElement.Position[1];
+                zCoordinates[PtsIndex] = PointElement.Position[2];
+                for (j = 0; j < PtsIndex; j++)
+                    if (xCoordinates[PtsIndex] == xCoordinates[j] && yCoordinates[PtsIndex] == yCoordinates[j])
+                    {
+                        PtsIndex--;
+                        numberOfPoints--;
+                        IgnoredPointWithSameCoordinatesCount++;
+                    }
+
+                k++;
+            }
+
+            tr.Commit();
+        }
+
+        if (IgnoredPointWithSameCoordinatesCount > 0)
+            ed.WriteMessage(
+                "\nIgnored {0} point(s) with same coordinates.",
+                IgnoredPointWithSameCoordinatesCount
+            );
+
+        // Supertriangle
+        xMin = xCoordinates[0];
+        xMax = xMin;
+        yMin = yCoordinates[0];
+        yMax = yMin;
+        for (PtsIndex = 0; PtsIndex < numberOfPoints; PtsIndex++)
+        {
+            if (xCoordinates[PtsIndex] < xMin) xMin = xCoordinates[PtsIndex];
+
+            if (xCoordinates[PtsIndex] > xMax) xMax = xCoordinates[PtsIndex];
+
+            if (yCoordinates[PtsIndex] < xMin) yMin = yCoordinates[PtsIndex];
+
+            if (yCoordinates[PtsIndex] > xMin) yMax = yCoordinates[PtsIndex];
+        }
+
+        deltaX = xMax - xMin;
+        deltaY = yMax - yMin;
+        xMid = (xMin + xMax) / 2;
+        yMid = (yMin + yMax) / 2;
+        PtsIndex = numberOfPoints;
+        xCoordinates[PtsIndex] = xMid - 90 * (deltaX + deltaY) - 100;
+        yCoordinates[PtsIndex] = yMid - 50 * (deltaX + deltaY) - 100;
+        zCoordinates[PtsIndex] = 0;
+        vertexPoint1[0] = PtsIndex;
+        PtsIndex++;
+        xCoordinates[PtsIndex] = xMid + 90 * (deltaX + deltaY) + 100;
+        yCoordinates[PtsIndex] = yMid - 50 * (deltaX + deltaY) - 100;
+        zCoordinates[PtsIndex] = 0;
+        vertexPoint2[0] = PtsIndex;
+        PtsIndex++;
+        xCoordinates[PtsIndex] = xMid;
+        yCoordinates[PtsIndex] = yMid + 100 * (deltaX + deltaY + 1);
+        zCoordinates[PtsIndex] = 0;
+        vertexPoint3[0] = PtsIndex;
+        numberOfTriangles = 1;
+        CalculateCircumscribedCircle(
+            xCoordinates[vertexPoint1[0]], yCoordinates[vertexPoint1[0]], xCoordinates[vertexPoint2[0]],
+            yCoordinates[vertexPoint2[0]], xCoordinates[vertexPoint3[0]], yCoordinates[vertexPoint3[0]],
+            ref centerXValues[0], ref centerYValues[0], ref radiusValues[0]
+        );
+
+        // main loop
+        for (PtsIndex = 0; PtsIndex < numberOfPoints; PtsIndex++)
+        {
+            numberOfEdges = 0;
+            xMin = xCoordinates[PtsIndex];
+            yMin = yCoordinates[PtsIndex];
+            j = 0;
+            while (j < numberOfTriangles)
+            {
+                deltaX = centerXValues[j] - xMin;
+                deltaY = centerYValues[j] - yMin;
+                if (deltaX * deltaX + deltaY * deltaY < radiusValues[j])
+                {
+                    edge1[numberOfEdges] = vertexPoint1[j];
+                    edge2[numberOfEdges] = vertexPoint2[j];
+                    numberOfEdges++;
+                    edge1[numberOfEdges] = vertexPoint2[j];
+                    edge2[numberOfEdges] = vertexPoint3[j];
+                    numberOfEdges++;
+                    edge1[numberOfEdges] = vertexPoint3[j];
+                    edge2[numberOfEdges] = vertexPoint1[j];
+                    numberOfEdges++;
+                    numberOfTriangles--;
+                    vertexPoint1[j] = vertexPoint1[numberOfTriangles];
+                    vertexPoint2[j] = vertexPoint2[numberOfTriangles];
+                    vertexPoint3[j] = vertexPoint3[numberOfTriangles];
+                    centerXValues[j] = centerXValues[numberOfTriangles];
+                    centerYValues[j] = centerYValues[numberOfTriangles];
+                    radiusValues[j] = radiusValues[numberOfTriangles];
+                    j--;
+                }
+
+                j++;
+            }
+
+            for (j = 0; j < numberOfEdges - 1; j++)
+            for (k = j + 1; k < numberOfEdges; k++)
+                if (edge1[j] == edge2[k] && edge2[j] == edge1[k])
+                {
+                    edge1[j] = -1;
+                    edge2[j] = -1;
+                    edge1[k] = -1;
+                    edge2[k] = -1;
+                }
+
+            for (j = 0; j < numberOfEdges; j++)
+                if (edge1[j] >= 0 && edge2[j] >= 0)
+                {
+                    vertexPoint1[numberOfTriangles] = edge1[j];
+                    vertexPoint2[numberOfTriangles] = edge2[j];
+                    vertexPoint3[numberOfTriangles] = PtsIndex;
+                    var IsThinTriangle =
+                        CalculateCircumscribedCircle(
+                            xCoordinates[vertexPoint1[numberOfTriangles]],
+                            yCoordinates[vertexPoint1[numberOfTriangles]],
+                            xCoordinates[vertexPoint2[numberOfTriangles]],
+                            yCoordinates[vertexPoint2[numberOfTriangles]],
+                            xCoordinates[vertexPoint3[numberOfTriangles]],
+                            yCoordinates[vertexPoint3[numberOfTriangles]],
+                            ref centerXValues[numberOfTriangles], ref centerYValues[numberOfTriangles],
+                            ref radiusValues[numberOfTriangles]
+                        );
+                    if (!IsThinTriangle) thinTriangleFoundCount++;
+                    numberOfTriangles++;
+                }
+        }
+
+        //removal of outer triangles
+        PtsIndex = 0;
+        while (PtsIndex < numberOfTriangles)
+        {
+            if (vertexPoint1[PtsIndex] >= numberOfPoints || vertexPoint2[PtsIndex] >= numberOfPoints ||
+                vertexPoint3[PtsIndex] >= numberOfPoints)
+            {
+                numberOfTriangles--;
+                vertexPoint1[PtsIndex] = vertexPoint1[numberOfTriangles];
+                vertexPoint2[PtsIndex] = vertexPoint2[numberOfTriangles];
+                vertexPoint3[PtsIndex] = vertexPoint3[numberOfTriangles];
+                centerXValues[PtsIndex] = centerXValues[numberOfTriangles];
+                centerYValues[PtsIndex] = centerYValues[numberOfTriangles];
+                radiusValues[PtsIndex] = radiusValues[numberOfTriangles];
+                PtsIndex--;
+            }
+
+            PtsIndex++;
+        }
+
+        using (tr = db.TransactionManager.StartTransaction())
+        {
+            var bt =
+                (BlockTable)tr.GetObject(
+                    db.BlockTableId,
+                    OpenMode.ForRead,
+                    false
+                );
+            var btr = Generic.GetCurrentSpaceBlockTableRecord(tr);
+
+            for (PtsIndex = 0; PtsIndex < numberOfTriangles; PtsIndex++)
+            {
+                var vertex1 = new Point3d(xCoordinates[vertexPoint1[PtsIndex]], yCoordinates[vertexPoint1[PtsIndex]],
+                    zCoordinates[vertexPoint1[PtsIndex]]);
+                var vertex2 = new Point3d(xCoordinates[vertexPoint2[PtsIndex]], yCoordinates[vertexPoint2[PtsIndex]],
+                    zCoordinates[vertexPoint2[PtsIndex]]);
+                var vertex3 = new Point3d(xCoordinates[vertexPoint3[PtsIndex]], yCoordinates[vertexPoint3[PtsIndex]],
+                    zCoordinates[vertexPoint3[PtsIndex]]);
+                using (var poly = new Polyline3d())
+                {
+                    poly.AddToDrawingCurrentTransaction();
+                    poly.AddVertex(vertex1);
+                    poly.AddVertex(vertex2);
+                    poly.AddVertex(vertex3);
+                    poly.Closed = true;
+                    Result.Add(poly.Clone() as Polyline3d);
+                    poly.Erase();
+                }
+            }
+
+            tr.Commit();
+        }
+
+        if (thinTriangleFoundCount > 0)
+            Debug.WriteLine($"Warning! {thinTriangleFoundCount} thin triangle(s) found! Wrong result possible!");
+        return Result;
+    }
+
+    public static bool CalculateCircumscribedCircle(double x1, double y1, double x2, double y2, double x3, double y3,
+        ref double xc, ref double yc, ref double r)
+    {
+        // Calculation of circumscribed circle coordinates and
+        // squared radius
+        const double eps = 1e-6;
+        var result = true;
+        double m1, m2, mx1, mx2, my1, my2, dx, dy;
+
+        if (Abs(y1 - y2) < eps && Abs(y2 - y3) < eps)
+        {
+            result = false;
+            xc = x1;
+            yc = y1;
+        }
+        else
+        {
+            if (Abs(y2 - y1) < eps)
+            {
+                m2 = -(x3 - x2) / (y3 - y2);
+                mx2 = (x2 + x3) / 2;
+                my2 = (y2 + y3) / 2;
+                xc = (x2 + x1) / 2;
+                yc = m2 * (xc - mx2) + my2;
+            }
+            else if (Abs(y3 - y2) < eps)
+            {
+                m1 = -(x2 - x1) / (y2 - y1);
+                mx1 = (x1 + x2) / 2;
+                my1 = (y1 + y2) / 2;
+                xc = (x3 + x2) / 2;
+                yc = m1 * (xc - mx1) + my1;
             }
             else
             {
-                if (Math.Abs(y2 - y1) < eps)
+                m1 = -(x2 - x1) / (y2 - y1);
+                m2 = -(x3 - x2) / (y3 - y2);
+                if (Abs(m1 - m2) < eps)
                 {
-                    m2 = -(x3 - x2) / (y3 - y2);
-                    mx2 = (x2 + x3) / 2;
-                    my2 = (y2 + y3) / 2;
-                    xc = (x2 + x1) / 2;
-                    yc = (m2 * (xc - mx2)) + my2;
-                }
-                else if (Math.Abs(y3 - y2) < eps)
-                {
-                    m1 = -(x2 - x1) / (y2 - y1);
-                    mx1 = (x1 + x2) / 2;
-                    my1 = (y1 + y2) / 2;
-                    xc = (x3 + x2) / 2;
-                    yc = (m1 * (xc - mx1)) + my1;
+                    result = false;
+                    xc = x1;
+                    yc = y1;
                 }
                 else
                 {
-                    m1 = -(x2 - x1) / (y2 - y1);
-                    m2 = -(x3 - x2) / (y3 - y2);
-                    if (Math.Abs(m1 - m2) < eps)
-                    {
-                        result = false;
-                        xc = x1;
-                        yc = y1;
-                    }
-                    else
-                    {
-                        mx1 = (x1 + x2) / 2;
-                        mx2 = (x2 + x3) / 2;
-                        my1 = (y1 + y2) / 2;
-                        my2 = (y2 + y3) / 2;
-                        xc = ((m1 * mx1) - (m2 * mx2) + my2 - my1) / (m1 - m2);
-                        yc = (m1 * (xc - mx1)) + my1;
-                    }
+                    mx1 = (x1 + x2) / 2;
+                    mx2 = (x2 + x3) / 2;
+                    my1 = (y1 + y2) / 2;
+                    my2 = (y2 + y3) / 2;
+                    xc = (m1 * mx1 - m2 * mx2 + my2 - my1) / (m1 - m2);
+                    yc = m1 * (xc - mx1) + my1;
                 }
             }
-            dx = x2 - xc;
-            dy = y2 - yc;
-            r = (dx * dx) + (dy * dy);
-            return result;
         }
+
+        dx = x2 - xc;
+        dy = y2 - yc;
+        r = dx * dx + dy * dy;
+        return result;
     }
 }

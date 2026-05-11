@@ -1,7 +1,7 @@
 namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
-/// Статистика операции слияния DWG-файлов.
+///     Статистика операции слияния DWG-файлов.
 /// </summary>
 public sealed class CombineStatistics
 {

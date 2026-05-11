@@ -1,6 +1,4 @@
 ﻿using Autodesk.AutoCAD.Colors;
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.EditorInput;
 using SioForgeCAD.Commun;
 
 namespace SioForgeCAD.Commun
@@ -13,30 +11,23 @@ namespace SioForgeCAD.Commun
 
         public PromptDoubleResult GetDouble(string Message, params string[] KeyWords)
         {
-            var ed = Autodesk.AutoCAD.ApplicationServices.Core.Application.DocumentManager.MdiActiveDocument.Editor;
+            var ed = Application.DocumentManager.MdiActiveDocument.Editor;
 
             CreateTransGraphics();
 
-            PromptDoubleOptions options = new PromptDoubleOptions("\n" + Message)
+            var options = new PromptDoubleOptions("\n" + Message)
             {
                 AllowNone = true, // Permet d'appuyer sur Entrée pour valider sans taper de chiffre
                 UseDefaultValue = false // Désactivé pour que "Entrée" renvoie bien le status 'None' et pas 'OK'
             };
 
-            foreach (string KeyWord in KeyWords)
-            {
+            foreach (var KeyWord in KeyWords)
                 if (!string.IsNullOrWhiteSpace(KeyWord))
-                {
                     options.Keywords.Add(KeyWord);
-                }
-            }
 
-            if (options.Keywords.Count > 0)
-            {
-                options.AppendKeywordsToMessage = true;
-            }
+            if (options.Keywords.Count > 0) options.AppendKeywordsToMessage = true;
 
-            PromptDoubleResult result = ed.GetDouble(options);
+            var result = ed.GetDouble(options);
 
             ClearTransGraphics();
 
@@ -71,30 +62,23 @@ public class GetDoubleTransient : TransientBase
 
     public PromptDoubleResult GetDouble(string Message, params string[] KeyWords)
     {
-        var ed = Autodesk.AutoCAD.ApplicationServices.Core.Application.DocumentManager.MdiActiveDocument.Editor;
+        var ed = Application.DocumentManager.MdiActiveDocument.Editor;
 
         CreateTransGraphics();
 
-        PromptDoubleOptions options = new PromptDoubleOptions("\n" + Message)
+        var options = new PromptDoubleOptions("\n" + Message)
         {
             AllowNone = true, // Permet d'appuyer sur Entrée pour valider sans taper de chiffre
             UseDefaultValue = false // Désactivé pour que "Entrée" renvoie bien le status 'None' et pas 'OK'
         };
 
-        foreach (string KeyWord in KeyWords)
-        {
+        foreach (var KeyWord in KeyWords)
             if (!string.IsNullOrWhiteSpace(KeyWord))
-            {
                 options.Keywords.Add(KeyWord);
-            }
-        }
 
-        if (options.Keywords.Count > 0)
-        {
-            options.AppendKeywordsToMessage = true;
-        }
+        if (options.Keywords.Count > 0) options.AppendKeywordsToMessage = true;
 
-        PromptDoubleResult result = ed.GetDouble(options);
+        var result = ed.GetDouble(options);
 
         ClearTransGraphics();
 

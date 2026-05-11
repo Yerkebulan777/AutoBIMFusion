@@ -1,61 +1,52 @@
-﻿using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.EditorInput;
+﻿using System.Diagnostics;
 using SioForgeCAD.Commun;
-using System;
-using System.Diagnostics;
 
-namespace SioForgeCAD.Functions
+namespace SioForgeCAD.Functions;
+
+public static class VIEWPORTLOCK
 {
-    public static class VIEWPORTLOCK
+    public static void Menu()
     {
-        public static void Menu()
+        var ed = Generic.GetEditor();
+        var promptKeywordOptions = new PromptKeywordOptions("Veuillez selectionner une opération :")
         {
-            Editor ed = Generic.GetEditor();
-            PromptKeywordOptions promptKeywordOptions = new PromptKeywordOptions("Veuillez selectionner une opération :")
-            {
-                AllowArbitraryInput = false,
-                AppendKeywordsToMessage = true
-            };
-            promptKeywordOptions.Keywords.Add("Lock All");
-            promptKeywordOptions.Keywords.Default = "Lock All";
-            promptKeywordOptions.Keywords.Add("Unlock All");
+            AllowArbitraryInput = false,
+            AppendKeywordsToMessage = true
+        };
+        promptKeywordOptions.Keywords.Add("Lock All");
+        promptKeywordOptions.Keywords.Default = "Lock All";
+        promptKeywordOptions.Keywords.Add("Unlock All");
 
-            var KeyResult = ed.GetKeywords(promptKeywordOptions);
-            if (!KeyResult.Status.HasFlag(PromptStatus.OK) && !KeyResult.Status.HasFlag(PromptStatus.Keyword))
+        var KeyResult = ed.GetKeywords(promptKeywordOptions);
+        if (!KeyResult.Status.HasFlag(PromptStatus.OK) && !KeyResult.Status.HasFlag(PromptStatus.Keyword)) return;
+
+        DoLockUnlock(KeyResult.StringResult == "Lock");
+    }
+
+    public static void DoLockUnlock(bool Lock)
+    {
+        var db = Generic.GetDatabase();
+        var ed = Generic.GetEditor();
+        TypedValue[] viewportFilter = { new((int)DxfCode.Start, "Viewport") };
+        try
+        {
+            var viewportSelection = ed.SelectAll(new SelectionFilter(viewportFilter));
+            var selectionSet = viewportSelection.Value;
+            if (selectionSet is null) return;
+            using (var tr = db.TransactionManager.StartTransaction())
             {
-                return;
+                foreach (var objectId in selectionSet?.GetObjectIds())
+                {
+                    var viewport = (Viewport)objectId.GetDBObject(OpenMode.ForWrite);
+                    viewport.Locked = Lock;
+                }
+
+                tr.Commit();
             }
-
-            DoLockUnlock(KeyResult.StringResult == "Lock");
         }
-
-        public static void DoLockUnlock(bool Lock)
+        catch (Exception ex)
         {
-            Database db = Generic.GetDatabase();
-            Editor ed = Generic.GetEditor();
-            TypedValue[] viewportFilter = { new TypedValue((int)DxfCode.Start, "Viewport") };
-            try
-            {
-                PromptSelectionResult viewportSelection = ed.SelectAll(new SelectionFilter(viewportFilter));
-                SelectionSet selectionSet = viewportSelection.Value;
-                if (selectionSet is null)
-                {
-                    return;
-                }
-                using (Transaction tr = db.TransactionManager.StartTransaction())
-                {
-                    foreach (ObjectId objectId in selectionSet?.GetObjectIds())
-                    {
-                        Viewport viewport = (Viewport)objectId.GetDBObject(OpenMode.ForWrite);
-                        viewport.Locked = Lock;
-                    }
-                    tr.Commit();
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex);
-            }
+            Debug.WriteLine(ex);
         }
     }
 }

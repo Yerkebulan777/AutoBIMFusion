@@ -3,9 +3,9 @@ using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 namespace AutoBIMFusion.Common.AcadSupport;
 
 /// <summary>
-/// Подавляет диалоги и предупреждения AutoCAD на время операции слияния.
-/// Устанавливает FILEDIA=0, CMDDIA=0, EXPERT=5, PROXYNOTICE=0,
-/// LAYEREVAL=0, LAYERNOTIFY=0, LAYOUTREGENCTL=0, VTENABLE=0.
+///     Подавляет диалоги и предупреждения AutoCAD на время операции слияния.
+///     Устанавливает FILEDIA=0, CMDDIA=0, EXPERT=5, PROXYNOTICE=0,
+///     LAYEREVAL=0, LAYERNOTIFY=0, LAYOUTREGENCTL=0, VTENABLE=0.
 /// </summary>
 public sealed class AcadWarningSuppressScope : IDisposable
 {
@@ -23,11 +23,30 @@ public sealed class AcadWarningSuppressScope : IDisposable
         Set("VTENABLE", 0);
     }
 
+    public void Dispose()
+    {
+        // Восстанавливаем в обратном порядке для корректного стека зависимостей.
+        for (var i = _vars.Count - 1; i >= 0; i--)
+        {
+            var (name, oldValue, isSet) = _vars[i];
+            if (!isSet) continue;
+
+            try
+            {
+                AcadApp.SetSystemVariable(name, oldValue!);
+            }
+            catch
+            {
+                /* Игнорируем: другие переменные должны быть восстановлены. */
+            }
+        }
+    }
+
     private void Set(string name, object value)
     {
         try
         {
-            object? oldValue = AcadApp.GetSystemVariable(name);
+            var oldValue = AcadApp.GetSystemVariable(name);
             AcadApp.SetSystemVariable(name, value);
             _vars.Add((name, oldValue, true));
         }
@@ -37,21 +56,4 @@ public sealed class AcadWarningSuppressScope : IDisposable
             _vars.Add((name, null, false));
         }
     }
-
-    public void Dispose()
-    {
-        // Восстанавливаем в обратном порядке для корректного стека зависимостей.
-        for (int i = _vars.Count - 1; i >= 0; i--)
-        {
-            (string? name, object? oldValue, bool isSet) = _vars[i];
-            if (!isSet)
-            {
-                continue;
-            }
-
-            try { AcadApp.SetSystemVariable(name, oldValue!); }
-            catch { /* Игнорируем: другие переменные должны быть восстановлены. */ }
-        }
-    }
 }
-

@@ -1,22 +1,18 @@
-using Autodesk.Windows;
 using System.Runtime.Versioning;
+using Autodesk.Windows;
 
 namespace AutoBIMFusion.Plugin.Ribbon;
 
 /// <summary>
-/// Строит вкладку AutoBIMFusion на Ribbon AutoCAD.
+///     Строит вкладку AutoBIMFusion на Ribbon AutoCAD.
 /// </summary>
-///
 [SupportedOSPlatform("Windows")]
 internal static class RibbonBuilder
 {
     public static void CreateTab()
     {
-        RibbonControl? ribbon = ComponentManager.Ribbon;
-        if (ribbon is null || ribbon.Tabs.Any(t => t.Id == "AutoBIMFusion.RibbonTab"))
-        {
-            return;
-        }
+        var ribbon = ComponentManager.Ribbon;
+        if (ribbon is null || ribbon.Tabs.Any(t => t.Id == "AutoBIMFusion.RibbonTab")) return;
 
         RibbonPanelSource panelSource = new()
         {
@@ -41,8 +37,7 @@ internal static class RibbonBuilder
             CommandParameter = command,
             CommandHandler = new ButtonCommandHandler(),
             Image = RibbonIconLoader.Load("icon-merge-dwg-16.png"),
-            LargeImage = RibbonIconLoader.Load("icon-merge-dwg-32.png"),
+            LargeImage = RibbonIconLoader.Load("icon-merge-dwg-32.png")
         };
     }
 }
-

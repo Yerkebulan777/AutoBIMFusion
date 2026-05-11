@@ -3,7 +3,7 @@ using Serilog.Core;
 namespace AutoBIMFusion.Common.Helpers;
 
 /// <summary>
-/// Утилиты для работы с файлами и проверками.
+///     Утилиты для работы с файлами и проверками.
 /// </summary>
 public static class FileUtil
 {
@@ -11,7 +11,7 @@ public static class FileUtil
     private static readonly WindowsNaturalComparer NaturalComparer = new();
 
     /// <summary>
-    /// Возвращает отсортированный список DWG-файлов из директории.
+    ///     Возвращает отсортированный список DWG-файлов из директории.
     /// </summary>
     public static string[] GetFiles(string rootPath, string excludePrefix = "#", Logger? log = null)
     {
@@ -25,31 +25,26 @@ public static class FileUtil
 
         List<string> files = [];
 
-        foreach (string path in Directory.EnumerateFiles(rootPath, "*.dwg", opts))
+        foreach (var path in Directory.EnumerateFiles(rootPath, "*.dwg", opts))
         {
-            string fileName = Path.GetFileName(path);
-            if (fileName.StartsWith(excludePrefix, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
+            var fileName = Path.GetFileName(path);
+            if (fileName.StartsWith(excludePrefix, StringComparison.OrdinalIgnoreCase)) continue;
 
-            if (new FileInfo(path).Length > MaxFileSizeBytes)
-            {
-                continue;
-            }
+            if (new FileInfo(path).Length > MaxFileSizeBytes) continue;
 
             files.Add(path);
         }
 
-        files.Sort((x, y) => NaturalComparer.Compare(Path.GetRelativePath(rootPath, x), Path.GetRelativePath(rootPath, y)));
+        files.Sort((x, y) =>
+            NaturalComparer.Compare(Path.GetRelativePath(rootPath, x), Path.GetRelativePath(rootPath, y)));
 
         return [.. files];
     }
 
     /// <summary>
-    /// Проверяет доступность файла и его ненулевой размер.
-    /// Структурная валидация DWG выполняется позже в PrepareDatabaseForMerge,
-    /// что исключает двойное открытие файла.
+    ///     Проверяет доступность файла и его ненулевой размер.
+    ///     Структурная валидация DWG выполняется позже в PrepareDatabaseForMerge,
+    ///     что исключает двойное открытие файла.
     /// </summary>
     public static bool TryValidateDwg(string path, out string warn)
     {
@@ -70,7 +65,7 @@ public static class FileUtil
 
             return true;
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             warn = ex.Message;
             return false;

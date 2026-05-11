@@ -38,9 +38,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Remove="Commands\Archive\**\*.cs" />
-        <Compile Remove="AutoBIMFusionExtension.cs" Condition="'$(CoreConsoleDiagnostics)' == 'true'" />
-        <Compile Remove="Ribbon\**\*.cs" Condition="'$(CoreConsoleDiagnostics)' == 'true'" />
+        <Compile Remove="Commands\Archive\**\*.cs"/>
+        <Compile Remove="AutoBIMFusionExtension.cs" Condition="'$(CoreConsoleDiagnostics)' == 'true'"/>
+        <Compile Remove="Ribbon\**\*.cs" Condition="'$(CoreConsoleDiagnostics)' == 'true'"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -51,39 +51,39 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PluginRuntimeDependency Include="$(NuGetPackageRoot)serilog\4.0.0\lib\net8.0\Serilog.dll" Condition="Exists('$(NuGetPackageRoot)serilog\4.0.0\lib\net8.0\Serilog.dll')" />
-        <PluginRuntimeDependency Include="$(NuGetPackageRoot)serilog.sinks.file\6.0.0\lib\net8.0\Serilog.Sinks.File.dll" Condition="Exists('$(NuGetPackageRoot)serilog.sinks.file\6.0.0\lib\net8.0\Serilog.Sinks.File.dll')" />
+        <PluginRuntimeDependency Include="$(NuGetPackageRoot)serilog\4.0.0\lib\net8.0\Serilog.dll" Condition="Exists('$(NuGetPackageRoot)serilog\4.0.0\lib\net8.0\Serilog.dll')"/>
+        <PluginRuntimeDependency Include="$(NuGetPackageRoot)serilog.sinks.file\6.0.0\lib\net8.0\Serilog.Sinks.File.dll" Condition="Exists('$(NuGetPackageRoot)serilog.sinks.file\6.0.0\lib\net8.0\Serilog.Sinks.File.dll')"/>
     </ItemGroup>
 
     <ItemGroup>
-        <Using Include="Autodesk.AutoCAD.ApplicationServices.Core" />
-        <Using Include="Autodesk.AutoCAD.DatabaseServices" />
-        <Using Include="Autodesk.AutoCAD.EditorInput" />
-        <Using Include="Autodesk.AutoCAD.Geometry" />
-        <Using Include="Autodesk.AutoCAD.Runtime" />
-        <Using Include="System.IO" />
+        <Using Include="Autodesk.AutoCAD.ApplicationServices.Core"/>
+        <Using Include="Autodesk.AutoCAD.DatabaseServices"/>
+        <Using Include="Autodesk.AutoCAD.EditorInput"/>
+        <Using Include="Autodesk.AutoCAD.Geometry"/>
+        <Using Include="Autodesk.AutoCAD.Runtime"/>
+        <Using Include="System.IO"/>
         <Using Include="System.Math">
             <Static>True</Static>
         </Using>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="AutoCAD.NET" ExcludeAssets="runtime" />
-        <PackageReference Include="AutoCAD.NET.Interop" ExcludeAssets="runtime" />
-        <PackageReference Include="Serilog" />
+        <PackageReference Include="AutoCAD.NET" ExcludeAssets="runtime"/>
+        <PackageReference Include="AutoCAD.NET.Interop" ExcludeAssets="runtime"/>
+        <PackageReference Include="Serilog"/>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\AutoBIMFusion.Common\AutoBIMFusion.Common.csproj" />
-        <ProjectReference Include="..\AutoBIMFusion.Merge\AutoBIMFusion.Merge.csproj" />
+        <ProjectReference Include="..\AutoBIMFusion.Common\AutoBIMFusion.Common.csproj"/>
+        <ProjectReference Include="..\AutoBIMFusion.Merge\AutoBIMFusion.Merge.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Properties\" />
+        <Folder Include="Properties\"/>
     </ItemGroup>
 
     <Target Name="CopyPluginRuntimeDependencies" BeforeTargets="CreateAutoCADBundle">
-        <Copy SourceFiles="@(PluginRuntimeDependency)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" Condition="'@(PluginRuntimeDependency)' != ''" />
+        <Copy SourceFiles="@(PluginRuntimeDependency)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" Condition="'@(PluginRuntimeDependency)' != ''"/>
     </Target>
 
     <Target Name="CreateAutoCADBundle" AfterTargets="Build">
@@ -98,35 +98,35 @@
         </PropertyGroup>
 
         <ItemGroup>
-            <PackageContentsLines Include="&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;" />
-            <PackageContentsLines Include="&lt;ApplicationPackage SchemaVersion=&quot;1.0&quot; AppVersion=&quot;$(Version)&quot; ProductCode=&quot;$(AutoCADProductCode)&quot; Name=&quot;$(AutoCADPackageName)&quot;&gt;" />
-            <PackageContentsLines Include="  &lt;CompanyDetails Name=&quot;$(AutoCADCompanyName)&quot; /&gt;" />
-            <PackageContentsLines Include="  &lt;Components&gt;" />
-            <PackageContentsLines Include="    &lt;RuntimeRequirements OS=&quot;Win64&quot; Platform=&quot;AutoCAD&quot; SeriesMin=&quot;$(AutoCADSeries)&quot; SeriesMax=&quot;$(AutoCADSeries)&quot; /&gt;" />
-            <PackageContentsLines Include="    &lt;ComponentEntry AppName=&quot;$(AssemblyName)&quot; ModuleName=&quot;./Contents/$(AssemblyName).dll&quot; AppDescription=&quot;$(AutoCADAppDescription)&quot; LoadOnAutoCADStartup=&quot;true&quot; /&gt;" />
-            <PackageContentsLines Include="  &lt;/Components&gt;" />
-            <PackageContentsLines Include="&lt;/ApplicationPackage&gt;" />
-            <ResourceIcons Include="Resources\*.png" />
+            <PackageContentsLines Include="&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;"/>
+            <PackageContentsLines Include="&lt;ApplicationPackage SchemaVersion=&quot;1.0&quot; AppVersion=&quot;$(Version)&quot; ProductCode=&quot;$(AutoCADProductCode)&quot; Name=&quot;$(AutoCADPackageName)&quot;&gt;"/>
+            <PackageContentsLines Include="  &lt;CompanyDetails Name=&quot;$(AutoCADCompanyName)&quot; /&gt;"/>
+            <PackageContentsLines Include="  &lt;Components&gt;"/>
+            <PackageContentsLines Include="    &lt;RuntimeRequirements OS=&quot;Win64&quot; Platform=&quot;AutoCAD&quot; SeriesMin=&quot;$(AutoCADSeries)&quot; SeriesMax=&quot;$(AutoCADSeries)&quot; /&gt;"/>
+            <PackageContentsLines Include="    &lt;ComponentEntry AppName=&quot;$(AssemblyName)&quot; ModuleName=&quot;./Contents/$(AssemblyName).dll&quot; AppDescription=&quot;$(AutoCADAppDescription)&quot; LoadOnAutoCADStartup=&quot;true&quot; /&gt;"/>
+            <PackageContentsLines Include="  &lt;/Components&gt;"/>
+            <PackageContentsLines Include="&lt;/ApplicationPackage&gt;"/>
+            <ResourceIcons Include="Resources\*.png"/>
         </ItemGroup>
 
-        <MakeDir Directories="$(BundleOutputContentsDir);$(DeployBundleContentsDir);$(BundleOutputContentsDir)\Resources;$(DeployBundleContentsDir)\Resources" />
+        <MakeDir Directories="$(BundleOutputContentsDir);$(DeployBundleContentsDir);$(BundleOutputContentsDir)\Resources;$(DeployBundleContentsDir)\Resources"/>
 
-        <WriteLinesToFile File="$(GeneratedPackageContentsPath)" Lines="@(PackageContentsLines)" Overwrite="true" Encoding="utf-8" />
+        <WriteLinesToFile File="$(GeneratedPackageContentsPath)" Lines="@(PackageContentsLines)" Overwrite="true" Encoding="utf-8"/>
 
-        <Copy SourceFiles="$(GeneratedPackageContentsPath)" DestinationFiles="$(BundleOutputDir)\PackageContents.xml" Retries="5" RetryDelayMilliseconds="200" />
-        <Copy SourceFiles="$(GeneratedPackageContentsPath)" DestinationFiles="$(DeployBundleDir)\PackageContents.xml" Retries="5" RetryDelayMilliseconds="200" />
+        <Copy SourceFiles="$(GeneratedPackageContentsPath)" DestinationFiles="$(BundleOutputDir)\PackageContents.xml" Retries="5" RetryDelayMilliseconds="200"/>
+        <Copy SourceFiles="$(GeneratedPackageContentsPath)" DestinationFiles="$(DeployBundleDir)\PackageContents.xml" Retries="5" RetryDelayMilliseconds="200"/>
 
-        <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BundleOutputContentsDir)" Retries="5" RetryDelayMilliseconds="200" />
-        <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DeployBundleContentsDir)" Retries="5" RetryDelayMilliseconds="200" />
-        <Copy SourceFiles="@(PluginRuntimeDependency)" DestinationFolder="$(BundleOutputContentsDir)" SkipUnchangedFiles="true" Retries="5" RetryDelayMilliseconds="200" Condition="'@(PluginRuntimeDependency)' != ''" />
-        <Copy SourceFiles="@(PluginRuntimeDependency)" DestinationFolder="$(DeployBundleContentsDir)" SkipUnchangedFiles="true" Retries="5" RetryDelayMilliseconds="200" Condition="'@(PluginRuntimeDependency)' != ''" />
-        <Copy SourceFiles="@(ReferenceCopyLocalPaths)" DestinationFolder="$(BundleOutputContentsDir)" SkipUnchangedFiles="true" Retries="5" RetryDelayMilliseconds="200" />
-        <Copy SourceFiles="@(ReferenceCopyLocalPaths)" DestinationFolder="$(DeployBundleContentsDir)" SkipUnchangedFiles="true" Retries="5" RetryDelayMilliseconds="200" />
-        <Copy SourceFiles="@(ResourceIcons)" DestinationFolder="$(BundleOutputContentsDir)\Resources" SkipUnchangedFiles="true" Retries="5" RetryDelayMilliseconds="200" Condition="'@(ResourceIcons)' != ''" />
-        <Copy SourceFiles="@(ResourceIcons)" DestinationFolder="$(DeployBundleContentsDir)\Resources" SkipUnchangedFiles="true" Retries="5" RetryDelayMilliseconds="200" Condition="'@(ResourceIcons)' != ''" />
+        <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BundleOutputContentsDir)" Retries="5" RetryDelayMilliseconds="200"/>
+        <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DeployBundleContentsDir)" Retries="5" RetryDelayMilliseconds="200"/>
+        <Copy SourceFiles="@(PluginRuntimeDependency)" DestinationFolder="$(BundleOutputContentsDir)" SkipUnchangedFiles="true" Retries="5" RetryDelayMilliseconds="200" Condition="'@(PluginRuntimeDependency)' != ''"/>
+        <Copy SourceFiles="@(PluginRuntimeDependency)" DestinationFolder="$(DeployBundleContentsDir)" SkipUnchangedFiles="true" Retries="5" RetryDelayMilliseconds="200" Condition="'@(PluginRuntimeDependency)' != ''"/>
+        <Copy SourceFiles="@(ReferenceCopyLocalPaths)" DestinationFolder="$(BundleOutputContentsDir)" SkipUnchangedFiles="true" Retries="5" RetryDelayMilliseconds="200"/>
+        <Copy SourceFiles="@(ReferenceCopyLocalPaths)" DestinationFolder="$(DeployBundleContentsDir)" SkipUnchangedFiles="true" Retries="5" RetryDelayMilliseconds="200"/>
+        <Copy SourceFiles="@(ResourceIcons)" DestinationFolder="$(BundleOutputContentsDir)\Resources" SkipUnchangedFiles="true" Retries="5" RetryDelayMilliseconds="200" Condition="'@(ResourceIcons)' != ''"/>
+        <Copy SourceFiles="@(ResourceIcons)" DestinationFolder="$(DeployBundleContentsDir)\Resources" SkipUnchangedFiles="true" Retries="5" RetryDelayMilliseconds="200" Condition="'@(ResourceIcons)' != ''"/>
 
-        <Message Importance="high" Text="AutoCAD bundle created: $(BundleOutputDir)" />
-        <Message Importance="high" Text="AutoCAD autoload bundle deployed: $(DeployBundleDir)" />
+        <Message Importance="high" Text="AutoCAD bundle created: $(BundleOutputDir)"/>
+        <Message Importance="high" Text="AutoCAD autoload bundle deployed: $(DeployBundleDir)"/>
     </Target>
 
     <Target Name="CleanAutoCADBundle" AfterTargets="Clean">
@@ -136,8 +136,8 @@
             <DeployBundleDir>$(AutoCADDeployRootDir)$(BundleName)</DeployBundleDir>
         </PropertyGroup>
 
-        <RemoveDir Directories="$(DeployBundleDir)" Condition="Exists('$(DeployBundleDir)')" />
-        <Message Importance="high" Text="AutoCAD autoload bundle removed: $(DeployBundleDir)" Condition="!Exists('$(DeployBundleDir)')" />
+        <RemoveDir Directories="$(DeployBundleDir)" Condition="Exists('$(DeployBundleDir)')"/>
+        <Message Importance="high" Text="AutoCAD autoload bundle removed: $(DeployBundleDir)" Condition="!Exists('$(DeployBundleDir)')"/>
     </Target>
 
 </Project>

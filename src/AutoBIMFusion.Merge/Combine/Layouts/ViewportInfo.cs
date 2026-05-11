@@ -1,8 +1,8 @@
 namespace AutoBIMFusion.Merge.Combine.Layouts;
 
 /// <summary>
-/// Снимок Viewport'а с листа: положение на бумаге, параметры вида модели, масштаб.
-/// CoverageScore используется для выбора главного vpt.
+///     Снимок Viewport'а с листа: положение на бумаге, параметры вида модели, масштаб.
+///     CoverageScore используется для выбора главного vpt.
 /// </summary>
 internal sealed record ViewportInfo(
     ObjectId VpId,
@@ -19,7 +19,7 @@ internal sealed record ViewportInfo(
     public double PaperArea => WidthPaper * HeightPaper;
 
     /// <summary>
-    /// Площадь × (1 / CustomScale). Чем больше, тем больше модели VP «покрывает» на листе.
+    ///     Площадь × (1 / CustomScale). Чем больше, тем больше модели VP «покрывает» на листе.
     /// </summary>
     public double CoverageScore => CustomScale > 0 ? PaperArea / CustomScale : 0;
 
@@ -27,17 +27,14 @@ internal sealed record ViewportInfo(
     {
         ArgumentNullException.ThrowIfNull(vps);
 
-        if (vps.Count == 0)
-        {
-            throw new ArgumentException("Список vpt'ов пуст.", nameof(vps));
-        }
+        if (vps.Count == 0) throw new ArgumentException("Список vpt'ов пуст.", nameof(vps));
 
-        ViewportInfo best = vps[0];
-        double bestScore = best.CoverageScore;
+        var best = vps[0];
+        var bestScore = best.CoverageScore;
 
-        for (int i = 1; i < vps.Count; i++)
+        for (var i = 1; i < vps.Count; i++)
         {
-            double score = vps[i].CoverageScore;
+            var score = vps[i].CoverageScore;
 
             if (score > bestScore)
             {
@@ -49,4 +46,3 @@ internal sealed record ViewportInfo(
         return best;
     }
 }
-

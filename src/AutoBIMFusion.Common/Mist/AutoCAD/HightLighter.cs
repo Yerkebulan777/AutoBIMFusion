@@ -1,55 +1,47 @@
-﻿using Autodesk.AutoCAD.DatabaseServices;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
-namespace SioForgeCAD.Commun
+namespace SioForgeCAD.Commun;
+
+internal static class HightLighter
 {
-    static class HightLighter
-    {
-        private static readonly List<ObjectId> HightLightedObject = new List<ObjectId>();
-        public static void RegisterHighlight(this ObjectId ObjectId)
-        {
-            if (!HightLightedObject.Contains(ObjectId))
-            {
-                HightLightedObject.Add(ObjectId);
-            }
-            ObjectId.GetEntity().Highlight();
-        }
-        public static void RegisterHighlight(this Entity Entity)
-        {
-            RegisterHighlight(Entity.ObjectId);
-        }
+    private static readonly List<ObjectId> HightLightedObject = new();
 
-        public static void RegisterUnhighlight(this Entity Entity)
+    public static void RegisterHighlight(this ObjectId ObjectId)
+    {
+        if (!HightLightedObject.Contains(ObjectId)) HightLightedObject.Add(ObjectId);
+        ObjectId.GetEntity().Highlight();
+    }
+
+    public static void RegisterHighlight(this Entity Entity)
+    {
+        Entity.ObjectId.RegisterHighlight();
+    }
+
+    public static void RegisterUnhighlight(this Entity Entity)
+    {
+        Entity.ObjectId.RegisterUnhighlight();
+    }
+
+    public static void RegisterUnhighlight(this ObjectId ObjectId)
+    {
+        try
         {
-            RegisterUnhighlight(Entity.ObjectId);
+            HightLightedObject.Remove(ObjectId);
+            ObjectId.GetEntity().Unhighlight();
         }
-        public static void RegisterUnhighlight(this ObjectId ObjectId)
+        catch (Exception ex)
         {
-            try
-            {
-                HightLightedObject.Remove(ObjectId);
-                ObjectId.GetEntity().Unhighlight();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex);
-            }
+            Debug.WriteLine(ex);
         }
-        public static void UnhighlightAll()
-        {
-            foreach (ObjectId objectId in HightLightedObject.ToArray())
-            {
-                RegisterUnhighlight(objectId);
-            }
-        }
-        public static void UnhighlightAll(IEnumerable<ObjectId> HightLightedObject)
-        {
-            foreach (ObjectId objectId in HightLightedObject)
-            {
-                RegisterUnhighlight(objectId);
-            }
-        }
+    }
+
+    public static void UnhighlightAll()
+    {
+        foreach (var objectId in HightLightedObject.ToArray()) objectId.RegisterUnhighlight();
+    }
+
+    public static void UnhighlightAll(IEnumerable<ObjectId> HightLightedObject)
+    {
+        foreach (var objectId in HightLightedObject) objectId.RegisterUnhighlight();
     }
 }

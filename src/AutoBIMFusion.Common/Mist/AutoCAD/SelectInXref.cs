@@ -1,63 +1,58 @@
-﻿using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.EditorInput;
-using Autodesk.AutoCAD.Geometry;
-using SioForgeCAD.Commun.Extensions;
-using System.Collections.Generic;
-using System.Linq;
+﻿using SioForgeCAD.Commun.Extensions;
 
-namespace SioForgeCAD.Commun
+namespace SioForgeCAD.Commun;
+
+public static class SelectInXref
 {
-    public static class SelectInXref
+    public static (ObjectId[] XrefObjectId, ObjectId SelectedObjectId, PromptStatus PromptStatus) Select(string Message,
+        Point3d? NonInterractivePickedPoint = null)
     {
-        public static (ObjectId[] XrefObjectId, ObjectId SelectedObjectId, PromptStatus PromptStatus) Select(string Message, Point3d? NonInterractivePickedPoint = null)
-        {
-            Editor ed = Generic.GetEditor();
+        var ed = Generic.GetEditor();
 
-            PromptNestedEntityOptions nestedEntOpt = new PromptNestedEntityOptions(Message);
-            if (NonInterractivePickedPoint != null)
-            {
-                nestedEntOpt.NonInteractivePickPoint = NonInterractivePickedPoint ?? Point3d.Origin;
-                nestedEntOpt.UseNonInteractivePickPoint = true;
-            }
-            PromptNestedEntityResult nestedEntRes = ed.GetNestedEntity(nestedEntOpt);
-            if (nestedEntRes.Status != PromptStatus.OK)
-            {
-                return (System.Array.Empty<ObjectId>(), ObjectId.Null, nestedEntRes.Status);
-            }
-            (ObjectId[] XrefObjectId, ObjectId SelectedObjectId) = nestedEntRes.GetEntityInChildXref();
-            return (XrefObjectId, SelectedObjectId, nestedEntRes.Status);
+        var nestedEntOpt = new PromptNestedEntityOptions(Message);
+        if (NonInterractivePickedPoint != null)
+        {
+            nestedEntOpt.NonInteractivePickPoint = NonInterractivePickedPoint ?? Point3d.Origin;
+            nestedEntOpt.UseNonInteractivePickPoint = true;
         }
 
-        public static (ObjectId[] XrefObjectId, ObjectId SelectedObjectId) GetEntityInChildXref(this PromptNestedEntityResult res)
-        {
-            return (res.GetContainers(), res.ObjectId);
-        }
+        var nestedEntRes = ed.GetNestedEntity(nestedEntOpt);
+        if (nestedEntRes.Status != PromptStatus.OK)
+            return (Array.Empty<ObjectId>(), ObjectId.Null, nestedEntRes.Status);
+        var (XrefObjectId, SelectedObjectId) = nestedEntRes.GetEntityInChildXref();
+        return (XrefObjectId, SelectedObjectId, nestedEntRes.Status);
+    }
 
-        public static string GetEntityPathInChildXref(this PromptNestedEntityResult res)
+    public static (ObjectId[] XrefObjectId, ObjectId SelectedObjectId) GetEntityInChildXref(
+        this PromptNestedEntityResult res)
+    {
+        return (res.GetContainers(), res.ObjectId);
+    }
+
+    public static string GetEntityPathInChildXref(this PromptNestedEntityResult res)
+    {
+        var db = HostApplicationServices.WorkingDatabase;
+        using (var tr = db.TransactionManager.StartTransaction())
         {
-            Database db = HostApplicationServices.WorkingDatabase;
-            using (Transaction tr = db.TransactionManager.StartTransaction())
+            var Path = new List<string>();
+            foreach (var id in res.GetContainers().Reverse())
             {
-                List<string> Path = new List<string>();
-                foreach (ObjectId id in res.GetContainers().Reverse())
-                {
-                    BlockReference container = tr.GetObject(id, OpenMode.ForRead) as BlockReference;
+                var container = tr.GetObject(id, OpenMode.ForRead) as BlockReference;
 
-                    Path.Add(container.Name);
-                }
-                tr.Commit();
-                return string.Join(">", Path);
+                Path.Add(container.Name);
             }
-        }
 
-        public static Points TransformPointInXrefsToCurrent(Point3d XrefPosition, IEnumerable<ObjectId> NestedXrefsContainer)
-        {
-            Point3d BlkPosition = XrefPosition;
-            foreach (ObjectId objectId in NestedXrefsContainer)
-            {
-                BlkPosition = Points.From3DPoint(BlkPosition.ProjectXrefPointToCurrentSpace(objectId)).SCG;
-            }
-            return BlkPosition.ToPoints();
+            tr.Commit();
+            return string.Join(">", Path);
         }
+    }
+
+    public static Points TransformPointInXrefsToCurrent(Point3d XrefPosition,
+        IEnumerable<ObjectId> NestedXrefsContainer)
+    {
+        var BlkPosition = XrefPosition;
+        foreach (var objectId in NestedXrefsContainer)
+            BlkPosition = Points.From3DPoint(BlkPosition.ProjectXrefPointToCurrentSpace(objectId)).SCG;
+        return BlkPosition.ToPoints();
     }
 }

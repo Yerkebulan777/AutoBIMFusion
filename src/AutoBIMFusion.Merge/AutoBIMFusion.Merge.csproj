@@ -10,22 +10,22 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Using Include="Autodesk.AutoCAD.DatabaseServices" />
-        <Using Include="Autodesk.AutoCAD.EditorInput" />
-        <Using Include="Autodesk.AutoCAD.Geometry" />
-        <Using Include="Autodesk.AutoCAD.Runtime" />
+        <Using Include="Autodesk.AutoCAD.DatabaseServices"/>
+        <Using Include="Autodesk.AutoCAD.EditorInput"/>
+        <Using Include="Autodesk.AutoCAD.Geometry"/>
+        <Using Include="Autodesk.AutoCAD.Runtime"/>
         <Using Include="System.Math">
             <Static>True</Static>
         </Using>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="AutoCAD.NET" ExcludeAssets="runtime" />
-        <PackageReference Include="AutoCAD.NET.Interop" ExcludeAssets="runtime" />
+        <PackageReference Include="AutoCAD.NET" ExcludeAssets="runtime"/>
+        <PackageReference Include="AutoCAD.NET.Interop" ExcludeAssets="runtime"/>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\AutoBIMFusion.Common\AutoBIMFusion.Common.csproj" />
+        <ProjectReference Include="..\AutoBIMFusion.Common\AutoBIMFusion.Common.csproj"/>
     </ItemGroup>
 
 </Project>

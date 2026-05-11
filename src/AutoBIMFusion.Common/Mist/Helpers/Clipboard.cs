@@ -1,55 +1,38 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
-namespace SioForgeCAD.Commun.Mist
+namespace SioForgeCAD.Commun.Mist;
+
+public static class Clipboard
 {
-    public static class Clipboard
+    private const uint GMEM_MOVEABLE = 0x0002;
+
+    public static bool SetRawDataToClipboard(string Format, byte[] EPS, bool Append = false)
     {
-        private const uint GMEM_MOVEABLE = 0x0002;
+        var cfEps = User32PInvoke.RegisterClipboardFormat(Format);
 
-        public static bool SetRawDataToClipboard(string Format, byte[] EPS, bool Append = false)
+        if (!User32PInvoke.OpenClipboard(IntPtr.Zero)) return false;
+
+        try
         {
-            uint cfEps = User32PInvoke.RegisterClipboardFormat(Format);
+            if (Append && !User32PInvoke.EmptyClipboard()) return false;
 
-            if (!User32PInvoke.OpenClipboard(IntPtr.Zero))
-            {
-                return false;
-            }
+            var size = (UIntPtr)EPS.Length;
+            var hGlobal = User32PInvoke.GlobalAlloc(GMEM_MOVEABLE, size);
+            if (hGlobal == IntPtr.Zero) return false;
 
-            try
-            {
-                if (Append && !User32PInvoke.EmptyClipboard())
-                {
-                    return false;
-                }
+            var ptr = User32PInvoke.GlobalLock(hGlobal);
+            if (ptr == IntPtr.Zero) return false;
 
-                UIntPtr size = (UIntPtr)EPS.Length;
-                IntPtr hGlobal = User32PInvoke.GlobalAlloc(GMEM_MOVEABLE, size);
-                if (hGlobal == IntPtr.Zero)
-                {
-                    return false;
-                }
+            Marshal.Copy(EPS, 0, ptr, EPS.Length);
+            User32PInvoke.GlobalUnlock(hGlobal);
 
-                IntPtr ptr = User32PInvoke.GlobalLock(hGlobal);
-                if (ptr == IntPtr.Zero)
-                {
-                    return false;
-                }
-
-                Marshal.Copy(EPS, 0, ptr, EPS.Length);
-                User32PInvoke.GlobalUnlock(hGlobal);
-
-                if (User32PInvoke.SetClipboardData(cfEps, hGlobal) == IntPtr.Zero)
-                {
-                    return false;
-                }
-            }
-            finally
-            {
-                User32PInvoke.CloseClipboard();
-            }
-
-            return true;
+            if (User32PInvoke.SetClipboardData(cfEps, hGlobal) == IntPtr.Zero) return false;
         }
+        finally
+        {
+            User32PInvoke.CloseClipboard();
+        }
+
+        return true;
     }
 }

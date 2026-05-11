@@ -1,70 +1,55 @@
-﻿using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.EditorInput;
-using System.Collections.Generic;
-using System.Linq;
+﻿namespace SioForgeCAD.Commun.Extensions;
 
-namespace SioForgeCAD.Commun.Extensions
+public static class ObjectExtensions
 {
-    public static class ObjectExtensions
+    public static bool TryGetDoubleValue(this object obj, out double value)
     {
-        public static bool TryGetDoubleValue(this object obj, out double value)
+        if (obj is double)
         {
-            if (obj is double)
-            {
-                value = (double)obj;
-            }
-            else if (obj is float)
-            {
-                value = (float)obj;
-            }
-            else if (obj is int)
-            {
-                value = (int)obj;
-            }
-            else if (obj is short)
-            {
-                value = (short)obj;
-            }
-            else
-            {
-                value = 0;
-                return false;
-            }
-            return true;
+            value = (double)obj;
+        }
+        else if (obj is float)
+        {
+            value = (float)obj;
+        }
+        else if (obj is int)
+        {
+            value = (int)obj;
+        }
+        else if (obj is short)
+        {
+            value = (short)obj;
+        }
+        else
+        {
+            value = 0;
+            return false;
         }
 
-        public static ObjectId[] GetObjectIds(this object obj)
+        return true;
+    }
+
+    public static ObjectId[] GetObjectIds(this object obj)
+    {
+        if (obj is SelectionSet selectionSet) return selectionSet.GetObjectIds();
+
+        if (obj is IEnumerable<ObjectId> IEnumerableSelectionSet) return IEnumerableSelectionSet.ToArray();
+
+        if (obj is IEnumerable<DBObject> collection) return collection.Select(ent => ent.ObjectId).ToArray();
+
+        if (obj is DBObjectCollection DbObjectCollection)
         {
-            if (obj is SelectionSet selectionSet)
-            {
-                return selectionSet.GetObjectIds();
-            }
-            else if (obj is IEnumerable<ObjectId> IEnumerableSelectionSet)
-            {
-                return IEnumerableSelectionSet.ToArray();
-            }
-            else if (obj is IEnumerable<DBObject> collection)
-            {
-                return collection.Select(ent => ent.ObjectId).ToArray();
-            }
-            else if (obj is DBObjectCollection DbObjectCollection)
-            {
-                var ObjIds = (from DBObject item in DbObjectCollection
-                              select item.ObjectId).ToList();
-            }
-            return System.Array.Empty<ObjectId>();
+            var ObjIds = (from DBObject item in DbObjectCollection
+                select item.ObjectId).ToList();
         }
 
-        public static IEnumerable<ObjectId> GetSelectionSet(this object obj)
-        {
-            if (obj is SelectionSet selectionSet)
-            {
-                foreach (SelectedObject item in selectionSet)
-                {
-                    yield return item.ObjectId;
-                }
-            }
-        }
+        return Array.Empty<ObjectId>();
+    }
 
+    public static IEnumerable<ObjectId> GetSelectionSet(this object obj)
+    {
+        if (obj is SelectionSet selectionSet)
+            foreach (SelectedObject item in selectionSet)
+                yield return item.ObjectId;
     }
 }

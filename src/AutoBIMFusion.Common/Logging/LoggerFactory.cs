@@ -1,8 +1,9 @@
+using System.Diagnostics;
+using System.Reflection;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
-using System.Diagnostics;
-using System.Reflection;
+using Trace = System.Diagnostics.Trace;
 
 namespace AutoBIMFusion.Common.Logging;
 
@@ -29,14 +30,14 @@ public static class LoggerFactory
     {
         try
         {
-            string logsDir = GetLogsDirectory();
-            string logFile = GetCurrentLogFilePath();
+            var logsDir = GetLogsDirectory();
+            var logFile = GetCurrentLogFilePath();
 
             _ = Directory.CreateDirectory(logsDir);
 
             return CreateFileLoggerCore(logFile);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             Debug.WriteLine($"Failed to create file logger: {ex}");
             return new LoggerConfiguration().CreateLogger();
@@ -47,20 +48,18 @@ public static class LoggerFactory
     {
         try
         {
-            string? logsDir = Path.GetDirectoryName(logFile);
-            if (!string.IsNullOrEmpty(logsDir))
-            {
-                _ = Directory.CreateDirectory(logsDir);
-            }
+            var logsDir = Path.GetDirectoryName(logFile);
+            if (!string.IsNullOrEmpty(logsDir)) _ = Directory.CreateDirectory(logsDir);
 
             return new LoggerConfiguration()
                 .MinimumLevel.Information()
                 .WriteTo.File(logFile, shared: true,
-                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+                    outputTemplate:
+                    "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
                 .WriteTo.Sink(new DiagnosticSink())
                 .CreateLogger();
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             Debug.WriteLine($"Failed to create logger for file '{logFile}': {ex}");
             return new LoggerConfiguration().CreateLogger();
@@ -69,7 +68,7 @@ public static class LoggerFactory
 
     private static string GetLogsDirectory()
     {
-        string baseDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+        var baseDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
         return Path.Combine(baseDir, "Logs");
     }
 
@@ -77,20 +76,13 @@ public static class LoggerFactory
     {
         public void Emit(LogEvent logEvent)
         {
-            string msg = $"{logEvent.Timestamp:HH:mm:ss.fff} [{logEvent.Level}] {logEvent.RenderMessage()}";
-            if (logEvent.Exception is not null)
-            {
-                msg = $"{msg}{Environment.NewLine}{logEvent.Exception}";
-            }
+            var msg = $"{logEvent.Timestamp:HH:mm:ss.fff} [{logEvent.Level}] {logEvent.RenderMessage()}";
+            if (logEvent.Exception is not null) msg = $"{msg}{Environment.NewLine}{logEvent.Exception}";
 
             if (Debugger.IsAttached)
-            {
                 Debug.WriteLine(msg);
-            }
             else
-            {
-                System.Diagnostics.Trace.WriteLine(msg);
-            }
+                Trace.WriteLine(msg);
         }
     }
 }

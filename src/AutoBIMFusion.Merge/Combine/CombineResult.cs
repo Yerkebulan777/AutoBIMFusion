@@ -3,7 +3,7 @@ using AutoBIMFusion.Common.Helpers;
 namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
-/// Результат слияния одного DWG-файла.
+///     Результат слияния одного DWG-файла.
 /// </summary>
 public sealed record CombineResult(
     bool Success,
@@ -15,18 +15,16 @@ public sealed record CombineResult(
 
     public static CombineResult Ok(string fileName)
     {
-        return new(true, fileName);
+        return new CombineResult(true, fileName);
     }
 
     public static CombineResult Fail(string fileName, string? message, string fallback = "Ошибка")
     {
-        return new(false, fileName, Message: StringUtils.Truncate(message, fallback, DefaultMaxLength));
+        return new CombineResult(false, fileName, Message: StringUtils.Truncate(message, fallback, DefaultMaxLength));
     }
 
     public static CombineResult Warn(string fileName, string? message, string fallback = "Пропущено")
     {
-        return new(false, fileName, IsSkipped: true, Message: StringUtils.Truncate(message, fallback, DefaultMaxLength));
+        return new CombineResult(false, fileName, true, StringUtils.Truncate(message, fallback, DefaultMaxLength));
     }
 }
-
-

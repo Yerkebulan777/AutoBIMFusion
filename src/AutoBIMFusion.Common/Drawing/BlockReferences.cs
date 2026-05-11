@@ -1,236 +1,147 @@
-﻿using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.EditorInput;
-using Autodesk.AutoCAD.Geometry;
-using SioForgeCAD.Commun;
-using SioForgeCAD.Commun.Drawing;
+﻿using System.Diagnostics;
 using SioForgeCAD.Commun.Extensions;
-using SioForgeCAD.Commun.Mist;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using Exception = System.Exception;
 
-namespace SioForgeCAD.Commun.Drawing
+namespace SioForgeCAD.Commun.Drawing;
+
+public static class BlockReferences
 {
-    public static class BlockReferences
+    public static void ReplaceAllBlockReference(string OldBlockName, string NewBlockName, bool KeepScale = true,
+        bool KeepRotation = true, bool PreserveProperties = true)
     {
-        public static void ReplaceAllBlockReference(string OldBlockName, string NewBlockName, bool KeepScale = true, bool KeepRotation = true, bool PreserveProperties = true)
+        var db = Generic.GetDatabase();
+
+        using (var tr = db.TransactionManager.StartTransaction())
         {
-            Database db = Generic.GetDatabase();
+            var bt = tr.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+            var objectIdCollection = new ObjectIdCollection();
 
-            using (Transaction tr = db.TransactionManager.StartTransaction())
+            // On parcourt tous les BlockTableRecord (ModelSpace, PaperSpace, blocs, etc.)
+            foreach (var btrId in bt)
             {
-                BlockTable bt = tr.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-                ObjectIdCollection objectIdCollection = new ObjectIdCollection();
+                var btr = tr.GetObject(btrId, OpenMode.ForWrite) as BlockTableRecord;
 
-                // On parcourt tous les BlockTableRecord (ModelSpace, PaperSpace, blocs, etc.)
-                foreach (ObjectId btrId in bt)
+                // Ne pas traiter les blocs anonymes (ex: ceux créés par les hachures ou dynamiques internes)
+                if (btr.IsAnonymous || (!btr.IsLayout && !btr.IsFromExternalReference)) continue;
+
+                foreach (var entId in btr)
                 {
-                    BlockTableRecord btr = tr.GetObject(btrId, OpenMode.ForWrite) as BlockTableRecord;
-
-                    // Ne pas traiter les blocs anonymes (ex: ceux créés par les hachures ou dynamiques internes)
-                    if (btr.IsAnonymous || (!btr.IsLayout && !btr.IsFromExternalReference))
-                    {
-                        continue;
-                    }
-
-                    foreach (ObjectId entId in btr)
-                    {
-                        Entity ent = entId.GetObject(OpenMode.ForRead) as Entity;
-                        if (ent is BlockReference br && br.GetBlockReferenceName() == OldBlockName)
-                        {
-                            objectIdCollection.Add(ent.ObjectId);
-                        }
-                    }
+                    var ent = entId.GetObject(OpenMode.ForRead) as Entity;
+                    if (ent is BlockReference br && br.GetBlockReferenceName() == OldBlockName)
+                        objectIdCollection.Add(ent.ObjectId);
                 }
-                ReplaceAllBlockReference(objectIdCollection, NewBlockName, KeepScale, KeepRotation, PreserveProperties);
-                Purge(OldBlockName);
-                tr.Commit();
             }
+
+            ReplaceAllBlockReference(objectIdCollection, NewBlockName, KeepScale, KeepRotation, PreserveProperties);
+            Purge(OldBlockName);
+            tr.Commit();
         }
-        public static void ReplaceAllBlockReference(ObjectIdCollection objectIdCollection, string NewBlockName, bool KeepScale = true, bool KeepRotation = true, bool PreserveProperties = true)
+    }
+
+    public static void ReplaceAllBlockReference(ObjectIdCollection objectIdCollection, string NewBlockName,
+        bool KeepScale = true, bool KeepRotation = true, bool PreserveProperties = true)
+    {
+        var db = Generic.GetDatabase();
+        var ed = Generic.GetEditor();
+
+        using (var tr = db.TransactionManager.StartTransaction())
         {
-            Database db = Generic.GetDatabase();
-            Editor ed = Generic.GetEditor();
-
-            using (Transaction tr = db.TransactionManager.StartTransaction())
+            foreach (ObjectId entid in objectIdCollection)
             {
-                foreach (ObjectId entid in objectIdCollection)
+                var ent = entid.GetObject(OpenMode.ForRead) as Entity;
+
+                if (ent is BlockReference br)
                 {
-                    Entity ent = entid.GetObject(OpenMode.ForRead) as Entity;
+                    var IsEntOnLockedLayer = ent.IsEntityOnLockedLayer();
+                    var propertiesToCopy = PreserveProperties ? GetPropertiesFromBlock(tr, br) : null;
+                    if (IsEntOnLockedLayer) Layers.SetLock(ent.Layer, false);
+                    ent.UpgradeOpen();
+                    var ownerBtr = tr.GetObject(br.OwnerId, OpenMode.ForWrite) as BlockTableRecord;
 
-                    if (ent is BlockReference br)
-                    {
-                        bool IsEntOnLockedLayer = ent.IsEntityOnLockedLayer();
-                        Dictionary<string, string> propertiesToCopy = PreserveProperties ? GetPropertiesFromBlock(tr, br) : null;
-                        if (IsEntOnLockedLayer) Layers.SetLock(ent.Layer, false);
-                        ent.UpgradeOpen();
-                        BlockTableRecord ownerBtr = tr.GetObject(br.OwnerId, OpenMode.ForWrite) as BlockTableRecord;
+                    var newBrObjId = InsertFromName(NewBlockName, br.Position.ToPoints(),
+                        ed.GetUSCRotation(AngleUnit.Radians), propertiesToCopy, NewBlockName, ownerBtr);
+                    var newBr = tr.GetObject(newBrObjId, OpenMode.ForWrite) as BlockReference;
 
-                        var newBrObjId = InsertFromName(NewBlockName, br.Position.ToPoints(), ed.GetUSCRotation(AngleUnit.Radians), propertiesToCopy, NewBlockName, ownerBtr);
-                        var newBr = tr.GetObject(newBrObjId, OpenMode.ForWrite) as BlockReference;
+                    if (KeepScale) newBr.ScaleFactors = br.ScaleFactors;
+                    if (KeepRotation) newBr.Rotation = br.Rotation;
+                    newBr.Color = br.Color;
+                    newBr.Layer = br.Layer;
 
-                        if (KeepScale) newBr.ScaleFactors = br.ScaleFactors;
-                        if (KeepRotation) newBr.Rotation = br.Rotation;
-                        newBr.Color = br.Color;
-                        newBr.Layer = br.Layer;
-
-                        if (!br.IsErased)
-                        {
-                            br.Erase(true);
-                        }
-                        if (IsEntOnLockedLayer) Layers.SetLock(ent.Layer, true);
-                    }
+                    if (!br.IsErased) br.Erase(true);
+                    if (IsEntOnLockedLayer) Layers.SetLock(ent.Layer, true);
                 }
-                tr.Commit();
             }
+
+            tr.Commit();
         }
+    }
 
-        public static ObjectId Create(string Name, string Description, DBObjectCollection EntitiesDbObjectCollection, Points Origin, bool IsExplodable = true, BlockScaling BlockScaling = BlockScaling.Any)
+    public static ObjectId Create(string Name, string Description, DBObjectCollection EntitiesDbObjectCollection,
+        Points Origin, bool IsExplodable = true, BlockScaling BlockScaling = BlockScaling.Any)
+    {
+        var db = Generic.GetDatabase();
+        using (var tr = db.TransactionManager.StartTransaction())
         {
-            Database db = Generic.GetDatabase();
-            using (Transaction tr = db.TransactionManager.StartTransaction())
+            var bt = db.BlockTableId.GetDBObject(OpenMode.ForWrite) as BlockTable;
+            var BlockName = Name;
+
+            if (BlockName != "*U") //creating an anonymous block
+                BlockName = SymbolUtilityServices.RepairSymbolName(Name, false);
+            if (bt.Has(BlockName)) Generic.WriteMessage($"Le bloc {Name} existe déja dans le dessin");
+
+            var btr = new BlockTableRecord
             {
-                BlockTable bt = db.BlockTableId.GetDBObject(OpenMode.ForWrite) as BlockTable;
-                string BlockName = Name;
+                Name = BlockName,
+                Comments = Description,
+                Explodable = IsExplodable,
+                Units = db.Insunits,
+                BlockScaling = BlockScaling
+            };
+            if (Origin != Points.Null) btr.Origin = Origin.SCG;
+            // Add the new block to the block table
+            var btrId = bt.Add(btr);
+            tr.AddNewlyCreatedDBObject(btr, true);
 
-                if (BlockName != "*U") //creating an anonymous block
-                {
-                    BlockName = SymbolUtilityServices.RepairSymbolName(Name, false);
-                }
-                if (bt.Has(BlockName))
-                {
-                    Generic.WriteMessage($"Le bloc {Name} existe déja dans le dessin");
-                }
-
-                BlockTableRecord btr = new BlockTableRecord()
-                {
-                    Name = BlockName,
-                    Comments = Description,
-                    Explodable = IsExplodable,
-                    Units = db.Insunits,
-                    BlockScaling = BlockScaling,
-                };
-                if (Origin != Points.Null)
-                {
-                    btr.Origin = Origin.SCG;
-                }
-                // Add the new block to the block table
-                ObjectId btrId = bt.Add(btr);
-                tr.AddNewlyCreatedDBObject(btr, true);
-
-                foreach (Entity ent in EntitiesDbObjectCollection)
-                {
-                    btr.AppendEntity(ent);
-                    tr.AddNewlyCreatedDBObject(ent, true);
-                }
-
-                tr.Commit();
-                return btrId;
+            foreach (Entity ent in EntitiesDbObjectCollection)
+            {
+                btr.AppendEntity(ent);
+                tr.AddNewlyCreatedDBObject(ent, true);
             }
+
+            tr.Commit();
+            return btrId;
         }
+    }
 
-        public static ObjectId CreateFromExistingEnts(string Name, string Description, ObjectIdCollection SelectedIds, Points Origin, bool IsExplodable = true, BlockScaling BlockScaling = BlockScaling.Any, bool EraseOld = false)
+    public static ObjectId CreateFromExistingEnts(string Name, string Description, ObjectIdCollection SelectedIds,
+        Points Origin, bool IsExplodable = true, BlockScaling BlockScaling = BlockScaling.Any, bool EraseOld = false)
+    {
+        //This method offer the avantage to keep associative hatch
+        var ed = Generic.GetEditor();
+        var db = Generic.GetDatabase();
+        using (var tr = db.TransactionManager.StartTransaction())
         {
-            //This method offer the avantage to keep associative hatch
-            Editor ed = Generic.GetEditor();
-            Database db = Generic.GetDatabase();
-            using (Transaction tr = db.TransactionManager.StartTransaction())
+            var bt = db.BlockTableId.GetDBObject(OpenMode.ForWrite) as BlockTable;
+            var BlockName = Name;
+            if (string.IsNullOrWhiteSpace(BlockName)) BlockName = "*U";
+            ;
+            if (BlockName != "*U") //if we dont create an anonymous block
+                BlockName = SymbolUtilityServices.RepairSymbolName(Name, false);
+            if (bt.Has(BlockName)) Generic.WriteMessage($"Le bloc {Name} existe déja dans le dessin");
+
+            var MemoryDatabase = new Database(true, false);
+            var acIdMap = new IdMapping();
+            using (var MemoryTransaction = MemoryDatabase.TransactionManager.StartTransaction())
             {
-                BlockTable bt = db.BlockTableId.GetDBObject(OpenMode.ForWrite) as BlockTable;
-                string BlockName = Name;
-                if (string.IsNullOrWhiteSpace(BlockName)) { BlockName = "*U"; }
-                ;
-                if (BlockName != "*U") //if we dont create an anonymous block
-                {
-                    BlockName = SymbolUtilityServices.RepairSymbolName(Name, false);
-                }
-                if (bt.Has(BlockName))
-                {
-                    Generic.WriteMessage($"Le bloc {Name} existe déja dans le dessin");
-                }
-
-                Database MemoryDatabase = new Database(true, false);
-                IdMapping acIdMap = new IdMapping();
-                using (Transaction MemoryTransaction = MemoryDatabase.TransactionManager.StartTransaction())
-                {
-                    BlockTable acBlkTblNewDoc = MemoryTransaction.GetObject(MemoryDatabase.BlockTableId, OpenMode.ForRead) as BlockTable;
-                    BlockTableRecord acBlkTblRecNewDoc = MemoryTransaction.GetObject(acBlkTblNewDoc[BlockTableRecord.ModelSpace], OpenMode.ForRead) as BlockTableRecord;
-                    try
-                    {
-                        MemoryDatabase.WblockCloneObjects(SelectedIds, acBlkTblRecNewDoc.ObjectId, acIdMap, DuplicateRecordCloning.Replace, false);
-
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine(ex);
-                        return ObjectId.Null;
-                    }
-                    double UcsRotation = Vector3d.XAxis.GetAngleTo(ed.CurrentUserCoordinateSystem.CoordinateSystem3d.Xaxis, Vector3d.ZAxis);
-                    Matrix3d CounterRotation = Matrix3d.Rotation(-UcsRotation, Vector3d.ZAxis, new Point3d(0, 0, Origin.SCG.Z));
-                    Matrix3d DisplacementVector = Matrix3d.Displacement(Origin.SCG.Flatten().GetVectorTo(new Point3d(0, 0, Origin.SCG.Z)));
-
-                    foreach (ObjectId objId in acBlkTblRecNewDoc)
-                    {
-                        if (objId.IsValid)
-                        {
-                            DBObject obj = objId.GetObject(OpenMode.ForWrite);
-                            if (obj is Entity ent)
-                            {
-                                ent.TransformBy(CounterRotation * DisplacementVector);
-                            }
-                        }
-                    }
-
-                    MemoryTransaction.Commit();
-                }
-
-
-                var Id = db.Insert(BlockName, MemoryDatabase, false);
-
-                BlockTableRecord blockDef = Id.GetObject(OpenMode.ForWrite) as BlockTableRecord;
-                blockDef.Comments = Description;
-                blockDef.Explodable = IsExplodable;
-                blockDef.BlockScaling = BlockScaling;
-                blockDef.Units = db.Insunits;
-
-                if (EraseOld)
-                {
-                    foreach (ObjectId oldent in SelectedIds)
-                    {
-                        oldent.EraseObject();
-                    }
-                }
-
-                tr.Commit();
-                return Id;
-            }
-
-        }
-
-
-        public static ObjectId RenameBlockAndInsert(ObjectId BlockReferenceObjectId, string NewName)
-        {
-            if (!BlockReferenceObjectId.IsValid)
-            {
-                return ObjectId.Null;
-            }
-            ObjectIdCollection acObjIdColl = new ObjectIdCollection { BlockReferenceObjectId };
-
-            Document ActualDocument = Generic.GetDocument();
-            Database ActualDatabase = ActualDocument.Database;
-
-            Database MemoryDatabase = new Database(true, false);
-            IdMapping acIdMap = new IdMapping();
-            using (Transaction MemoryTransaction = MemoryDatabase.TransactionManager.StartTransaction())
-            {
-                BlockTable acBlkTblNewDoc = MemoryTransaction.GetObject(MemoryDatabase.BlockTableId, OpenMode.ForRead) as BlockTable;
-                BlockTableRecord acBlkTblRecNewDoc = MemoryTransaction.GetObject(acBlkTblNewDoc[BlockTableRecord.ModelSpace], OpenMode.ForRead) as BlockTableRecord;
+                var acBlkTblNewDoc =
+                    MemoryTransaction.GetObject(MemoryDatabase.BlockTableId, OpenMode.ForRead) as BlockTable;
+                var acBlkTblRecNewDoc =
+                    MemoryTransaction.GetObject(acBlkTblNewDoc[BlockTableRecord.ModelSpace], OpenMode.ForRead) as
+                        BlockTableRecord;
                 try
                 {
-                    MemoryDatabase.WblockCloneObjects(acObjIdColl, acBlkTblRecNewDoc.ObjectId, acIdMap, DuplicateRecordCloning.Replace, false);
+                    MemoryDatabase.WblockCloneObjects(SelectedIds, acBlkTblRecNewDoc.ObjectId, acIdMap,
+                        DuplicateRecordCloning.Replace, false);
                 }
                 catch (Exception ex)
                 {
@@ -238,375 +149,392 @@ namespace SioForgeCAD.Commun.Drawing
                     return ObjectId.Null;
                 }
 
-                ObjectId NewBlkRefObjectIdInMemoryDB = acIdMap[BlockReferenceObjectId].Value;
-                BlockReference NewBlkRef = MemoryTransaction.GetObject(NewBlkRefObjectIdInMemoryDB, OpenMode.ForRead) as BlockReference;
+                var UcsRotation = Vector3d.XAxis.GetAngleTo(ed.CurrentUserCoordinateSystem.CoordinateSystem3d.Xaxis,
+                    Vector3d.ZAxis);
+                var CounterRotation = Matrix3d.Rotation(-UcsRotation, Vector3d.ZAxis, new Point3d(0, 0, Origin.SCG.Z));
+                var DisplacementVector =
+                    Matrix3d.Displacement(Origin.SCG.Flatten().GetVectorTo(new Point3d(0, 0, Origin.SCG.Z)));
 
-                if (NewBlkRef.IsDynamicBlock)
-                {
-                    BlockTableRecord dynbtr = (BlockTableRecord)MemoryTransaction.GetObject(NewBlkRef.DynamicBlockTableRecord, OpenMode.ForWrite);
-                    dynbtr.Name = NewName;
-                }
-                else
-                {
-                    BlockTableRecord btr = (BlockTableRecord)MemoryTransaction.GetObject(NewBlkRef.BlockTableRecord, OpenMode.ForWrite);
-                    btr.Name = NewName;
-                }
+                foreach (var objId in acBlkTblRecNewDoc)
+                    if (objId.IsValid)
+                    {
+                        var obj = objId.GetObject(OpenMode.ForWrite);
+                        if (obj is Entity ent) ent.TransformBy(CounterRotation * DisplacementVector);
+                    }
 
                 MemoryTransaction.Commit();
             }
 
-            ObjectId newBlocRefenceId = acIdMap[BlockReferenceObjectId].Value;
-            if (!newBlocRefenceId.IsValid)
+
+            var Id = db.Insert(BlockName, MemoryDatabase, false);
+
+            var blockDef = Id.GetObject(OpenMode.ForWrite) as BlockTableRecord;
+            blockDef.Comments = Description;
+            blockDef.Explodable = IsExplodable;
+            blockDef.BlockScaling = BlockScaling;
+            blockDef.Units = db.Insunits;
+
+            if (EraseOld)
+                foreach (ObjectId oldent in SelectedIds)
+                    oldent.EraseObject();
+
+            tr.Commit();
+            return Id;
+        }
+    }
+
+
+    public static ObjectId RenameBlockAndInsert(ObjectId BlockReferenceObjectId, string NewName)
+    {
+        if (!BlockReferenceObjectId.IsValid) return ObjectId.Null;
+        var acObjIdColl = new ObjectIdCollection { BlockReferenceObjectId };
+
+        var ActualDocument = Generic.GetDocument();
+        var ActualDatabase = ActualDocument.Database;
+
+        var MemoryDatabase = new Database(true, false);
+        var acIdMap = new IdMapping();
+        using (var MemoryTransaction = MemoryDatabase.TransactionManager.StartTransaction())
+        {
+            var acBlkTblNewDoc =
+                MemoryTransaction.GetObject(MemoryDatabase.BlockTableId, OpenMode.ForRead) as BlockTable;
+            var acBlkTblRecNewDoc =
+                MemoryTransaction.GetObject(acBlkTblNewDoc[BlockTableRecord.ModelSpace], OpenMode.ForRead) as
+                    BlockTableRecord;
+            try
             {
+                MemoryDatabase.WblockCloneObjects(acObjIdColl, acBlkTblRecNewDoc.ObjectId, acIdMap,
+                    DuplicateRecordCloning.Replace, false);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
                 return ObjectId.Null;
             }
-            ObjectIdCollection acObjIdColl2 = new ObjectIdCollection { newBlocRefenceId };
-            IdMapping acIdMap2 = new IdMapping();
 
-            using (Generic.GetLock())
-            using (Transaction ActualTransaction = ActualDatabase.TransactionManager.StartTransaction())
+            var NewBlkRefObjectIdInMemoryDB = acIdMap[BlockReferenceObjectId].Value;
+            var NewBlkRef =
+                MemoryTransaction.GetObject(NewBlkRefObjectIdInMemoryDB, OpenMode.ForRead) as BlockReference;
+
+            if (NewBlkRef.IsDynamicBlock)
             {
-                BlockTable acBlkTblNewDoc2 = ActualTransaction.GetObject(ActualDatabase.BlockTableId, OpenMode.ForRead) as BlockTable;
-                BlockTableRecord acBlkTblRecNewDoc2 = Generic.GetCurrentSpaceBlockTableRecord(ActualTransaction);
-
-                ActualDatabase.WblockCloneObjects(acObjIdColl2, acBlkTblRecNewDoc2.ObjectId, acIdMap2, DuplicateRecordCloning.Replace, false);
-                ActualTransaction.Commit();
+                var dynbtr =
+                    (BlockTableRecord)MemoryTransaction.GetObject(NewBlkRef.DynamicBlockTableRecord, OpenMode.ForWrite);
+                dynbtr.Name = NewName;
+            }
+            else
+            {
+                var btr = (BlockTableRecord)MemoryTransaction.GetObject(NewBlkRef.BlockTableRecord, OpenMode.ForWrite);
+                btr.Name = NewName;
             }
 
-            return acIdMap2[newBlocRefenceId].Value;
+            MemoryTransaction.Commit();
         }
 
-        public static string GetUniqueBlockName(string oldName)
+        var newBlocRefenceId = acIdMap[BlockReferenceObjectId].Value;
+        if (!newBlocRefenceId.IsValid) return ObjectId.Null;
+        var acObjIdColl2 = new ObjectIdCollection { newBlocRefenceId };
+        var acIdMap2 = new IdMapping();
+
+        using (Generic.GetLock())
+        using (var ActualTransaction = ActualDatabase.TransactionManager.StartTransaction())
         {
-            Database db = Generic.GetDatabase();
-            using (Transaction tr = db.TransactionManager.StartTransaction())
-            {
-                BlockTable bt = tr.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-                string newName = oldName;
+            var acBlkTblNewDoc2 =
+                ActualTransaction.GetObject(ActualDatabase.BlockTableId, OpenMode.ForRead) as BlockTable;
+            var acBlkTblRecNewDoc2 = Generic.GetCurrentSpaceBlockTableRecord(ActualTransaction);
 
-
-                for (int index = 1; bt.Has(newName); index++)
-                {
-                    newName = SymbolUtilityServices.RepairSymbolName($"{oldName}_Copy{(index > 1 ? $" ({index})" : "")}", false);
-                }
-                return newName;
-            }
+            ActualDatabase.WblockCloneObjects(acObjIdColl2, acBlkTblRecNewDoc2.ObjectId, acIdMap2,
+                DuplicateRecordCloning.Replace, false);
+            ActualTransaction.Commit();
         }
 
-        public static bool IsBlockExist(string BlocName)
+        return acIdMap2[newBlocRefenceId].Value;
+    }
+
+    public static string GetUniqueBlockName(string oldName)
+    {
+        var db = Generic.GetDatabase();
+        using (var tr = db.TransactionManager.StartTransaction())
         {
-            Database db = Generic.GetDatabase();
-            using (Transaction tr = db.TransactionManager.StartTransaction())
+            var bt = tr.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+            var newName = oldName;
+
+
+            for (var index = 1; bt.Has(newName); index++)
+                newName = SymbolUtilityServices.RepairSymbolName($"{oldName}_Copy{(index > 1 ? $" ({index})" : "")}",
+                    false);
+            return newName;
+        }
+    }
+
+    public static bool IsBlockExist(string BlocName)
+    {
+        var db = Generic.GetDatabase();
+        using (var tr = db.TransactionManager.StartTransaction())
+        {
+            var bt = db.BlockTableId.GetObject(OpenMode.ForRead) as BlockTable;
+            return bt.Has(BlocName);
+        }
+    }
+
+
+    public static ObjectIdCollection GetDynamicBlockReferences(string BlockName)
+    {
+        if (string.IsNullOrEmpty(BlockName)) return new ObjectIdCollection();
+
+        var db = Generic.GetDatabase();
+        var result = new ObjectIdCollection();
+
+        using (var tr = db.TransactionManager.StartTransaction())
+        {
+            var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+            if (!bt.Has(BlockName)) return result;
+
+            var btr = (BlockTableRecord)tr.GetObject(bt[BlockName], OpenMode.ForRead);
+
+            if (!btr.IsDynamicBlock) return result;
+
+            foreach (ObjectId anonBtrId in btr.GetAnonymousBlockIds())
             {
-                BlockTable bt = db.BlockTableId.GetObject(OpenMode.ForRead) as BlockTable;
-                return bt.Has(BlocName);
+                var anonBtr = (BlockTableRecord)tr.GetObject(anonBtrId, OpenMode.ForRead);
+                result.Join(anonBtr.GetBlockReferenceIds(true, true));
             }
+
+            tr.Commit();
         }
 
+        return result;
+    }
 
-
-        public static ObjectIdCollection GetDynamicBlockReferences(string BlockName)
+    public static BlockReference GetBlockReference(string BlocName, Point3d PositionSCG)
+    {
+        var db = Generic.GetDatabase();
+        using (var tr = db.TransactionManager.StartTransaction())
         {
-            if (string.IsNullOrEmpty(BlockName))
+            var bt = db.BlockTableId.GetObject(OpenMode.ForRead) as BlockTable;
+            if (!bt.Has(BlocName)) throw new Exception($"Le bloc {BlocName} n'existe pas dans le dessin");
+            var blockDef = bt[BlocName].GetObject(OpenMode.ForRead) as BlockTableRecord;
+            tr.Commit();
+            return new BlockReference(PositionSCG, blockDef.ObjectId);
+        }
+    }
+
+    public static ObjectId InsertFromName(string BlocName, Points BlocLocation, double Angle = 0,
+        Dictionary<string, string> AttributesValues = null, string Layer = null, BlockTableRecord targetSpace = null)
+    {
+        var db = Generic.GetDatabase();
+        using (var tr = db.TransactionManager.StartTransaction())
+        {
+            if (targetSpace == null) targetSpace = Generic.GetCurrentSpaceBlockTableRecord(tr);
+
+            var bt = db.BlockTableId.GetObject(OpenMode.ForRead) as BlockTable;
+            var blockDef = bt[BlocName].GetObject(OpenMode.ForRead) as BlockTableRecord;
+            using (var blockRef = GetBlockReference(BlocName, BlocLocation.SCG))
             {
-                return new ObjectIdCollection();
-            }
+                blockRef.Color = db.Cecolor;
+                blockRef.Rotation = Angle;
 
-            Database db = Generic.GetDatabase();
-            ObjectIdCollection result = new ObjectIdCollection();
+                if (!string.IsNullOrEmpty(Layer) && Layers.CheckIfLayerExist(Layer)) blockRef.Layer = Layer;
 
-            using (Transaction tr = db.TransactionManager.StartTransaction())
-            {
-                BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
-                if (!bt.Has(BlockName))
-                {
-                    return result;
-                }
+                targetSpace.AppendEntity(blockRef);
+                tr.AddNewlyCreatedDBObject(blockRef, true);
 
-                BlockTableRecord btr = (BlockTableRecord)tr.GetObject(bt[BlockName], OpenMode.ForRead);
-
-                if (!btr.IsDynamicBlock)
-                {
-                    return result;
-                }
-
-                foreach (ObjectId anonBtrId in btr.GetAnonymousBlockIds())
-                {
-                    BlockTableRecord anonBtr = (BlockTableRecord)tr.GetObject(anonBtrId, OpenMode.ForRead);
-                    result.Join(anonBtr.GetBlockReferenceIds(true, true));
-                }
+                ApplyPropertiesToBlock(tr, blockDef, blockRef, AttributesValues);
 
                 tr.Commit();
-            }
-
-            return result;
-        }
-
-        public static BlockReference GetBlockReference(string BlocName, Point3d PositionSCG)
-        {
-            Database db = Generic.GetDatabase();
-            using (Transaction tr = db.TransactionManager.StartTransaction())
-            {
-                BlockTable bt = db.BlockTableId.GetObject(OpenMode.ForRead) as BlockTable;
-                if (!bt.Has(BlocName))
-                {
-                    throw new Exception($"Le bloc {BlocName} n'existe pas dans le dessin");
-                }
-                BlockTableRecord blockDef = bt[BlocName].GetObject(OpenMode.ForRead) as BlockTableRecord;
-                tr.Commit();
-                return new BlockReference(PositionSCG, blockDef.ObjectId);
+                return blockRef.ObjectId;
             }
         }
+    }
 
-        public static ObjectId InsertFromName(string BlocName, Points BlocLocation, double Angle = 0, Dictionary<string, string> AttributesValues = null, string Layer = null, BlockTableRecord targetSpace = null)
+    private static Dictionary<string, string> GetPropertiesFromBlock(Transaction tr, BlockReference br)
+    {
+        var propertiesToCopy = new Dictionary<string, string>();
+
+        foreach (ObjectId attId in br.AttributeCollection)
         {
-            Database db = Generic.GetDatabase();
-            using (Transaction tr = db.TransactionManager.StartTransaction())
-            {
-                if (targetSpace == null)
-                {
-                    targetSpace = Generic.GetCurrentSpaceBlockTableRecord(tr);
-                }
-
-                BlockTable bt = db.BlockTableId.GetObject(OpenMode.ForRead) as BlockTable;
-                BlockTableRecord blockDef = bt[BlocName].GetObject(OpenMode.ForRead) as BlockTableRecord;
-                using (BlockReference blockRef = GetBlockReference(BlocName, BlocLocation.SCG))
-                {
-                    blockRef.Color = db.Cecolor;
-                    blockRef.Rotation = Angle;
-
-                    if (!string.IsNullOrEmpty(Layer) && Layers.CheckIfLayerExist(Layer))
-                    {
-                        blockRef.Layer = Layer;
-                    }
-
-                    targetSpace.AppendEntity(blockRef);
-                    tr.AddNewlyCreatedDBObject(blockRef, true);
-
-                    ApplyPropertiesToBlock(tr, blockDef, blockRef, AttributesValues);
-
-                    tr.Commit();
-                    return blockRef.ObjectId;
-                }
-            }
+            var attRef = tr.GetObject(attId, OpenMode.ForRead) as AttributeReference;
+            if (attRef != null) propertiesToCopy[attRef.Tag.ToUpperInvariant()] = attRef.TextString;
         }
 
-        private static Dictionary<string, string> GetPropertiesFromBlock(Transaction tr, BlockReference br)
+        if (br.IsDynamicBlock)
+            foreach (DynamicBlockReferenceProperty prop in br.DynamicBlockReferencePropertyCollection)
+                propertiesToCopy[prop.PropertyName.ToUpperInvariant()] = prop.Value.ToString();
+
+        return propertiesToCopy;
+    }
+
+    private static void ApplyPropertiesToBlock(Transaction tr, BlockTableRecord btr, BlockReference blockRef,
+        Dictionary<string, string> attributesValues)
+    {
+        if (attributesValues == null || attributesValues.Count == 0) return;
+
+        //Settings legacy block attributes
+        foreach (var id in btr)
         {
-            Dictionary<string, string> propertiesToCopy = new Dictionary<string, string>();
-
-            foreach (ObjectId attId in br.AttributeCollection)
+            var obj = id.GetObject(OpenMode.ForRead);
+            var attDef = obj as AttributeDefinition;
+            if (attDef?.Constant == false)
             {
-                var attRef = tr.GetObject(attId, OpenMode.ForRead) as AttributeReference;
-                if (attRef != null)
-                {
-                    propertiesToCopy[attRef.Tag.ToUpperInvariant()] = attRef.TextString;
-                }
-            }
-
-            if (br.IsDynamicBlock)
-            {
-                foreach (DynamicBlockReferenceProperty prop in br.DynamicBlockReferencePropertyCollection)
-                {
-                    propertiesToCopy[prop.PropertyName.ToUpperInvariant()] = prop.Value.ToString();
-                }
-            }
-            return propertiesToCopy;
-        }
-
-        private static void ApplyPropertiesToBlock(Transaction tr, BlockTableRecord btr, BlockReference blockRef, Dictionary<string, string> attributesValues)
-        {
-            if (attributesValues == null || attributesValues.Count == 0) return;
-
-            //Settings legacy block attributes
-            foreach (ObjectId id in btr)
-            {
-                DBObject obj = id.GetObject(OpenMode.ForRead);
-                AttributeDefinition attDef = obj as AttributeDefinition;
-                if (attDef?.Constant == false)
-                {
-                    string PropertyName = attDef.Tag.ToUpperInvariant();
-                    if (attributesValues.ContainsKey(PropertyName))
-                    {
-                        if (attributesValues.TryGetValue(PropertyName, out string AttributeDefinitionTargetValue))
+                var PropertyName = attDef.Tag.ToUpperInvariant();
+                if (attributesValues.ContainsKey(PropertyName))
+                    if (attributesValues.TryGetValue(PropertyName, out var AttributeDefinitionTargetValue))
+                        using (var attRef = new AttributeReference())
                         {
-                            using (AttributeReference attRef = new AttributeReference())
-                            {
-                                attRef.SetAttributeFromBlock(attDef, blockRef.BlockTransform);
-                                attRef.TextString = AttributeDefinitionTargetValue;
-                                blockRef.AttributeCollection.AppendAttribute(attRef);
-                                tr.AddNewlyCreatedDBObject(attRef, true);
-                            }
+                            attRef.SetAttributeFromBlock(attDef, blockRef.BlockTransform);
+                            attRef.TextString = AttributeDefinitionTargetValue;
+                            blockRef.AttributeCollection.AppendAttribute(attRef);
+                            tr.AddNewlyCreatedDBObject(attRef, true);
                         }
-                    }
-                }
+            }
+        }
+
+        //Settings Dynamic block attributes
+        var BlocPropertyCollection = blockRef.DynamicBlockReferencePropertyCollection;
+        var BlocPropertyCollectionDictionnary = new Dictionary<string, DynamicBlockReferenceProperty>();
+        foreach (var BlocProperty in BlocPropertyCollection.OfType<DynamicBlockReferenceProperty>())
+        {
+            var PropertyName = BlocProperty.PropertyName.ToUpperInvariant();
+            if (BlocPropertyCollectionDictionnary.ContainsKey(PropertyName)) continue;
+            BlocPropertyCollectionDictionnary.Add(PropertyName, BlocProperty);
+        }
+
+        foreach (var ValueKey in attributesValues.Keys)
+            if (BlocPropertyCollectionDictionnary.TryGetValue(ValueKey, out var BlocProperty))
+            {
+                var Value = ConvertValueToProperty((DwgDataType)BlocProperty.PropertyTypeCode,
+                    attributesValues[ValueKey]);
+                if (Value is int ValueAsInt) BlocProperty.Value = (short)ValueAsInt;
+
+                if (Value is double ValueAsDbl) BlocProperty.Value = ValueAsDbl;
+
+                if (Value is string ValueAsStr) BlocProperty.Value = ValueAsStr;
+            }
+    }
+
+
+    public static ObjectId InsertFromNameImportIfNotExist(string BlocName, Points BlocLocation, double Angle = 0,
+        Dictionary<string, string> AttributesValues = null, string Layer = null)
+    {
+        var db = Generic.GetDatabase();
+        using (var tr = db.TransactionManager.StartTransaction())
+        {
+            ImportBlocFromBlocNameIfMissing(BlocName);
+            var blockRefObjectId = InsertFromName(BlocName, BlocLocation, Angle, AttributesValues, Layer);
+            tr.Commit();
+            return blockRefObjectId;
+        }
+    }
+
+    public static void Purge(string BlocName)
+    {
+        //From https://adndevblog.typepad.com/autocad/2013/01/purging-anonymous-blocks-using-vba.html
+        var db = Generic.GetDatabase();
+        using (var trans = db.TransactionManager.StartTransaction())
+        {
+            var bt = trans.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
+
+            foreach (var oid in bt)
+            {
+                var btr = trans.GetObject(oid, OpenMode.ForWrite) as BlockTableRecord;
+                if (btr.Name.Equals(BlocName, StringComparison.OrdinalIgnoreCase))
+                    if (btr.GetBlockReferenceIds(false, false).Count == 0 && !btr.IsLayout)
+                        btr.Erase();
             }
 
-            //Settings Dynamic block attributes
-            var BlocPropertyCollection = blockRef.DynamicBlockReferencePropertyCollection;
-            var BlocPropertyCollectionDictionnary = new Dictionary<string, DynamicBlockReferenceProperty>();
-            foreach (DynamicBlockReferenceProperty BlocProperty in BlocPropertyCollection.OfType<DynamicBlockReferenceProperty>())
+            trans.Commit();
+        }
+    }
+
+    public static DBObjectCollection InitForTransient(string BlocName, Dictionary<string, string> InitAttributesValues,
+        string Layer = null)
+    {
+        var db = Generic.GetDatabase();
+        var ed = Generic.GetEditor();
+        var ents = new DBObjectCollection();
+        using (var tr = db.TransactionManager.StartTransaction())
+        {
+            //The first block is added for initialising the process and then deleted. Be sure to add a value.
+            var blockRef = InsertFromNameImportIfNotExist(BlocName, Points.Empty, ed.GetUSCRotation(AngleUnit.Radians),
+                InitAttributesValues);
+            var dBObject = blockRef.GetDBObject();
+            if (Layer != null && Layers.CheckIfLayerExist(Layer)) (dBObject as Entity).Layer = Layer;
+            blockRef.EraseObject();
+            ents.Add(dBObject);
+            tr.Commit();
+        }
+
+        return ents;
+    }
+
+    public static void ImportBlocFromBlocNameIfMissing(string BlocName)
+    {
+        var db = Generic.GetDatabase();
+        using (var tr = db.TransactionManager.StartTransaction())
+        {
+            var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+
+            if (!bt.Has(BlocName))
             {
-                string PropertyName = BlocProperty.PropertyName.ToUpperInvariant();
-                if (BlocPropertyCollectionDictionnary.ContainsKey(PropertyName))
+                var TempFolderPath = Path.GetTempPath();
+                var TempFolderFilePath = Path.Combine(TempFolderPath, $"{BlocName}.dwg");
+                Generic.ReadWriteToFileResource(BlocName, TempFolderFilePath);
+
+                var sourceDb = new Database(false, true); //Temporary database to hold data for block we want to import
+                try
                 {
-                    continue;
+                    sourceDb.ReadDwgFile(TempFolderFilePath, FileShare.Read, true,
+                        ""); //Read the DWG into a side database
+                    db.Insert(TempFolderFilePath, sourceDb, false);
                 }
-                BlocPropertyCollectionDictionnary.Add(PropertyName, BlocProperty);
-            }
-            foreach (string ValueKey in attributesValues.Keys)
-            {
-                if (BlocPropertyCollectionDictionnary.TryGetValue(ValueKey, out DynamicBlockReferenceProperty BlocProperty))
+                catch (Autodesk.AutoCAD.Runtime.Exception ex)
                 {
-                    object Value = ConvertValueToProperty((DwgDataType)BlocProperty.PropertyTypeCode, attributesValues[ValueKey]);
-                    if (Value is int ValueAsInt)
-                    {
-                        BlocProperty.Value = (short)ValueAsInt;
-                    }
-
-                    if (Value is double ValueAsDbl)
-                    {
-                        BlocProperty.Value = ValueAsDbl;
-                    }
-
-                    if (Value is string ValueAsStr)
-                    {
-                        BlocProperty.Value = ValueAsStr;
-                    }
+                    Generic.WriteMessage("\nErreur : " + ex.Message);
                 }
-            }
-
-        }
-
-
-        public static ObjectId InsertFromNameImportIfNotExist(string BlocName, Points BlocLocation, double Angle = 0, Dictionary<string, string> AttributesValues = null, string Layer = null)
-        {
-            Database db = Generic.GetDatabase();
-            using (Transaction tr = db.TransactionManager.StartTransaction())
-            {
-                ImportBlocFromBlocNameIfMissing(BlocName);
-                ObjectId blockRefObjectId = InsertFromName(BlocName, BlocLocation, Angle, AttributesValues, Layer);
-                tr.Commit();
-                return blockRefObjectId;
-            }
-        }
-
-        public static void Purge(string BlocName)
-        {
-            //From https://adndevblog.typepad.com/autocad/2013/01/purging-anonymous-blocks-using-vba.html
-            Database db = Generic.GetDatabase();
-            using (Transaction trans = db.TransactionManager.StartTransaction())
-            {
-                BlockTable bt = trans.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
-
-                foreach (ObjectId oid in bt)
+                finally
                 {
-                    BlockTableRecord btr = trans.GetObject(oid, OpenMode.ForWrite) as BlockTableRecord;
-                    if (btr.Name.Equals(BlocName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (btr.GetBlockReferenceIds(false, false).Count == 0 && !btr.IsLayout)
-                        {
-                            btr.Erase();
-                        }
-                    }
+                    sourceDb.Dispose();
                 }
-                trans.Commit();
             }
-        }
 
-        public static DBObjectCollection InitForTransient(string BlocName, Dictionary<string, string> InitAttributesValues, string Layer = null)
+            tr.Commit();
+        }
+    }
+
+    private static object ConvertValueToProperty(DwgDataType dataType, string valueToConvert)
+    {
+        switch (dataType)
         {
-            Database db = Generic.GetDatabase();
-            Editor ed = Generic.GetEditor();
-            DBObjectCollection ents = new DBObjectCollection();
-            using (Transaction tr = db.TransactionManager.StartTransaction())
-            {
-                //The first block is added for initialising the process and then deleted. Be sure to add a value.
-                ObjectId blockRef = InsertFromNameImportIfNotExist(BlocName, Points.Empty, ed.GetUSCRotation(AngleUnit.Radians), InitAttributesValues);
-                DBObject dBObject = blockRef.GetDBObject();
-                if (Layer != null && Layers.CheckIfLayerExist(Layer))
-                {
-                    (dBObject as Entity).Layer = Layer;
-                }
-                blockRef.EraseObject();
-                ents.Add(dBObject);
-                tr.Commit();
-            }
-            return ents;
+            case DwgDataType.Real:
+                if (double.TryParse(valueToConvert, out var convertedValueDouble)) return convertedValueDouble;
+                break;
+            case DwgDataType.Int16:
+            case DwgDataType.Int32:
+                if (int.TryParse(valueToConvert, out var convertedValueInt)) return convertedValueInt;
+                break;
+            case DwgDataType.Text:
+                return valueToConvert;
         }
 
-        public static void ImportBlocFromBlocNameIfMissing(string BlocName)
-        {
-            var db = Generic.GetDatabase();
-            using (Transaction tr = db.TransactionManager.StartTransaction())
-            {
-                BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+        return null;
+    }
 
-                if (!bt.Has(BlocName))
-                {
-                    string TempFolderPath = System.IO.Path.GetTempPath();
-                    string TempFolderFilePath = System.IO.Path.Combine(TempFolderPath, $"{BlocName}.dwg");
-                    Generic.ReadWriteToFileResource(BlocName, TempFolderFilePath);
-
-                    Database sourceDb = new Database(false, true); //Temporary database to hold data for block we want to import
-                    try
-                    {
-                        sourceDb.ReadDwgFile(TempFolderFilePath, System.IO.FileShare.Read, true, ""); //Read the DWG into a side database
-                        db.Insert(TempFolderFilePath, sourceDb, false);
-                    }
-                    catch (Autodesk.AutoCAD.Runtime.Exception ex)
-                    {
-                        Generic.WriteMessage("\nErreur : " + ex.Message);
-                    }
-                    finally
-                    {
-                        sourceDb.Dispose();
-                    }
-                }
-                tr.Commit();
-            }
-        }
-
-        private enum DwgDataType : short
-        {
-            Null = 0,
-            Real = 1,
-            Int32 = 2,
-            Int16 = 3,
-            Int8 = 4,
-            Text = 5,
-            BChunk = 6,
-            Handle = 7,
-            HardOwnershipId = 8,
-            SoftOwnershipId = 9,
-            HardPointerId = 10,
-            SoftPointerId = 11,
-            Dwg3Real = 12,
-            Int64 = 13,
-            NotRecognized = 19
-        }
-
-        private static object ConvertValueToProperty(DwgDataType dataType, string valueToConvert)
-        {
-            switch (dataType)
-            {
-                case DwgDataType.Real:
-                    if (double.TryParse(valueToConvert, out double convertedValueDouble))
-                    {
-                        return convertedValueDouble;
-                    }
-                    break;
-                case DwgDataType.Int16:
-                case DwgDataType.Int32:
-                    if (int.TryParse(valueToConvert, out int convertedValueInt))
-                    {
-                        return convertedValueInt;
-                    }
-                    break;
-                case DwgDataType.Text:
-                    return valueToConvert;
-            }
-            return null;
-        }
+    private enum DwgDataType : short
+    {
+        Null = 0,
+        Real = 1,
+        Int32 = 2,
+        Int16 = 3,
+        Int8 = 4,
+        Text = 5,
+        BChunk = 6,
+        Handle = 7,
+        HardOwnershipId = 8,
+        SoftOwnershipId = 9,
+        HardPointerId = 10,
+        SoftPointerId = 11,
+        Dwg3Real = 12,
+        Int64 = 13,
+        NotRecognized = 19
     }
 }

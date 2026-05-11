@@ -1,16 +1,16 @@
-using AutoBIMFusion.Common.AcadSupport;
-using AutoBIMFusion.Merge;
+using System.Diagnostics;
+using System.Runtime.Versioning;
 using AutoBIMFusion.Common;
-using AutoBIMFusion.Merge.Combine;
+using AutoBIMFusion.Common.AcadSupport;
 using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Common.Logging;
+using AutoBIMFusion.Merge;
+using AutoBIMFusion.Merge.Combine;
 using AutoBIMFusion.Merge.Combine.Layouts;
 using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
-using System.Diagnostics;
-using System.Runtime.Versioning;
-
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
+using Exception = System.Exception;
 
 namespace AutoBIMFusion.Plugin.Commands;
 
@@ -22,19 +22,16 @@ public sealed class CombineCommands
     [CommandMethod("MERGEDWG", CommandFlags.Modal | CommandFlags.Session)]
     public async void MergeDwgFolderCommand()
     {
-        await ExecuteMergeAsync(folderPath: null, showDialogs: true, commandName: "MERGEDWG");
+        await ExecuteMergeAsync(null, true, "MERGEDWG");
     }
 
     private async Task ExecuteMergeAsync(string? folderPath, bool showDialogs, string commandName)
     {
-        Document? doc = AcadApp.DocumentManager.MdiActiveDocument;
+        var doc = AcadApp.DocumentManager.MdiActiveDocument;
 
-        if (doc?.Database == null)
-        {
-            return;
-        }
+        if (doc?.Database == null) return;
 
-        Logger log = LoggerFactory.GetSharedLogger();
+        var log = LoggerFactory.GetSharedLogger();
 
         if (!await _mergeGate.WaitAsync(0))
         {
@@ -44,23 +41,19 @@ public sealed class CombineCommands
 
         try
         {
-            string? sourceFolder = folderPath;
+            var sourceFolder = folderPath;
 
-            if (string.IsNullOrWhiteSpace(sourceFolder) && !UiDialogService.TrySelectFolder("Выберите папку с файлами DWG для объединения", out sourceFolder))
-            {
+            if (string.IsNullOrWhiteSpace(sourceFolder) &&
+                !UiDialogService.TrySelectFolder("Выберите папку с файлами DWG для объединения", out sourceFolder))
                 return;
-            }
 
-            string savePath = BuildSavePath(sourceFolder!);
+            var savePath = BuildSavePath(sourceFolder!);
 
-            string[] dwgFiles = FileUtil.GetFiles(sourceFolder!, log: log);
+            var dwgFiles = FileUtil.GetFiles(sourceFolder!, log: log);
             if (dwgFiles.Length == 0)
             {
                 log.Warning("DWG файлы не найдены.");
-                if (showDialogs)
-                {
-                    UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
-                }
+                if (showDialogs) UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
 
                 return;
             }
@@ -75,7 +68,7 @@ public sealed class CombineCommands
 
             const double gapPercent = 0.1;
             CombineStatistics stats = new();
-            Stopwatch sw = Stopwatch.StartNew();
+            var sw = Stopwatch.StartNew();
 
             BlockInserter inserter = new(gapPercent, log);
             await MergeFiles(dwgFiles, inserter, doc, stats, log);
@@ -98,12 +91,9 @@ public sealed class CombineCommands
 
             log.Information($"Завершено: {stats}");
 
-            if (showDialogs)
-            {
-                ShowSummary(stats, sw.Elapsed, savePath, commandName);
-            }
+            if (showDialogs) ShowSummary(stats, sw.Elapsed, savePath, commandName);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             log.Error(ex, $"Ошибка {commandName}");
         }
@@ -113,7 +103,8 @@ public sealed class CombineCommands
         }
     }
 
-    private static async Task MergeFiles(string[] files, BlockInserter inserter, Document doc, CombineStatistics stats, Logger log)
+    private static async Task MergeFiles(string[] files, BlockInserter inserter, Document doc, CombineStatistics stats,
+        Logger log)
     {
         using ProgressMeter pm = new();
         pm.Start("Объединение файлов DWG...");
@@ -121,24 +112,18 @@ public sealed class CombineCommands
 
         try
         {
-            for (int idx = 0; idx < files.Length; idx++)
+            for (var idx = 0; idx < files.Length; idx++)
             {
                 stats.AddTotal();
 
-                CombineResult result = await CombineOrchestrator.MergeSingleFile(files[idx], inserter, doc, log);
+                var result = await CombineOrchestrator.MergeSingleFile(files[idx], inserter, doc, log);
 
                 if (result.Success)
-                {
                     stats.AddSuccess();
-                }
                 else if (result.IsSkipped)
-                {
                     stats.AddSkipped();
-                }
                 else
-                {
                     stats.AddFailed();
-                }
 
                 pm.MeterProgress();
             }
@@ -152,26 +137,22 @@ public sealed class CombineCommands
     private static string BuildSavePath(string rootPath)
     {
         DirectoryInfo dir = new(rootPath);
-        DirectoryInfo? parent = dir.Parent;
+        var parent = dir.Parent;
 
-        return parent is null ? Path.Combine(dir.FullName, $"{dir.Name}.dwg") : Path.Combine(parent.FullName, $"{dir.Name}.dwg");
+        return parent is null
+            ? Path.Combine(dir.FullName, $"{dir.Name}.dwg")
+            : Path.Combine(parent.FullName, $"{dir.Name}.dwg");
     }
 
     private static void SaveMerged(Database db, string savePath, Logger log)
     {
         try
         {
-            string? dir = Path.GetDirectoryName(savePath);
+            var dir = Path.GetDirectoryName(savePath);
 
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-            {
-                _ = Directory.CreateDirectory(dir);
-            }
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) _ = Directory.CreateDirectory(dir);
 
-            if (File.Exists(savePath))
-            {
-                File.Delete(savePath);
-            }
+            if (File.Exists(savePath)) File.Delete(savePath);
 
             using (new AcadWarningSuppressScope())
             {
@@ -181,7 +162,7 @@ public sealed class CombineCommands
 
             log.Information($"Сохранено: {savePath}");
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             log.Error(ex, $"Сбой сохранения: {savePath}");
             throw;
@@ -190,12 +171,10 @@ public sealed class CombineCommands
 
     private static void ShowSummary(CombineStatistics stats, TimeSpan elapsed, string savePath, string commandName)
     {
-        string summary = stats.Failed == 0
+        var summary = stats.Failed == 0
             ? $"Завершено успешно.\nОбработано файлов: {stats.Successful}\nВремя: {elapsed:mm\\:ss\\.fff}\nСохранено в: {savePath}"
             : $"Завершено с ошибками.\nУспешно: {stats.Successful}\nПропущено: {stats.Skipped}\nОшибок: {stats.Failed}\nВремя: {elapsed:mm\\:ss\\.fff}\nСохранено в: {savePath}";
 
         UiDialogService.ShowMessage(summary, commandName);
     }
 }
-
-

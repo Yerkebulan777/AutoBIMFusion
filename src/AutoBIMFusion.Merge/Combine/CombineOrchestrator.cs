@@ -1,47 +1,38 @@
+using System.Runtime.Versioning;
+using AutoBIMFusion.Common.Helpers;
+using AutoBIMFusion.Merge.Combine;
+using AutoBIMFusion.Merge.Combine.Layouts;
 using AutoBIMFusion.Merge.Layouts;
-using AutoBIMFusion.Common;
 using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
-using System.Runtime.Versioning;
-
-using AutoBIMFusion.Common.Helpers;
-using AutoBIMFusion.Merge.Combine.Layouts;
-using AutoBIMFusion.Merge.Combine;
+using Exception = System.Exception;
 
 namespace AutoBIMFusion.Merge;
 
 /// <summary>
-/// Координирует слияние DWG-файлов: экспортирует первый Paper Space лист,
-/// вычисляет границы, вставляет как блок со смещением.
+///     Координирует слияние DWG-файлов: экспортирует первый Paper Space лист,
+///     вычисляет границы, вставляет как блок со смещением.
 /// </summary>
 [SupportedOSPlatform("windows")]
 public static class CombineOrchestrator
 {
-    public static async Task<CombineResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc, Logger log)
+    public static async Task<CombineResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc,
+        Logger log)
     {
-        string fileName = Path.GetFileName(filePath);
-        string layoutName = Path.GetFileNameWithoutExtension(filePath);
+        var fileName = Path.GetFileName(filePath);
+        var layoutName = Path.GetFileNameWithoutExtension(filePath);
 
-        if (!FileUtil.TryValidateDwg(filePath, out string warn))
-        {
-            return CombineResult.Warn(fileName, warn);
-        }
+        if (!FileUtil.TryValidateDwg(filePath, out var warn)) return CombineResult.Warn(fileName, warn);
 
         try
         {
-            using PreparedSourceDatabase? prepared = ViewportLayoutExporter.PrepareDatabaseForMerge(filePath, fileName, log);
+            using var prepared = ViewportLayoutExporter.PrepareDatabaseForMerge(filePath, fileName, log);
 
-            if (prepared == null)
-            {
-                return CombineResult.Warn(fileName, "Листы не найдены");
-            }
+            if (prepared == null) return CombineResult.Warn(fileName, "Листы не найдены");
 
-            Extents3d? bounds = ExtentsUtils.GetDatabaseExtents(prepared.Db);
+            var bounds = ExtentsUtils.GetDatabaseExtents(prepared.Db);
 
-            if (!bounds.HasValue)
-            {
-                return CombineResult.Warn(fileName, "Пустой файл");
-            }
+            if (!bounds.HasValue) return CombineResult.Warn(fileName, "Пустой файл");
 
             Extents3d? worldBounds;
             using (targetDoc.LockDocument())
@@ -57,19 +48,17 @@ public static class CombineOrchestrator
                     prepared.LinearScaleMultiplier);
 
                 if (worldBounds is not null)
-                {
                     DimensionStyleDiagnosticUtils.LogStyleSnapshot(targetDoc.Database, log, "target-after-clone");
-                }
             }
 
-            return worldBounds is null ? CombineResult.Fail(fileName, "Не удалось вставить объекты") : CombineResult.Ok(fileName);
+            return worldBounds is null
+                ? CombineResult.Fail(fileName, "Не удалось вставить объекты")
+                : CombineResult.Ok(fileName);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             log.Error(ex, $"Ошибка: {fileName}");
             return CombineResult.Fail(fileName, ex.Message, "Ошибка обработки");
         }
     }
 }
-
-

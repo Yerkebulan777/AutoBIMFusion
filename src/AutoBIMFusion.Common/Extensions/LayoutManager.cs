@@ -1,85 +1,69 @@
-using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.EditorInput;
-using Autodesk.AutoCAD.Geometry;
-using Autodesk.AutoCAD.GraphicsSystem;
-using Autodesk.AutoCAD.Internal;
-using Autodesk.AutoCAD.Runtime;
-using System;
 using System.Drawing;
 using System.Windows.Media.Imaging;
-using System.Xml.Linq;
+using Autodesk.AutoCAD.Internal;
+using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
-namespace SioForgeCAD.Commun.Extensions
+namespace SioForgeCAD.Commun.Extensions;
+
+public static class LayoutManagerExtensions
 {
-    public static class LayoutManagerExtensions
+    public static BitmapSource? GetLayoutImage(this LayoutManager lm, string Name)
     {
-        public static BitmapSource? GetLayoutImage(this LayoutManager lm, string Name)
+        var db = Generic.GetDatabase();
+        var Doc = Generic.GetDocument();
+        if (string.IsNullOrEmpty(Name)) return null;
+
+        BitmapSource? result = null;
+        try
         {
-            var db = Generic.GetDatabase();
-            var Doc = Generic.GetDocument();
-            if (string.IsNullOrEmpty(Name))
+            var bitmap = Utils.GetLayoutThumbnail(Doc, Name);
+            if (bitmap == null)
             {
-                return null;
-            }
-
-            BitmapSource? result = null;
-            try
-            {
-                Bitmap? bitmap = Utils.GetLayoutThumbnail(Doc, Name);
-                if (bitmap == null)
+                var database = Doc.Database;
+                if (database != null)
                 {
-                    Database database = Doc.Database;
-                    if (database != null)
+                    try
                     {
-                        try
+                        using (Transaction transaction = database.TransactionManager.StartOpenCloseTransaction())
+                        using (var dBObject = transaction.GetObject(database.LayoutDictionaryId, OpenMode.ForRead))
                         {
-                            using (Transaction transaction = database.TransactionManager.StartOpenCloseTransaction())
-                            using (DBObject dBObject = transaction.GetObject(database.LayoutDictionaryId, OpenMode.ForRead))
-                            {
-                                DBDictionary? dBDictionary = dBObject as DBDictionary;
-                                if (dBDictionary == null)
-                                {
-                                    return null;
-                                }
+                            var dBDictionary = dBObject as DBDictionary;
+                            if (dBDictionary == null) return null;
 
-                                ObjectId at = dBDictionary.GetAt(Name);
-                                Layout? layout = transaction.GetObject(at, OpenMode.ForRead) as Layout;
-                                bitmap = layout?.Thumbnail;
-                            }
+                            var at = dBDictionary.GetAt(Name);
+                            var layout = transaction.GetObject(at, OpenMode.ForRead) as Layout;
+                            bitmap = layout?.Thumbnail;
                         }
-                        catch { }
-
-                        if (bitmap == null)
-                        {
-                            //Manualy generate Thumbnail (alternative to _UPDATETHUMBSNOW)
-                            try
-                            {
-                                using (Transaction transaction = db.TransactionManager.StartTransaction())
-                                {
-                                    var id = lm.GetLayoutId(Name);
-                                    Layout? layout = transaction.GetObject(id, OpenMode.ForRead) as Layout;
-                                    bitmap = layout?.RenderLayoutSnapshot();
-                                }
-                            }
-                            catch { }
-                        }
+                    }
+                    catch
+                    {
                     }
 
                     if (bitmap == null)
-                    {
-                        bitmap = new Bitmap(100, 100);
-                    }
+                        //Manualy generate Thumbnail (alternative to _UPDATETHUMBSNOW)
+                        try
+                        {
+                            using (var transaction = db.TransactionManager.StartTransaction())
+                            {
+                                var id = lm.GetLayoutId(Name);
+                                var layout = transaction.GetObject(id, OpenMode.ForRead) as Layout;
+                                bitmap = layout?.RenderLayoutSnapshot();
+                            }
+                        }
+                        catch
+                        {
+                        }
                 }
-                if (bitmap != null)
-                {
-                    result = bitmap.CreateBitmapSourceFromBitmap();
-                }
+
+                if (bitmap == null) bitmap = new Bitmap(100, 100);
             }
-            catch (Autodesk.AutoCAD.Runtime.Exception)
-            {
-            }
-            return result;
+
+            if (bitmap != null) result = bitmap.CreateBitmapSourceFromBitmap();
         }
+        catch (Exception)
+        {
+        }
+
+        return result;
     }
 }

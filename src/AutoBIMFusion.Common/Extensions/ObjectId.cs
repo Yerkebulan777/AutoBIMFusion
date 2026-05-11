@@ -1,225 +1,179 @@
-﻿using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.Colors;
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.EditorInput;
+﻿using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.Runtime;
 using SioForgeCAD.Commun.Extensions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
-namespace SioForgeCAD.Commun
+namespace SioForgeCAD.Commun;
+
+internal static class ObjectIdExtensions
 {
-    static class ObjectIdExtensions
+    public static Entity GetEntity(this ObjectId objectId, OpenMode openMode = OpenMode.ForRead)
     {
-        public static Entity GetEntity(this ObjectId objectId, OpenMode openMode = OpenMode.ForRead)
-        {
-            if (objectId.GetDBObject(openMode) is Entity ent)
-            {
-                return ent;
-            }
-            throw new System.InvalidCastException("Impossible de convertir l'entité, utilisez GetDBObject");
-        }
+        if (objectId.GetDBObject(openMode) is Entity ent) return ent;
+        throw new InvalidCastException("Impossible de convertir l'entité, utilisez GetDBObject");
+    }
 
-        public static DBObject GetDBObject(this ObjectId objectId, OpenMode openMode = OpenMode.ForRead)
-        {
-            if (objectId.IsNull)
-            {
-                return null;
-            }
-            var db = Generic.GetDatabase();
-            return db.TransactionManager.GetObject(objectId, openMode, false, true);
-        }
+    public static DBObject GetDBObject(this ObjectId objectId, OpenMode openMode = OpenMode.ForRead)
+    {
+        if (objectId.IsNull) return null;
+        var db = Generic.GetDatabase();
+        return db.TransactionManager.GetObject(objectId, openMode, false, true);
+    }
 
-        public static List<ObjectId> GetObjectIds(this IEnumerable<DBObject> dBObjects)
-        {
-            List<ObjectId> ObjectIds = new List<ObjectId>();
-            foreach (DBObject obj in dBObjects)
-            {
-                ObjectIds.Add(obj.ObjectId);
-            }
-            return ObjectIds;
-        }
+    public static List<ObjectId> GetObjectIds(this IEnumerable<DBObject> dBObjects)
+    {
+        var ObjectIds = new List<ObjectId>();
+        foreach (var obj in dBObjects) ObjectIds.Add(obj.ObjectId);
+        return ObjectIds;
+    }
 
-        public static DBObject GetNoTransactionDBObject(this ObjectId objectId, OpenMode openMode = OpenMode.ForRead)
-        {
-            var db = Generic.GetDatabase();
-            if (db.TransactionManager.NumberOfActiveTransactions == 0)
-            {
-                using (db.TransactionManager.StartTransaction())
-                {
-                    return objectId.GetDBObject(openMode);
-                }
-            }
-            else
+    public static DBObject GetNoTransactionDBObject(this ObjectId objectId, OpenMode openMode = OpenMode.ForRead)
+    {
+        var db = Generic.GetDatabase();
+        if (db.TransactionManager.NumberOfActiveTransactions == 0)
+            using (db.TransactionManager.StartTransaction())
             {
                 return objectId.GetDBObject(openMode);
             }
-        }
 
-        public static DBObjectCollection Explode(this IEnumerable<ObjectId> ObjectsToExplode, bool EraseOriginal = true)
+        return objectId.GetDBObject(openMode);
+    }
+
+    public static DBObjectCollection Explode(this IEnumerable<ObjectId> ObjectsToExplode, bool EraseOriginal = true)
+    {
+        var objs = new DBObjectCollection();
+
+        // Loop through the selected objects
+        foreach (var ObjectToExplode in ObjectsToExplode)
         {
-            DBObjectCollection objs = new DBObjectCollection();
-
-            // Loop through the selected objects
-            foreach (ObjectId ObjectToExplode in ObjectsToExplode)
+            var ent = ObjectToExplode.GetEntity();
+            // Explode the object into our collection
+            ent.Explode(objs);
+            if (EraseOriginal)
             {
-                Entity ent = ObjectToExplode.GetEntity();
-                // Explode the object into our collection
-                ent.Explode(objs);
-                if (EraseOriginal)
-                {
-                    ent.UpgradeOpen();
-                    ent.Erase();
-                }
-            }
-            return objs;
-        }
-
-        public static DBObjectCollection ToDBObjectCollection(this IEnumerable<Entity> entities)
-        {
-            return entities.Cast<DBObject>().ToDBObjectCollection();
-        }
-        public static DBObjectCollection ToDBObjectCollection(this SelectionSet entities)
-        {
-            var ObjectIdsCollection = entities.GetObjectIds();
-            var NewDBObjectCollection = new DBObjectCollection();
-            foreach (var ObjectId in ObjectIdsCollection)
-            {
-                NewDBObjectCollection.Add(ObjectId.GetDBObject());
-            }
-            return NewDBObjectCollection;
-        }
-
-        public static ObjectIdCollection ToObjectIdCollection(this IEnumerable<ObjectId> objectId)
-        {
-            var NewObjectIdCollection = new ObjectIdCollection();
-            foreach (ObjectId ObjectId in objectId)
-            {
-                NewObjectIdCollection.Add(ObjectId);
-            }
-            return NewObjectIdCollection;
-        }
-
-        public static DBObjectCollection ToDBObjectCollection(this IEnumerable<DBObject> entities)
-        {
-            var NewDBObjectCollection = new DBObjectCollection();
-            foreach (var entity in entities)
-            {
-                NewDBObjectCollection.Add(entity);
-            }
-            return NewDBObjectCollection;
-        }
-
-        public static List<DBObject> ToList(this DBObjectCollection entities)
-        {
-            List<DBObject> list = new List<DBObject>();
-            foreach (var ent in entities)
-            {
-                list.Add(ent as DBObject);
-            }
-            return list;
-        }
-
-        public static List<ObjectId> ToList(this ObjectIdCollection collection)
-        {
-            List<ObjectId> list = new List<ObjectId>();
-            foreach (ObjectId objid in collection)
-            {
-                list.Add(objid);
-            }
-            return list;
-        }
-
-        public static void EraseObject(this ObjectId ObjectToErase)
-        {
-            Document doc = Generic.GetDocument();
-            using (Transaction tr = doc.TransactionManager.StartTransaction())
-            {
-                if (ObjectToErase.IsErased)
-                {
-                    return;
-                }
-                DBObject ent = tr.GetObject(ObjectToErase, OpenMode.ForRead);
-                //Can only errase if entity is not on a locked layer
-                if (ent is Entity enty && enty.IsEntityOnLockedLayer())
-                {
-                    tr.Commit();
-                    return;
-                }
-                else
-                {
-                    ent.UpgradeOpen();
-                    if (!ent.IsErased)
-                    {
-                        ent.Erase(true);
-                    }
-                    tr.Commit();
-                }
+                ent.UpgradeOpen();
+                ent.Erase();
             }
         }
 
-        public static void Join(this ObjectIdCollection A, ObjectIdCollection B)
+        return objs;
+    }
+
+    public static DBObjectCollection ToDBObjectCollection(this IEnumerable<Entity> entities)
+    {
+        return entities.Cast<DBObject>().ToDBObjectCollection();
+    }
+
+    public static DBObjectCollection ToDBObjectCollection(this SelectionSet entities)
+    {
+        var ObjectIdsCollection = entities.GetObjectIds();
+        var NewDBObjectCollection = new DBObjectCollection();
+        foreach (var ObjectId in ObjectIdsCollection) NewDBObjectCollection.Add(ObjectId.GetDBObject());
+        return NewDBObjectCollection;
+    }
+
+    public static ObjectIdCollection ToObjectIdCollection(this IEnumerable<ObjectId> objectId)
+    {
+        var NewObjectIdCollection = new ObjectIdCollection();
+        foreach (var ObjectId in objectId) NewObjectIdCollection.Add(ObjectId);
+        return NewObjectIdCollection;
+    }
+
+    public static DBObjectCollection ToDBObjectCollection(this IEnumerable<DBObject> entities)
+    {
+        var NewDBObjectCollection = new DBObjectCollection();
+        foreach (var entity in entities) NewDBObjectCollection.Add(entity);
+        return NewDBObjectCollection;
+    }
+
+    public static List<DBObject> ToList(this DBObjectCollection entities)
+    {
+        var list = new List<DBObject>();
+        foreach (var ent in entities) list.Add(ent as DBObject);
+        return list;
+    }
+
+    public static List<ObjectId> ToList(this ObjectIdCollection collection)
+    {
+        var list = new List<ObjectId>();
+        foreach (ObjectId objid in collection) list.Add(objid);
+        return list;
+    }
+
+    public static void EraseObject(this ObjectId ObjectToErase)
+    {
+        var doc = Generic.GetDocument();
+        using (var tr = doc.TransactionManager.StartTransaction())
         {
-            foreach (ObjectId ent in B)
+            if (ObjectToErase.IsErased) return;
+            var ent = tr.GetObject(ObjectToErase, OpenMode.ForRead);
+            //Can only errase if entity is not on a locked layer
+            if (ent is Entity enty && enty.IsEntityOnLockedLayer())
             {
-                if (!A.Contains(ent))
-                {
-                    A.Add(ent);
-                }
+                tr.Commit();
+            }
+            else
+            {
+                ent.UpgradeOpen();
+                if (!ent.IsErased) ent.Erase(true);
+                tr.Commit();
             }
         }
-        public static void Add(this ObjectIdCollection col, ObjectId[] ids)
+    }
+
+    public static void Join(this ObjectIdCollection A, ObjectIdCollection B)
+    {
+        foreach (ObjectId ent in B)
+            if (!A.Contains(ent))
+                A.Add(ent);
+    }
+
+    public static void Add(this ObjectIdCollection col, ObjectId[] ids)
+    {
+        foreach (var id in ids)
+            if (!col.Contains(id))
+                col.Add(id);
+    }
+
+    public static Hatch HatchObject(this ObjectId Obj, string Layer)
+    {
+        var acObjIdColl = new ObjectIdCollection
         {
-            foreach (var id in ids)
-            {
-                if (!col.Contains(id))
-                {
-                    col.Add(id);
-                }
-            }
-        }
+            Obj
+        };
+        var acHatch = new Hatch();
 
-        public static Hatch HatchObject(this ObjectId Obj, string Layer)
+        acHatch.SetHatchPattern(HatchPatternType.PreDefined, "SOLID");
+        acHatch.Associative = true;
+        acHatch.Layer = Layer;
+        acHatch.ColorIndex = 256;
+        acHatch.Transparency = new Transparency(TransparencyMethod.ByBlock);
+        acHatch.AppendLoop(HatchLoopTypes.Outermost, acObjIdColl);
+        acHatch.EvaluateHatch(true);
+        return acHatch;
+    }
+
+    public static bool IsDerivedFrom(this ObjectId objId, Type type)
+    {
+        if (objId == ObjectId.Null) return false;
+        return objId.ObjectClass.IsDerivedFrom(RXObject.GetClass(type));
+    }
+
+    public static long GetObjectByteSize(this ObjectId objId)
+    {
+        var currentDb = objId.Database;
+        if (currentDb == null || objId == ObjectId.Null) return 0;
+
+        using (var emptyDb = new Database(true, true))
         {
-            ObjectIdCollection acObjIdColl = new ObjectIdCollection
-            {
-                Obj
-            };
-            Hatch acHatch = new Hatch();
+            var emptyDwgByteSize = emptyDb.GetSize(currentDb.GetDwgVersion());
 
-            acHatch.SetHatchPattern(HatchPatternType.PreDefined, "SOLID");
-            acHatch.Associative = true;
-            acHatch.Layer = Layer;
-            acHatch.ColorIndex = 256;
-            acHatch.Transparency = new Transparency(TransparencyMethod.ByBlock);
-            acHatch.AppendLoop(HatchLoopTypes.Outermost, acObjIdColl);
-            acHatch.EvaluateHatch(true);
-            return acHatch;
-        }
+            var modelSpaceId = SymbolUtilityServices.GetBlockModelSpaceId(emptyDb);
 
-        public static bool IsDerivedFrom(this ObjectId objId, Type type)
-        {
-            if (objId == ObjectId.Null) { return false; }
-            return objId.ObjectClass.IsDerivedFrom(RXObject.GetClass(type));
-        }
-        public static long GetObjectByteSize(this ObjectId objId)
-        {
-            Database currentDb = objId.Database;
-            if (currentDb == null || objId == ObjectId.Null) return 0;
+            var ids = new ObjectIdCollection { objId };
+            emptyDb.WblockCloneObjects(ids, modelSpaceId, new IdMapping(), DuplicateRecordCloning.Replace, false);
 
-            using (Database emptyDb = new Database(true, true))
-            {
-                long emptyDwgByteSize = emptyDb.GetSize(currentDb.GetDwgVersion());
-
-                ObjectId modelSpaceId = SymbolUtilityServices.GetBlockModelSpaceId(emptyDb);
-
-                ObjectIdCollection ids = new ObjectIdCollection { objId };
-                emptyDb.WblockCloneObjects(ids, modelSpaceId, new IdMapping(), DuplicateRecordCloning.Replace, false);
-
-                long finalDwgByteSize = emptyDb.GetSize(currentDb.GetDwgVersion());
-                return Math.Max(finalDwgByteSize - emptyDwgByteSize, 0);
-            }
+            var finalDwgByteSize = emptyDb.GetSize(currentDb.GetDwgVersion());
+            return Max(finalDwgByteSize - emptyDwgByteSize, 0);
         }
     }
 }

@@ -1,33 +1,30 @@
-using Serilog.Core;
-
 using AutoBIMFusion.Common.Helpers;
+using Serilog.Core;
+using Exception = System.Exception;
 
 namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
-/// Выполняет глубокую программную очистку (Purge) базы данных DWG
-/// перед сохранением итогового файла. Удаляет неиспользуемые слои,
-/// блоки, стили текста, типы линий и другие именованные объекты.
+///     Выполняет глубокую программную очистку (Purge) базы данных DWG
+///     перед сохранением итогового файла. Удаляет неиспользуемые слои,
+///     блоки, стили текста, типы линий и другие именованные объекты.
 /// </summary>
 public static class DwgOptimizer
 {
     /// <summary>
-    /// Максимальное количество проходов очистки. Некоторые объекты
-    /// становятся неиспользуемыми только после удаления других.
+    ///     Максимальное количество проходов очистки. Некоторые объекты
+    ///     становятся неиспользуемыми только после удаления других.
     /// </summary>
     private const int MaxPurgePasses = 5;
 
     public static void Optimize(Database db, Logger log)
     {
-        int passes = 0;
+        var passes = 0;
 
         while (passes < MaxPurgePasses)
         {
-            int passCount = PurgePass(db, log);
-            if (passCount == 0)
-            {
-                break;
-            }
+            var passCount = PurgePass(db, log);
+            if (passCount == 0) break;
 
             passes++;
         }
@@ -37,7 +34,7 @@ public static class DwgOptimizer
     {
         using ObjectIdCollection candidates = [];
 
-        using Transaction trx = db.TransactionManager.StartTransaction();
+        using var trx = db.TransactionManager.StartTransaction();
 
         AddTableIds(trx, db.BlockTableId, candidates, log);
         AddTableIds(trx, db.LayerTableId, candidates, log);
@@ -66,7 +63,7 @@ public static class DwgOptimizer
         {
             db.Purge(candidates);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             log.Warning(ex, "Ошибка при вызове Database.Purge");
             trx.Commit();
@@ -79,32 +76,29 @@ public static class DwgOptimizer
             return 0;
         }
 
-        int erased = ErasePurgedObjects(trx, candidates, log);
+        var erased = ErasePurgedObjects(trx, candidates, log);
 
         trx.Commit();
         return erased;
     }
 
     /// <summary>
-    /// Удаляет объекты, оставшиеся в коллекции после вызова <see cref="Database.Purge"/>.
+    ///     Удаляет объекты, оставшиеся в коллекции после вызова <see cref="Database.Purge" />.
     /// </summary>
     internal static int ErasePurgedObjects(Transaction trx, ObjectIdCollection candidates, Logger log)
     {
-        int erased = 0;
+        var erased = 0;
         foreach (ObjectId id in candidates)
         {
-            if (!id.IsValidForOperation())
-            {
-                continue;
-            }
+            if (!id.IsValidForOperation()) continue;
 
             try
             {
-                DBObject obj = trx.GetObject(id, OpenMode.ForWrite);
+                var obj = trx.GetObject(id, OpenMode.ForWrite);
                 obj.Erase();
                 erased++;
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 log.Debug(ex, "Purge: не удалось удалить объект {Handle}", id.Handle);
             }
@@ -115,23 +109,16 @@ public static class DwgOptimizer
 
     private static void AddTableIds(Transaction trx, ObjectId tableId, ObjectIdCollection target, Logger log)
     {
-        if (tableId.IsNull)
-        {
-            return;
-        }
+        if (tableId.IsNull) return;
 
         try
         {
-            SymbolTable table = (SymbolTable)trx.GetObject(tableId, OpenMode.ForRead);
-            foreach (ObjectId id in table)
-            {
+            var table = (SymbolTable)trx.GetObject(tableId, OpenMode.ForRead);
+            foreach (var id in table)
                 if (id.IsValidForOperation())
-                {
                     _ = target.Add(id);
-                }
-            }
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             log.Debug(ex, "Purge: таблица {Handle} недоступна", tableId.Handle);
         }
@@ -139,27 +126,20 @@ public static class DwgOptimizer
 
     private static void AddDictionaryIds(Transaction trx, ObjectId dictId, ObjectIdCollection target, Logger log)
     {
-        if (dictId.IsNull)
-        {
-            return;
-        }
+        if (dictId.IsNull) return;
 
         try
         {
-            DBDictionary dict = (DBDictionary)trx.GetObject(dictId, OpenMode.ForRead);
-            foreach (DBDictionaryEntry entry in dict)
+            var dict = (DBDictionary)trx.GetObject(dictId, OpenMode.ForRead);
+            foreach (var entry in dict)
             {
-                ObjectId id = entry.Value;
-                if (id.IsValidForOperation())
-                {
-                    _ = target.Add(id);
-                }
+                var id = entry.Value;
+                if (id.IsValidForOperation()) _ = target.Add(id);
             }
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             log.Debug(ex, "Purge: словарь {Handle} недоступен", dictId.Handle);
         }
     }
 }
-

@@ -1,4 +1,3 @@
-using System;
 using System.Resources;
 
 namespace SioForgeCAD.Commun
@@ -17,14 +16,14 @@ namespace SioForgeCAD.Commun.Mist
     {
         public static int TransientPrimaryColorIndex
         {
-            get => SioForgeCAD.Commun.Settings.TransientPrimaryColorIndex;
-            set => SioForgeCAD.Commun.Settings.TransientPrimaryColorIndex = value;
+            get => Commun.Settings.TransientPrimaryColorIndex;
+            set => Commun.Settings.TransientPrimaryColorIndex = value;
         }
 
         public static int TransientSecondaryColorIndex
         {
-            get => SioForgeCAD.Commun.Settings.TransientSecondaryColorIndex;
-            set => SioForgeCAD.Commun.Settings.TransientSecondaryColorIndex = value;
+            get => Commun.Settings.TransientSecondaryColorIndex;
+            set => Commun.Settings.TransientSecondaryColorIndex = value;
         }
     }
 }
@@ -33,7 +32,7 @@ namespace SioForgeCAD.Commun.Properties
 {
     public sealed class Settings
     {
-        public static Settings Default { get; } = new Settings();
+        public static Settings Default { get; } = new();
 
         public string SelectionPointsType { get; set; } = "Points";
 
@@ -44,6 +43,6 @@ namespace SioForgeCAD.Commun.Properties
 
     public static class Resources
     {
-        public static ResourceManager ResourceManager { get; } = new ResourceManager(typeof(Resources));
+        public static ResourceManager ResourceManager { get; } = new(typeof(Resources));
     }
 }

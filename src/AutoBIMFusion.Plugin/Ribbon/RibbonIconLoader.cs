@@ -5,12 +5,12 @@ using System.Windows.Media.Imaging;
 namespace AutoBIMFusion.Plugin.Ribbon;
 
 /// <summary>
-/// Загружает иконки для кнопок Ribbon из ресурсов bundle.
+///     Загружает иконки для кнопок Ribbon из ресурсов bundle.
 /// </summary>
 internal static class RibbonIconLoader
 {
     /// <summary>
-    /// Загружает иконку из файла PNG относительно директории bundle.
+    ///     Загружает иконку из файла PNG относительно директории bundle.
     /// </summary>
     /// <param name="fileName">Имя файла иконки (например, "icon-merge-dwg-16.png").</param>
     /// <returns>BitmapImage иконки или null при ошибке.</returns>
@@ -26,13 +26,10 @@ internal static class RibbonIconLoader
             return null;
         }
 
-        string dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
-        string path = Path.Combine(dir, "Resources", fileName);
+        var dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+        var path = Path.Combine(dir, "Resources", fileName);
 
-        if (!File.Exists(path))
-        {
-            return null;
-        }
+        if (!File.Exists(path)) return null;
 
         BitmapImage image = new();
         image.BeginInit();
@@ -43,4 +40,3 @@ internal static class RibbonIconLoader
         return image;
     }
 }
-

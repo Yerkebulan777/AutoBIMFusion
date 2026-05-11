@@ -1,8 +1,8 @@
 namespace AutoBIMFusion.Merge.Combine.Layouts;
 
 /// <summary>
-/// Перечисляет активные Viewport'ы указанного листа и собирает LayoutViewportInfo.
-/// Служебный vpt с Number == 1 исключается.
+///     Перечисляет активные Viewport'ы указанного листа и собирает LayoutViewportInfo.
+///     Служебный vpt с Number == 1 исключается.
 /// </summary>
 internal static class ViewportCollector
 {
@@ -10,8 +10,8 @@ internal static class ViewportCollector
     {
         List<ViewportInfo> result = [];
 
-        using Transaction trx = db.TransactionManager.StartTransaction();
-        DBDictionary layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        using var trx = db.TransactionManager.StartTransaction();
+        var layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         if (!layoutDict.Contains(layoutName))
         {
@@ -19,47 +19,38 @@ internal static class ViewportCollector
             return result;
         }
 
-        ObjectId layoutId = layoutDict.GetAt(layoutName);
-        Layout layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
-        BlockTableRecord btr = (BlockTableRecord)trx.GetObject(layout.BlockTableRecordId, OpenMode.ForRead);
+        var layoutId = layoutDict.GetAt(layoutName);
+        var layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
+        var btr = (BlockTableRecord)trx.GetObject(layout.BlockTableRecordId, OpenMode.ForRead);
 
-        RXClass viewportClass = RXObject.GetClass(typeof(Viewport));
+        var viewportClass = RXObject.GetClass(typeof(Viewport));
 
-        foreach (ObjectId id in btr)
+        foreach (var id in btr)
         {
-            if (!id.ObjectClass.IsDerivedFrom(viewportClass))
-            {
-                continue;
-            }
+            if (!id.ObjectClass.IsDerivedFrom(viewportClass)) continue;
 
-            Viewport vp = (Viewport)trx.GetObject(id, OpenMode.ForRead);
+            var vp = (Viewport)trx.GetObject(id, OpenMode.ForRead);
 
-            if (vp.Number == 1 || !vp.On)
-            {
-                continue;
-            }
+            if (vp.Number == 1 || !vp.On) continue;
 
-            double scale = ResolveScale(vp);
+            var scale = ResolveScale(vp);
 
-            if (scale <= 0)
-            {
-                continue;
-            }
+            if (scale <= 0) continue;
 
-            Extents3d window = ComputeModelWindow(vp);
-            Point3d viewCenterWcs = GetViewCenterWcs(vp);
+            var window = ComputeModelWindow(vp);
+            var viewCenterWcs = GetViewCenterWcs(vp);
 
             ViewportInfo info = new(
-                VpId: id,
-                Number: vp.Number,
-                CenterPaper: vp.CenterPoint,
-                WidthPaper: vp.Width,
-                HeightPaper: vp.Height,
-                ViewCenter: viewCenterWcs,
-                ViewHeight: vp.ViewHeight,
-                ViewTwist: vp.TwistAngle,
-                CustomScale: scale,
-                ModelWindow: window);
+                id,
+                vp.Number,
+                vp.CenterPoint,
+                vp.Width,
+                vp.Height,
+                viewCenterWcs,
+                vp.ViewHeight,
+                vp.TwistAngle,
+                scale,
+                window);
             result.Add(info);
         }
 
@@ -71,7 +62,7 @@ internal static class ViewportCollector
     {
         // ViewCenter — это 2D-точка в DCS (Display Coordinate System).
         // Чтобы получить WCS, нужно применить трансформацию DCS -> WCS.
-        Matrix3d mat = GetDcsToWcsMatrix(vp);
+        var mat = GetDcsToWcsMatrix(vp);
         return new Point3d(vp.ViewCenter.X, vp.ViewCenter.Y, 0).TransformBy(mat);
     }
 
@@ -93,29 +84,29 @@ internal static class ViewportCollector
 
     private static Extents3d ComputeModelWindow(Viewport vp)
     {
-        double aspectRatio = vp.Width / Max(vp.Height, 1e-9);
-        double widthModel = vp.ViewHeight * aspectRatio;
-        double heightModel = vp.ViewHeight;
+        var aspectRatio = vp.Width / Max(vp.Height, 1e-9);
+        var widthModel = vp.ViewHeight * aspectRatio;
+        var heightModel = vp.ViewHeight;
 
-        double halfW = widthModel / 2.0;
-        double halfH = heightModel / 2.0;
+        var halfW = widthModel / 2.0;
+        var halfH = heightModel / 2.0;
 
-        Matrix3d dcsToWcs = GetDcsToWcsMatrix(vp);
-        Point2d vc = vp.ViewCenter;
+        var dcsToWcs = GetDcsToWcsMatrix(vp);
+        var vc = vp.ViewCenter;
 
         Point3d[] corners =
         [
             new Point3d(vc.X - halfW, vc.Y - halfH, 0).TransformBy(dcsToWcs),
             new Point3d(vc.X + halfW, vc.Y - halfH, 0).TransformBy(dcsToWcs),
             new Point3d(vc.X + halfW, vc.Y + halfH, 0).TransformBy(dcsToWcs),
-            new Point3d(vc.X - halfW, vc.Y + halfH, 0).TransformBy(dcsToWcs),
+            new Point3d(vc.X - halfW, vc.Y + halfH, 0).TransformBy(dcsToWcs)
         ];
 
         double minX = double.PositiveInfinity, maxX = double.NegativeInfinity;
         double minY = double.PositiveInfinity, maxY = double.NegativeInfinity;
         double minZ = double.PositiveInfinity, maxZ = double.NegativeInfinity;
 
-        foreach (Point3d p in corners)
+        foreach (var p in corners)
         {
             minX = Min(minX, p.X);
             maxX = Max(maxX, p.X);
@@ -128,4 +119,3 @@ internal static class ViewportCollector
         return new Extents3d(new Point3d(minX, minY, minZ), new Point3d(maxX, maxY, maxZ));
     }
 }
-

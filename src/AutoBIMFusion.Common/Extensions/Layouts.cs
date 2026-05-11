@@ -1,120 +1,120 @@
-﻿using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.Geometry;
+﻿using System.Drawing;
+using Autodesk.AutoCAD;
 using Autodesk.AutoCAD.GraphicsSystem;
-using System;
-using System.Drawing;
-using System.Linq;
 using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 
-namespace SioForgeCAD.Commun.Extensions
+namespace SioForgeCAD.Commun.Extensions;
+
+public static class LayoutsExtensions
 {
-    public static class LayoutsExtensions
+    public static void CloneLayout(this Layout sourceLayout, string newLayoutName)
     {
-        public static void CloneLayout(this Layout sourceLayout, string newLayoutName)
+        var doc = AcAp.DocumentManager.MdiActiveDocument;
+        var db = doc.Database;
+
+        using (var tr = db.TransactionManager.StartTransaction())
         {
-            Document doc = AcAp.DocumentManager.MdiActiveDocument;
-            Database db = doc.Database;
+            var sourceBtr = (BlockTableRecord)tr.GetObject(sourceLayout.BlockTableRecordId, OpenMode.ForRead);
+            var lm = LayoutManager.Current;
 
-            using (Transaction tr = db.TransactionManager.StartTransaction())
-            {
-                BlockTableRecord sourceBtr = (BlockTableRecord)tr.GetObject(sourceLayout.BlockTableRecordId, OpenMode.ForRead);
-                LayoutManager lm = LayoutManager.Current;
+            var newLayoutId = lm.CreateLayout(newLayoutName);
+            var newLayout = (Layout)tr.GetObject(newLayoutId, OpenMode.ForWrite);
+            var newBtr = (BlockTableRecord)tr.GetObject(newLayout.BlockTableRecordId, OpenMode.ForWrite);
 
-                ObjectId newLayoutId = lm.CreateLayout(newLayoutName);
-                Layout newLayout = (Layout)tr.GetObject(newLayoutId, OpenMode.ForWrite);
-                BlockTableRecord newBtr = (BlockTableRecord)tr.GetObject(newLayout.BlockTableRecordId, OpenMode.ForWrite);
+            var mapping = new IdMapping();
+            db.DeepCloneObjects(sourceBtr.Cast<ObjectId>().ToObjectIdCollection(), newBtr.ObjectId, mapping, false);
 
-                IdMapping mapping = new IdMapping();
-                db.DeepCloneObjects(sourceBtr.Cast<ObjectId>().ToObjectIdCollection(), newBtr.ObjectId, mapping, false);
+            // 3. Copie les réglages de tracé
+            newLayout.CopyFrom(sourceLayout);
+            lm.CurrentLayout = newLayoutName;
 
-                // 3. Copie les réglages de tracé
-                newLayout.CopyFrom(sourceLayout);
-                lm.CurrentLayout = newLayoutName;
-
-                tr.Commit();
-            }
+            tr.Commit();
         }
+    }
 
-        public static Bitmap GetLayoutSnapshot(this Layout lay, Extents3d ext, int width, int height)
+    public static Bitmap GetLayoutSnapshot(this Layout lay, Extents3d ext, int width, int height)
+    {
+        var doc = AcAp.DocumentManager.MdiActiveDocument;
+        var gsm = doc.GraphicsManager;
+
+        var descriptor = new KernelDescriptor();
+        descriptor.addRequirement(UniqueString.Intern("3D Drawing"));
+        var kernel = Manager.AcquireGraphicsKernel(descriptor);
+
+        using (Transaction tr = lay.Database.TransactionManager.StartOpenCloseTransaction())
         {
-            Document doc = AcAp.DocumentManager.MdiActiveDocument;
-            Manager gsm = doc.GraphicsManager;
+            var btr = (BlockTableRecord)tr.GetObject(lay.BlockTableRecordId, OpenMode.ForRead);
 
-            KernelDescriptor descriptor = new KernelDescriptor();
-            descriptor.addRequirement(Autodesk.AutoCAD.UniqueString.Intern("3D Drawing"));
-            GraphicsKernel kernel = Manager.AcquireGraphicsKernel(descriptor);
-
-            using (Transaction tr = lay.Database.TransactionManager.StartOpenCloseTransaction())
+            using (var view = new View())
             {
-                BlockTableRecord btr = (BlockTableRecord)tr.GetObject(lay.BlockTableRecordId, OpenMode.ForRead);
+                var w = ext.MaxPoint.X - ext.MinPoint.X;
+                var h = ext.MaxPoint.Y - ext.MinPoint.Y;
+                var center = new Point3d(ext.MinPoint.X + w / 2, ext.MinPoint.Y + h / 2, 0);
 
-                using (View view = new View())
+                // Position de la caméra (Z+1) pour ne pas être "dans" le dessin
+                var eyePosition = new Point3d(center.X, center.Y, center.Z + 1.0);
+
+                // Cadrage de la vue
+                view.SetView(eyePosition, center, Vector3d.YAxis, w, h);
+
+                using (var dev = gsm.CreateAutoCADOffScreenDevice(kernel))
                 {
-                    double w = ext.MaxPoint.X - ext.MinPoint.X;
-                    double h = ext.MaxPoint.Y - ext.MinPoint.Y;
-                    Point3d center = new Point3d(ext.MinPoint.X + (w / 2), ext.MinPoint.Y + (h / 2), 0);
+                    dev.OnSize(new Size(width, height));
+                    dev.BackgroundColor = Color.White;
+                    dev.Add(view);
 
-                    // Position de la caméra (Z+1) pour ne pas être "dans" le dessin
-                    Point3d eyePosition = new Point3d(center.X, center.Y, center.Z + 1.0);
-
-                    // Cadrage de la vue
-                    view.SetView(eyePosition, center, Vector3d.YAxis, w, h);
-
-                    using (Device dev = gsm.CreateAutoCADOffScreenDevice(kernel))
+                    using (var model = gsm.CreateAutoCADModel(kernel))
                     {
-                        dev.OnSize(new Size(width, height));
-                        dev.BackgroundColor = System.Drawing.Color.White;
-                        dev.Add(view);
+                        view.Add(btr, model);
+                        dev.Update();
+                        view.Update();
 
-                        using (Model model = gsm.CreateAutoCADModel(kernel))
-                        {
-                            view.Add(btr, model);
-                            dev.Update();
-                            view.Update();
-
-                            return view.GetSnapshot(new Rectangle(0, 0, width, height));
-                        }
+                        return view.GetSnapshot(new Rectangle(0, 0, width, height));
                     }
                 }
             }
         }
+    }
 
-        public static Bitmap RenderLayoutSnapshot(this Layout layout)
+    public static Bitmap RenderLayoutSnapshot(this Layout layout)
+    {
+        var db = Generic.GetDatabase();
+        var bmpW = 100;
+        var bmpH = 100;
+        using (var transaction = db.TransactionManager.StartTransaction())
         {
-            var db = Generic.GetDatabase();
-            int bmpW = 100;
-            int bmpH = 100;
-            using (Transaction transaction = db.TransactionManager.StartTransaction())
+            try
             {
-                try
+                Extents3d ext;
+                if (layout.ModelType)
                 {
-                    Extents3d ext;
-                    if (layout.ModelType)
-                    {
-                        db.UpdateExt(true);
-                        ext = new Extents3d(db.Extmin, db.Extmax);
-                    }
-                    else
-                    {
-                        ext = layout.Extents;
-                    }
-
-                    double realW = ext.MaxPoint.X - ext.MinPoint.X;
-                    double realH = ext.MaxPoint.Y - ext.MinPoint.Y;
-
-                    if (realW <= 0.001 || realH <= 0.001) return null;
-                    double ratio = Math.Min(512.0 / realW, 512.0 / realH);
-
-                    bmpW = (int)(realW * ratio);
-                    bmpH = (int)(realH * ratio);
-                    return GetLayoutSnapshot(layout, ext, bmpW, bmpH);
+                    db.UpdateExt(true);
+                    ext = new Extents3d(db.Extmin, db.Extmax);
                 }
-                catch { }
-                finally { transaction.Commit(); }
+                else
+                {
+                    ext = layout.Extents;
+                }
+
+                var realW = ext.MaxPoint.X - ext.MinPoint.X;
+                var realH = ext.MaxPoint.Y - ext.MinPoint.Y;
+
+                if (realW <= 0.001 || realH <= 0.001) return null;
+                var ratio = Min(512.0 / realW, 512.0 / realH);
+
+                bmpW = (int)(realW * ratio);
+                bmpH = (int)(realH * ratio);
+                return layout.GetLayoutSnapshot(ext, bmpW, bmpH);
             }
-            return new Bitmap(bmpW, bmpH);
+            catch
+            {
+            }
+            finally
+            {
+                transaction.Commit();
+            }
         }
 
+        return new Bitmap(bmpW, bmpH);
     }
 }

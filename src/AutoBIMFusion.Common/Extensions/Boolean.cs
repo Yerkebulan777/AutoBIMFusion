@@ -1,10 +1,9 @@
-﻿namespace SioForgeCAD.Commun.Extensions
+﻿namespace SioForgeCAD.Commun.Extensions;
+
+public static class BooleanExtensions
 {
-    public static class BooleanExtensions
+    public static int ToInt(this bool value)
     {
-        public static int ToInt(this bool value)
-        {
-            return value ? 1 : 0;
-        }
+        return value ? 1 : 0;
     }
 }

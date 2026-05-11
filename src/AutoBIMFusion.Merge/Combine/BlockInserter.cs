@@ -1,25 +1,25 @@
 using AutoBIMFusion.Common.AcadSupport;
+using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Merge.Combine.Layouts;
 using Serilog.Core;
-
-using AutoBIMFusion.Common.Helpers;
+using Exception = System.Exception;
 
 namespace AutoBIMFusion.Merge;
 
 /// <summary>
-/// Вставляет содержимое DWG как нативные объекты в Model Space целевого чертежа,
-/// располагая их вдоль оси X с заданным зазором.
+///     Вставляет содержимое DWG как нативные объекты в Model Space целевого чертежа,
+///     располагая их вдоль оси X с заданным зазором.
 /// </summary>
 public sealed class BlockInserter(double gapPercent, Logger log)
 {
-    private double _rightMax;
     private bool _hasPlacedObjects;
+    private double _rightMax;
 
     /// <summary>
-    /// Клонирует все сущности из Model Space исходного DWG в Model Space целевой базы,
-    /// затем смещает их в рассчитанную позицию для последовательной раскладки по оси X.
-    /// Пост-обработка размеров происходит после смещения, чтобы RecomputeDimensionBlock
-    /// использовал финальные координаты.
+    ///     Клонирует все сущности из Model Space исходного DWG в Model Space целевой базы,
+    ///     затем смещает их в рассчитанную позицию для последовательной раскладки по оси X.
+    ///     Пост-обработка размеров происходит после смещения, чтобы RecomputeDimensionBlock
+    ///     использовал финальные координаты.
     /// </summary>
     public Extents3d? InsertNativeObjects(
         Database targetDb,
@@ -29,44 +29,37 @@ public sealed class BlockInserter(double gapPercent, Logger log)
         double targetVisualScale,
         double linearScaleMultiplier)
     {
-        Point3d insertPt = CalcInsertionPoint(sourceBounds);
-        Matrix3d displacement = Matrix3d.Displacement(new Vector3d(insertPt.X, insertPt.Y, insertPt.Z));
+        var insertPt = CalcInsertionPoint(sourceBounds);
+        var displacement = Matrix3d.Displacement(new Vector3d(insertPt.X, insertPt.Y, insertPt.Z));
 
         try
         {
             ExtentsUtils.SyncUnits(targetDb);
 
-            ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
-            ObjectId targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
+            var sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
+            var targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
 
             using ObjectIdCollection sourceIds = [];
 
-            using (Transaction srcTrx = sourceDb.TransactionManager.StartTransaction())
+            using (var srcTrx = sourceDb.TransactionManager.StartTransaction())
             {
                 StyleUnificationService.NormalizeTextStyleNames(sourceDb, srcTrx);
                 StyleUnificationService.ApplyGostToAllStyles(sourceDb, srcTrx);
 
-                BlockTableRecord ms = (BlockTableRecord)srcTrx.GetObject(sourceMsId, OpenMode.ForRead);
-                foreach (ObjectId id in ms)
-                {
+                var ms = (BlockTableRecord)srcTrx.GetObject(sourceMsId, OpenMode.ForRead);
+                foreach (var id in ms)
                     if (id.IsValidForOperation())
-                    {
                         _ = sourceIds.Add(id);
-                    }
-                }
 
                 srcTrx.Commit();
             }
 
-            if (sourceIds.Count == 0)
-            {
-                return null;
-            }
+            if (sourceIds.Count == 0) return null;
 
             Extents3d? worldBounds = null;
-            int clonedCount = 0;
+            var clonedCount = 0;
 
-            using Transaction targetTr = targetDb.TransactionManager.StartTransaction();
+            using var targetTr = targetDb.TransactionManager.StartTransaction();
 
             using IdMapping map = new();
             using (new DatabaseUnitSyncScope(sourceDb, targetDb))
@@ -76,23 +69,18 @@ public sealed class BlockInserter(double gapPercent, Logger log)
 
             foreach (IdPair pair in map)
             {
-                if (!pair.IsCloned || !pair.IsPrimary)
-                {
-                    continue;
-                }
+                if (!pair.IsCloned || !pair.IsPrimary) continue;
 
                 if (targetTr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
                 {
                     ent.TransformBy(displacement);
                     clonedCount++;
 
-                    Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
+                    var ext = ExtentsUtils.TryGetExtents(ent);
                     if (ext.HasValue)
-                    {
                         worldBounds = worldBounds.HasValue
                             ? ExtentsUtils.Union(worldBounds.Value, ext.Value)
                             : ext.Value;
-                    }
                 }
             }
 
@@ -113,7 +101,7 @@ public sealed class BlockInserter(double gapPercent, Logger log)
 
             return worldBounds;
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             log.Error(ex, $"Ошибка вставки: {sourceName}");
             return null;
@@ -122,11 +110,11 @@ public sealed class BlockInserter(double gapPercent, Logger log)
 
     private Point3d CalcInsertionPoint(Extents3d bounds)
     {
-        double width = Max(0, bounds.MaxPoint.X - bounds.MinPoint.X);
-        double height = Max(0, bounds.MaxPoint.Y - bounds.MinPoint.Y);
-        double gap = Max(1.0, Round(Max(width, height) * gapPercent, 0));
+        var width = Max(0, bounds.MaxPoint.X - bounds.MinPoint.X);
+        var height = Max(0, bounds.MaxPoint.Y - bounds.MinPoint.Y);
+        var gap = Max(1.0, Round(Max(width, height) * gapPercent, 0));
 
-        double insertX = _hasPlacedObjects
+        var insertX = _hasPlacedObjects
             ? _rightMax + gap - bounds.MinPoint.X
             : -bounds.MinPoint.X;
 

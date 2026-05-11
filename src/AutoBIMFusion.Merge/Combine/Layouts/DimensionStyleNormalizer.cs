@@ -1,7 +1,3 @@
-using System.Collections.Generic;
-using AutoBIMFusion.Common.AcadSupport;
-using Autodesk.AutoCAD.DatabaseServices;
-
 using AutoBIMFusion.Common.Helpers;
 
 namespace AutoBIMFusion.Merge.Combine.Layouts;
@@ -22,7 +18,7 @@ internal static class DimensionStyleNormalizer
             if (!pair.IsCloned || !pair.Value.IsValidForOperation())
                 continue;
 
-            DBObject obj = trx.GetObject(pair.Value, OpenMode.ForWrite, false);
+            var obj = trx.GetObject(pair.Value, OpenMode.ForWrite, false);
 
             switch (obj)
             {
@@ -56,7 +52,7 @@ internal static class DimensionStyleNormalizer
             if (trx.GetObject(pair.Value, OpenMode.ForWrite, false) is not Dimension dim)
                 continue;
 
-            bool needsRecompute = false;
+            var needsRecompute = false;
 
             // 1. Force text rotation to 0 to remove any overrides
             if (dim.TextRotation != 0.0)
@@ -74,10 +70,7 @@ internal static class DimensionStyleNormalizer
             }
 
             // 3. Recompute if any changes were made
-            if (needsRecompute)
-            {
-                dim.RecomputeDimensionBlock(true);
-            }
+            if (needsRecompute) dim.RecomputeDimensionBlock(true);
         }
     }
 }

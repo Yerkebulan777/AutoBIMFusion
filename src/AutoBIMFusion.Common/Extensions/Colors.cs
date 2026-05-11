@@ -1,25 +1,23 @@
-﻿using Autodesk.AutoCAD.Colors;
-using Autodesk.AutoCAD.DatabaseServices;
+﻿using System.Drawing;
 
-namespace SioForgeCAD.Commun.Extensions
+namespace SioForgeCAD.Commun.Extensions;
+
+public static class ColorsEntensions
 {
-    public static class ColorsEntensions
+    public static Color GetSystemDrawingColor(this Entity ent)
     {
-        public static System.Drawing.Color GetSystemDrawingColor(this Entity ent)
-        {
-            return ent.Color.ColorValue;
-        }
+        return ent.Color.ColorValue;
+    }
 
-        public static Color GetColor(this Entity ent)
-        {
-            return ent.Color;
-        }
+    public static Autodesk.AutoCAD.Colors.Color GetColor(this Entity ent)
+    {
+        return ent.Color;
+    }
 
-        public static Color ConvertColorToGray(this Color BaseColor)
-        {
-            var DrawingColor = BaseColor.ColorValue;
-            byte Gray = (byte)((0.2989 * DrawingColor.R) + (0.5870 * DrawingColor.G) + (0.1140 * DrawingColor.B));
-            return Color.FromRgb(Gray, Gray, Gray);
-        }
+    public static Autodesk.AutoCAD.Colors.Color ConvertColorToGray(this Autodesk.AutoCAD.Colors.Color BaseColor)
+    {
+        var DrawingColor = BaseColor.ColorValue;
+        var Gray = (byte)(0.2989 * DrawingColor.R + 0.5870 * DrawingColor.G + 0.1140 * DrawingColor.B);
+        return Autodesk.AutoCAD.Colors.Color.FromRgb(Gray, Gray, Gray);
     }
 }
