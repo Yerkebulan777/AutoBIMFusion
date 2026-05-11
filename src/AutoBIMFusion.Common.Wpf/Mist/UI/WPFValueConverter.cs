@@ -38,8 +38,11 @@ namespace SioForgeCAD.Commun.Mist.UI
             if (value is System.Windows.Media.Color baseColor)
             {
                 float factor = 0.2f;
-                if (parameter != null)
-                    float.TryParse(parameter.ToString().Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out factor);
+                string? parameterText = parameter?.ToString();
+                if (!string.IsNullOrWhiteSpace(parameterText))
+                {
+                    float.TryParse(parameterText.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out factor);
+                }
 
                 return System.Windows.Media.Color.FromRgb(
                     CalculateChannel(baseColor.R, factor),

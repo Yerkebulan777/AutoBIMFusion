@@ -14,7 +14,7 @@ namespace SioForgeCAD.Commun.Extensions
 {
     public static class LayoutManagerExtensions
     {
-               public static BitmapSource GetLayoutImage(this LayoutManager lm, string Name)
+        public static BitmapSource? GetLayoutImage(this LayoutManager lm, string Name)
         {
             var db = Generic.GetDatabase();
             var Doc = Generic.GetDocument();
@@ -22,11 +22,11 @@ namespace SioForgeCAD.Commun.Extensions
             {
                 return null;
             }
-            BitmapSource result = null;
+
+            BitmapSource? result = null;
             try
             {
-
-                Bitmap bitmap = Utils.GetLayoutThumbnail(Doc, Name);
+                Bitmap? bitmap = Utils.GetLayoutThumbnail(Doc, Name);
                 if (bitmap == null)
                 {
                     Database database = Doc.Database;
@@ -37,14 +37,15 @@ namespace SioForgeCAD.Commun.Extensions
                             using (Transaction transaction = database.TransactionManager.StartOpenCloseTransaction())
                             using (DBObject dBObject = transaction.GetObject(database.LayoutDictionaryId, OpenMode.ForRead))
                             {
-                                DBDictionary dBDictionary = dBObject as DBDictionary;
+                                DBDictionary? dBDictionary = dBObject as DBDictionary;
                                 if (dBDictionary == null)
                                 {
                                     return null;
                                 }
+
                                 ObjectId at = dBDictionary.GetAt(Name);
-                                Layout layout = (Layout)transaction.GetObject(at, OpenMode.ForRead);
-                                bitmap = layout.Thumbnail;
+                                Layout? layout = transaction.GetObject(at, OpenMode.ForRead) as Layout;
+                                bitmap = layout?.Thumbnail;
                             }
                         }
                         catch { }
@@ -57,8 +58,8 @@ namespace SioForgeCAD.Commun.Extensions
                                 using (Transaction transaction = db.TransactionManager.StartTransaction())
                                 {
                                     var id = lm.GetLayoutId(Name);
-                                    Layout layout = (Layout)transaction.GetObject(id, OpenMode.ForRead);
-                                    bitmap = layout.RenderLayoutSnapshot();
+                                    Layout? layout = transaction.GetObject(id, OpenMode.ForRead) as Layout;
+                                    bitmap = layout?.RenderLayoutSnapshot();
                                 }
                             }
                             catch { }

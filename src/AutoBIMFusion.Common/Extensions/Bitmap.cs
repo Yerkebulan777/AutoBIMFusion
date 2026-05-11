@@ -1,15 +1,18 @@
 ﻿using SioForgeCAD.Commun.Mist;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.IO;
+using System.Runtime.Versioning;
 using Image = System.Drawing.Image;
 
 namespace SioForgeCAD.Commun.Extensions
 {
+    [SupportedOSPlatform("windows")]
     public static class BitmapExtensions
     {
-        public static Image RotateImage(this Image image, double angleRadians, System.Drawing.Color BackgroundColor)
+        public static Image RotateImage(this Image image, double angleRadians, System.Drawing.Color backgroundColor)
         {
+            ArgumentNullException.ThrowIfNull(image);
+
             angleRadians = (-angleRadians) % (2 * Math.PI);
             double sin = Math.Abs(Math.Sin(angleRadians));
             double cos = Math.Abs(Math.Cos(angleRadians));
@@ -18,26 +21,24 @@ namespace SioForgeCAD.Commun.Extensions
 
             Bitmap rotatedImage = new Bitmap(newWidth, newHeight);
 
-            using (Graphics g = Graphics.FromImage(rotatedImage))
-            {
-                g.Clear(BackgroundColor);
-                g.TranslateTransform(newWidth / 2, newHeight / 2);
-                g.RotateTransform((float)(angleRadians * (180 / Math.PI)));
-                g.DrawImage(image, new Rectangle(-image.Width / 2, -image.Height / 2, image.Width, image.Height));
-            }
+            using var g = Graphics.FromImage(rotatedImage);
+            g.Clear(backgroundColor);
+            g.TranslateTransform(newWidth / 2, newHeight / 2);
+            g.RotateTransform((float)(angleRadians * (180 / Math.PI)));
+            g.DrawImage(image, new Rectangle(-image.Width / 2, -image.Height / 2, image.Width, image.Height));
+
             return rotatedImage;
         }
 
 
         public static string GetImageFileSize(this Image image)
         {
-            long jpegByteSize;
-            using (var ms = new MemoryStream()) // estimatedLength can be original fileLength
-            {
-                image.Save(ms, ImageFormat.Jpeg); // save image to stream in Jpeg format
-                jpegByteSize = ms.Length;
-            }
-            return Files.FormatFileSizeFromByte(jpegByteSize, 2);
+            ArgumentNullException.ThrowIfNull(image);
+
+            using var ms = new MemoryStream();
+            image.Save(ms, ImageFormat.Jpeg);
+
+            return Files.FormatFileSizeFromByte(ms.Length, 2);
         }
     }
 }

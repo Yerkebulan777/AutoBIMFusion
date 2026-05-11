@@ -29,12 +29,12 @@ namespace SioForgeCAD.Commun.Extensions
             }
         }
 
-        public static BitmapSource CreateBitmapSourceFromBitmap(this Bitmap bitmap)
+        public static BitmapSource? CreateBitmapSourceFromBitmap(this Bitmap bitmap)
         {
             return CreateBitmapSourceFromBitmap(bitmap, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
         }
 
-        public static BitmapSource CreateBitmapSourceFromBitmap(this Bitmap bitmap, IntPtr palette, Int32Rect sourceRect, BitmapSizeOptions sizeOptions)
+        public static BitmapSource? CreateBitmapSourceFromBitmap(this Bitmap bitmap, IntPtr palette, Int32Rect sourceRect, BitmapSizeOptions sizeOptions)
         {
             if (bitmap == null)
             {

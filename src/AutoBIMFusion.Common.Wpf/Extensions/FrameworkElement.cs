@@ -13,7 +13,7 @@ namespace SioForgeCAD.Commun.Extensions
 {
     public static class FrameworkElementExtensions
     {
-        public static BitmapSource CreateElementSnapshot(this FrameworkElement element)
+        public static BitmapSource? CreateElementSnapshot(this FrameworkElement element)
         {
             if (element == null || element.ActualWidth <= 0 || element.ActualHeight <= 0)
             {
