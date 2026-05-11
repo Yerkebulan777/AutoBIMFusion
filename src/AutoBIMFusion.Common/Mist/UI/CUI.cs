@@ -1,27 +1,27 @@
-﻿using System.Collections.Specialized;
-using System.Diagnostics;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Customization;
+using SioForgeCAD.Commun;
+using System.Collections.Specialized;
+using System.Diagnostics;
 using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
-namespace SioForgeCAD.Commun.Mist;
+namespace AutoBIMFusion.Common.Mist.UI;
 
 public static class CUI
 {
-    //https://github.com/HanDefu/SunacCoordination/blob/master/RemoveCuiDoubleClick/CUITools.cs
     public static CustomizationSection GetMainCustomizationSection(this Document _)
     {
-        var mainCuiFile = Application.GetSystemVariable("MENUNAME") + ".CUIX";
-        return new CustomizationSection(mainCuiFile);
+        string mainCuiFile = (string)Application.GetSystemVariable("MENUNAME");
+        return new CustomizationSection(mainCuiFile + ".CUIX");
     }
 
-    public static CustomizationSection CreatePartialCui(this Document _, string menuGroupName,
-        string cuiFilePath = null)
+    public static CustomizationSection CreatePartialCui(this Document _, string menuGroupName, string cuiFilePath = null)
     {
         if (string.IsNullOrEmpty(cuiFilePath))
-            cuiFilePath = Path.Combine(Path.GetDirectoryName(Generic.GetExtensionDLLLocation()),
-                Generic.GetExtensionDLLName() + ".CUIX");
+        {
+            cuiFilePath = Path.Combine(Path.GetDirectoryName(Generic.GetExtensionDLLLocation()), Generic.GetExtensionDLLName() + ".CUIX");
+        }
 
         if (!File.Exists(cuiFilePath))
         {
@@ -30,8 +30,8 @@ public static class CUI
                 MenuGroupDisplayName = menuGroupName,
                 MenuGroupName = menuGroupName
             };
+
             cs.SaveAs(cuiFilePath);
-            return cs;
         }
 
         return new CustomizationSection(cuiFilePath);
@@ -39,17 +39,21 @@ public static class CUI
 
     public static void LoadCui(this CustomizationSection cs)
     {
-        if (cs.IsModified) cs.Save();
+        if (cs.IsModified)
+        {
+            _ = cs.Save();
+        }
+
         var doc = Generic.GetDocument();
         var mainCs = doc.GetMainCustomizationSection();
         if (mainCs.PartialCuiFiles.Contains(cs.CUIFileName))
         {
-            AcAp.UnloadPartialMenu(cs.CUIFileBaseName);
-            AcAp.LoadPartialMenu(cs.CUIFileName);
+            _ = AcAp.UnloadPartialMenu(cs.CUIFileBaseName);
+            _ = AcAp.LoadPartialMenu(cs.CUIFileName);
         }
         else
         {
-            AcAp.LoadPartialMenu(cs.CUIFileName);
+            _ = AcAp.LoadPartialMenu(cs.CUIFileName);
             AcAp.ReloadAllMenus(); //if missing file but loaded, crash
         }
     }
@@ -57,23 +61,32 @@ public static class CUI
     public static MenuMacro GetRubbanCommand(this CustomizationSection source, string ElementID)
     {
         foreach (MacroGroup macrog in source.MenuGroup.MacroGroups)
-        foreach (MenuMacro menug in macrog.MenuMacros)
-            if (menug.ElementID == ElementID)
-                return menug;
+        {
+            foreach (MenuMacro menug in macrog.MenuMacros)
+            {
+                if (menug.ElementID == ElementID)
+                {
+                    return menug;
+                }
+            }
+        }
 
         return null;
     }
 
-    public static MenuAccelerator AddPermanentKeyboardShortcut(this CustomizationSection source,
-        string AcceleratorShortcutKey, string Name, string Command, string NewElementID)
+    public static MenuAccelerator AddPermanentKeyboardShortcut(this CustomizationSection source, string AcceleratorShortcutKey, string Name, string Command, string NewElementID)
     {
         foreach (MenuAccelerator item in source.MenuGroup.Accelerators)
+        {
             if (item is MenuAccelerator ExistMenuAccelerator)
+            {
                 if (ExistMenuAccelerator.Name == Name || ExistMenuAccelerator.ElementID == NewElementID)
                 {
                     Debug.WriteLine("KeyboardShortcut non ajouté : l'élément existe déja");
                     return null;
                 }
+            }
+        }
 
         var mg = source.GetMacroGroup();
         var Macro = new MenuMacro(mg, Name, Command, NewElementID, MacroType.Overrides);
@@ -87,16 +100,20 @@ public static class CUI
     public static TemporaryOverride AddTempKeyboardShortcut(this CustomizationSection source,
         string OverrideShortcutKey, string Name, string Command, string NewElementID)
     {
-        // This command will install a temporary override key. Temporary override keys are keys that temporarily 
-        // turn on or turn off one of the drawing aids that are set in the Drafting Settings dialog box 
+        // This command will install a temporary override key. Temporary override keys are keys that temporarily
+        // turn on or turn off one of the drawing aids that are set in the Drafting Settings dialog box
         // (for example, Ortho mode, object snaps, or Polar mode).
         foreach (TemporaryOverride item in source.MenuGroup.TemporaryOverrides)
+        {
             if (item is TemporaryOverride ExistTempOverride)
+            {
                 if (ExistTempOverride.Name == Name || ExistTempOverride.ElementID == NewElementID)
                 {
                     Debug.WriteLine("TempKeyboardShortcut non ajouté : l'élément existe déja");
                     return null;
                 }
+            }
+        }
 
         var mg = source.GetMacroGroup();
         var Macro = new MenuMacro(mg, Name, Command, NewElementID, MacroType.Overrides);
@@ -120,7 +137,7 @@ public static class CUI
         macro.macro.Command = command;
         macro.macro.CLICommand = CLICommand;
         macro.macro.Name = name;
-        macro.macro.Tags = new StringCollection();
+        macro.macro.Tags = [];
         macro.macro.SmallImage = imagePath;
         macro.macro.LargeImage = imagePath;
         macro.macro.HelpString = helpString;
@@ -133,11 +150,17 @@ public static class CUI
         string elementID, string helpString, string imagePath, string CLICommand, bool UpdateIfExist)
     {
         foreach (MenuMacro macro in macros)
+        {
             if (macro.ElementID == elementID)
             {
-                if (UpdateIfExist) UpdateMacroProperties(macro, name, command, helpString, imagePath, CLICommand);
+                if (UpdateIfExist)
+                {
+                    UpdateMacroProperties(macro, name, command, helpString, imagePath, CLICommand);
+                }
+
                 return macro;
             }
+        }
 
         return null;
     }
@@ -153,13 +176,23 @@ public static class CUI
         {
             var MainSource = GetMainCustomizationSection(null);
             if (MainSource != source)
+            {
                 foreach (MacroGroup mgo in MainSource.MenuGroup.MacroGroups)
+                {
                     if (TryGetUpdateExistingMacro(mgo.MenuMacros, name, command, elementID, helpString, imagePath,
                             CLICommand, UpdateIfExist) != null)
-                        MainSource.Save();
+                    {
+                        _ = MainSource.Save();
+                    }
+                }
+            }
         }
 
-        if (existingMacro != null) return existingMacro;
+        if (existingMacro != null)
+        {
+            return existingMacro;
+        }
+
         var menuMacro = new MenuMacro(macroGroup, name, command, elementID);
         UpdateMacroProperties(menuMacro, name, command, helpString, imagePath, CLICommand);
 
@@ -169,7 +202,11 @@ public static class CUI
     public static PopMenu AddPopMenu(this MenuGroup menuGroup, string name, StringCollection aliasList, string tag)
     {
         PopMenu pm = null;
-        if (menuGroup.PopMenus.IsNameFree(name)) pm = new PopMenu(name, aliasList, tag, menuGroup);
+        if (menuGroup.PopMenus.IsNameFree(name))
+        {
+            pm = new PopMenu(name, aliasList, tag, menuGroup);
+        }
+
         return pm;
     }
 
@@ -177,11 +214,18 @@ public static class CUI
     {
         PopMenuItem newPmi = null;
         foreach (PopMenuItem pmi in parentMenu.PopMenuItems)
+        {
             if (pmi.Name == name && pmi.Name != null)
+            {
                 return newPmi;
+            }
+        }
 
         newPmi = new PopMenuItem(parentMenu, index);
-        if (name != null) newPmi.Name = name;
+        if (name != null)
+        {
+            newPmi.Name = name;
+        }
 
         newPmi.MacroID = macroId;
         return newPmi;
@@ -208,11 +252,14 @@ public static class CUI
     {
         Toolbar tb = null;
         if (menuGroup.Toolbars.IsNameFree(name))
+        {
             tb = new Toolbar(name, menuGroup)
             {
                 ToolbarOrient = ToolbarOrient.floating,
                 ToolbarVisible = ToolbarVisible.show
             };
+        }
+
         return tb;
     }
 
