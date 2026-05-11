@@ -1,11 +1,10 @@
 using System.Reflection;
-using System.Windows.Forms;
 
 namespace SioForgeCAD.Commun
 {
     public static class LayerPaletteControls
     {
-        public static (DataGridView LayerGrid, object LayerManager) GetLayerPaletteControls()
+        public static (object? LayerGrid, object? LayerManager) GetLayerPaletteControls()
         {
             Type paletteHostType = AppDomain.CurrentDomain.GetAssemblies()
                 .Select(assembly => assembly.GetType("Autodesk.AutoCAD.LayerManager.PaletteHost", throwOnError: false))
@@ -17,9 +16,10 @@ namespace SioForgeCAD.Commun
                 if (rslt != null)
                 {
                     MethodInfo method = rslt.GetType().GetMethod("FindControlByTypeName", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                    if (method?.Invoke(rslt, new object[] { "LayerGrid" }) is DataGridView LayerGridControl)//Autodesk.AutoCAD.LayerManager.LayerGrid
+                    object? layerGridControl = method?.Invoke(rslt, new object[] { "LayerGrid" });
+                    if (layerGridControl != null)
                     {
-                        return (LayerGridControl, rslt);
+                        return (layerGridControl, rslt);
                     }
                 }
             }

@@ -8,7 +8,6 @@
         <PlatformTarget>x64</PlatformTarget>
         <Platforms>x64</Platforms>
         <UseWPF>true</UseWPF>
-        <UseWindowsForms>true</UseWindowsForms>
     </PropertyGroup>
 
     <ItemGroup>
