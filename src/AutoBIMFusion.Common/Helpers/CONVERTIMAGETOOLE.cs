@@ -5,15 +5,16 @@ using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.Windows;
 using SioForgeCAD.Commun;
+using SioForgeCAD.Commun.Drawing;
 using SioForgeCAD.Commun.Extensions;
 using SioForgeCAD.Commun.Mist;
 using System;
 using System.Diagnostics;
 using System.Drawing.Imaging;
-using System.Windows.Forms;
-using Application = Autodesk.AutoCAD.ApplicationServices.Application;
-using MenuItem = Autodesk.AutoCAD.Windows.MenuItem;
 
+using Application = Autodesk.AutoCAD.ApplicationServices.Application;
+using DrawingImage = System.Drawing.Image;
+using MenuItem = Autodesk.AutoCAD.Windows.MenuItem;
 
 namespace SioForgeCAD.Functions
 {
@@ -71,7 +72,7 @@ namespace SioForgeCAD.Functions
                     if (RasterObjectId.GetDBObject() is RasterImage rasterImage)
                     {
                         var rasterImageColor = rasterImage.GetSystemDrawingColor();
-                        System.Drawing.Image bitmap = System.Drawing.Image.FromFile(rasterImage.Path);
+                        DrawingImage bitmap = DrawingImage.FromFile(rasterImage.Path);
                         bool ImageHasAlpha = bitmap.PixelFormat.HasFlag(PixelFormat.Alpha);
                         const string HasAlphaWarningMessage = "la transparence de l'image sera supprimée et remplacée par la couleur de l'object raster";
                         bool ImageIsRotated = rasterImage.Rotation > 0;
@@ -92,22 +93,41 @@ namespace SioForgeCAD.Functions
                                 JoinedMessage += IsRotatedWarningMessage;
                             }
                             JoinedMessage += $"\nVoullez-vous utiliser un fond de la couleur de l'object raster ? ({rasterImageColor.R},{rasterImageColor.G},{rasterImageColor.B}). Un fond blanc sera appliqué dans le cas contraire";
-                            var AskContinue = MessageBox.Show(JoinedMessage, Generic.GetExtensionDLLName(), MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
-                            if (AskContinue == DialogResult.Cancel)
+
+                            var askOptions = new PromptKeywordOptions($"\n{JoinedMessage} [Oui/Non/Annuler] <Annuler>: ");
+                            askOptions.Keywords.Add("Oui");
+                            askOptions.Keywords.Add("Non");
+                            askOptions.Keywords.Add("Annuler");
+                            askOptions.Keywords.Default = "Annuler";
+                            askOptions.AllowNone = true;
+                            var askContinue = ed.GetKeywords(askOptions);
+
+                            if (askContinue.Status != PromptStatus.OK || askContinue.StringResult == "Annuler")
                             {
                                 return;
                             }
-                            else if (AskContinue != DialogResult.No) { rasterImageColor = System.Drawing.Color.White; }
+                            else if (askContinue.StringResult != "Non")
+                            {
+                                rasterImageColor = System.Drawing.Color.White;
+                            }
                         }
                         string BitmapSize = bitmap.GetImageFileSize();
                         Debug.WriteLine("Bitmap Size :" + BitmapSize);
-                        var ClipBackup = System.Windows.Clipboard.GetDataObject();
+
+                        Type clipboardType = Type.GetType("System.Windows.Forms.Clipboard, System.Windows.Forms", throwOnError: false);
+                        if (clipboardType is null)
+                        {
+                            Generic.WriteMessage("Clipboard System.Windows.Forms indisponible.");
+                            continue;
+                        }
+
+                        object ClipBackup = clipboardType.GetMethod("GetDataObject", Type.EmptyTypes)?.Invoke(null, null);
                         using (var RotatedImage = bitmap.RotateImage(rasterImage.Rotation, rasterImageColor))
                         {
                             try
                             {
-                                System.Windows.Clipboard.Clear();
-                                System.Windows.Clipboard.SetImage(RotatedImage.ToBitmapSource());
+                                clipboardType.GetMethod("Clear", Type.EmptyTypes)?.Invoke(null, null);
+                                clipboardType.GetMethod("SetImage", new[] { typeof(System.Drawing.Image) })?.Invoke(null, new object[] { RotatedImage });
 
                                 Generic.WriteMessage($"Conversion de l'image en OLE. Taille de l'image d'origine : {RotatedImage.GetImageFileSize()}");
                             }
@@ -126,7 +146,7 @@ namespace SioForgeCAD.Functions
                         try
                         {
                             //Recover clipboard
-                            System.Windows.Clipboard.SetDataObject(ClipBackup);
+                            clipboardType.GetMethod("SetDataObject", new[] { typeof(object) })?.Invoke(null, new[] { ClipBackup });
                         }
                         catch (System.Exception ex)
                         {

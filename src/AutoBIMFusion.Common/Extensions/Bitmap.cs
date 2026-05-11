@@ -6,6 +6,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
+using Image = System.Drawing.Image;
 
 namespace SioForgeCAD.Commun.Extensions
 {

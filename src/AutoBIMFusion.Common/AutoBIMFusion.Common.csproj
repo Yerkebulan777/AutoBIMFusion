@@ -23,6 +23,7 @@
         <PackageReference Include="AutoCAD.NET" ExcludeAssets="runtime" />
         <PackageReference Include="Serilog" />
         <PackageReference Include="Serilog.Sinks.File" />
+        <PackageReference Include="System.Drawing.Common" />
     </ItemGroup>
 
 </Project>
