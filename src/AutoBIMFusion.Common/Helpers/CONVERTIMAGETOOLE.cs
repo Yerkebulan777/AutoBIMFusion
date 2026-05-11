@@ -1,4 +1,3 @@
-using AutoBIMFusion.Common.Drawing;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;

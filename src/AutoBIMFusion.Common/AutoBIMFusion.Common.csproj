@@ -13,7 +13,6 @@
         <Using Include="Autodesk.AutoCAD.ApplicationServices.Core" />
         <Using Include="Autodesk.AutoCAD.DatabaseServices" />
         <Using Include="Autodesk.AutoCAD.Geometry" />
-        <Using Include="Autodesk.AutoCAD.Runtime" />
         <Using Include="System.Math">
             <Static>True</Static>
         </Using>

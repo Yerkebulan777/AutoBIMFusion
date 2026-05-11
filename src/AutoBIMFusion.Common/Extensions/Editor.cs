@@ -3,8 +3,8 @@ using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
-using System.Windows;
 
 namespace SioForgeCAD.Commun.Extensions
 {
@@ -23,7 +23,7 @@ namespace SioForgeCAD.Commun.Extensions
             return ucs_rotAngle * 180 / Math.PI; //in egrees
         }
 
-        public static Size GetCurrentViewSize(this Editor _)
+        public static SizeF GetCurrentViewSize(this Editor _)
         {
             //https://drive-cad-with-code.blogspot.com/2013/04/how-to-get-current-view-size.html
             //Get current view height
@@ -32,13 +32,13 @@ namespace SioForgeCAD.Commun.Extensions
             //by calculate current view's width-height ratio
             Point2d screen = (Point2d)Autodesk.AutoCAD.ApplicationServices.Core.Application.GetSystemVariable("SCREENSIZE");
             double w = h * (screen.X / screen.Y);
-            return new Size(w, h);
+            return new SizeF((float)w, (float)h);
         }
 
         public static Extents3d GetCurrentViewBound(this Editor ed, double shrinkScale = 1.0)
         {
             //Get current view size
-            Size vSize = GetCurrentViewSize(ed);
+            SizeF vSize = GetCurrentViewSize(ed);
 
             double w = vSize.Width * shrinkScale;
             double h = vSize.Height * shrinkScale;
@@ -356,12 +356,12 @@ namespace SioForgeCAD.Commun.Extensions
             return ed.GetSelectionRedraw(selectionOptions, selectionFilter);
         }
 
-        private class PromptSelectionKeywordEntered : Exception
+        private class PromptSelectionKeywordEntered : System.Exception
         {
             public string Keyword = string.Empty;
             public PromptSelectionKeywordEntered() : base() { }
             public PromptSelectionKeywordEntered(string message) : base(message) { }
-            public PromptSelectionKeywordEntered(string message, Exception innerException) : base(message, innerException) { }
+            public PromptSelectionKeywordEntered(string message, System.Exception innerException) : base(message, innerException) { }
         }
 
         public static (PromptStatus Status, object Value) GetSelectionRedraw(this Editor ed, PromptSelectionOptions selectionOptions, SelectionFilter selectionFilter = null)

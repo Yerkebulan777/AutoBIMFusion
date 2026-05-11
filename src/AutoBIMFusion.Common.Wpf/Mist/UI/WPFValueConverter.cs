@@ -35,13 +35,13 @@ namespace SioForgeCAD.Commun.Mist.UI
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is Color baseColor)
+            if (value is System.Windows.Media.Color baseColor)
             {
                 float factor = 0.2f;
                 if (parameter != null)
                     float.TryParse(parameter.ToString().Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out factor);
 
-                return Color.FromRgb(
+                return System.Windows.Media.Color.FromRgb(
                     CalculateChannel(baseColor.R, factor),
                     CalculateChannel(baseColor.G, factor),
                     CalculateChannel(baseColor.B, factor)

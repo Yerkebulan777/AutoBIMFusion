@@ -4,8 +4,10 @@
         <Nullable>enable</Nullable>
         <PlatformTarget>x64</PlatformTarget>
         <ImplicitUsings>enable</ImplicitUsings>
-        <TargetFramework Condition="'$(Configuration)' != 'DebugA27' And '$(Configuration)' != 'ReleaseA27'">net8.0</TargetFramework>
-        <TargetFramework Condition="'$(Configuration)' == 'DebugA27' Or '$(Configuration)' == 'ReleaseA27'">net10.0</TargetFramework>
+        <TargetFramework Condition="'$(Configuration)' != 'DebugA27' And '$(Configuration)' != 'ReleaseA27' And '$(CoreConsoleDiagnostics)' == 'true'">net8.0</TargetFramework>
+        <TargetFramework Condition="'$(Configuration)' != 'DebugA27' And '$(Configuration)' != 'ReleaseA27' And '$(CoreConsoleDiagnostics)' != 'true'">net8.0-windows</TargetFramework>
+        <TargetFramework Condition="('$(Configuration)' == 'DebugA27' Or '$(Configuration)' == 'ReleaseA27') And '$(CoreConsoleDiagnostics)' == 'true'">net10.0</TargetFramework>
+        <TargetFramework Condition="('$(Configuration)' == 'DebugA27' Or '$(Configuration)' == 'ReleaseA27') And '$(CoreConsoleDiagnostics)' != 'true'">net10.0-windows</TargetFramework>
         <AssemblyName>AutoBIMFusion</AssemblyName>
         <RootNamespace>AutoBIMFusion.Plugin</RootNamespace>
         <AssemblyTitle>AutoBIMFusion</AssemblyTitle>
@@ -28,15 +30,12 @@
         <AutoCADAllUsersPluginsDir>$(ProgramData)\Autodesk\ApplicationPlugins\</AutoCADAllUsersPluginsDir>
         <DeployForAllUsers>false</DeployForAllUsers>
         <Platforms>x64</Platforms>
+        <UseWPF Condition="'$(CoreConsoleDiagnostics)' != 'true'">true</UseWPF>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(CoreConsoleDiagnostics)' == 'true'">
         <DefineConstants>$(DefineConstants);CORECONSOLE_DIAGNOSTICS</DefineConstants>
     </PropertyGroup>
-
-    <ItemGroup>
-        <FrameworkReference Include="Microsoft.WindowsDesktop.App" Condition="'$(CoreConsoleDiagnostics)' != 'true'" />
-    </ItemGroup>
 
     <ItemGroup>
         <Compile Remove="Commands\Archive\**\*.cs" />
@@ -62,6 +61,7 @@
         <Using Include="Autodesk.AutoCAD.EditorInput" />
         <Using Include="Autodesk.AutoCAD.Geometry" />
         <Using Include="Autodesk.AutoCAD.Runtime" />
+        <Using Include="System.IO" />
         <Using Include="System.Math">
             <Static>True</Static>
         </Using>
@@ -75,6 +75,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\AutoBIMFusion.Common\AutoBIMFusion.Common.csproj" />
+        <ProjectReference Include="..\AutoBIMFusion.Common.Wpf\AutoBIMFusion.Common.Wpf.csproj" Condition="'$(CoreConsoleDiagnostics)' != 'true'" />
         <ProjectReference Include="..\AutoBIMFusion.Merge\AutoBIMFusion.Merge.csproj" />
     </ItemGroup>
 

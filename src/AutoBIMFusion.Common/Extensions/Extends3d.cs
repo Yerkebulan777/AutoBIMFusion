@@ -2,7 +2,6 @@
 using Autodesk.AutoCAD.Geometry;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
 
 namespace SioForgeCAD.Commun.Extensions
 {
@@ -45,13 +44,11 @@ namespace SioForgeCAD.Commun.Extensions
             return new Point3d(extends.Right(), extends.Bottom(), 0);
         }
 
-        public static Size Size(this Extents3d extends)
+        public static ExtentsSize Size(this Extents3d extends)
         {
-            return new Size
-            {
-                Width = extends.TopLeft().DistanceTo(extends.TopRight()),
-                Height = extends.TopLeft().DistanceTo(extends.BottomLeft())
-            };
+            return new ExtentsSize(
+                extends.TopLeft().DistanceTo(extends.TopRight()),
+                extends.TopLeft().DistanceTo(extends.BottomLeft()));
         }
 
         public static bool CollideWith(this Extents3d a, Extents3d b)
@@ -457,4 +454,6 @@ namespace SioForgeCAD.Commun.Extensions
             }
         }
     }
+
+    public readonly record struct ExtentsSize(double Width, double Height);
 }

@@ -5,6 +5,7 @@ using Autodesk.AutoCAD.GraphicsSystem;
 using System;
 using System.Drawing;
 using System.Linq;
+using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace SioForgeCAD.Commun.Extensions
 {
@@ -12,7 +13,7 @@ namespace SioForgeCAD.Commun.Extensions
     {
         public static void CloneLayout(this Layout sourceLayout, string newLayoutName)
         {
-            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Document doc = AcAp.DocumentManager.MdiActiveDocument;
             Database db = doc.Database;
 
             using (Transaction tr = db.TransactionManager.StartTransaction())
@@ -37,7 +38,7 @@ namespace SioForgeCAD.Commun.Extensions
 
         public static Bitmap GetLayoutSnapshot(this Layout lay, Extents3d ext, int width, int height)
         {
-            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Document doc = AcAp.DocumentManager.MdiActiveDocument;
             Manager gsm = doc.GraphicsManager;
 
             KernelDescriptor descriptor = new KernelDescriptor();

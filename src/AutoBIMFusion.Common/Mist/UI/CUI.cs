@@ -3,6 +3,7 @@ using Autodesk.AutoCAD.Customization;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
+using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace SioForgeCAD.Commun.Mist
 {
@@ -47,13 +48,13 @@ namespace SioForgeCAD.Commun.Mist
             CustomizationSection mainCs = doc.GetMainCustomizationSection();
             if (mainCs.PartialCuiFiles.Contains(cs.CUIFileName))
             {
-                Application.UnloadPartialMenu(cs.CUIFileBaseName);
-                Application.LoadPartialMenu(cs.CUIFileName);
+                AcAp.UnloadPartialMenu(cs.CUIFileBaseName);
+                AcAp.LoadPartialMenu(cs.CUIFileName);
             }
             else
             {
-                Application.LoadPartialMenu(cs.CUIFileName);
-                Application.ReloadAllMenus(); //if missing file but loaded, crash
+                AcAp.LoadPartialMenu(cs.CUIFileName);
+                AcAp.ReloadAllMenus(); //if missing file but loaded, crash
             }
 
         }

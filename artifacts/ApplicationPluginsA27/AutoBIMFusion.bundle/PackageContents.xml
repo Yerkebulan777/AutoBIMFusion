@@ -1,0 +1,7 @@
+﻿<ApplicationPackage SchemaVersion="1.0" AppVersion="1.0.0" ProductCode="{4F3E42D4-4D2F-4A2E-8A2A-BB771A0D06AF}" Name="AutoBIMFusion 2027">
+<CompanyDetails Name="AutoBIMFusion" />
+<Components>
+<RuntimeRequirements OS="Win64" Platform="AutoCAD" SeriesMin="R26.0" SeriesMax="R26.0" />
+<ComponentEntry AppName="AutoBIMFusion" ModuleName="./Contents/AutoBIMFusion.dll" AppDescription="Плагин для AutoCAD 2027" LoadOnAutoCADStartup="true" />
+</Components>
+</ApplicationPackage>

@@ -11,6 +11,9 @@
     <Project Path="src/AutoBIMFusion.Common/AutoBIMFusion.Common.csproj">
         <Platform Project="x64" />
     </Project>
+    <Project Path="src/AutoBIMFusion.Common.Wpf/AutoBIMFusion.Common.Wpf.csproj">
+        <Platform Project="x64" />
+    </Project>
     <Project Path="src/AutoBIMFusion.Merge/AutoBIMFusion.Merge.csproj">
         <Platform Project="x64" />
     </Project>

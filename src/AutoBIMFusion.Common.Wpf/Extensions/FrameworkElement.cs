@@ -28,7 +28,7 @@ namespace SioForgeCAD.Commun.Extensions
             using (DrawingContext drawingContext = drawingVisual.RenderOpen())
             {
                 VisualBrush visualBrush = new VisualBrush(element);
-                drawingContext.DrawRectangle(visualBrush, null, new Rect(new Point(0, 0), new Size(width, height)));
+                drawingContext.DrawRectangle(visualBrush, null, new Rect(new System.Windows.Point(0, 0), new System.Windows.Size(width, height)));
             }
             rtb.Render(drawingVisual);
             rtb.Freeze();
@@ -36,7 +36,7 @@ namespace SioForgeCAD.Commun.Extensions
             return rtb;
         }
 
-        public static Cursor CreateCursorFromElement(this FrameworkElement element, Point hotspot)
+        public static System.Windows.Input.Cursor CreateCursorFromElement(this FrameworkElement element, System.Windows.Point hotspot)
         {
             element.UpdateLayout();
 
@@ -94,7 +94,7 @@ namespace SioForgeCAD.Commun.Extensions
                     bw.Write(pngBytes);
 
                     msCursor.Position = 0;
-                    return new Cursor(msCursor);
+                    return new System.Windows.Input.Cursor(msCursor);
                 }
             }
         }
