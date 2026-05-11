@@ -1,4 +1,4 @@
-﻿using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
@@ -14,7 +14,7 @@ namespace SioForgeCAD.Commun
     {
         private Func<Points, Dictionary<string, string>> UpdateFunction { get; }
         private DBObjectCollection Entities { get; set; }
-        private DBObjectCollection StaticEntities { get; set; }
+        private DBObjectCollection? StaticEntities { get; set; }
         public List<Drawable> Drawable { get; }
         public List<Drawable> StaticDrawable { get; }
 
@@ -256,7 +256,7 @@ namespace SioForgeCAD.Commun
         {
         }
 
-        public (Points Point, PromptPointResult PromptPointResult) GetPoint(object Message, Points OriginPoint, bool AllowNone, params string[] KeyWords)
+        public (Points? Point, PromptPointResult PromptPointResult) GetPoint(object Message, Points OriginPoint, bool AllowNone, params string[] KeyWords)
         {
             var ed = Generic.GetEditor();
             var db = Generic.GetDatabase();

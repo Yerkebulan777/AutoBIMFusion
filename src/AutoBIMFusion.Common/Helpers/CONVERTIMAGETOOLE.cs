@@ -21,7 +21,7 @@ namespace SioForgeCAD.Functions
     {
         public static class ContextMenu
         {
-            private static ContextMenuExtension cme;
+            private static ContextMenuExtension? cme;
 
             public static void Attach()
             {
@@ -40,7 +40,7 @@ namespace SioForgeCAD.Functions
                 Application.RemoveObjectContextMenuExtension(rxc, cme);
             }
 
-            private static void OnExecute(object o, EventArgs e)
+            private static void OnExecute(object? o, EventArgs e)
             {
                 Generic.SendStringToExecute("SIOFORGECAD.CONVERTIMAGETOOLE");
             }

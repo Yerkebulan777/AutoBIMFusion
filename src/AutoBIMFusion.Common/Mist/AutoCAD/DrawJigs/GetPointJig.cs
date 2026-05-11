@@ -1,4 +1,4 @@
-﻿using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.GraphicsInterface;
@@ -12,14 +12,13 @@ namespace SioForgeCAD.Commun.Mist.DrawJigs
         private Point3d _currentPoint = Point3d.Origin;
 
 
-        private string[] _keywords;
-        private string _message;
+        private string[] _keywords = [];
+        private string _message = string.Empty;
 
+        public DBObjectCollection Entities { get; set; } = new DBObjectCollection();
+        public DBObjectCollection StaticEntities { get; set; } = new DBObjectCollection();
 
-        public DBObjectCollection Entities { get; set; }
-        public DBObjectCollection StaticEntities { get; set; }
-
-        public Func<Points, GetPointJig, bool> UpdateFunction;
+        public Func<Points, GetPointJig, bool>? UpdateFunction;
 
         public Points BasePoint = Points.Null;
         private bool disposedValue;
