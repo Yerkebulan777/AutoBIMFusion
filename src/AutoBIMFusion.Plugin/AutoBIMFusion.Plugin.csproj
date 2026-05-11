@@ -75,7 +75,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\AutoBIMFusion.Common\AutoBIMFusion.Common.csproj" />
-        <ProjectReference Include="..\AutoBIMFusion.Common.Wpf\AutoBIMFusion.Common.Wpf.csproj" Condition="'$(CoreConsoleDiagnostics)' != 'true'" />
         <ProjectReference Include="..\AutoBIMFusion.Merge\AutoBIMFusion.Merge.csproj" />
     </ItemGroup>
 
