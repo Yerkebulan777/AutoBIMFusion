@@ -1,18 +1,12 @@
-﻿using SioForgeCAD.Commun.Extensions;
+using SioForgeCAD.Commun.Extensions;
 
 namespace SioForgeCAD.Commun;
 
-public class Points
+public class Points(Point3d SCG)
 {
     public const Points Null = null;
-
-    public Points(Point3d SCG)
-    {
-        this.SCG = SCG;
-    }
-
     public static Points Empty { get; } = new(new Point3d(0, 0, 0));
-    public Point3d SCG { get; }
+    public Point3d SCG { get; } = SCG;
     public Point3d SCU => ToCurrentSCU(SCG);
 
     public static Point3d ToCurrentSCU(Point3d OriginalPoint)

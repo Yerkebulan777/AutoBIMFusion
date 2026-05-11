@@ -4,21 +4,13 @@ using SioForgeCAD.Commun.Extensions;
 
 namespace SioForgeCAD.Commun;
 
-public class TransientBase : IDisposable
+public class TransientBase(DBObjectCollection Entities, Func<Points, Dictionary<string, string>> UpdateFunction) : IDisposable
 {
-    public TransientBase(DBObjectCollection Entities, Func<Points, Dictionary<string, string>> UpdateFunction)
-    {
-        this.UpdateFunction = UpdateFunction;
-        this.Entities = Entities;
-        Drawable = new List<Drawable>();
-        StaticDrawable = new List<Drawable>();
-    }
-
-    private Func<Points, Dictionary<string, string>> UpdateFunction { get; }
-    private DBObjectCollection Entities { get; set; }
+    private Func<Points, Dictionary<string, string>> UpdateFunction { get; } = UpdateFunction;
+    private DBObjectCollection Entities { get; set; } = Entities;
     private DBObjectCollection? StaticEntities { get; set; }
-    public List<Drawable> Drawable { get; }
-    public List<Drawable> StaticDrawable { get; }
+    public List<Drawable> Drawable { get; } = new List<Drawable>();
+    public List<Drawable> StaticDrawable { get; } = new List<Drawable>();
 
     public DBObjectCollection SetEntities
     {

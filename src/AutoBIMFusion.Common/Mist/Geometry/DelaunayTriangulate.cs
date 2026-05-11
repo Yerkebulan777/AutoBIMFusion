@@ -1,6 +1,6 @@
-﻿using System.Diagnostics;
 using SioForgeCAD.Commun.Drawing;
 using SioForgeCAD.Commun.Extensions;
+using System.Diagnostics;
 
 namespace SioForgeCAD.Commun;
 
@@ -11,6 +11,7 @@ public static class DelaunayTriangulate
         var doc = Application.DocumentManager.MdiActiveDocument;
         var db = doc.Database;
         var ed = doc.Editor;
+
         TypedValue[] PointTypedValue = { new(0, "POINT") };
         var PointSelectionFilter = new SelectionFilter(PointTypedValue);
         var SelectPointsPromptOption = new PromptSelectionOptions
@@ -18,7 +19,9 @@ public static class DelaunayTriangulate
             MessageForAdding = "Select Points:",
             AllowDuplicates = false
         };
+
         var pointSelectionResult = ed.GetSelection(SelectPointsPromptOption, PointSelectionFilter);
+
         if (pointSelectionResult.Status == PromptStatus.Error) return;
 
         if (pointSelectionResult.Status == PromptStatus.Cancel) return;
@@ -44,6 +47,7 @@ public static class DelaunayTriangulate
         var Result = new List<Polyline3d>();
 
         var numberOfPoints = PointsSet.Count;
+
         if (numberOfPoints < 3)
         {
             ed.WriteMessage("Minimum 3 points must be selected!");
@@ -182,14 +186,14 @@ public static class DelaunayTriangulate
             }
 
             for (j = 0; j < numberOfEdges - 1; j++)
-            for (k = j + 1; k < numberOfEdges; k++)
-                if (edge1[j] == edge2[k] && edge2[j] == edge1[k])
-                {
-                    edge1[j] = -1;
-                    edge2[j] = -1;
-                    edge1[k] = -1;
-                    edge2[k] = -1;
-                }
+                for (k = j + 1; k < numberOfEdges; k++)
+                    if (edge1[j] == edge2[k] && edge2[j] == edge1[k])
+                    {
+                        edge1[j] = -1;
+                        edge2[j] = -1;
+                        edge1[k] = -1;
+                        edge2[k] = -1;
+                    }
 
             for (j = 0; j < numberOfEdges; j++)
                 if (edge1[j] >= 0 && edge2[j] >= 0)
@@ -271,13 +275,12 @@ public static class DelaunayTriangulate
         return Result;
     }
 
-    public static bool CalculateCircumscribedCircle(double x1, double y1, double x2, double y2, double x3, double y3,
-        ref double xc, ref double yc, ref double r)
+    public static bool CalculateCircumscribedCircle(double x1, double y1, double x2, double y2, double x3, double y3, ref double xc, ref double yc, ref double r)
     {
-        // Calculation of circumscribed circle coordinates and
-        // squared radius
-        const double eps = 1e-6;
+        // Calculation of circumscribed circle coordinates and squared radius
+
         var result = true;
+        const double eps = 1e-6;
         double m1, m2, mx1, mx2, my1, my2, dx, dy;
 
         if (Abs(y1 - y2) < eps && Abs(y2 - y3) < eps)
