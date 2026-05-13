@@ -44,7 +44,7 @@ public sealed class CombineCommands
 
         try
         {
-            var sourceFolder = folderPath;
+            string? sourceFolder = folderPath;
 
             if (string.IsNullOrWhiteSpace(sourceFolder) &&
                 !UiDialogService.TrySelectFolder("Выберите папку с файлами DWG для объединения", out sourceFolder))
@@ -52,9 +52,9 @@ public sealed class CombineCommands
                 return;
             }
 
-            var savePath = BuildSavePath(sourceFolder!);
+            string savePath = BuildSavePath(sourceFolder!);
 
-            var dwgFiles = FileUtil.GetFiles(sourceFolder!, log: log);
+            string[] dwgFiles = FileUtil.GetFiles(sourceFolder!, log: log);
             if (dwgFiles.Length == 0)
             {
                 log.Warning("DWG файлы не найдены.");
@@ -76,7 +76,7 @@ public sealed class CombineCommands
 
             const double gapPercent = 0.1;
             CombineStatistics stats = new();
-            var sw = Stopwatch.StartNew();
+            Stopwatch sw = Stopwatch.StartNew();
 
             BlockInserter inserter = new(gapPercent, log);
             await MergeFiles(dwgFiles, inserter, doc, stats, log);
@@ -123,7 +123,7 @@ public sealed class CombineCommands
 
         try
         {
-            for (var idx = 0; idx < files.Length; idx++)
+            for (int idx = 0; idx < files.Length; idx++)
             {
                 stats.AddTotal();
 
@@ -157,8 +157,8 @@ public sealed class CombineCommands
         DirectoryInfo? parent = dir.Parent;
 
         const string buildSuffix = "-сборка";
-        var outputFolderName = $"{dir.Name}{buildSuffix}";
-        var outputFileName = $"{dir.Name}.dwg";
+        string outputFolderName = $"{dir.Name}{buildSuffix}";
+        string outputFileName = $"{dir.Name}.dwg";
 
         return parent is null
             ? Path.Combine(dir.FullName, outputFolderName, outputFileName)
@@ -169,7 +169,7 @@ public sealed class CombineCommands
     {
         try
         {
-            var dir = Path.GetDirectoryName(savePath);
+            string? dir = Path.GetDirectoryName(savePath);
 
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
             {
@@ -198,7 +198,7 @@ public sealed class CombineCommands
 
     private static void ShowSummary(CombineStatistics stats, TimeSpan elapsed, string savePath, string commandName)
     {
-        var summary = stats.Failed == 0
+        string summary = stats.Failed == 0
             ? $"Завершено успешно.\nОбработано файлов: {stats.Successful}\nВремя: {elapsed:mm\\:ss\\.fff}\nСохранено в: {savePath}"
             : $"Завершено с ошибками.\nУспешно: {stats.Successful}\nПропущено: {stats.Skipped}\nОшибок: {stats.Failed}\nВремя: {elapsed:mm\\:ss\\.fff}\nСохранено в: {savePath}";
 
