@@ -4,7 +4,7 @@ using AutoBIMFusion.Merge.Combine.Layouts;
 using Serilog.Core;
 using Exception = System.Exception;
 
-namespace AutoBIMFusion.Merge;
+namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
 ///     Вставляет содержимое DWG как нативные объекты в Model Space целевого чертежа,

@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
+using AutoBIMFusion.Common.Mist;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class CurvesExtensions
 {

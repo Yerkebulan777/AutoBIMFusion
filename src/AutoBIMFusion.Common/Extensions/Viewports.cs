@@ -1,8 +1,9 @@
+using AutoBIMFusion.Common.Mist;
 using Autodesk.AutoCAD.GraphicsInterface;
 using Polyline = Autodesk.AutoCAD.DatabaseServices.Polyline;
 using Viewport = Autodesk.AutoCAD.DatabaseServices.Viewport;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class ViewportsExtensions
 {

@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace SioForgeCAD.Commun.Mist;
+namespace AutoBIMFusion.Common.Mist.Helpers;
 
 public static class Files
 {

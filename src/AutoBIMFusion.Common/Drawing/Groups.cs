@@ -1,4 +1,7 @@
-namespace SioForgeCAD.Commun.Drawing;
+using AutoBIMFusion.Common.Extensions;
+using AutoBIMFusion.Common.Mist;
+
+namespace AutoBIMFusion.Common.Drawing;
 
 public static class Groups
 {

@@ -1,6 +1,6 @@
-using SioForgeCAD.Commun.Extensions;
+using AutoBIMFusion.Common.Extensions;
 
-namespace SioForgeCAD.Commun;
+namespace AutoBIMFusion.Common.Mist.Geometry;
 
 public class Points(Point3d SCG)
 {

@@ -1,5 +1,5 @@
-using SioForgeCAD.Commun;
-using SioForgeCAD.Commun.Extensions;
+using AutoBIMFusion.Common.Extensions;
+using AutoBIMFusion.Common.Mist;
 
 namespace AutoBIMFusion.Common.Helpers;
 

@@ -1,8 +1,9 @@
+using AutoBIMFusion.Common.Extensions;
+using AutoBIMFusion.Common.Mist.Geometry;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.GraphicsInterface;
-using SioForgeCAD.Commun.Extensions;
 
-namespace SioForgeCAD.Commun;
+namespace AutoBIMFusion.Common.Mist.AutoCAD;
 
 public class TransientBase(DBObjectCollection Entities, Func<Points, Dictionary<string, string>> UpdateFunction) : IDisposable
 {

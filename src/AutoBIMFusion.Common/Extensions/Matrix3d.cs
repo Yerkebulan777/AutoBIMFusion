@@ -1,4 +1,4 @@
-﻿namespace SioForgeCAD.Commun.Extensions;
+﻿namespace AutoBIMFusion.Common.Extensions;
 
 internal static class Matrix3dExtensions
 {

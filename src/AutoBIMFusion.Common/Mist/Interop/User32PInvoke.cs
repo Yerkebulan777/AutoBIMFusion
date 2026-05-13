@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using Autodesk.AutoCAD.Windows;
 
-namespace SioForgeCAD.Commun.Mist;
+namespace AutoBIMFusion.Common.Mist.Interop;
 
 internal static class User32PInvoke
 {

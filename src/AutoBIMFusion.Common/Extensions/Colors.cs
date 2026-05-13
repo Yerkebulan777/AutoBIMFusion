@@ -1,6 +1,6 @@
 ﻿using System.Drawing;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class ColorsEntensions
 {

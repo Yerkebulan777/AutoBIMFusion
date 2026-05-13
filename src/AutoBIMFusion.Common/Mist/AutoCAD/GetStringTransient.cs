@@ -1,6 +1,6 @@
 ﻿using Autodesk.AutoCAD.Colors;
 
-namespace SioForgeCAD.Commun;
+namespace AutoBIMFusion.Common.Mist.AutoCAD;
 
 public class GetStringTransientNoColorChange : TransientBase
 {

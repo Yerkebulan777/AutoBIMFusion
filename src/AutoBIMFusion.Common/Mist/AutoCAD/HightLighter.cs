@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
+using AutoBIMFusion.Common.Extensions;
 
-namespace SioForgeCAD.Commun;
+namespace AutoBIMFusion.Common.Mist.AutoCAD;
 
 internal static class HightLighter
 {

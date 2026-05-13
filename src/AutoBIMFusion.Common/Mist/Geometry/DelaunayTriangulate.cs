@@ -1,8 +1,8 @@
-using SioForgeCAD.Commun.Drawing;
-using SioForgeCAD.Commun.Extensions;
 using System.Diagnostics;
+using AutoBIMFusion.Common.Drawing;
+using AutoBIMFusion.Common.Extensions;
 
-namespace SioForgeCAD.Commun;
+namespace AutoBIMFusion.Common.Mist.Geometry;
 
 public static class DelaunayTriangulate
 {

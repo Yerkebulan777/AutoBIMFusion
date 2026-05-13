@@ -1,6 +1,6 @@
-using SioForgeCAD.Commun;
-using SioForgeCAD.Commun.Extensions;
+using AutoBIMFusion.Common.Extensions;
 using System.Diagnostics;
+using AutoBIMFusion.Common.Mist;
 
 namespace AutoBIMFusion.Common.Functions;
 
@@ -47,8 +47,7 @@ public static class EntityXDataManager
         }
         else
         {
-            (_, object Value) =
-                ed.GetSelectionRedraw("Selectionnez des entités pour lequels vous souhaitez supprimer les XDATAs");
+            (_, object Value) = ed.GetSelectionRedraw("Selectionnez des entités pour lequels vous souhaitez supprimer les XDATAs");
             RemoveAllXDataFromCollection(Value.GetObjectIds());
         }
     }
@@ -69,6 +68,7 @@ public static class EntityXDataManager
     {
         Database db = Generic.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
+
         foreach (ObjectId item in objectIds)
         {
             try

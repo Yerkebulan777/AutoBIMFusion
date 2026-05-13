@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
+using AutoBIMFusion.Common.Mist.Interop;
 
-namespace SioForgeCAD.Commun.Mist;
+namespace AutoBIMFusion.Common.Mist.Helpers;
 
 public static class Clipboard
 {

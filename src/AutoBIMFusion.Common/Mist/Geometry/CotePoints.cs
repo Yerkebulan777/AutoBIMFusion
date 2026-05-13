@@ -1,8 +1,9 @@
+using AutoBIMFusion.Common.Extensions;
+using AutoBIMFusion.Common.Mist.AutoCAD;
 using Autodesk.AutoCAD.Runtime;
-using SioForgeCAD.Commun.Extensions;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
-namespace SioForgeCAD.Commun;
+namespace AutoBIMFusion.Common.Mist.Geometry;
 
 public class CotePoints
 {

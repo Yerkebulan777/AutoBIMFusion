@@ -1,6 +1,9 @@
 ﻿using System.Diagnostics;
+using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.Mist.Geometry;
+using AutoBIMFusion.Common.Mist.Geometry.PolygonOperations;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class PolylinesExtensions
 {

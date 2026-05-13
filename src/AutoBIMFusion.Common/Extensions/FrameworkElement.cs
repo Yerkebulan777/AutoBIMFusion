@@ -3,7 +3,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class FrameworkElementExtensions
 {

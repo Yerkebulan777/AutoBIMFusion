@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace SioForgeCAD.Commun;
+namespace AutoBIMFusion.Common.Mist.AutoCAD;
 
 public static class LayerPaletteControls
 {

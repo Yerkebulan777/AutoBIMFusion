@@ -1,4 +1,4 @@
-namespace SioForgeCAD.Commun.Mist;
+namespace AutoBIMFusion.Common.Mist.AutoCAD;
 
 public static class DWGDataStorage
 {

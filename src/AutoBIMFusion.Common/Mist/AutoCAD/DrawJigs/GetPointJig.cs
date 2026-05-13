@@ -1,7 +1,8 @@
+using AutoBIMFusion.Common.Extensions;
+using AutoBIMFusion.Common.Mist.Geometry;
 using Autodesk.AutoCAD.GraphicsInterface;
-using SioForgeCAD.Commun.Extensions;
 
-namespace SioForgeCAD.Commun.Mist.DrawJigs;
+namespace AutoBIMFusion.Common.Mist.AutoCAD.DrawJigs;
 
 public class GetPointJig : DrawJig, IDisposable
 {

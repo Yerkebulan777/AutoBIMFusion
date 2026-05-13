@@ -1,7 +1,7 @@
-﻿using Autodesk.AutoCAD.Runtime;
+using Autodesk.AutoCAD.Runtime;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class DBObjectExtensions
 {

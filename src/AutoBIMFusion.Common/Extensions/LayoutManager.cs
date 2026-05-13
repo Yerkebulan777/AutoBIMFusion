@@ -1,9 +1,10 @@
 using System.Drawing;
 using System.Windows.Media.Imaging;
+using AutoBIMFusion.Common.Mist;
 using Autodesk.AutoCAD.Internal;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class LayoutManagerExtensions
 {

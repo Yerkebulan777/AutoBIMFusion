@@ -2,7 +2,7 @@
 using Microsoft.Win32;
 using Registry = Autodesk.AutoCAD.Runtime.Registry;
 
-namespace SioForgeCAD.Commun;
+namespace AutoBIMFusion.Common.Mist.AutoCAD;
 
 internal static class PluginRegister
 {

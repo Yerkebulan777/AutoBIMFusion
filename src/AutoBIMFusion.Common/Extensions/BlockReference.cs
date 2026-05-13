@@ -1,6 +1,7 @@
-using SioForgeCAD.Commun.Drawing;
+using AutoBIMFusion.Common.Drawing;
+using AutoBIMFusion.Common.Mist;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 internal static class BlockReferenceExtensions
 {

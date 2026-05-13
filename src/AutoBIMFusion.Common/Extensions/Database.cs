@@ -1,10 +1,11 @@
 using System.Diagnostics;
+using AutoBIMFusion.Common.Mist;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Runtime;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 using Exception = System.Exception;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class DatabaseExtensions
 {

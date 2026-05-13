@@ -1,8 +1,9 @@
+using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.Mist.AutoCAD;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.Runtime;
-using SioForgeCAD.Commun.Extensions;
 
-namespace SioForgeCAD.Commun;
+namespace AutoBIMFusion.Common.Extensions;
 
 internal static class ObjectIdExtensions
 {

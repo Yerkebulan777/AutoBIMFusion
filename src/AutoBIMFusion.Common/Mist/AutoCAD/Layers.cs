@@ -1,9 +1,10 @@
 using System.Diagnostics;
+using AutoBIMFusion.Common.Extensions;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.Windows.Data;
 using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 
-namespace SioForgeCAD.Commun;
+namespace AutoBIMFusion.Common.Mist.AutoCAD;
 
 public static class Layers
 {

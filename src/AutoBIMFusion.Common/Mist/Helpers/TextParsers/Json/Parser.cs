@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace SioForgeCAD.Commun.Mist.JSONParser;
+namespace AutoBIMFusion.Common.Mist.Helpers.TextParsers.Json;
 
 // Really simple JSON parser in ~300 lines
 // - Attempts to parse JSON files with minimal GC allocation

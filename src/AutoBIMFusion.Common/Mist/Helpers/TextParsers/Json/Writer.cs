@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace SioForgeCAD.Commun.Mist.JSONParser;
+namespace AutoBIMFusion.Common.Mist.Helpers.TextParsers.Json;
 
 //Really simple JSON writer
 //- Outputs JSON structures from an object

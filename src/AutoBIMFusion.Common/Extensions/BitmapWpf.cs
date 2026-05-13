@@ -6,7 +6,7 @@ using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 using Image = System.Drawing.Image;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class BitmapWpfExtensions
 {

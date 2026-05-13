@@ -1,4 +1,6 @@
-namespace SioForgeCAD.Commun.Extensions;
+using AutoBIMFusion.Common.Mist;
+
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class Extends3dExtensions
 {

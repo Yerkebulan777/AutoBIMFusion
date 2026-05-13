@@ -1,7 +1,8 @@
-﻿using Autodesk.AutoCAD.Colors;
-using SioForgeCAD.Commun.Extensions;
+﻿using AutoBIMFusion.Common.Extensions;
+using AutoBIMFusion.Common.Mist.AutoCAD;
+using Autodesk.AutoCAD.Colors;
 
-namespace SioForgeCAD.Commun.Mist;
+namespace AutoBIMFusion.Common.Mist.Helpers;
 
 public static class Colors
 {

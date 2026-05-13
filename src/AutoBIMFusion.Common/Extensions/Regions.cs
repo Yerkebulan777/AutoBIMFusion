@@ -1,6 +1,6 @@
 ﻿using Autodesk.AutoCAD.BoundaryRepresentation;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class RegionsExtensions
 {

@@ -1,8 +1,10 @@
 ﻿using System.Diagnostics;
-using SioForgeCAD.Commun.Drawing;
+using AutoBIMFusion.Common.Drawing;
+using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.Mist.Geometry;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class Point3dExtensions
 {

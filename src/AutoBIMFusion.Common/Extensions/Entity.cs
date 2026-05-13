@@ -1,8 +1,9 @@
 using System.Diagnostics;
+using AutoBIMFusion.Common.Drawing;
+using AutoBIMFusion.Common.Mist;
 using Autodesk.AutoCAD.Colors;
-using SioForgeCAD.Commun.Drawing;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class EntityExtensions
 {

@@ -1,4 +1,8 @@
-namespace SioForgeCAD.Commun.Extensions;
+using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.Mist.AutoCAD;
+using AutoBIMFusion.Common.Mist.Geometry.PolygonOperations;
+
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class HatchsExtensions
 {

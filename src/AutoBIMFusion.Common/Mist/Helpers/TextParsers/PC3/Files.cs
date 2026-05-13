@@ -1,7 +1,7 @@
 ﻿using System.IO.Compression;
 using System.Text;
 
-namespace SioForgeCAD.Commun.Mist.Helpers.TextParsers.PC3;
+namespace AutoBIMFusion.Common.Mist.Helpers.TextParsers.PC3;
 
 //https://github.com/znlgis/lightcad1/blob/master/src/LightCAD.UI.WinForm/Printer/PiaSerializer.cs
 public static class Files

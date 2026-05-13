@@ -1,13 +1,11 @@
 using System.Runtime.Versioning;
 using AutoBIMFusion.Common.Helpers;
-using AutoBIMFusion.Merge.Combine;
 using AutoBIMFusion.Merge.Combine.Layouts;
-using AutoBIMFusion.Merge.Layouts;
 using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
 using Exception = System.Exception;
 
-namespace AutoBIMFusion.Merge;
+namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
 ///     Координирует слияние DWG-файлов: экспортирует первый Paper Space лист,

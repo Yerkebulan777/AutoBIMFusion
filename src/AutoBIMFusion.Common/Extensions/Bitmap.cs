@@ -1,10 +1,10 @@
 ﻿using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.Versioning;
-using SioForgeCAD.Commun.Mist;
+using AutoBIMFusion.Common.Mist.Helpers;
 using Image = System.Drawing.Image;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 [SupportedOSPlatform("windows")]
 public static class BitmapExtensions

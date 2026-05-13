@@ -1,6 +1,7 @@
-using SioForgeCAD.Commun.Extensions;
+using AutoBIMFusion.Common.Extensions;
+using AutoBIMFusion.Common.Mist.Geometry;
 
-namespace SioForgeCAD.Commun;
+namespace AutoBIMFusion.Common.Mist.AutoCAD;
 
 public static class SelectInXref
 {

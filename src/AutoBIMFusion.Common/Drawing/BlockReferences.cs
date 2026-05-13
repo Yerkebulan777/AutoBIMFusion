@@ -1,8 +1,11 @@
 using System.Diagnostics;
-using SioForgeCAD.Commun.Extensions;
+using AutoBIMFusion.Common.Extensions;
+using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.Mist.AutoCAD;
+using AutoBIMFusion.Common.Mist.Geometry;
 using Exception = System.Exception;
 
-namespace SioForgeCAD.Commun.Drawing;
+namespace AutoBIMFusion.Common.Drawing;
 
 public static class BlockReferences
 {

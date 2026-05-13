@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class ConcurrentBagExtensions
 {

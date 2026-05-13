@@ -1,9 +1,10 @@
 using System.Drawing;
+using AutoBIMFusion.Common.Mist;
 using Autodesk.AutoCAD;
 using Autodesk.AutoCAD.GraphicsSystem;
 using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class LayoutsExtensions
 {

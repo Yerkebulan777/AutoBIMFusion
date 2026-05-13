@@ -1,7 +1,9 @@
-using SioForgeCAD.Commun;
-using SioForgeCAD.Commun.Drawing;
-using SioForgeCAD.Commun.Extensions;
 using System.Diagnostics;
+using AutoBIMFusion.Common.Drawing;
+using AutoBIMFusion.Common.Extensions;
+using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.Mist.AutoCAD;
+using AutoBIMFusion.Common.Mist.Geometry;
 
 namespace AutoBIMFusion.Common.Functions;
 

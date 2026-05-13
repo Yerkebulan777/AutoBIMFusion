@@ -1,12 +1,13 @@
 using System.Diagnostics;
 using System.Drawing.Imaging;
+using AutoBIMFusion.Common.Drawing;
+using AutoBIMFusion.Common.Extensions;
+using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.Mist.Geometry;
+using AutoBIMFusion.Common.Mist.Helpers;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.Windows;
-using SioForgeCAD.Commun;
-using SioForgeCAD.Commun.Drawing;
-using SioForgeCAD.Commun.Extensions;
-using SioForgeCAD.Commun.Mist;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using Color = System.Drawing.Color;
 using DrawingImage = System.Drawing.Image;

@@ -1,10 +1,9 @@
 using System.Runtime.Versioning;
 using AutoBIMFusion.Common.Helpers;
-using AutoBIMFusion.Merge.Combine.Layouts;
 using Serilog.Core;
 using Exception = System.Exception;
 
-namespace AutoBIMFusion.Merge.Layouts;
+namespace AutoBIMFusion.Merge.Combine.Layouts;
 
 internal sealed record PreparedSourceDatabase(
     Database Db,

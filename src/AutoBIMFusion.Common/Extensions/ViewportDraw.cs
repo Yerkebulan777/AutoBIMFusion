@@ -1,7 +1,7 @@
 ﻿using Autodesk.AutoCAD.GraphicsInterface;
 using static Autodesk.AutoCAD.DatabaseServices.GripData;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class ViewportDrawExtensions
 {

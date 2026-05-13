@@ -1,6 +1,6 @@
-﻿using SioForgeCAD.Commun.Drawing;
+﻿using AutoBIMFusion.Common.Drawing;
 
-namespace SioForgeCAD.Commun.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class Vector3dExtensions
 {

@@ -10,7 +10,7 @@
  * limitations under the License.
  */
 
-namespace SioForgeCAD.Commun.Mist;
+namespace AutoBIMFusion.Common.Mist.Helpers.TextParsers.CommaSeparatedValues;
 
 /// <summary>
 ///     Fast and memory efficient implementation of CSV reader (3x times faster than CsvHelper).

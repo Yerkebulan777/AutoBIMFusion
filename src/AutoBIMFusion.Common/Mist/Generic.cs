@@ -1,14 +1,14 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
+using AutoBIMFusion.Common.Compatibility;
+using AutoBIMFusion.Common.Mist.Helpers;
 using Autodesk.AutoCAD.AcInfoCenterConn;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.Internal.InfoCenter;
-using SioForgeCAD.Commun.Mist;
-using SioForgeCAD.Commun.Properties;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
-namespace SioForgeCAD.Commun;
+namespace AutoBIMFusion.Common.Mist;
 
 public static class Generic
 {
