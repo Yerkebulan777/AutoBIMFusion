@@ -20,17 +20,17 @@ internal static class DrawOrderPreserver
         foreach (ObjectId id in filterIds)
             filter.Add(id);
 
-        using var  = db.TransactionManager.StartTransaction();
-        var btr = (BlockTableRecord).GetObject(sourceBtrId, OpenMode.ForRead);
+        using var trx = db.TransactionManager.StartTransaction();
+        var btr = (BlockTableRecord)trx.GetObject(sourceBtrId, OpenMode.ForRead);
 
         if (btr.DrawOrderTableId.IsNull)
         {
-            .Commit();
+            trx.Commit();
             log.Debug("DrawOrderPreserver.Capture: DrawOrderTableId is null");
             return [];
         }
 
-        var sortents = (DrawOrderTable).GetObject(btr.DrawOrderTableId, OpenMode.ForRead);
+        var sortents = (DrawOrderTable)trx.GetObject(btr.DrawOrderTableId, OpenMode.ForRead);
         var fullOrder = sortents.GetFullDrawOrder(0);
 
         List<ObjectId> filtered = new(filter.Count);
@@ -38,7 +38,7 @@ internal static class DrawOrderPreserver
             if (filter.Contains(id))
                 filtered.Add(id);
 
-        .Commit();
+        trx.Commit();
         log.Debug($"DrawOrderPreserver.Capture: fullOrder={fullOrder.Count}, filtered={filtered.Count}");
         return filtered;
     }
@@ -70,20 +70,20 @@ internal static class DrawOrderPreserver
             return;
         }
 
-        using var  = db.TransactionManager.StartTransaction();
-        var btr = (BlockTableRecord).GetObject(targetBtrId, OpenMode.ForRead);
+        using var trx = db.TransactionManager.StartTransaction();
+        var btr = (BlockTableRecord)trx.GetObject(targetBtrId, OpenMode.ForRead);
 
         if (btr.DrawOrderTableId.IsNull)
         {
-            .Commit();
+            trx.Commit();
             log.Debug("DrawOrderPreserver.Restore: target DrawOrderTableId is null");
             return;
         }
 
-        var sortents = (DrawOrderTable).GetObject(btr.DrawOrderTableId, OpenMode.ForWrite);
+        var sortents = (DrawOrderTable)trx.GetObject(btr.DrawOrderTableId, OpenMode.ForWrite);
         sortents.SetRelativeDrawOrder(orderedTargets);
 
-        .Commit();
+        trx.Commit();
         log.Debug($"DrawOrderPreserver.Restore: reordered={orderedTargets.Count}, missingMapping={missingMapping}");
     }
 }

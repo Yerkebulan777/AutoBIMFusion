@@ -24,11 +24,11 @@ internal static class ModelSpaceTrimmer
 
         Extents3d? acc = null;
 
-        using var  = db.TransactionManager.StartTransaction();
+        using var trx = db.TransactionManager.StartTransaction();
 
         foreach (ObjectId id in entityIds)
         {
-            if (.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
 
             var ext = ExtentsUtils.TryGetExtents(ent);
 
@@ -37,7 +37,7 @@ internal static class ModelSpaceTrimmer
             acc = acc is null ? ext.Value : ExtentsUtils.Union(acc.Value, ext.Value);
         }
 
-        .Commit();
+        trx.Commit();
         if (acc.HasValue)
             log.Debug(
                 $"ModelSpaceTrimmer.ComputeBounds: entities={entityIds.Count}, bounds={ExtentsUtils.FormatExtents(acc.Value)}");
@@ -60,13 +60,13 @@ internal static class ModelSpaceTrimmer
         var erased = 0;
         var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
-        using var  = db.TransactionManager.StartTransaction();
+        using var trx = db.TransactionManager.StartTransaction();
 
-        var ms = (BlockTableRecord).GetObject(msId, OpenMode.ForRead);
+        var ms = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
 
         foreach (var id in ms)
         {
-            if (.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
 
             // Оптимизация: для простых точечных объектов (Text, Point, BlockReference)
             // проверяем их базовую точку. Если она ВНУТРИ frameBounds, то объект точно пересекается/внутри,
@@ -85,7 +85,7 @@ internal static class ModelSpaceTrimmer
             }
         }
 
-        .Commit();
+        trx.Commit();
         log.Debug($"ModelSpaceTrimmer.TrimOutside erased={erased}");
         return erased;
     }

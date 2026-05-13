@@ -37,18 +37,18 @@ internal static class ViewportLayoutExporter
 
             ExtentsUtils.SyncUnits(db);
 
-            using (var  = db.TransactionManager.StartTransaction())
+            using (var trx = db.TransactionManager.StartTransaction())
             {
-                var bt = (BlockTable).GetObject(db.BlockTableId, OpenMode.ForRead);
+                var bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
 
                 foreach (var btrId in bt)
                 {
-                    var btr = (BlockTableRecord).GetObject(btrId, OpenMode.ForWrite);
+                    var btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForWrite);
 
                     if (!btr.IsFromExternalReference) btr.Units = UnitsValue.Millimeters;
                 }
 
-                .Commit();
+                trx.Commit();
             }
 
             if (!LayoutUtil.TryFindFirstLayout(db, out var layoutName))

@@ -1,13 +1,9 @@
-﻿using Autodesk.AutoCAD.Colors;
+using Autodesk.AutoCAD.Colors;
 
 namespace AutoBIMFusion.Common.Mist.AutoCAD;
 
-public class GetDoubleTransient : TransientBase
+public class GetDoubleTransient(DBObjectCollection Entities) : TransientBase(Entities, null)
 {
-    public GetDoubleTransient(DBObjectCollection Entities) : base(Entities, null)
-    {
-    }
-
     public PromptDoubleResult GetDouble(string Message, params string[] KeyWords)
     {
         var ed = Application.DocumentManager.MdiActiveDocument.Editor;

@@ -23,21 +23,21 @@ public static class RasterImagePathFixer
         Dictionary<string, string> copiedBySourcePath = new(StringComparer.OrdinalIgnoreCase);
         HashSet<string> reservedDestinationPaths = new(StringComparer.OrdinalIgnoreCase);
 
-        using var  = db.TransactionManager.StartTransaction();
+        using var trx = db.TransactionManager.StartTransaction();
         var dictId = RasterImageDef.GetImageDictionary(db);
 
         if (dictId.IsNull)
         {
-            .Commit();
+            trx.Commit();
             return;
         }
 
-        var dict = (DBDictionary).GetObject(dictId, OpenMode.ForRead);
+        var dict = (DBDictionary)trx.GetObject(dictId, OpenMode.ForRead);
 
         foreach (var entry in dict)
             try
             {
-                if (.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def) continue;
+                if (trx.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def) continue;
 
                 var path = def.SourceFileName;
                 if (string.IsNullOrWhiteSpace(path))
@@ -80,7 +80,7 @@ public static class RasterImagePathFixer
                 log.Warning(ex, $"RasterImageDef '{entry.Key}': не удалось обработать изображение");
             }
 
-        .Commit();
+        trx.Commit();
     }
 
     private static (string DestinationPath, string FileName) BuildUniqueDestination(

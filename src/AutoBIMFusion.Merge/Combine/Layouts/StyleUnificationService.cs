@@ -9,9 +9,9 @@ internal static class StyleUnificationService
     ///     Защищает целевую БД от коллизий имён при WblockCloneObjects.
     ///     TextSize стилей не трогаем — всё фиксируется постфактум в целевой БД.
     /// </summary>
-    internal static void NormalizeTextStyleNames(Database sourceDb, Transaction )
+    internal static void NormalizeTextStyleNames(Database sourceDb, Transaction trx)
     {
-        var tt = (TextStyleTable).GetObject(sourceDb.TextStyleTableId, OpenMode.ForRead);
+        var tt = (TextStyleTable)trx.GetObject(sourceDb.TextStyleTableId, OpenMode.ForRead);
 
         HashSet<string> allNames = new(StringComparer.OrdinalIgnoreCase);
 
@@ -19,7 +19,7 @@ internal static class StyleUnificationService
 
         foreach (var tsId in tt)
         {
-            var ts = (TextStyleTableRecord).GetObject(tsId, OpenMode.ForRead);
+            var ts = (TextStyleTableRecord)trx.GetObject(tsId, OpenMode.ForRead);
 
             if (ts.IsErased || ts.IsDependent) continue;
 
@@ -32,7 +32,7 @@ internal static class StyleUnificationService
 
         foreach (var tsId in toRename)
         {
-            var ts = (TextStyleTableRecord).GetObject(tsId, OpenMode.ForRead);
+            var ts = (TextStyleTableRecord)trx.GetObject(tsId, OpenMode.ForRead);
 
             var newName = StyleUtils.BuildStyleName(ts);
 
@@ -53,15 +53,15 @@ internal static class StyleUnificationService
     ///     в ИСХОДНОЙ базе данных. Это заставляет AutoCAD автоматически пересчитать
     ///     свойство TextPosition (DXF 11) у всех размеров до того, как они будут клонированы.
     /// </summary>
-    internal static void ApplyGostToAllStyles(Database sourceDb, Transaction , string fontName = "ISOCPEUR")
+    internal static void ApplyGostToAllStyles(Database sourceDb, Transaction trx, string fontName = "ISOCPEUR")
     {
-        var dst = (DimStyleTable).GetObject(sourceDb.DimStyleTableId, OpenMode.ForRead);
-        var textStyleId = StyleUtils.GetOrCreateTextStyle(sourceDb, , fontName);
-        var arrowBlockId = StyleUtils.GetArrowBlockId(sourceDb, );
+        var dst = (DimStyleTable)trx.GetObject(sourceDb.DimStyleTableId, OpenMode.ForRead);
+        var textStyleId = StyleUtils.GetOrCreateTextStyle(sourceDb, trx, fontName);
+        var arrowBlockId = StyleUtils.GetArrowBlockId(sourceDb, trx);
 
         foreach (var dsId in dst)
         {
-            var ds = (DimStyleTableRecord).GetObject(dsId, OpenMode.ForRead);
+            var ds = (DimStyleTableRecord)trx.GetObject(dsId, OpenMode.ForRead);
             if (ds.IsErased || ds.IsDependent) continue;
 
             if (!ds.IsWriteEnabled) ds.UpgradeOpen();
@@ -74,19 +74,19 @@ internal static class StyleUnificationService
     ///     Создаёт (или возвращает существующий) эталонный размерный стиль AutoBIM в целевой БД.
     ///     TextSize связанного текстового стиля строго = 0.0 — иначе AutoCAD игнорирует Dimtxt.
     /// </summary>
-    internal static ObjectId GetOrCreateStandardDimensionStyle(Database targetDb, Transaction ,
+    internal static ObjectId GetOrCreateStandardDimensionStyle(Database targetDb, Transaction trx,
         string fontName = "ISOCPEUR")
     {
         var dimStyleName = $"AutoBIM-{fontName}";
 
-        var dst = (DimStyleTable).GetObject(targetDb.DimStyleTableId, OpenMode.ForRead);
-        var textStyleId = StyleUtils.GetOrCreateTextStyle(targetDb, , fontName);
+        var dst = (DimStyleTable)trx.GetObject(targetDb.DimStyleTableId, OpenMode.ForRead);
+        var textStyleId = StyleUtils.GetOrCreateTextStyle(targetDb, trx, fontName);
 
-        var arrowBlockId = StyleUtils.GetArrowBlockId(targetDb, );
+        var arrowBlockId = StyleUtils.GetArrowBlockId(targetDb, trx);
 
         if (dst.Has(dimStyleName))
         {
-            var existing = (DimStyleTableRecord).GetObject(dst[dimStyleName], OpenMode.ForWrite);
+            var existing = (DimStyleTableRecord)trx.GetObject(dst[dimStyleName], OpenMode.ForWrite);
             ApplyGostDimensionStyle(existing, textStyleId, arrowBlockId);
             return existing.ObjectId;
         }
@@ -101,7 +101,7 @@ internal static class StyleUnificationService
         ApplyGostDimensionStyle(dsr, textStyleId, arrowBlockId);
 
         var id = dst.Add(dsr);
-        .AddNewlyCreatedDBObject(dsr, true);
+        trx.AddNewlyCreatedDBObject(dsr, true);
         return id;
     }
 
