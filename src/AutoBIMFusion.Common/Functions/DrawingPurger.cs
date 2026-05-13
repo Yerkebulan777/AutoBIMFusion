@@ -5,23 +5,13 @@ using SioForgeCAD.Commun;
 namespace AutoBIMFusion.Common.Functions;
 
 /// <summary>
-///     Выполняет очистку чертежа от неиспользуемых объектов и служебного мусора.
-///     Перед удалением временно снимает блокировку со слоёв и восстанавливает её после завершения.
+///  Выполняет очистку чертежа от неиспользуемых объектов и служебного мусора.
+///  Перед удалением временно снимает блокировку со слоёв и восстанавливает её после завершения.
 /// </summary>
 public static class DrawingPurger
 {
     /// <summary>
-    ///     Запускает очистку для текущей базы данных чертежа.
-    /// </summary>
-    public static void Purge()
-    {
-        var db = Generic.GetDatabase();
-        Purge(db);
-    }
-
-
-    /// <summary>
-    ///     Запускает очистку для указанной базы данных чертежа.
+    /// Запускает очистку для указанной базы данных чертежа.
     /// </summary>
     public static void Purge(Database db)
     {
@@ -29,6 +19,7 @@ public static class DrawingPurger
         {
             // Временно снимаем блокировку со всех слоёв, чтобы выполнить очистку.
             var list = new List<LayerTableRecord>();
+
             foreach (var objectId in (LayerTable)tr.GetObject(db.LayerTableId, OpenMode.ForRead))
             {
                 var layerTableRecord = (LayerTableRecord)tr.GetObject(objectId, OpenMode.ForRead);
