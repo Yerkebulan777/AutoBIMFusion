@@ -1,20 +1,20 @@
 <Solution>
     <Configurations>
-        <BuildType Name="DebugA25"/>
-        <BuildType Name="DebugA26"/>
-        <BuildType Name="DebugA27"/>
-        <BuildType Name="ReleaseA25"/>
-        <BuildType Name="ReleaseA26"/>
-        <BuildType Name="ReleaseA27"/>
-        <Platform Name="x64"/>
+        <BuildType Name="DebugA25" />
+        <BuildType Name="DebugA26" />
+        <BuildType Name="DebugA27" />
+        <BuildType Name="ReleaseA25" />
+        <BuildType Name="ReleaseA26" />
+        <BuildType Name="ReleaseA27" />
+        <Platform Name="x64" />
     </Configurations>
     <Project Path="src/AutoBIMFusion.Common/AutoBIMFusion.Common.csproj">
-        <Platform Project="x64"/>
+        <Platform Project="x64" />
     </Project>
     <Project Path="src/AutoBIMFusion.Merge/AutoBIMFusion.Merge.csproj">
-        <Platform Project="x64"/>
+        <Platform Project="x64" />
     </Project>
     <Project Path="src/AutoBIMFusion.Plugin/AutoBIMFusion.Plugin.csproj">
-        <Platform Project="x64"/>
+        <Platform Project="x64" />
     </Project>
 </Solution>
