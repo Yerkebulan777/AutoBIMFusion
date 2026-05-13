@@ -1,8 +1,8 @@
-﻿using Autodesk.AutoCAD.Colors;
+using Autodesk.AutoCAD.Colors;
 using SioForgeCAD.Commun;
 using SioForgeCAD.Commun.Extensions;
 
-namespace SioForgeCAD.Functions;
+namespace AutoBIMFusion.Common.Functions;
 
 public static class SPECIALSSELECTIONS
 {

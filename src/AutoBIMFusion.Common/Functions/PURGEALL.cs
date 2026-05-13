@@ -1,11 +1,18 @@
-﻿using Autodesk.AutoCAD.GraphicsInterface;
+using Autodesk.AutoCAD.GraphicsInterface;
 using Autodesk.AutoCAD.Runtime;
 using SioForgeCAD.Commun;
 
-namespace SioForgeCAD.Functions;
+namespace AutoBIMFusion.Common.Functions;
 
-public static class PURGEALL
+/// <summary>
+///     Выполняет очистку чертежа от неиспользуемых объектов и служебного мусора.
+///     Перед удалением временно снимает блокировку со слоёв и восстанавливает её после завершения.
+/// </summary>
+public static class DrawingPurger
 {
+    /// <summary>
+    ///     Запускает очистку для текущей базы данных чертежа.
+    /// </summary>
     public static void Purge()
     {
         var db = Generic.GetDatabase();
@@ -13,11 +20,14 @@ public static class PURGEALL
     }
 
 
+    /// <summary>
+    ///     Запускает очистку для указанной базы данных чертежа.
+    /// </summary>
     public static void Purge(Database db)
     {
         using (var tr = db.TransactionManager.StartTransaction())
         {
-            //unlock all layers but keep trace
+            // Временно снимаем блокировку со всех слоёв, чтобы выполнить очистку.
             var list = new List<LayerTableRecord>();
             foreach (var objectId in (LayerTable)tr.GetObject(db.LayerTableId, OpenMode.ForRead))
             {
@@ -43,13 +53,13 @@ public static class PURGEALL
                 TotalDeletedCount += count;
             }
 
-            // Purge de base
+            // Базовая очистка.
 
             AddToReport(nameof(PurgeMethods.CurvesZeroLength), PurgeMethods.CurvesZeroLength(db));
             AddToReport(nameof(PurgeMethods.EmptyText), PurgeMethods.EmptyText(db));
             AddToReport(nameof(PurgeMethods.XREF), PurgeMethods.XREF(db));
 
-            // Purges répétées
+            // Повторяем очистку, пока появляются новые удаляемые элементы.
             var PreviousPassTotalDeletedCount = -1;
             var passCount = 0;
             while (PreviousPassTotalDeletedCount != TotalDeletedCount && passCount < 10)
@@ -69,7 +79,7 @@ public static class PURGEALL
                 AddToReport(nameof(PurgeMethods.Groups), PurgeMethods.Groups(db));
             }
 
-            // Affichage du rapport
+            // Выводим отчёт пользователю.
             if (TotalDeletedCount == 0)
             {
                 Generic.WriteMessage("Le dessin est déjà purgé.");
@@ -83,7 +93,7 @@ public static class PURGEALL
                 Generic.WriteMessage($"Total : {TotalDeletedCount} éléments supprimés dans le dessin");
             }
 
-            //relock all layers
+            // Возвращаем блокировку слоёв в исходное состояние.
             foreach (var layerTableRecord2 in list) layerTableRecord2.IsLocked = true;
 
             tr.Commit();
@@ -94,6 +104,9 @@ public static class PURGEALL
 
     private static class PurgeMethods
     {
+        /// <summary>
+        ///     Удаляет неиспользуемые записи из таблиц и словарей базы данных.
+        /// </summary>
         public static int Database(Database db)
         {
             var tableIds = new ObjectIdCollection();
@@ -136,6 +149,9 @@ public static class PURGEALL
             }
         }
 
+        /// <summary>
+        ///     Удаляет вырожденные кривые и регионы с нулевой площадью.
+        /// </summary>
         public static int CurvesZeroLength(Database db)
         {
             var CurveRXClass = RXObject.GetClass(typeof(Curve));
@@ -167,6 +183,9 @@ public static class PURGEALL
             }
         }
 
+        /// <summary>
+        ///     Удаляет пустые текстовые объекты.
+        /// </summary>
         public static int EmptyText(Database db)
         {
             var DBTextRXClass = RXObject.GetClass(typeof(DBText));
@@ -199,6 +218,9 @@ public static class PURGEALL
             }
         }
 
+        /// <summary>
+        ///     Отсоединяет неиспользуемые внешние ссылки.
+        /// </summary>
         public static int XREF(Database db)
         {
             using (var tr = db.TransactionManager.StartTransaction())
@@ -221,6 +243,9 @@ public static class PURGEALL
             }
         }
 
+        /// <summary>
+        ///     Очищает неиспользуемые стили мультивыносок.
+        /// </summary>
         public static int MLeaderStyle(Database db)
         {
             using (var tr = db.TransactionManager.StartTransaction())
@@ -248,6 +273,9 @@ public static class PURGEALL
             }
         }
 
+        /// <summary>
+        ///     Очищает неиспользуемые определения DWF.
+        /// </summary>
         public static int DWF(Database db)
         {
             using (var tr = db.TransactionManager.StartTransaction())
@@ -275,6 +303,9 @@ public static class PURGEALL
             }
         }
 
+        /// <summary>
+        ///     Очищает неиспользуемые определения PDF.
+        /// </summary>
         public static int PDF(Database db)
         {
             using (var tr = db.TransactionManager.StartTransaction())
@@ -302,6 +333,9 @@ public static class PURGEALL
             }
         }
 
+        /// <summary>
+        ///     Очищает неиспользуемые определения DGN.
+        /// </summary>
         public static int DGN(Database db)
         {
             var objectIdCollection = new ObjectIdCollection();
@@ -329,6 +363,9 @@ public static class PURGEALL
             }
         }
 
+        /// <summary>
+        ///     Очищает неиспользуемые ссылки на растровые изображения.
+        /// </summary>
         public static int RasterImages(Database db)
         {
             using (var tr = db.TransactionManager.StartTransaction())
@@ -354,6 +391,9 @@ public static class PURGEALL
             }
         }
 
+        /// <summary>
+        ///     Очищает список масштабов чертежа.
+        /// </summary>
         public static int ScaleList(Database db)
         {
             using (var tr = db.TransactionManager.StartTransaction())
@@ -375,6 +415,9 @@ public static class PURGEALL
             }
         }
 
+        /// <summary>
+        ///     Очищает пользовательские визуальные стили.
+        /// </summary>
         public static int VisualStyle(Database db)
         {
             using (var tr = db.TransactionManager.StartTransaction())
@@ -393,6 +436,9 @@ public static class PURGEALL
             }
         }
 
+        /// <summary>
+        ///     Очищает неиспользуемые материалы.
+        /// </summary>
         public static int Material(Database db)
         {
             using (var tr = db.TransactionManager.StartTransaction())
@@ -414,6 +460,9 @@ public static class PURGEALL
             }
         }
 
+        /// <summary>
+        ///     Очищает неиспользуемые текстовые стили.
+        /// </summary>
         public static int TextStyle(Database db)
         {
             using (var tr = db.TransactionManager.StartTransaction())
@@ -434,6 +483,9 @@ public static class PURGEALL
             }
         }
 
+        /// <summary>
+        ///     Удаляет группы, в которых меньше двух объектов.
+        /// </summary>
         public static int Groups(Database db)
         {
             using (var tr = db.TransactionManager.StartTransaction())

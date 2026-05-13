@@ -12,22 +12,22 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Using Include="Autodesk.AutoCAD.ApplicationServices.Core"/>
-        <Using Include="Autodesk.AutoCAD.DatabaseServices"/>
-        <Using Include="Autodesk.AutoCAD.EditorInput"/>
-        <Using Include="Autodesk.AutoCAD.Geometry"/>
-        <Using Include="System.IO"/>
+        <Using Include="Autodesk.AutoCAD.ApplicationServices.Core" />
+        <Using Include="Autodesk.AutoCAD.DatabaseServices" />
+        <Using Include="Autodesk.AutoCAD.EditorInput" />
+        <Using Include="Autodesk.AutoCAD.Geometry" />
+        <Using Include="System.IO" />
         <Using Include="System.Math">
             <Static>True</Static>
         </Using>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="AutoCAD.NET" ExcludeAssets="runtime"/>
-        <PackageReference Include="AutoCAD.NET.Interop" ExcludeAssets="runtime"/>
-        <PackageReference Include="Serilog"/>
-        <PackageReference Include="Serilog.Sinks.File"/>
-        <PackageReference Include="System.Drawing.Common"/>
+        <PackageReference Include="AutoCAD.NET" ExcludeAssets="runtime" />
+        <PackageReference Include="AutoCAD.NET.Interop" ExcludeAssets="runtime" />
+        <PackageReference Include="Serilog" />
+        <PackageReference Include="Serilog.Sinks.File" />
+        <PackageReference Include="System.Drawing.Common" />
     </ItemGroup>
 
 </Project>

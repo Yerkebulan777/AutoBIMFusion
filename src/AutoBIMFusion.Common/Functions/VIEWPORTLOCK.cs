@@ -1,7 +1,7 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using SioForgeCAD.Commun;
 
-namespace SioForgeCAD.Functions;
+namespace AutoBIMFusion.Common.Functions;
 
 public static class VIEWPORTLOCK
 {

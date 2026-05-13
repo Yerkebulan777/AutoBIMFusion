@@ -1,11 +1,18 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using SioForgeCAD.Commun;
 using SioForgeCAD.Commun.Extensions;
 
-namespace SioForgeCAD.Functions;
+namespace AutoBIMFusion.Common.Functions;
 
-public static class ENTITIESXDATA
+/// <summary>
+///     Управляет расширенными данными объектов (XData).
+///     Позволяет просматривать и удалять XData у выбранных или всех объектов чертежа.
+/// </summary>
+public static class EntityXDataManager
 {
+    /// <summary>
+    ///     Показывает XData выбранной сущности в командной строке.
+    /// </summary>
     public static void Read()
     {
         var ed = Generic.GetEditor();
@@ -20,6 +27,9 @@ public static class ENTITIESXDATA
         }
     }
 
+    /// <summary>
+    ///     Удаляет XData у объектов, выбранных пользователем.
+    /// </summary>
     public static void Remove()
     {
         var ed = Generic.GetEditor();
@@ -36,12 +46,18 @@ public static class ENTITIESXDATA
         }
     }
 
+    /// <summary>
+    ///     Удаляет XData у всех объектов чертежа.
+    /// </summary>
     public static void RemoveAll()
     {
         var db = Generic.GetDatabase();
         RemoveAllXDataFromCollection(db.GetAllObjects().Keys.ToList());
     }
 
+    /// <summary>
+    ///     Удаляет XData у коллекции объектов, игнорируя ошибки для отдельных элементов.
+    /// </summary>
     private static void RemoveAllXDataFromCollection(IList<ObjectId> objectIds)
     {
         var db = Generic.GetDatabase();

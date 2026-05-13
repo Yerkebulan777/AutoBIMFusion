@@ -1,12 +1,19 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using SioForgeCAD.Commun;
 using SioForgeCAD.Commun.Drawing;
 using SioForgeCAD.Commun.Extensions;
 
-namespace SioForgeCAD.Functions;
+namespace AutoBIMFusion.Common.Functions;
 
-public static class BLKINSEDIT
+/// <summary>
+///     Позволяет изменять базовую точку блока.
+///     Поддерживает обычные и динамические блоки, сохраняя положение их вставок.
+/// </summary>
+public static class BlockBasePointEditor
 {
+    /// <summary>
+    ///     Запрашивает выбор блока и переносит его базовую точку в указанное пользователем место.
+    /// </summary>
     public static void MoveBasePoint()
     {
         var ed = Generic.GetEditor();
@@ -70,20 +77,17 @@ public static class BLKINSEDIT
         if (IsDynamicBlock)
         {
             iter = ChangeBasePointDynamicBlock(blockRefId, BlockReferenceTransformedPoint, out _);
-            //Leaders.Draw("OriginalBlocBasePointInModelSpace", OriginalBlocBasePointInModelSpace, Point3d.Origin);
-            //Leaders.Draw("selectedPoint", selectedPoint, Point3d.Origin);
+            // Показательные отладочные вызовы оставлены закомментированными намеренно.
 
-            //Transform blockReferences to keep position
+            // Перемещаем вставки блока, чтобы сохранить их исходное положение.
             using (var tr2 = db.TransactionManager.StartTransaction())
             {
                 foreach (ObjectId entId in iter)
                     if (entId.GetDBObject(OpenMode.ForWrite) is BlockReference otherBlockRef)
                     {
-                        //Inverse the Vector (if selected on a transformed block and then for each transform the vector to the current block
+                        // Инвертируем вектор относительно текущего преобразования блока и применяем его к вставке.
                         var TransformedFixPositionV2 = FixPosition.TransformBy(blockRef.BlockTransform.Inverse())
                             .TransformBy(otherBlockRef.BlockTransform);
-                        //Leaders.Draw("blockRef.Position", otherBlockRef.Position, Point3d.Origin); 
-                        //Leaders.Draw("TransformedFixPositionV2", otherBlockRef.Position.TransformBy(Matrix3d.Displacement(TransformedFixPositionV2)), Point3d.Origin); 
                         otherBlockRef.Position =
                             otherBlockRef.Position.TransformBy(Matrix3d.Displacement(TransformedFixPositionV2));
                         otherBlockRef.RecordGraphicsModified(true);
@@ -97,7 +101,7 @@ public static class BLKINSEDIT
             var rotationMatrix = Matrix3d.Rotation(PI, Vector3d.ZAxis, Point3d.Origin);
 
             iter = ChangeBasePointStaticBlock(blockRefId, BlockReferenceTransformedPoint.TransformBy(rotationMatrix));
-            //Transform blockReferences to keep position
+            // Перемещаем вставки блока, чтобы сохранить их исходное положение.
             using (var tr2 = db.TransactionManager.StartTransaction())
             {
                 foreach (ObjectId entId in iter)
@@ -114,13 +118,16 @@ public static class BLKINSEDIT
         }
     }
 
+    /// <summary>
+    ///     Переносит базовую точку динамического блока через временное редактирование определения.
+    /// </summary>
     private static ObjectIdCollection ChangeBasePointDynamicBlock(ObjectId blockRefObjId,
         Point3d BlockReferenceTransformedPoint, out Point3d OriginalBlocBasePointInModelSpace)
     {
         OriginalBlocBasePointInModelSpace = new Point3d(0, 0, 0);
         var ed = Generic.GetEditor();
         var db = Generic.GetDatabase();
-        //Get the matrix between the fake point and original
+        // Получаем матрицу между фиктивной и исходной точкой базирования.
         var FakeOriginalBasePointMatrix =
             GetFakeOriginalBasePointInDynamicBlockMatrix(blockRefObjId, out var OriginalBounds, out var EditedBounds);
         if (OriginalBounds.Size() != EditedBounds.Size())
@@ -141,36 +148,32 @@ public static class BLKINSEDIT
                 new Point3d(0, 0, 0).TransformBy(Matrix3d.Displacement(FakeOriginalBasePointMatrix * -1));
 
             var BlockName = blockRef.GetBlockReferenceName();
-            //Get all GetDynamicBlockReferences to avoid delay after BEDIT
+            // Собираем все ссылки динамического блока, чтобы после BEDIT обновить их без задержек.
             iter = BlockReferences.GetDynamicBlockReferences(BlockName);
             iter.Join((blockRef.BlockTableRecord.GetDBObject() as BlockTableRecord).GetBlockReferenceIds(true, false));
-            //Enter block reference edit mode
+            // Входим в режим редактирования блока.
             Generic.Command("_-BEDIT", BlockName);
-            //Leaders.Draw("FakeBlocBasePointInBlocSpace", FakeBlocBasePointInBlocSpace, Point3d.Origin);
 
-            //Can only be a single BASEPOINTPARAMETERENTITY : we Erase the basepoint
+            // У динамического блока может быть только одна базовая точка, поэтому удаляем старую.
             var filter = new SelectionFilter(new[] { new TypedValue((int)DxfCode.Start, "BASEPOINTPARAMETERENTITY") });
             var selRes = ed.SelectAll(filter);
             if (selRes.Status == PromptStatus.OK)
                 foreach (var objectId in selRes.Value.GetObjectIds())
                     objectId.EraseObject();
 
-            //Leaders.Draw("SelectedBlockReferenceTransformedPoint", BlockReferenceTransformedPoint, Point3d.Origin);
             var ReelBlockReferenceTransformedPoint = BlockReferenceTransformedPoint
                 .TransformBy(Matrix3d.Displacement(FakeBlocBasePointInBlocSpace - new Point3d(0, 0, 0))).Flatten();
 
-            //Create a temp point at ReelBlockReferenceTransformedPoint to avoid weird placement issue of the _BPARAMETER
+            // Создаём временную точку, чтобы избежать некорректного позиционирования параметра.
             ObjectId PtObjectId;
             using (var Pt = new DBPoint(ReelBlockReferenceTransformedPoint))
             {
                 PtObjectId = Pt.AddToDrawingCurrentTransaction();
             }
 
-            //Generic.WriteMessage("Point : " + ReelBlockReferenceTransformedPoint.ToString());
-            //Leaders.Draw("ReelBlockReferenceTransformedPoint", ReelBlockReferenceTransformedPoint, Point3d.Origin);
-            //Commit the delete of the existing BASEPOINTPARAMETERENTITY
+            // Завершаем удаление старой базовой точки.
             tr.Commit();
-            //Add the BASEPOINTPARAMETERENTITY at the new Position
+            // Добавляем новую базовую точку блока.
             Generic.Command("_BPARAMETER", "_Base", ReelBlockReferenceTransformedPoint);
             PtObjectId.EraseObject();
             Generic.Command("_BCLOSE", "_S");
@@ -178,6 +181,9 @@ public static class BLKINSEDIT
         }
     }
 
+    /// <summary>
+    ///     Переносит базовую точку обычного блока через смещение геометрии определения.
+    /// </summary>
     private static ObjectIdCollection ChangeBasePointStaticBlock(ObjectId blockRefObjId,
         Point3d BlockReferenceTransformedPoint)
     {
@@ -206,6 +212,9 @@ public static class BLKINSEDIT
         }
     }
 
+    /// <summary>
+    ///     Вычисляет матрицу смещения между исходной и временной базовой точкой динамического блока.
+    /// </summary>
     public static Vector3d GetFakeOriginalBasePointInDynamicBlockMatrix(ObjectId OriginalBlockObjectId,
         out Extents3d OriginalBounds, out Extents3d EditedBounds)
     {
@@ -258,7 +267,7 @@ public static class BLKINSEDIT
             Generic.Command("_BCLOSE", "_Save");
             Generic.Command("_RESETBLOCK", insertedCopyBtrId, "");
             EditedBounds = insertedCopyBtrId.GetEntity().GeometricExtents;
-            //Cleanup
+            // Очистка временных объектов.
             insertedBtrId.EraseObject();
             insertedCopyBtrId.EraseObject();
             tr2.Commit();

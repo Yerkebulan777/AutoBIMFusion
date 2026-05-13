@@ -13,7 +13,7 @@ using DrawingImage = System.Drawing.Image;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 using MenuItem = Autodesk.AutoCAD.Windows.MenuItem;
 
-namespace SioForgeCAD.Functions;
+namespace AutoBIMFusion.Common.Functions;
 
 public static class CONVERTIMAGETOOLE
 {

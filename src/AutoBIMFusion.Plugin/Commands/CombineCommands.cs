@@ -9,8 +9,9 @@ using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
 using System.Diagnostics;
 using System.Runtime.Versioning;
-using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
+
 using Exception = System.Exception;
+using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Plugin.Commands;
 
