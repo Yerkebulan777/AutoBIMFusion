@@ -1,4 +1,4 @@
-﻿using Autodesk.AutoCAD.GraphicsInterface;
+using Autodesk.AutoCAD.GraphicsInterface;
 using Polyline = Autodesk.AutoCAD.DatabaseServices.Polyline;
 using Viewport = Autodesk.AutoCAD.DatabaseServices.Viewport;
 
@@ -18,10 +18,10 @@ public static class ViewportsExtensions
 
         var vps = new List<int>();
 
-        var tr = db.TransactionManager.StartTransaction();
-        using (tr)
+        var trx = db.TransactionManager.StartTransaction();
+        using (trx)
         {
-            var vp = tr.GetObject(ed.ActiveViewportId, OpenMode.ForRead) as Viewport;
+            var vp = trx.GetObject(ed.ActiveViewportId, OpenMode.ForRead) as Viewport;
 
             // Are we in paper space and not inside a floating
             // viewport? Then only the paper space viewport itself
@@ -33,11 +33,11 @@ public static class ViewportsExtensions
                 // will display transients in active viewports
                 foreach (ObjectId vpId in db.GetViewports(false))
                 {
-                    vp = (Viewport)tr.GetObject(vpId, OpenMode.ForRead);
+                    vp = (Viewport)trx.GetObject(vpId, OpenMode.ForRead);
                     vps.Add(vp.Number);
                 }
 
-            tr.Commit();
+            trx.Commit();
         }
 
         var ints = new int[vps.Count];
@@ -132,7 +132,7 @@ public static class ViewportsExtensions
     {
         var db = Generic.GetDatabase();
 
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
             try
             {
@@ -167,7 +167,7 @@ public static class ViewportsExtensions
             }
             finally
             {
-                tr.Commit();
+                trx.Commit();
             }
         }
     }

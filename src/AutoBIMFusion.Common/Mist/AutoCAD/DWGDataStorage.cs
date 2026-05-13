@@ -6,9 +6,9 @@ public static class DWGDataStorage
     {
         using (var docLock = Generic.GetDocument().LockDocument())
 
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
-            var nod = (DBDictionary)tr.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
+            var nod = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
 
             var myDictName = Generic.GetExtensionDLLName();
 
@@ -18,11 +18,11 @@ public static class DWGDataStorage
                 nod.UpgradeOpen();
                 myDict = new DBDictionary();
                 nod.SetAt(myDictName, myDict);
-                tr.AddNewlyCreatedDBObject(myDict, true);
+                trx.AddNewlyCreatedDBObject(myDict, true);
             }
             else
             {
-                myDict = (DBDictionary)tr.GetObject(nod.GetAt(myDictName), OpenMode.ForWrite);
+                myDict = (DBDictionary)trx.GetObject(nod.GetAt(myDictName), OpenMode.ForWrite);
             }
 
             var record = new Xrecord
@@ -37,24 +37,24 @@ public static class DWGDataStorage
             }
 
             myDict.SetAt(key, record);
-            tr.AddNewlyCreatedDBObject(record, true);
-            tr.Commit();
+            trx.AddNewlyCreatedDBObject(record, true);
+            trx.Commit();
         }
     }
 
     public static string LoadTextFromDrawing(Database db, string key)
     {
         using (var docLock = Generic.GetDocument().LockDocument())
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
-            var nod = (DBDictionary)tr.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
+            var nod = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
             var myDictName = Generic.GetExtensionDLLName();
             if (!nod.Contains(myDictName)) return null;
 
-            var myDict = (DBDictionary)tr.GetObject(nod.GetAt(myDictName), OpenMode.ForRead);
+            var myDict = (DBDictionary)trx.GetObject(nod.GetAt(myDictName), OpenMode.ForRead);
             if (!myDict.Contains(key)) return null;
 
-            var record = (Xrecord)tr.GetObject(myDict.GetAt(key), OpenMode.ForRead);
+            var record = (Xrecord)trx.GetObject(myDict.GetAt(key), OpenMode.ForRead);
             var values = record.Data.AsArray();
             return values.Length > 0 ? values[0].Value.ToString() : null;
         }
@@ -62,16 +62,16 @@ public static class DWGDataStorage
 
     public static void DeleteKey(Database db, string key)
     {
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
-            var nod = (DBDictionary)tr.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
+            var nod = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
             var myDictName = Generic.GetExtensionDLLName();
             if (!nod.Contains(myDictName)) return;
 
-            var myDict = (DBDictionary)tr.GetObject(nod.GetAt(myDictName), OpenMode.ForWrite);
+            var myDict = (DBDictionary)trx.GetObject(nod.GetAt(myDictName), OpenMode.ForWrite);
             if (myDict.Contains(key)) myDict.Remove(key);
 
-            tr.Commit();
+            trx.Commit();
         }
     }
 }

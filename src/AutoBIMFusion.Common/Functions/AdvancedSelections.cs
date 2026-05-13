@@ -30,12 +30,12 @@ public static class AdvancedSelections
             }
 
             var Objects = SelectCrossingPolygonResult?.Value?.GetObjectIds()?.ToList();
-            using (var tr = db.TransactionManager.StartTransaction())
+            using (var trx = db.TransactionManager.StartTransaction())
             {
                 Objects.Remove(EntObjectId);
                 ed.SetImpliedSelection(Objects.ToArray());
                 ed.SetCurrentView(SavedView);
-                tr.Commit();
+                trx.Commit();
             }
         }
     }
@@ -66,11 +66,11 @@ public static class AdvancedSelections
             }
 
             var Objects = SelectWindowPolygonResult?.Value;
-            using (var tr = db.TransactionManager.StartTransaction())
+            using (var trx = db.TransactionManager.StartTransaction())
             {
                 ed.SetImpliedSelection(Objects);
                 ed.SetCurrentView(SavedView);
-                tr.Commit();
+                trx.Commit();
             }
         }
     }

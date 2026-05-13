@@ -22,7 +22,7 @@ public static class EntityXDataManager
 
         if (result.Status == PromptStatus.OK)
         {
-            using Transaction tr = db.TransactionManager.StartTransaction();
+            using Transaction trx = db.TransactionManager.StartTransaction();
 
             if (result.ObjectId.GetDBObject() is Entity ent)
             {
@@ -68,7 +68,7 @@ public static class EntityXDataManager
     private static void RemoveAllXDataFromCollection(IList<ObjectId> objectIds)
     {
         Database db = Generic.GetDatabase();
-        using Transaction tr = db.TransactionManager.StartTransaction();
+        using Transaction trx = db.TransactionManager.StartTransaction();
         foreach (ObjectId item in objectIds)
         {
             try
@@ -81,6 +81,6 @@ public static class EntityXDataManager
             }
         }
 
-        tr.Commit();
+        trx.Commit();
     }
 }

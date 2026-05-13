@@ -1,11 +1,11 @@
-﻿namespace SioForgeCAD.Commun.Drawing;
+namespace SioForgeCAD.Commun.Drawing;
 
 public static class Groups
 {
     public static ObjectId Create(string Name, string Description, ObjectIdCollection EntitiesObjectIdCollection)
     {
         var db = Generic.GetDatabase();
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
             var grp = new Group(Description, true);
             var gd = db.GroupDictionaryId.GetDBObject(OpenMode.ForWrite) as DBDictionary;
@@ -20,9 +20,9 @@ public static class Groups
             }
 
             var grpId = gd.SetAt(GroupName, grp);
-            tr.AddNewlyCreatedDBObject(grp, true);
+            trx.AddNewlyCreatedDBObject(grp, true);
             grp.InsertAt(0, EntitiesObjectIdCollection);
-            tr.Commit();
+            trx.Commit();
             return grpId;
         }
     }

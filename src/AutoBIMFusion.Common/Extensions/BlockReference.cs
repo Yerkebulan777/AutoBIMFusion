@@ -1,4 +1,4 @@
-﻿using SioForgeCAD.Commun.Drawing;
+using SioForgeCAD.Commun.Drawing;
 
 namespace SioForgeCAD.Commun.Extensions;
 
@@ -145,11 +145,11 @@ internal static class BlockReferenceExtensions
     /// <param name="attribs">Collection of pairs Tag/Value.</param>
     public static void SetAttributeValues(this BlockReference target, Dictionary<string, string> attribs)
     {
-        var tr = Generic.GetDatabase().TransactionManager.TopTransaction;
+        var trx = Generic.GetDatabase().TransactionManager.TopTransaction;
         foreach (var attRef in target.AttributeCollection.GetObjects())
             if (attribs.TryGetValue(attRef.Tag, out var value))
             {
-                tr.GetObject(attRef.ObjectId, OpenMode.ForWrite);
+                trx.GetObject(attRef.ObjectId, OpenMode.ForWrite);
                 attRef.TextString = value;
             }
     }
@@ -182,34 +182,34 @@ internal static class BlockReferenceExtensions
         var doc = Application.DocumentManager.MdiActiveDocument;
         var db = doc.Database;
 
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
-            var bt = tr.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-            var modelSpace = tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+            var bt = trx.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+            var modelSpace = trx.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
 
             foreach (var objId in modelSpace)
                 if (objId.ObjectClass.DxfName == "INSERT")
                 {
-                    blockReference = tr.GetObject(objId, OpenMode.ForRead) as BlockReference;
+                    blockReference = trx.GetObject(objId, OpenMode.ForRead) as BlockReference;
 
                     if (blockReference != null && blockReference.Name == blockName &&
                         blockReference.Position.IsEqualTo(position, Tolerance.Global))
                         // Check attribute values
                         foreach (ObjectId attId in blockReference.AttributeCollection)
                         {
-                            var obj = tr.GetObject(attId, OpenMode.ForRead);
+                            var obj = trx.GetObject(attId, OpenMode.ForRead);
                             if (obj is AttributeReference attributeReference)
                                 if (attributeReference.TextString == attributeValue)
                                 {
                                     // The block with the same position and attribute values exists
-                                    tr.Commit();
+                                    trx.Commit();
                                     return true;
                                 }
                         }
                 }
 
             // The block does not exist at the same position with the same attribute values
-            tr.Commit();
+            trx.Commit();
             blockReference = null;
             return false;
         }
@@ -231,7 +231,7 @@ internal static class BlockReferenceExtensions
     public static void RegenAllBlkDefinition(this BlockReference BlockRef)
     {
         var db = Generic.GetDatabase();
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
             var BlkDef = BlockRef.GetBlocDefinition();
 
@@ -240,7 +240,7 @@ internal static class BlockReferenceExtensions
                     otherBlockRef.RecordGraphicsModified(true);
 
             BlkDef.UpdateAnonymousBlocks();
-            tr.Commit();
+            trx.Commit();
         }
     }
 }

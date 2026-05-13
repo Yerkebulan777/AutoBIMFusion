@@ -26,14 +26,14 @@ public static class DelaunayTriangulate
 
         if (pointSelectionResult.Status == PromptStatus.Cancel) return;
 
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
             var PointsSet = new List<DBPoint>();
             foreach (var PointSelectionSet in pointSelectionResult.Value.GetObjectIds())
                 PointsSet.Add(PointSelectionSet.GetDBObject() as DBPoint);
 
             foreach (var poly in Triangulate(PointsSet)) poly.AddToDrawing();
-            tr.Commit();
+            trx.Commit();
         }
 
         Application.UpdateScreen();
@@ -77,8 +77,8 @@ public static class DelaunayTriangulate
         double xMin, yMin, xMax, yMax, deltaX, deltaY, xMid, yMid;
         var edge1 = new int[numberOfPoints * 2 + 1];
         var edge2 = new int[numberOfPoints * 2 + 1];
-        Transaction tr;
-        using (tr = db.TransactionManager.StartTransaction())
+        Transaction trx;
+        using (trx = db.TransactionManager.StartTransaction())
         {
             DBPoint PointElement;
             k = 0;
@@ -99,7 +99,7 @@ public static class DelaunayTriangulate
                 k++;
             }
 
-            tr.Commit();
+            trx.Commit();
         }
 
         if (IgnoredPointWithSameCoordinatesCount > 0)
@@ -237,15 +237,15 @@ public static class DelaunayTriangulate
             PtsIndex++;
         }
 
-        using (tr = db.TransactionManager.StartTransaction())
+        using (trx = db.TransactionManager.StartTransaction())
         {
             var bt =
-                (BlockTable)tr.GetObject(
+                (BlockTable)trx.GetObject(
                     db.BlockTableId,
                     OpenMode.ForRead,
                     false
                 );
-            var btr = Generic.GetCurrentSpaceBlockTableRecord(tr);
+            var btr = Generic.GetCurrentSpaceBlockTableRecord(trx);
 
             for (PtsIndex = 0; PtsIndex < numberOfTriangles; PtsIndex++)
             {
@@ -267,7 +267,7 @@ public static class DelaunayTriangulate
                 }
             }
 
-            tr.Commit();
+            trx.Commit();
         }
 
         if (thinTriangleFoundCount > 0)

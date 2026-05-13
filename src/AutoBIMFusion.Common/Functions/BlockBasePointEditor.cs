@@ -28,7 +28,7 @@ public static class BlockBasePointEditor
         };
 
         PromptSelectionResult promptResult;
-        using (Transaction tr = db.TransactionManager.StartTransaction())
+        using (Transaction trx = db.TransactionManager.StartTransaction())
         {
             while (true)
             {
@@ -36,7 +36,7 @@ public static class BlockBasePointEditor
 
                 if (promptResult.Status == PromptStatus.Cancel)
                 {
-                    tr.Commit();
+                    trx.Commit();
                     return;
                 }
 
@@ -49,7 +49,7 @@ public static class BlockBasePointEditor
                 }
             }
 
-            tr.Commit();
+            trx.Commit();
         }
 
         ObjectIdCollection iter;
@@ -58,7 +58,7 @@ public static class BlockBasePointEditor
         PromptPointResult pointResult;
         var IsDynamicBlock = false;
         ObjectId blockRefId = promptResult.Value.GetObjectIds().First();
-        using (Transaction tr = db.TransactionManager.StartTransaction())
+        using (Transaction trx = db.TransactionManager.StartTransaction())
         {
             blockRefId.RegisterHighlight();
             var pointOptions = new PromptPointOptions("Veuillez sélectionner son nouveau point de base : ");
@@ -77,7 +77,7 @@ public static class BlockBasePointEditor
             blockDef = blockRefOut.BlockTableRecord.GetDBObject(OpenMode.ForWrite) as BlockTableRecord;
             IsDynamicBlock = blockRefOut.IsDynamicBlock || blockDef.IsDynamicBlock;
             blockRef = blockRefOut;
-            tr.Commit();
+            trx.Commit();
         }
 
         Point3d selectedPoint = Points.GetFromPromptPointResult(pointResult).SCG;
@@ -148,7 +148,7 @@ public static class BlockBasePointEditor
         }
 
         ObjectIdCollection iter;
-        using Transaction tr = db.TransactionManager.StartTransaction();
+        using Transaction trx = db.TransactionManager.StartTransaction();
         if (blockRefObjId.GetDBObject(OpenMode.ForWrite) is not BlockReference blockRef)
         {
             return [];
@@ -187,7 +187,7 @@ public static class BlockBasePointEditor
         }
 
         // Завершаем удаление старой базовой точки.
-        tr.Commit();
+        trx.Commit();
         // Добавляем новую базовую точку блока.
         Generic.Command("_BPARAMETER", "_Base", ReelBlockReferenceTransformedPoint);
         PtObjectId.EraseObject();
@@ -201,13 +201,13 @@ public static class BlockBasePointEditor
     private static ObjectIdCollection ChangeBasePointStaticBlock(ObjectId blockRefObjId, Point3d BlockReferenceTransformedPoint)
     {
         Database db = Generic.GetDatabase();
-        using Transaction tr = db.TransactionManager.StartTransaction();
+        using Transaction trx = db.TransactionManager.StartTransaction();
         if (blockRefObjId.GetDBObject(OpenMode.ForWrite) is not BlockReference blockRef)
         {
             return [];
         }
 
-        var blockDef = tr.GetObject(blockRef.BlockTableRecord, OpenMode.ForWrite) as BlockTableRecord;
+        var blockDef = trx.GetObject(blockRef.BlockTableRecord, OpenMode.ForWrite) as BlockTableRecord;
 
         var DisplacementVector =
             Matrix3d.Displacement(
@@ -216,13 +216,13 @@ public static class BlockBasePointEditor
 
         foreach (ObjectId entId in blockDef)
         {
-            var entity = tr.GetObject(entId, OpenMode.ForWrite) as Entity;
+            var entity = trx.GetObject(entId, OpenMode.ForWrite) as Entity;
             entity?.TransformBy(DisplacementVector);
         }
 
         blockRef.DowngradeOpen();
 
-        tr.Commit();
+        trx.Commit();
         return blockDef.GetBlockReferenceIds(true, false);
     }
 
@@ -239,24 +239,24 @@ public static class BlockBasePointEditor
 
         string oldName;
         string newName;
-        using (Transaction tr = db.TransactionManager.StartTransaction())
+        using (Transaction trx = db.TransactionManager.StartTransaction())
         {
             var OriginalBlockRef = OriginalBlockObjectId.GetEntity() as BlockReference;
             oldName = OriginalBlockRef.GetBlockReferenceName();
             newName = BlockReferences.GetUniqueBlockName("SIOFORGE_INTERNAL_" + oldName);
             insertedBtrId = BlockReferences.InsertFromName(oldName, new Points(new Point3d(0, 0, 0)));
             var insertedBlockRef = insertedBtrId.GetEntity() as BlockReference;
-            tr.Commit();
+            trx.Commit();
             OriginalBounds = insertedBlockRef.GeometricExtents;
         }
 
-        using (Transaction tr = db.TransactionManager.StartTransaction())
+        using (Transaction trx = db.TransactionManager.StartTransaction())
         {
             insertedCopyBtrId = BlockReferences.RenameBlockAndInsert(insertedBtrId, newName);
             if (insertedCopyBtrId == ObjectId.Null)
             {
                 Generic.WriteMessage("Echec lors de l'opération");
-                tr.Abort();
+                trx.Abort();
                 EditedBounds = OriginalBounds;
                 return Vector3d.ZAxis;
             }
@@ -274,7 +274,7 @@ public static class BlockBasePointEditor
                 }
             }
 
-            tr.Commit();
+            trx.Commit();
         }
 
         using (Transaction tr2 = db.TransactionManager.StartTransaction())

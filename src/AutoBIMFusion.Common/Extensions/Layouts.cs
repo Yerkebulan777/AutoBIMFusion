@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+using System.Drawing;
 using Autodesk.AutoCAD;
 using Autodesk.AutoCAD.GraphicsSystem;
 using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
@@ -12,14 +12,14 @@ public static class LayoutsExtensions
         var doc = AcAp.DocumentManager.MdiActiveDocument;
         var db = doc.Database;
 
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
-            var sourceBtr = (BlockTableRecord)tr.GetObject(sourceLayout.BlockTableRecordId, OpenMode.ForRead);
+            var sourceBtr = (BlockTableRecord)trx.GetObject(sourceLayout.BlockTableRecordId, OpenMode.ForRead);
             var lm = LayoutManager.Current;
 
             var newLayoutId = lm.CreateLayout(newLayoutName);
-            var newLayout = (Layout)tr.GetObject(newLayoutId, OpenMode.ForWrite);
-            var newBtr = (BlockTableRecord)tr.GetObject(newLayout.BlockTableRecordId, OpenMode.ForWrite);
+            var newLayout = (Layout)trx.GetObject(newLayoutId, OpenMode.ForWrite);
+            var newBtr = (BlockTableRecord)trx.GetObject(newLayout.BlockTableRecordId, OpenMode.ForWrite);
 
             var mapping = new IdMapping();
             db.DeepCloneObjects(sourceBtr.Cast<ObjectId>().ToObjectIdCollection(), newBtr.ObjectId, mapping, false);
@@ -28,7 +28,7 @@ public static class LayoutsExtensions
             newLayout.CopyFrom(sourceLayout);
             lm.CurrentLayout = newLayoutName;
 
-            tr.Commit();
+            trx.Commit();
         }
     }
 
@@ -41,9 +41,9 @@ public static class LayoutsExtensions
         descriptor.addRequirement(UniqueString.Intern("3D Drawing"));
         var kernel = Manager.AcquireGraphicsKernel(descriptor);
 
-        using (Transaction tr = lay.Database.TransactionManager.StartOpenCloseTransaction())
+        using (Transaction trx = lay.Database.TransactionManager.StartOpenCloseTransaction())
         {
-            var btr = (BlockTableRecord)tr.GetObject(lay.BlockTableRecordId, OpenMode.ForRead);
+            var btr = (BlockTableRecord)trx.GetObject(lay.BlockTableRecordId, OpenMode.ForRead);
 
             using (var view = new View())
             {

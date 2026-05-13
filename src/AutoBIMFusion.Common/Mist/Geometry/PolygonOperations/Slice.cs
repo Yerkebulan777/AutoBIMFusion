@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using SioForgeCAD.Commun.Extensions;
 
 namespace SioForgeCAD.Commun;
@@ -65,7 +65,7 @@ public static partial class PolygonOperation
 
     public static void TryDetectWrongCut(List<Polyline> Polylines, Polyline CutLine)
     {
-        //using (Transaction tr = db.TransactionManager.StartTransaction())
+        //using (Transaction trx = db.TransactionManager.StartTransaction())
         //{
         //List<Polyline> Cleanned = new List<Polyline>();
         var array = Polylines.ToArray();
@@ -79,10 +79,10 @@ public static partial class PolygonOperation
             //Cleanned.Add(item);
         }
 
-        //using (Transaction tr = Generic.GetDatabase().TransactionManager.StartTransaction())
+        //using (Transaction trx = Generic.GetDatabase().TransactionManager.StartTransaction())
         //{
         //    Cleanned.AddToDrawing(2, true);
-        //    tr.Commit();
+        //    trx.Commit();
         //}
 
         void GetConnectingPolylineInList(Point3d Origin, ref Polyline SubPoly, ref Polyline SubCutLine,

@@ -1,4 +1,4 @@
-﻿namespace SioForgeCAD.Commun.Extensions;
+namespace SioForgeCAD.Commun.Extensions;
 
 public static class AttributeCollectionExtensions
 {
@@ -13,10 +13,10 @@ public static class AttributeCollectionExtensions
     public static IEnumerable<AttributeReference> GetObjects(this AttributeCollection source,
         OpenMode mode = OpenMode.ForRead, bool openErased = false, bool forceOpenOnLockedLayers = false)
     {
-        var tr = Generic.GetDatabase().TransactionManager.TopTransaction;
+        var trx = Generic.GetDatabase().TransactionManager.TopTransaction;
         if (source.Count > 0)
             foreach (ObjectId id in source)
                 if (!id.IsErased || openErased)
-                    yield return (AttributeReference)tr.GetObject(id, mode, openErased, forceOpenOnLockedLayers);
+                    yield return (AttributeReference)trx.GetObject(id, mode, openErased, forceOpenOnLockedLayers);
     }
 }

@@ -26,7 +26,7 @@ public static class BlockScaleApplier
 
         var AlreadyAppliedScale = new HashSet<string>();
 
-        using Transaction tr = db.TransactionManager.StartTransaction();
+        using Transaction trx = db.TransactionManager.StartTransaction();
 
         foreach (ObjectId perObjId in perObjIds)
         {
@@ -109,7 +109,7 @@ public static class BlockScaleApplier
             }
         }
 
-        tr.Commit();
+        trx.Commit();
     }
 
     /// <summary>

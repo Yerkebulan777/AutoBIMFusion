@@ -1,4 +1,4 @@
-﻿using Autodesk.AutoCAD.Runtime;
+using Autodesk.AutoCAD.Runtime;
 using SioForgeCAD.Commun.Extensions;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
@@ -57,10 +57,10 @@ public class CotePoints
         var doc = Application.DocumentManager.MdiActiveDocument;
         var db = doc.Database;
         if (cotePoints is null)
-            using (var tr = db.TransactionManager.StartTransaction())
+            using (var trx = db.TransactionManager.StartTransaction())
             {
                 HightLighter.UnhighlightAll();
-                tr.Commit();
+                trx.Commit();
                 return true;
             }
 
@@ -75,14 +75,14 @@ public class CotePoints
         //Write a point where the altitude is asked
         var PointDrawingEntity = new DBPoint(Origin.SCG);
         ObjectId PointDrawingEntityObjectId;
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
-            var acBlkTbl = tr.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-            var acBlkTblRec = Generic.GetCurrentSpaceBlockTableRecord(tr);
+            var acBlkTbl = trx.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+            var acBlkTblRec = Generic.GetCurrentSpaceBlockTableRecord(trx);
             acBlkTblRec.AppendEntity(PointDrawingEntity);
-            tr.AddNewlyCreatedDBObject(PointDrawingEntity, true);
+            trx.AddNewlyCreatedDBObject(PointDrawingEntity, true);
             PointDrawingEntityObjectId = PointDrawingEntity.ObjectId;
-            tr.Commit();
+            trx.Commit();
         }
 
         var PromptDoubleAltitudeOptions = new PromptDoubleOptions("Saississez la cote\n")
@@ -94,11 +94,11 @@ public class CotePoints
 
         //remove the point where the altitude is asked
         if (!PointDrawingEntityObjectId.IsErased)
-            using (var tr = db.TransactionManager.StartTransaction())
+            using (var trx = db.TransactionManager.StartTransaction())
             {
                 var obj = PointDrawingEntityObjectId.GetObject(OpenMode.ForWrite);
                 obj.Erase(true);
-                tr.Commit();
+                trx.Commit();
             }
 
         return PromptDoubleAltitudeResult.Value;
@@ -107,8 +107,8 @@ public class CotePoints
     public static double? GetAltitudeFromBloc(ObjectId BlocObjectId)
     {
         var db = Generic.GetDatabase();
-        var tr = db.TransactionManager;
-        var BlocObject = tr.GetObject(BlocObjectId, OpenMode.ForRead);
+        var trx = db.TransactionManager;
+        var BlocObject = trx.GetObject(BlocObjectId, OpenMode.ForRead);
         if (BlocObject is BlockReference blkRef) return GetAltitudeFromBloc(blkRef);
         return null;
     }
@@ -116,11 +116,11 @@ public class CotePoints
     public static double? GetAltitudeFromBloc(BlockReference blkRef)
     {
         var db = Generic.GetDatabase();
-        var tr = db.TransactionManager;
+        var trx = db.TransactionManager;
 
         foreach (ObjectId AttributeObjectId in blkRef.AttributeCollection)
         {
-            var Attribute = (AttributeReference)tr.GetObject(AttributeObjectId, OpenMode.ForRead, true);
+            var Attribute = (AttributeReference)trx.GetObject(AttributeObjectId, OpenMode.ForRead, true);
             if (Attribute.TextString.Contains("."))
             {
                 var IsDouble = double.TryParse(Attribute.TextString.Trim(), out var Altimetrie);
@@ -264,7 +264,7 @@ public class CotePoints
         var ed = Generic.GetEditor();
 
         while (true)
-            using (var tr = db.TransactionManager.StartTransaction())
+            using (var trx = db.TransactionManager.StartTransaction())
             {
                 //list of available SelectionFilter : https://help.autodesk.com/view/ACD/2018/ENU/?guid=GUID-7D07C886-FD1D-4A0C-A7AB-B4D21F18E484
                 var EntitiesGroupCodesList = new TypedValue[1] { new((int)DxfCode.Start, "INSERT") };
@@ -284,13 +284,13 @@ public class CotePoints
 
                     if (PromptBlocSelectionResult.Status == PromptStatus.Cancel)
                     {
-                        tr.Commit();
+                        trx.Commit();
                         return null;
                     }
 
                     if (PromptBlocSelectionResult.Status == PromptStatus.Keyword)
                     {
-                        tr.Commit();
+                        trx.Commit();
                         throw new Exception(ErrorStatus.OK, PromptBlocSelectionResult.StringResult);
                     }
 
@@ -329,11 +329,11 @@ public class CotePoints
                 if (Altitude == null)
                 {
                     Generic.WriteMessage("Aucune côte détéctée");
-                    tr.Commit();
+                    trx.Commit();
                     continue;
                 }
 
-                tr.Commit();
+                trx.Commit();
                 return new CotePoints(CoteLocation, Altitude ?? 0);
             }
     }

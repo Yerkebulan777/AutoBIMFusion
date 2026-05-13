@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Runtime;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
@@ -30,18 +30,18 @@ public static class DatabaseExtensions
     public static Dictionary<ObjectId, string> GetAllEntities(this Database db)
     {
         var dict = new Dictionary<ObjectId, string>();
-        using (var tr = db.TransactionManager.StartOpenCloseTransaction())
+        using (var trx = db.TransactionManager.StartOpenCloseTransaction())
         {
-            var bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+            var bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
             foreach (var btrId in bt)
             {
-                var btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForRead);
+                var btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
                 if (btr.IsLayout)
                     foreach (var id in btr)
                         dict.Add(id, id.ObjectClass.Name);
             }
 
-            tr.Commit();
+            trx.Commit();
         }
 
         return dict;
@@ -50,16 +50,16 @@ public static class DatabaseExtensions
     public static ObjectId EntLast(this Database db, Type type = null)
     {
         // Autodesk.AutoCAD.Internal.Utils.EntLast();
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
-            var btr = Generic.GetCurrentSpaceBlockTableRecord(tr);
+            var btr = Generic.GetCurrentSpaceBlockTableRecord(trx);
             var RXClassType = type == null ? null : RXObject.GetClass(type);
             var EntLastObjectId = ObjectId.Null;
             foreach (var objId in btr)
                 if (RXClassType == null || objId.ObjectClass == RXClassType)
                     EntLastObjectId = objId;
 
-            tr.Commit();
+            trx.Commit();
             return EntLastObjectId;
         }
     }
@@ -68,7 +68,7 @@ public static class DatabaseExtensions
     {
         var ed = Generic.GetEditor();
         if (db.Cannoscale.Name != Name)
-            using (var tr = db.TransactionManager.StartTransaction())
+            using (var trx = db.TransactionManager.StartTransaction())
             {
                 var ocm = db.ObjectContextManager;
                 var occ = ocm.GetContextCollection("ACDB_ANNOTATIONSCALES");
@@ -103,25 +103,25 @@ public static class DatabaseExtensions
                 }
 
                 ed.Regen();
-                tr.Commit();
+                trx.Commit();
             }
     }
 
 
-    public static ObjectId GetObjectIdFromAppDictionary(this Database db, Transaction tr, string appDictName,
+    public static ObjectId GetObjectIdFromAppDictionary(this Database db, Transaction trx, string appDictName,
         string keyName)
     {
-        var nod = (DBDictionary)tr.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
+        var nod = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
 
         if (!nod.Contains(appDictName))
             return ObjectId.Null;
 
-        var appDict = (DBDictionary)tr.GetObject(nod.GetAt(appDictName), OpenMode.ForRead);
+        var appDict = (DBDictionary)trx.GetObject(nod.GetAt(appDictName), OpenMode.ForRead);
 
         if (!appDict.Contains(keyName))
             return ObjectId.Null;
 
-        var xrec = (Xrecord)tr.GetObject(appDict.GetAt(keyName), OpenMode.ForRead);
+        var xrec = (Xrecord)trx.GetObject(appDict.GetAt(keyName), OpenMode.ForRead);
         var data = xrec.Data.AsArray();
 
         if (data.Length == 0 || !(data[0].Value is ObjectId))
@@ -131,10 +131,10 @@ public static class DatabaseExtensions
     }
 
 
-    public static void StoreObjectIdInAppDictionary(this Database db, Transaction tr, string appDictName,
+    public static void StoreObjectIdInAppDictionary(this Database db, Transaction trx, string appDictName,
         string keyName, ObjectId objectId)
     {
-        var nod = (DBDictionary)tr.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
+        var nod = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
 
         DBDictionary appDict;
         if (!nod.Contains(appDictName))
@@ -142,11 +142,11 @@ public static class DatabaseExtensions
             nod.UpgradeOpen();
             appDict = new DBDictionary();
             nod.SetAt(appDictName, appDict);
-            tr.AddNewlyCreatedDBObject(appDict, true);
+            trx.AddNewlyCreatedDBObject(appDict, true);
         }
         else
         {
-            appDict = (DBDictionary)tr.GetObject(nod.GetAt(appDictName), OpenMode.ForRead);
+            appDict = (DBDictionary)trx.GetObject(nod.GetAt(appDictName), OpenMode.ForRead);
         }
 
         if (appDict.Contains(keyName)) return;
@@ -157,7 +157,7 @@ public static class DatabaseExtensions
             Data = new ResultBuffer(new TypedValue((int)DxfCode.SoftPointerId, objectId))
         };
         appDict.SetAt(keyName, xrec);
-        tr.AddNewlyCreatedDBObject(xrec, true);
+        trx.AddNewlyCreatedDBObject(xrec, true);
     }
 
 

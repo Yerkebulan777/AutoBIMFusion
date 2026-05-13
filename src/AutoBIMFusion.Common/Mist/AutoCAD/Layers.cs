@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.Windows.Data;
 using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
@@ -15,11 +15,11 @@ public static class Layers
     public static void SetCurrentLayerName(string LayerName)
     {
         var db = Generic.GetDatabase();
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
             var ltb = (LayerTable)db.LayerTableId.GetDBObject();
             db.Clayer = ltb[LayerName];
-            tr.Commit();
+            trx.Commit();
         }
     }
 
@@ -244,20 +244,20 @@ public static class Layers
         }
     }
 
-    public static void Merge(Transaction tr, Database db, ObjectId sourceLayerId, ObjectId targetLayerId)
+    public static void Merge(Transaction trx, Database db, ObjectId sourceLayerId, ObjectId targetLayerId)
     {
-        var sourceLayer = tr.GetObject(sourceLayerId, OpenMode.ForRead) as LayerTableRecord;
-        var targetLayer = tr.GetObject(targetLayerId, OpenMode.ForRead) as LayerTableRecord;
+        var sourceLayer = trx.GetObject(sourceLayerId, OpenMode.ForRead) as LayerTableRecord;
+        var targetLayer = trx.GetObject(targetLayerId, OpenMode.ForRead) as LayerTableRecord;
 
         if (sourceLayer == null || targetLayer == null) return;
 
         var sourceLayerName = sourceLayer.Name;
 
         // Move every entities
-        foreach (var blockId in tr.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable)
-        foreach (var entId in tr.GetObject(blockId, OpenMode.ForWrite) as BlockTableRecord)
+        foreach (var blockId in trx.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable)
+        foreach (var entId in trx.GetObject(blockId, OpenMode.ForWrite) as BlockTableRecord)
         {
-            var ent = tr.GetObject(entId, OpenMode.ForRead) as Entity;
+            var ent = trx.GetObject(entId, OpenMode.ForRead) as Entity;
             if (ent != null && ent.LayerId == sourceLayerId)
             {
                 if (ent.IsEntityOnLockedLayer()) SetLock(ent.Layer, false);

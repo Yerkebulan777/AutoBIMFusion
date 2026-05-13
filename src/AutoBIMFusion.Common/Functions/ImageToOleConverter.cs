@@ -41,7 +41,7 @@ public static class ImageToOleConverter
 
         foreach (var RasterObjectId in ent.Value.GetObjectIds())
 
-            using (var tr = db.TransactionManager.StartTransaction())
+            using (var trx = db.TransactionManager.StartTransaction())
             {
                 if (RasterObjectId.GetDBObject() is RasterImage rasterImage)
                 {
@@ -164,11 +164,11 @@ public static class ImageToOleConverter
                     else
                     {
                         Generic.WriteMessage("Une erreur s'est produite lors de la convertion.");
-                        tr.Abort();
+                        trx.Abort();
                     }
                 }
 
-                tr.Commit();
+                trx.Commit();
             }
     }
 

@@ -67,7 +67,7 @@ public class TransientBase(DBObjectCollection Entities, Func<Points, Dictionary<
             var e = Drawable[i] as Entity;
             if (e is BlockReference blockReference)
                 // Open the block reference for write
-                using (var tr = db.TransactionManager.StartTransaction())
+                using (var trx = db.TransactionManager.StartTransaction())
                 {
                     if (!blockReference.IsWriteEnabled) blockReference.UpgradeOpen();
 
@@ -82,7 +82,7 @@ public class TransientBase(DBObjectCollection Entities, Func<Points, Dictionary<
                                     AttributeElement.TextString = AttributeDefinitionTargetValue;
                         }
 
-                    tr.Commit();
+                    trx.Commit();
                 }
 
             TransformEntities(e, curPt, moveToPt);

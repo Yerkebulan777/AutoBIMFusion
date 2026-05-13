@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+using System.Drawing;
 
 namespace SioForgeCAD.Commun.Extensions;
 
@@ -55,7 +55,7 @@ public static class EditorExtensions
         var db = Generic.GetDatabase();
         var AllLayout = new List<Layout>();
 
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
             foreach (var btrId in db.BlockTableId.GetDBObject() as BlockTable)
             {
@@ -69,7 +69,7 @@ public static class EditorExtensions
                 }
             }
 
-            tr.Commit();
+            trx.Commit();
         }
 
         return AllLayout;
@@ -78,7 +78,7 @@ public static class EditorExtensions
     public static Layout GetModelLayout(this Editor _)
     {
         var db = Generic.GetDatabase();
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
             try
             {
@@ -95,7 +95,7 @@ public static class EditorExtensions
             }
             finally
             {
-                tr.Commit();
+                trx.Commit();
             }
         }
 
@@ -117,14 +117,14 @@ public static class EditorExtensions
     {
         var db = Generic.GetDatabase();
 
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
             try
             {
                 while (true)
                 {
                     if (ed.IsInLayoutViewport())
-                        return (Viewport)tr.GetObject(ed.CurrentViewportObjectId, OpenMode.ForWrite);
+                        return (Viewport)trx.GetObject(ed.CurrentViewportObjectId, OpenMode.ForWrite);
 
                     if (!ed.IsInLayoutPaper())
                         //In model space
@@ -132,12 +132,12 @@ public static class EditorExtensions
                     if (ed.IsInModel()) ed.SwitchToPaperSpace();
 
                     // Get the BlockTableRecord for the current layout
-                    var btr = tr.GetObject(Generic.GetDatabase().CurrentSpaceId, OpenMode.ForRead) as BlockTableRecord;
+                    var btr = trx.GetObject(Generic.GetDatabase().CurrentSpaceId, OpenMode.ForRead) as BlockTableRecord;
                     var Viewports = ed.GetAllViewportsInPaperSpace(btr);
                     if (Viewports.Count == 1)
                     {
                         ed.SwitchToModelSpace();
-                        return (Viewport)tr.GetObject(Viewports.First(), OpenMode.ForWrite);
+                        return (Viewport)trx.GetObject(Viewports.First(), OpenMode.ForWrite);
                     }
 
                     ed.SwitchToModelSpace();
@@ -157,7 +157,7 @@ public static class EditorExtensions
             }
             finally
             {
-                tr.Commit();
+                trx.Commit();
             }
         }
     }
@@ -441,7 +441,7 @@ public static class EditorExtensions
     {
         Hachure = null;
         var db = Generic.GetDatabase();
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
             try
             {
@@ -458,7 +458,7 @@ public static class EditorExtensions
             }
             finally
             {
-                tr.Commit();
+                trx.Commit();
             }
         }
 
@@ -469,10 +469,10 @@ public static class EditorExtensions
     {
         var db = Generic.GetDatabase();
 
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
             var viewport = ed.ActiveViewportId.GetDBObject() as Viewport;
-            tr.Commit();
+            trx.Commit();
             return viewport?.Locked == true;
         }
     }
@@ -481,10 +481,10 @@ public static class EditorExtensions
     {
         var db = Generic.GetDatabase();
 
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
             var viewport = ed.ActiveViewportId.GetDBObject() as Viewport;
-            tr.Commit();
+            trx.Commit();
             return viewport?.Number == 1;
         }
     }

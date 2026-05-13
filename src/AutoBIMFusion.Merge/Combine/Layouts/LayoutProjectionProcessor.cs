@@ -252,14 +252,14 @@ internal static class LayoutProjectionProcessor
     {
         if (btrId.IsNull) return;
 
-        using var tr = db.TransactionManager.StartTransaction();
-        var btr = (BlockTableRecord)tr.GetObject(btrId, OpenMode.ForRead);
+        using var trx = db.TransactionManager.StartTransaction();
+        var btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
 
         foreach (var id in btr)
-            if (tr.GetObject(id, OpenMode.ForWrite) is Entity entity && !entity.IsErased)
+            if (trx.GetObject(id, OpenMode.ForWrite) is Entity entity && !entity.IsErased)
                 entity.Erase();
 
-        tr.Commit();
+        trx.Commit();
     }
 
     internal sealed record LayoutProjectionResult(

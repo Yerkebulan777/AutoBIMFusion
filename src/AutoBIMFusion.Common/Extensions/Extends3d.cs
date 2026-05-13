@@ -1,4 +1,4 @@
-﻿namespace SioForgeCAD.Commun.Extensions;
+namespace SioForgeCAD.Commun.Extensions;
 
 public static class Extends3dExtensions
 {
@@ -130,19 +130,19 @@ public static class Extends3dExtensions
     {
         var db = Generic.GetDatabase();
 
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
-            var btr = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
-            entPts = CollectPoints(tr, ent);
+            var btr = (BlockTableRecord)trx.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+            entPts = CollectPoints(trx, ent);
 
             var extents = new Extents3d();
             foreach (Point3d item in entPts) extents.AddExtents(new Extents3d(item, item));
-            tr.Commit();
+            trx.Commit();
             return extents;
         }
     }
 
-    private static Point3dCollection CollectPoints(Transaction tr, Entity ent)
+    private static Point3dCollection CollectPoints(Transaction trx, Entity ent)
     {
         // The collection of points to populate and return
         var pts = new Point3dCollection();
@@ -159,7 +159,7 @@ public static class Extends3dExtensions
         if (br != null)
             foreach (ObjectId arId in br.AttributeCollection)
             {
-                var obj = tr.GetObject(arId, OpenMode.ForRead);
+                var obj = trx.GetObject(arId, OpenMode.ForRead);
                 if (obj is AttributeReference ar) ar.ExtractBounds(pts);
             }
         // If we have a curve - other than a polyline, which
@@ -226,7 +226,7 @@ public static class Extends3dExtensions
                     {
                         var ent2 = obj as Entity;
                         if (ent2?.Visible == true)
-                            foreach (Point3d pt in CollectPoints(tr, ent2))
+                            foreach (Point3d pt in CollectPoints(trx, ent2))
                                 pts.Add(pt);
 
                         obj.Dispose();
@@ -245,17 +245,17 @@ public static class Extends3dExtensions
         List<Extents3d> ext;
         var db = Generic.GetDatabase();
 
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
-            var btr = (BlockTableRecord)tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
-            ext = CollectExtends(tr, ent);
+            var btr = (BlockTableRecord)trx.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+            ext = CollectExtends(trx, ent);
 
-            tr.Commit();
+            trx.Commit();
             return ext;
         }
     }
 
-    private static List<Extents3d> CollectExtends(Transaction tr, Entity ent)
+    private static List<Extents3d> CollectExtends(Transaction trx, Entity ent)
     {
         var ext = new List<Extents3d>();
 
@@ -285,7 +285,7 @@ public static class Extends3dExtensions
                     foreach (DBObject obj in oc)
                     {
                         var ent2 = obj as Entity;
-                        if (ent2?.Visible == true) ext.AddRange(CollectExtends(tr, ent2));
+                        if (ent2?.Visible == true) ext.AddRange(CollectExtends(trx, ent2));
                         obj.Dispose();
                     }
                 else

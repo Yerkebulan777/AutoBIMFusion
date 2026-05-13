@@ -1,4 +1,4 @@
-﻿using Autodesk.AutoCAD.Colors;
+using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.Runtime;
 using SioForgeCAD.Commun.Extensions;
 
@@ -102,20 +102,20 @@ internal static class ObjectIdExtensions
     public static void EraseObject(this ObjectId ObjectToErase)
     {
         var doc = Generic.GetDocument();
-        using (var tr = doc.TransactionManager.StartTransaction())
+        using (var trx = doc.TransactionManager.StartTransaction())
         {
             if (ObjectToErase.IsErased) return;
-            var ent = tr.GetObject(ObjectToErase, OpenMode.ForRead);
+            var ent = trx.GetObject(ObjectToErase, OpenMode.ForRead);
             //Can only errase if entity is not on a locked layer
             if (ent is Entity enty && enty.IsEntityOnLockedLayer())
             {
-                tr.Commit();
+                trx.Commit();
             }
             else
             {
                 ent.UpgradeOpen();
                 if (!ent.IsErased) ent.Erase(true);
-                tr.Commit();
+                trx.Commit();
             }
         }
     }

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Autodesk.AutoCAD.Colors;
 using SioForgeCAD.Commun.Drawing;
 
@@ -19,7 +19,7 @@ public static class EntityExtensions
     public static void EraseObject(this Entity ObjectToErase)
     {
         var doc = Generic.GetDocument();
-        using (var tr = doc.TransactionManager.StartTransaction())
+        using (var trx = doc.TransactionManager.StartTransaction())
         {
             if (ObjectToErase.IsErased) return;
             try
@@ -32,7 +32,7 @@ public static class EntityExtensions
             }
 
             if (!ObjectToErase.IsErased && ObjectToErase.ObjectId != ObjectId.Null) ObjectToErase.Erase(true);
-            tr.Commit();
+            trx.Commit();
         }
     }
 
@@ -177,9 +177,9 @@ public static class EntityExtensions
     public static void CopyDrawOrderTo(this Entity Origin, Entity Target)
     {
         var db = Generic.GetDatabase();
-        var tr = db.TransactionManager.TopTransaction;
-        var btr = Generic.GetCurrentSpaceBlockTableRecord(tr);
-        var orderTable = tr.GetObject(btr.DrawOrderTableId, OpenMode.ForWrite) as DrawOrderTable;
+        var trx = db.TransactionManager.TopTransaction;
+        var btr = Generic.GetCurrentSpaceBlockTableRecord(trx);
+        var orderTable = trx.GetObject(btr.DrawOrderTableId, OpenMode.ForWrite) as DrawOrderTable;
 
         var DrawOrderCollection = new ObjectIdCollection();
         DrawOrderCollection.Insert(0, Target.ObjectId);
@@ -526,7 +526,7 @@ public static class EntityExtensions
     {
         var AppName = Generic.GetExtensionDLLName();
         var list = new List<object>();
-        //using (Transaction tr = db.TransactionManager.StartTransaction())
+        //using (Transaction trx = db.TransactionManager.StartTransaction())
         //{
         var rb = ent.GetXDataForApplication(AppName);
         if (rb != null)
@@ -543,7 +543,7 @@ public static class EntityExtensions
                         break;
                 }
 
-        //tr.Commit();
+        //trx.Commit();
         //}
         return list;
     }
@@ -551,11 +551,11 @@ public static class EntityExtensions
     public static void AddXData(this Entity ent, TypedValue typedValue)
     {
         var db = Generic.GetDatabase();
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
             ent.TryUpgradeOpen();
 
-            var regTable = (RegAppTable)tr.GetObject(db.RegAppTableId, OpenMode.ForRead);
+            var regTable = (RegAppTable)trx.GetObject(db.RegAppTableId, OpenMode.ForRead);
             var AppName = Generic.GetExtensionDLLName();
             if (!regTable.Has(AppName))
             {
@@ -565,12 +565,12 @@ public static class EntityExtensions
                     Name = AppName
                 };
                 regTable.Add(app);
-                tr.AddNewlyCreatedDBObject(app, true);
+                trx.AddNewlyCreatedDBObject(app, true);
             }
 
             //https://help.autodesk.com/view/OARX/2023/ENU/?guid=GUID-A2A628B0-3699-4740-A215-C560E7242F63
             ent.XData = new ResultBuffer(new TypedValue(1001, AppName), typedValue);
-            tr.Commit();
+            trx.Commit();
         }
     }
 

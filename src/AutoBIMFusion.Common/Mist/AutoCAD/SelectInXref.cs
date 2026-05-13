@@ -1,4 +1,4 @@
-﻿using SioForgeCAD.Commun.Extensions;
+using SioForgeCAD.Commun.Extensions;
 
 namespace SioForgeCAD.Commun;
 
@@ -32,17 +32,17 @@ public static class SelectInXref
     public static string GetEntityPathInChildXref(this PromptNestedEntityResult res)
     {
         var db = HostApplicationServices.WorkingDatabase;
-        using (var tr = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
             var Path = new List<string>();
             foreach (var id in res.GetContainers().Reverse())
             {
-                var container = tr.GetObject(id, OpenMode.ForRead) as BlockReference;
+                var container = trx.GetObject(id, OpenMode.ForRead) as BlockReference;
 
                 Path.Add(container.Name);
             }
 
-            tr.Commit();
+            trx.Commit();
             return string.Join(">", Path);
         }
     }

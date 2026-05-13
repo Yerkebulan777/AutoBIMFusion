@@ -46,7 +46,7 @@ public static class ViewportLock
                 return;
             }
 
-            using (var tr = db.TransactionManager.StartTransaction())
+            using (var trx = db.TransactionManager.StartTransaction())
             {
                 foreach (var objectId in selectionSet.GetObjectIds())
                 {
@@ -54,7 +54,7 @@ public static class ViewportLock
                     viewport.Locked = @lock;
                 }
 
-                tr.Commit();
+                trx.Commit();
             }
         }
         catch (Exception ex)

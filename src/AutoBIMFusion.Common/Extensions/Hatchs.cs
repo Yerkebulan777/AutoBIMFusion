@@ -1,4 +1,4 @@
-﻿namespace SioForgeCAD.Commun.Extensions;
+namespace SioForgeCAD.Commun.Extensions;
 
 public static class HatchsExtensions
 {
@@ -120,12 +120,12 @@ public static class HatchsExtensions
         return result;
     }
 
-    public static Hatch HatchRegion(this Region region, Transaction tr, bool Associative = true)
+    public static Hatch HatchRegion(this Region region, Transaction trx, bool Associative = true)
     {
         // Create a hatch and set its properties
         var hatch = new Hatch();
-        Generic.GetCurrentSpaceBlockTableRecord(tr).AppendEntity(hatch);
-        tr.AddNewlyCreatedDBObject(hatch, true);
+        Generic.GetCurrentSpaceBlockTableRecord(trx).AppendEntity(hatch);
+        trx.AddNewlyCreatedDBObject(hatch, true);
 
         hatch.Associative = Associative;
 

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using SioForgeCAD.Commun.Extensions;
 
 namespace SioForgeCAD.Commun.Drawing;
@@ -9,7 +9,7 @@ public static class Hatchs
     {
         var db = Generic.GetDatabase();
         var ed = Generic.GetEditor();
-        using (var tr = db.TransactionManager.TopTransaction)
+        using (var trx = db.TransactionManager.TopTransaction)
         {
             //Define USC
 
@@ -22,7 +22,7 @@ public static class Hatchs
                 var oHatchOrigin = new Point3d(OriginHatchPatternDefinition.BaseX, OriginHatchPatternDefinition.BaseY,
                     0);
 
-                var vtr = (ViewportTableRecord)tr.GetObject(ed.ActiveViewportId, OpenMode.ForWrite);
+                var vtr = (ViewportTableRecord)trx.GetObject(ed.ActiveViewportId, OpenMode.ForWrite);
 
                 if (!vtr.Ucs.Origin.IsEqualTo(oHatchOrigin))
                     ed.CurrentUserCoordinateSystem = Matrix3d.AlignCoordinateSystem(Point3d.Origin, Vector3d.XAxis,
@@ -31,8 +31,8 @@ public static class Hatchs
 
             try
             {
-                var btr = Generic.GetCurrentSpaceBlockTableRecord(tr);
-                var orderTable = tr.GetObject(btr.DrawOrderTableId, OpenMode.ForWrite) as DrawOrderTable;
+                var btr = Generic.GetCurrentSpaceBlockTableRecord(trx);
+                var orderTable = trx.GetObject(btr.DrawOrderTableId, OpenMode.ForWrite) as DrawOrderTable;
                 var DrawOrderCollection = new ObjectIdCollection();
                 if (OutsidePolyline.IsNewObject)
                 {
@@ -50,7 +50,7 @@ public static class Hatchs
                     {
                         (InsidePolyline as Polyline).Closed = true;
                         polylineObjectId = btr.AppendEntity(InsidePolyline);
-                        tr.AddNewlyCreatedDBObject(InsidePolyline, true);
+                        trx.AddNewlyCreatedDBObject(InsidePolyline, true);
                     }
 
                     if (!DrawOrderCollection.Contains(polylineObjectId)) DrawOrderCollection.Add(polylineObjectId);
@@ -63,7 +63,7 @@ public static class Hatchs
 
                 var oHatch = new Hatch();
                 var oHatchObjectId = btr.AppendEntity(oHatch);
-                tr.AddNewlyCreatedDBObject(oHatch, true);
+                trx.AddNewlyCreatedDBObject(oHatch, true);
                 oHatch.Associative = true;
                 try
                 {
