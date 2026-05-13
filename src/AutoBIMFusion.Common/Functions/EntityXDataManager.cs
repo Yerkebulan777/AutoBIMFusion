@@ -5,13 +5,13 @@ using SioForgeCAD.Commun.Extensions;
 namespace AutoBIMFusion.Common.Functions;
 
 /// <summary>
-///     Управляет расширенными данными объектов (XData).
-///     Позволяет просматривать и удалять XData у выбранных или всех объектов чертежа.
+/// Управляет расширенными данными объектов (XData).
+/// Позволяет просматривать и удалять XData у выбранных или всех объектов чертежа.
 /// </summary>
 public static class EntityXDataManager
 {
     /// <summary>
-    ///     Показывает XData выбранной сущности в командной строке.
+    /// Показывает XData выбранной сущности в командной строке.
     /// </summary>
     public static void Read()
     {
@@ -47,7 +47,7 @@ public static class EntityXDataManager
     }
 
     /// <summary>
-    ///     Удаляет XData у всех объектов чертежа.
+    ///  Удаляет XData у всех объектов чертежа.
     /// </summary>
     public static void RemoveAll()
     {
@@ -56,7 +56,7 @@ public static class EntityXDataManager
     }
 
     /// <summary>
-    ///     Удаляет XData у коллекции объектов, игнорируя ошибки для отдельных элементов.
+    /// Удаляет XData у коллекции объектов, игнорируя ошибки для отдельных элементов.
     /// </summary>
     private static void RemoveAllXDataFromCollection(IList<ObjectId> objectIds)
     {
