@@ -15,6 +15,54 @@ public static class DrawingPurger
     /// </summary>
     public static void Purge(Database db)
     {
+        var purgeReport = CorePurge(db);
+        var TotalDeletedCount = purgeReport.Values.Sum();
+
+        // Выводим отчёт пользователю.
+        if (TotalDeletedCount == 0)
+        {
+            Generic.WriteMessage("Le dessin est déjà purgé.");
+        }
+        else
+        {
+            var maxLength = purgeReport.Max(p => p.Key.Length);
+            foreach (var entry in purgeReport)
+                Generic.WriteMessage($" - {entry.Key.PadRight(maxLength)} : {entry.Value} supprimés");
+
+            Generic.WriteMessage($"Total : {TotalDeletedCount} éléments supprimés dans le dessin");
+        }
+
+        ViewportLock.DoLockUnlock(true);
+    }
+
+    /// <summary>
+    /// Выполняет глубокую программную очистку (Purge) базы данных DWG
+    /// перед сохранением итогового файла.
+    /// Заменяет класс DwgOptimizer.
+    /// </summary>
+    public static void Optimize(Database db, Serilog.Core.Logger log)
+    {
+        var purgeReport = CorePurge(db);
+        var totalDeletedCount = purgeReport.Values.Sum();
+
+        if (totalDeletedCount == 0)
+        {
+            log.Information("Чертеж уже очищен, удалять нечего.");
+            return;
+        }
+
+        foreach (var entry in purgeReport)
+        {
+            log.Information("Purge: {ObjectType} - {Count} удалено", entry.Key, entry.Value);
+        }
+        log.Information("Purge: Всего удалено {TotalCount} элементов", totalDeletedCount);
+    }
+
+    private static Dictionary<string, int> CorePurge(Database db)
+    {
+        var purgeReport = new Dictionary<string, int>();
+        var totalDeletedCount = 0;
+
         using (var tr = db.TransactionManager.StartTransaction())
         {
             // Временно снимаем блокировку со всех слоёв, чтобы выполнить очистку.
@@ -31,32 +79,31 @@ public static class DrawingPurger
                 }
             }
 
-            var purgeReport = new Dictionary<string, int>();
-            var TotalDeletedCount = 0;
-
             void AddToReport(string key, int count)
             {
+                if (count == 0) return;
+
                 if (purgeReport.ContainsKey(key))
                     purgeReport[key] += count;
                 else
                     purgeReport[key] = count;
 
-                TotalDeletedCount += count;
+                totalDeletedCount += count;
             }
 
             // Базовая очистка.
-
             AddToReport(nameof(PurgeMethods.CurvesZeroLength), PurgeMethods.CurvesZeroLength(db));
             AddToReport(nameof(PurgeMethods.EmptyText), PurgeMethods.EmptyText(db));
             AddToReport(nameof(PurgeMethods.XREF), PurgeMethods.XREF(db));
 
             // Повторяем очистку, пока появляются новые удаляемые элементы.
-            var PreviousPassTotalDeletedCount = -1;
+            var previousPassTotalDeletedCount = -1;
             var passCount = 0;
-            while (PreviousPassTotalDeletedCount != TotalDeletedCount && passCount < 10)
+            while (previousPassTotalDeletedCount != totalDeletedCount && passCount < 10)
             {
                 passCount++;
-                PreviousPassTotalDeletedCount = TotalDeletedCount;
+                previousPassTotalDeletedCount = totalDeletedCount;
+
                 AddToReport(nameof(PurgeMethods.Database), PurgeMethods.Database(db));
                 AddToReport(nameof(PurgeMethods.DWF), PurgeMethods.DWF(db));
                 AddToReport(nameof(PurgeMethods.PDF), PurgeMethods.PDF(db));
@@ -70,27 +117,13 @@ public static class DrawingPurger
                 AddToReport(nameof(PurgeMethods.Groups), PurgeMethods.Groups(db));
             }
 
-            // Выводим отчёт пользователю.
-            if (TotalDeletedCount == 0)
-            {
-                Generic.WriteMessage("Le dessin est déjà purgé.");
-            }
-            else
-            {
-                var maxLength = purgeReport.Max(p => p.Key.Length);
-                foreach (var entry in purgeReport)
-                    Generic.WriteMessage($" - {entry.Key.PadRight(maxLength)} : {entry.Value} supprimés");
-
-                Generic.WriteMessage($"Total : {TotalDeletedCount} éléments supprimés dans le dessin");
-            }
-
             // Возвращаем блокировку слоёв в исходное состояние.
             foreach (var layerTableRecord2 in list) layerTableRecord2.IsLocked = true;
 
             tr.Commit();
         }
 
-        ViewportLock.DoLockUnlock(true);
+        return purgeReport;
     }
 
     private static class PurgeMethods
