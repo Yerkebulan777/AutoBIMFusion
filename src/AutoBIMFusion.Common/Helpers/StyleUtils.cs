@@ -11,13 +11,13 @@ public static class StyleUtils
     /// <summary>
     ///     Создаёт (или возвращает существующий) текстовый стиль с заданным шрифтом и высотой 0.
     /// </summary>
-    public static ObjectId GetOrCreateTextStyle(Database db, Transaction , string fontName)
+    public static ObjectId GetOrCreateTextStyle(Database db, Transaction trx, string fontName)
     {
-        var tt = (TextStyleTable).GetObject(db.TextStyleTableId, OpenMode.ForRead);
+        var tt = (TextStyleTable)trx.GetObject(db.TextStyleTableId, OpenMode.ForRead);
 
         if (tt.Has(fontName))
         {
-            var existing = (TextStyleTableRecord).GetObject(tt[fontName], OpenMode.ForRead);
+            var existing = (TextStyleTableRecord)trx.GetObject(tt[fontName], OpenMode.ForRead);
             if (existing.TextSize > 0.0)
             {
                 existing.UpgradeOpen();
@@ -44,7 +44,7 @@ public static class StyleUtils
     /// <summary>
     ///     Гарантированно получает ObjectId системного блока стрелки.
     /// </summary>
-    public static ObjectId GetArrowBlockId(Database db, Transaction , string arrowName = "_ArchTick")
+    public static ObjectId GetArrowBlockId(Database db, Transaction trx, string arrowName = "_ArchTick")
     {
         var arrObjId = db.Dimblk;
 

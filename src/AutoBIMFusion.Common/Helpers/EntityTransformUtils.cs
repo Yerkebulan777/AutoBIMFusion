@@ -17,10 +17,10 @@ public static class EntityTransformUtils
         else if (entity is Dimension dim)
             // Reset any explicit text rotation applied by the matrix transformation
             dim.TextRotation = 0.0;
-        else if (entity is BlockReference blockRef &&  != null)
+        else if (entity is BlockReference blockRef &&  trx != null)
             foreach (ObjectId attrId in blockRef.AttributeCollection)
                 if (!attrId.IsNull && !attrId.IsErased)
-                    if (.GetObject(attrId, OpenMode.ForWrite) is AttributeReference attr)
+                    if (trx.GetObject(attrId, OpenMode.ForWrite) is AttributeReference attr)
                     {
                         // Принудительный пересчет ширины для многострочных атрибутов
                         if (attr.IsMTextAttribute) attr.UpdateMTextAttribute();

@@ -10,15 +10,15 @@ public static class LayoutUtil
     /// </summary>
     public static bool TryFindFirstLayout(Database db, out string layoutName)
     {
-        using var  = db.TransactionManager.StartTransaction();
-        var layoutDict = (DBDictionary).GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        using var trx = db.TransactionManager.StartTransaction();
+        var layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         layoutName = string.Empty;
         var bestOrder = int.MaxValue;
 
         foreach (var entry in layoutDict)
         {
-            var layout = (Layout).GetObject(entry.Value, OpenMode.ForRead);
+            var layout = (Layout)trx.GetObject(entry.Value, OpenMode.ForRead);
 
             if (layout.ModelType || layout.TabOrder >= bestOrder) continue;
 

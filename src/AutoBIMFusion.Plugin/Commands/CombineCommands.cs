@@ -2,7 +2,6 @@ using AutoBIMFusion.Common;
 using AutoBIMFusion.Common.AcadSupport;
 using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Common.Logging;
-using AutoBIMFusion.Merge;
 using AutoBIMFusion.Merge.Combine;
 using AutoBIMFusion.Merge.Combine.Layouts;
 using Autodesk.AutoCAD.ApplicationServices;
@@ -10,8 +9,8 @@ using Serilog.Core;
 using System.Diagnostics;
 using System.Runtime.Versioning;
 
-using Exception = System.Exception;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
+using Exception = System.Exception;
 
 namespace AutoBIMFusion.Plugin.Commands;
 
