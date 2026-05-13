@@ -18,6 +18,8 @@ public static class RasterImagePathFixer
             return;
         }
 
+        Directory.CreateDirectory(targetDir);
+
         Dictionary<string, string> copiedBySourcePath = new(StringComparer.OrdinalIgnoreCase);
         HashSet<string> reservedDestinationPaths = new(StringComparer.OrdinalIgnoreCase);
 
