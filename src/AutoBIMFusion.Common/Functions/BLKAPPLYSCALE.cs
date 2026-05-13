@@ -64,6 +64,7 @@ public static class BlockScaleApplier
                 }
 
                 var scaleMatrix = Matrix3d.Scaling(refScale, Point3d.Origin);
+
                 foreach (ObjectId entId in btr)
                 {
                     try
@@ -76,7 +77,6 @@ public static class BlockScaleApplier
                         Debug.WriteLine(ex.ToString());
                     }
                 }
-
 
                 // Корректируем все ссылки на блок.
                 var differentScalesFound = false;
