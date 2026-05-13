@@ -1,4 +1,5 @@
 using AutoBIMFusion.Common.Extensions;
+using AutoBIMFusion.Common.Compatibility;
 using AutoBIMFusion.Common.Mist.AutoCAD;
 using Autodesk.AutoCAD.Runtime;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
@@ -35,7 +36,7 @@ public class CotePoints
 
     private static SelectionPointsType GetSelectionPointsType()
     {
-        if (Enum.TryParse(Properties.Settings.Default.SelectionPointsType, out SelectionPointsType SelectionPointsType))
+        if (Enum.TryParse(LegacyAppSettings.Default.SelectionPointsType, out SelectionPointsType SelectionPointsType))
             return SelectionPointsType;
 
         return SelectionPointsType.Points;
@@ -49,8 +50,8 @@ public class CotePoints
 
     private static void SaveSelectionPointsType(SelectionPointsType SelectionPointsType)
     {
-        Properties.Settings.Default.SelectionPointsType = SelectionPointsType.ToString();
-        Properties.Settings.Default.Save();
+        LegacyAppSettings.Default.SelectionPointsType = SelectionPointsType.ToString();
+        LegacyAppSettings.Default.Save();
     }
 
     public static bool NullPointExit(CotePoints cotePoints)
