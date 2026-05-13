@@ -79,21 +79,25 @@ public sealed class CombineCommands
             CombineStatistics stats = new();
             Stopwatch sw = Stopwatch.StartNew();
 
+            var docMgr = AcadApp.DocumentManager;
+            Document mergeDoc = docMgr.Add(string.Empty);
+            docMgr.MdiActiveDocument = mergeDoc;
+
             BlockInserter inserter = new(gapPercent, log);
-            await MergeFiles(dwgFiles, inserter, doc, stats, log);
+            await MergeFiles(dwgFiles, inserter, mergeDoc, stats, log);
 
-            using (doc.LockDocument())
+            using (mergeDoc.LockDocument())
             {
-                RasterImagePathFixer.CopyImagesToTargetFolder(doc.Database, savePath, log);
+                RasterImagePathFixer.CopyImagesToTargetFolder(mergeDoc.Database, savePath, log);
 
-                DimensionStyleDiagnosticUtils.LogStyleSnapshot(doc.Database, log, "target-after-merge");
+                DimensionStyleDiagnosticUtils.LogStyleSnapshot(mergeDoc.Database, log, "target-after-merge");
 
-                DwgOptimizer.Optimize(doc.Database, log);
+                DwgOptimizer.Optimize(mergeDoc.Database, log);
 
-                SaveMerged(doc.Database, savePath, log);
+                SaveMerged(mergeDoc.Database, savePath, log);
 
-                doc.SendStringToExecute("._REGENALL ", true, false, false);
-                doc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
+                mergeDoc.SendStringToExecute("._REGENALL ", true, false, false);
+                mergeDoc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
             }
 
             sw.Stop();
