@@ -55,6 +55,7 @@ public sealed class CombineCommands
             string savePath = BuildSavePath(sourceFolder!);
 
             string[] dwgFiles = FileUtil.GetFiles(sourceFolder!, log: log);
+
             if (dwgFiles.Length == 0)
             {
                 log.Warning("DWG файлы не найдены.");
