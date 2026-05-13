@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.Runtime.Versioning;
 using AutoBIMFusion.Common;
 using AutoBIMFusion.Common.AcadSupport;
 using AutoBIMFusion.Common.Helpers;
@@ -9,6 +7,8 @@ using AutoBIMFusion.Merge.Combine;
 using AutoBIMFusion.Merge.Combine.Layouts;
 using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
+using System.Diagnostics;
+using System.Runtime.Versioning;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 using Exception = System.Exception;
 
@@ -27,11 +27,14 @@ public sealed class CombineCommands
 
     private async Task ExecuteMergeAsync(string? folderPath, bool showDialogs, string commandName)
     {
-        var doc = AcadApp.DocumentManager.MdiActiveDocument;
+        Document doc = AcadApp.DocumentManager.MdiActiveDocument;
 
-        if (doc?.Database == null) return;
+        if (doc?.Database == null)
+        {
+            return;
+        }
 
-        var log = LoggerFactory.GetSharedLogger();
+        Logger log = LoggerFactory.GetSharedLogger();
 
         if (!await _mergeGate.WaitAsync(0))
         {
@@ -45,7 +48,9 @@ public sealed class CombineCommands
 
             if (string.IsNullOrWhiteSpace(sourceFolder) &&
                 !UiDialogService.TrySelectFolder("Выберите папку с файлами DWG для объединения", out sourceFolder))
+            {
                 return;
+            }
 
             var savePath = BuildSavePath(sourceFolder!);
 
@@ -53,7 +58,10 @@ public sealed class CombineCommands
             if (dwgFiles.Length == 0)
             {
                 log.Warning("DWG файлы не найдены.");
-                if (showDialogs) UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
+                if (showDialogs)
+                {
+                    UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
+                }
 
                 return;
             }
@@ -91,7 +99,10 @@ public sealed class CombineCommands
 
             log.Information($"Завершено: {stats}");
 
-            if (showDialogs) ShowSummary(stats, sw.Elapsed, savePath, commandName);
+            if (showDialogs)
+            {
+                ShowSummary(stats, sw.Elapsed, savePath, commandName);
+            }
         }
         catch (Exception ex)
         {
@@ -116,14 +127,20 @@ public sealed class CombineCommands
             {
                 stats.AddTotal();
 
-                var result = await CombineOrchestrator.MergeSingleFile(files[idx], inserter, doc, log);
+                CombineResult result = await CombineOrchestrator.MergeSingleFile(files[idx], inserter, doc, log);
 
                 if (result.Success)
+                {
                     stats.AddSuccess();
+                }
                 else if (result.IsSkipped)
+                {
                     stats.AddSkipped();
+                }
                 else
+                {
                     stats.AddFailed();
+                }
 
                 pm.MeterProgress();
             }
@@ -137,11 +154,15 @@ public sealed class CombineCommands
     private static string BuildSavePath(string rootPath)
     {
         DirectoryInfo dir = new(rootPath);
-        var parent = dir.Parent;
+        DirectoryInfo? parent = dir.Parent;
+
+        const string buildSuffix = "-сборка";
+        var outputFolderName = $"{dir.Name}{buildSuffix}";
+        var outputFileName = $"{dir.Name}.dwg";
 
         return parent is null
-            ? Path.Combine(dir.FullName, $"{dir.Name}.dwg")
-            : Path.Combine(parent.FullName, $"{dir.Name}.dwg");
+            ? Path.Combine(dir.FullName, outputFolderName, outputFileName)
+            : Path.Combine(parent.FullName, outputFolderName, outputFileName);
     }
 
     private static void SaveMerged(Database db, string savePath, Logger log)
@@ -150,9 +171,15 @@ public sealed class CombineCommands
         {
             var dir = Path.GetDirectoryName(savePath);
 
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) _ = Directory.CreateDirectory(dir);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                _ = Directory.CreateDirectory(dir);
+            }
 
-            if (File.Exists(savePath)) File.Delete(savePath);
+            if (File.Exists(savePath))
+            {
+                File.Delete(savePath);
+            }
 
             using (new AcadWarningSuppressScope())
             {
