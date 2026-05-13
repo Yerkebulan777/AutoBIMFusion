@@ -10,15 +10,15 @@ public static class LayoutUtil
     /// </summary>
     public static bool TryFindFirstLayout(Database db, out string layoutName)
     {
-        using var trx = db.TransactionManager.StartTransaction();
-        var layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        using var  = db.TransactionManager.StartTransaction();
+        var layoutDict = (DBDictionary).GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         layoutName = string.Empty;
         var bestOrder = int.MaxValue;
 
         foreach (var entry in layoutDict)
         {
-            var layout = (Layout)trx.GetObject(entry.Value, OpenMode.ForRead);
+            var layout = (Layout).GetObject(entry.Value, OpenMode.ForRead);
 
             if (layout.ModelType || layout.TabOrder >= bestOrder) continue;
 
@@ -26,7 +26,7 @@ public static class LayoutUtil
             layoutName = layout.LayoutName;
         }
 
-        trx.Commit();
+        .Commit();
         return !string.IsNullOrEmpty(layoutName);
     }
 
@@ -35,20 +35,20 @@ public static class LayoutUtil
     /// </summary>
     public static ObjectId GetLayoutBtrId(Database db, string layoutName)
     {
-        using var trx = db.TransactionManager.StartTransaction();
-        var dict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        using var  = db.TransactionManager.StartTransaction();
+        var dict = (DBDictionary).GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         if (!dict.Contains(layoutName))
         {
-            trx.Commit();
+            .Commit();
             return ObjectId.Null;
         }
 
         var layoutId = dict.GetAt(layoutName);
-        var layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
+        var layout = (Layout).GetObject(layoutId, OpenMode.ForRead);
         var btrId = layout.BlockTableRecordId;
 
-        trx.Commit();
+        .Commit();
         return btrId;
     }
 
@@ -62,18 +62,18 @@ public static class LayoutUtil
         var viewportClass = RXObject.GetClass(typeof(Viewport));
         ObjectIdCollection result = [];
 
-        using var trx = db.TransactionManager.StartTransaction();
-        var layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        using var  = db.TransactionManager.StartTransaction();
+        var layoutDict = (DBDictionary).GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         if (!layoutDict.Contains(layoutName))
         {
-            trx.Commit();
+            .Commit();
             return result;
         }
 
         var layoutId = layoutDict.GetAt(layoutName);
-        var layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
-        var btr = (BlockTableRecord)trx.GetObject(layout.BlockTableRecordId, OpenMode.ForRead);
+        var layout = (Layout).GetObject(layoutId, OpenMode.ForRead);
+        var btr = (BlockTableRecord).GetObject(layout.BlockTableRecordId, OpenMode.ForRead);
 
         foreach (var id in btr)
         {
@@ -82,7 +82,7 @@ public static class LayoutUtil
             _ = result.Add(id);
         }
 
-        trx.Commit();
+        .Commit();
         return result;
     }
 }

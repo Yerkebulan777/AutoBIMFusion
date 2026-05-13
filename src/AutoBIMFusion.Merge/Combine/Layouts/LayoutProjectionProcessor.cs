@@ -96,20 +96,20 @@ internal static class LayoutProjectionProcessor
     private static (ObjectId BtrId, ObjectIdCollection FilteredPaperIds) CollectAndFilterLayoutData(Database db,
         string layoutName)
     {
-        using var trx = db.TransactionManager.StartTransaction();
+        using var  = db.TransactionManager.StartTransaction();
 
-        var layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        var layoutDict = (DBDictionary).GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         if (!layoutDict.Contains(layoutName))
         {
-            trx.Commit();
+            .Commit();
             return (ObjectId.Null, []);
         }
 
         var layoutId = layoutDict.GetAt(layoutName);
-        var layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
+        var layout = (Layout).GetObject(layoutId, OpenMode.ForRead);
         var btrId = layout.BlockTableRecordId;
-        var btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
+        var btr = (BlockTableRecord).GetObject(btrId, OpenMode.ForRead);
 
         var viewportClass = RXObject.GetClass(typeof(Viewport));
 
@@ -120,10 +120,10 @@ internal static class LayoutProjectionProcessor
                 paperIdsList.Add(id);
 
         // Поиск рамки-штампа и фильтрация в той же транзакции
-        var titleBlockBounds = FindTitleBlockBounds(trx, paperIdsList);
-        var filteredIds = FilterEntitiesByBounds(trx, paperIdsList, titleBlockBounds);
+        var titleBlockBounds = FindTitleBlockBounds(, paperIdsList);
+        var filteredIds = FilterEntitiesByBounds(, paperIdsList, titleBlockBounds);
 
-        trx.Commit();
+        .Commit();
         return (btrId, filteredIds);
     }
 
@@ -131,14 +131,14 @@ internal static class LayoutProjectionProcessor
     ///     Находит рамку-штамп (BlockReference с максимальной площадью) в переданном наборе объектов.
     ///     Работает в рамках переданной транзакции, не открывая новых.
     /// </summary>
-    private static Extents3d? FindTitleBlockBounds(Transaction trx, List<ObjectId> paperIds)
+    private static Extents3d? FindTitleBlockBounds(Transaction , List<ObjectId> paperIds)
     {
         Extents3d? bestExtents = null;
         var bestArea = 0.0;
 
         foreach (var id in paperIds)
         {
-            if (trx.GetObject(id, OpenMode.ForRead) is not BlockReference br) continue;
+            if (.GetObject(id, OpenMode.ForRead) is not BlockReference br) continue;
 
             var ext = ExtentsUtils.TryGetExtents(br);
             if (!ext.HasValue) continue;
@@ -162,7 +162,7 @@ internal static class LayoutProjectionProcessor
     ///     Работает в рамках переданной транзакции, не открывая новых.
     ///     Всегда возвращает новую коллекцию — владение передаётся вызывающей стороне.
     /// </summary>
-    private static ObjectIdCollection FilterEntitiesByBounds(Transaction trx, List<ObjectId> paperIds,
+    private static ObjectIdCollection FilterEntitiesByBounds(Transaction , List<ObjectId> paperIds,
         Extents3d? boundingBox)
     {
         ObjectIdCollection filtered = [];
@@ -179,7 +179,7 @@ internal static class LayoutProjectionProcessor
 
         foreach (var id in paperIds)
         {
-            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
+            if (.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
 
             // Сама рамка-штамп (BlockReference с совпадающими габаритами) включается всегда
             if (ent is BlockReference br)

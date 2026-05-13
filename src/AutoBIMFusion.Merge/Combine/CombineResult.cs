@@ -5,11 +5,7 @@ namespace AutoBIMFusion.Merge.Combine;
 /// <summary>
 ///     Результат слияния одного DWG-файла.
 /// </summary>
-public sealed record CombineResult(
-    bool Success,
-    string FileName,
-    bool IsSkipped = false,
-    string? Message = null)
+public sealed record CombineResult(bool Success, string FileName, bool IsSkipped = false, string? Message = null)
 {
     private const int DefaultMaxLength = 125;
 

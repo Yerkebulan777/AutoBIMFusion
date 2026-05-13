@@ -88,17 +88,17 @@ public static class DimensionStyleDiagnosticUtils
 
     private static DimensionStyleSnapshot BuildSnapshot(Database db, string stage)
     {
-        using var trx = db.TransactionManager.StartTransaction();
+        using var  = db.TransactionManager.StartTransaction();
 
-        var dimStyleTable = (DimStyleTable)trx.GetObject(db.DimStyleTableId, OpenMode.ForRead);
-        var textStyleTable = (TextStyleTable)trx.GetObject(db.TextStyleTableId, OpenMode.ForRead);
-        var dimensionStyleUsage = CollectDimensionStyleUsage(db, trx);
+        var dimStyleTable = (DimStyleTable).GetObject(db.DimStyleTableId, OpenMode.ForRead);
+        var textStyleTable = (TextStyleTable).GetObject(db.TextStyleTableId, OpenMode.ForRead);
+        var dimensionStyleUsage = CollectDimensionStyleUsage(db, );
 
         Dictionary<string, DimensionStyleSnapshotEntry> dimStyles = new(StringComparer.Ordinal);
 
         foreach (var id in dimStyleTable)
         {
-            var style = (DimStyleTableRecord)trx.GetObject(id, OpenMode.ForRead);
+            var style = (DimStyleTableRecord).GetObject(id, OpenMode.ForRead);
             if (style.IsErased || !ShouldLogDimensionStyle(style, dimensionStyleUsage.Keys)) continue;
 
             var usage = dimensionStyleUsage.GetValueOrDefault(style.ObjectId) ?? new DimensionStyleUsage();
@@ -110,31 +110,31 @@ public static class DimensionStyleDiagnosticUtils
 
         foreach (var id in textStyleTable)
         {
-            var style = (TextStyleTableRecord)trx.GetObject(id, OpenMode.ForRead);
+            var style = (TextStyleTableRecord).GetObject(id, OpenMode.ForRead);
             if (!style.IsDependent && !style.IsErased) textStyles.Add(FormatTextStyle(style));
         }
 
-        trx.Commit();
+        .Commit();
 
         return new DimensionStyleSnapshot(stage, dimStyles, textStyles);
     }
 
-    private static Dictionary<ObjectId, DimensionStyleUsage> CollectDimensionStyleUsage(Database db, Transaction trx)
+    private static Dictionary<ObjectId, DimensionStyleUsage> CollectDimensionStyleUsage(Database db, Transaction )
     {
         Dictionary<ObjectId, DimensionStyleUsage> usageByStyleId = [];
 
         AddDimensionStyleUsage(db.Dimstyle, null, usageByStyleId);
 
-        var blockTable = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
+        var blockTable = (BlockTable).GetObject(db.BlockTableId, OpenMode.ForRead);
 
         foreach (var blockId in blockTable)
         {
-            var blockObj = trx.GetObject(blockId, OpenMode.ForRead, false);
+            var blockObj = .GetObject(blockId, OpenMode.ForRead, false);
 
             if (blockObj is BlockTableRecord block && !block.IsErased)
                 foreach (var entityId in block)
                     if (entityId.IsValidForOperation())
-                        if (trx.GetObject(entityId, OpenMode.ForRead, false) is Dimension dimension)
+                        if (.GetObject(entityId, OpenMode.ForRead, false) is Dimension dimension)
                             AddDimensionStyleUsage(dimension.DimensionStyle, dimension.Handle.ToString(),
                                 usageByStyleId);
         }

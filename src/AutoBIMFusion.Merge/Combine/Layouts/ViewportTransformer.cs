@@ -80,11 +80,11 @@ internal static class ViewportTransformer
 
         var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
-        using var trx = db.TransactionManager.StartTransaction();
-        var modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
+        using var  = db.TransactionManager.StartTransaction();
+        var modelSpace = (BlockTableRecord).GetObject(msId, OpenMode.ForRead);
 
         foreach (var id in modelSpace)
-            if (trx.GetObject(id, OpenMode.ForWrite) is Entity ent)
+            if (.GetObject(id, OpenMode.ForWrite) is Entity ent)
             {
                 if (ent is Viewport) continue;
 
@@ -95,7 +95,7 @@ internal static class ViewportTransformer
                 {
                     var oldExt = ExtentsUtils.TryGetExtents(ent);
 
-                    var transformResult = EntityTransformUtils.TransformEntity(ent, matrix, trx);
+                    var transformResult = EntityTransformUtils.TransformEntity(ent, matrix, );
 
                     if (transformResult.SkippedAssociativeHatch) continue;
 
@@ -120,7 +120,7 @@ internal static class ViewportTransformer
                 }
             }
 
-        trx.Commit();
+        .Commit();
 
         if (errorTypes.Count > 0)
         {
@@ -136,14 +136,14 @@ internal static class ViewportTransformer
 
         List<ModelEntitySnapshot> result = [];
 
-        using var trx = db.TransactionManager.StartTransaction();
-        var modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
+        using var  = db.TransactionManager.StartTransaction();
+        var modelSpace = (BlockTableRecord).GetObject(msId, OpenMode.ForRead);
 
         foreach (var id in modelSpace)
         {
             total++;
 
-            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
+            if (.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
 
             if (ent is Viewport) continue;
 
@@ -153,7 +153,7 @@ internal static class ViewportTransformer
             result.Add(new ModelEntitySnapshot(id, ext.Value));
         }
 
-        trx.Commit();
+        .Commit();
         log.Debug($"CollectModelEntitiesWithExtents total={total}, cached={result.Count}");
         return result;
     }
@@ -184,16 +184,16 @@ internal static class ViewportTransformer
         using IdMapping map = [];
         CloneTransformResult result = new();
 
-        using (var trx = db.TransactionManager.StartTransaction())
+        using (var  = db.TransactionManager.StartTransaction())
         {
             db.DeepCloneObjects(validIds, ownerId, map, false);
 
             foreach (IdPair pair in map)
                 if (pair.IsCloned && pair.IsPrimary)
-                    if (trx.GetObject(pair.Value, OpenMode.ForWrite) is Entity e)
+                    if (.GetObject(pair.Value, OpenMode.ForWrite) is Entity e)
                         try
                         {
-                            _ = EntityTransformUtils.TransformEntity(e, matrix, trx);
+                            _ = EntityTransformUtils.TransformEntity(e, matrix, );
                             _ = result.ClonedIds.Add(pair.Value);
                         }
                         catch (Exception ex)
@@ -201,7 +201,7 @@ internal static class ViewportTransformer
                             log.Warning($"[ОШИБКА КЛОНА] {e.GetType().Name} {e.Handle}: {ex.Message}");
                         }
 
-            trx.Commit();
+            .Commit();
         }
 
         DrawOrderPreserver.Restore(db, ownerId, sourceOrder, map, log);
@@ -244,7 +244,7 @@ internal static class ViewportTransformer
                 _ = inMain.Add(s.Id);
 
         var erased = 0;
-        using var trx = db.TransactionManager.StartTransaction();
+        using var  = db.TransactionManager.StartTransaction();
 
         foreach (ObjectId id in auxEntities)
         {
@@ -252,14 +252,14 @@ internal static class ViewportTransformer
 
             if (id.IsErased) continue;
 
-            if (trx.GetObject(id, OpenMode.ForWrite) is Entity e && !e.IsErased)
+            if (.GetObject(id, OpenMode.ForWrite) is Entity e && !e.IsErased)
             {
                 e.Erase();
                 erased++;
             }
         }
 
-        trx.Commit();
+        .Commit();
         return erased;
     }
 

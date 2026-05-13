@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using SioForgeCAD.Commun;
 using SioForgeCAD.Commun.Extensions;
+using System.Diagnostics;
 
 namespace AutoBIMFusion.Common.Functions;
 
@@ -15,15 +15,22 @@ public static class EntityXDataManager
     /// </summary>
     public static void Read()
     {
-        var ed = Generic.GetEditor();
-        var db = Generic.GetDatabase();
-        var result = ed.GetEntity("Selectionnez un object");
-        if (result.Status != PromptStatus.OK) return;
-        using (var tr = db.TransactionManager.StartTransaction())
+        Editor ed = Generic.GetEditor();
+        Database db = Generic.GetDatabase();
+
+        PromptEntityResult result = ed.GetEntity("Selectionnez un object");
+
+        if (result.Status == PromptStatus.OK)
         {
+            using Transaction tr = db.TransactionManager.StartTransaction();
+
             if (result.ObjectId.GetDBObject() is Entity ent)
+            {
                 foreach (var item in ent.ReadXData())
+                {
                     Generic.WriteMessage(item.ToString());
+                }
+            }
         }
     }
 
@@ -32,17 +39,17 @@ public static class EntityXDataManager
     /// </summary>
     public static void Remove()
     {
-        var ed = Generic.GetEditor();
+        Editor ed = Generic.GetEditor();
 
-        if (ed.GetImpliedSelection(out var AllSelectedObjectImplied))
+        if (ed.GetImpliedSelection(out PromptSelectionResult? AllSelectedObjectImplied))
         {
             RemoveAllXDataFromCollection(AllSelectedObjectImplied.Value.GetObjectIds());
         }
         else
         {
-            var AllSelectedObjectRedraw =
+            (_, object Value) =
                 ed.GetSelectionRedraw("Selectionnez des entités pour lequels vous souhaitez supprimer les XDATAs");
-            RemoveAllXDataFromCollection(AllSelectedObjectRedraw.Value.GetObjectIds());
+            RemoveAllXDataFromCollection(Value.GetObjectIds());
         }
     }
 
@@ -51,7 +58,7 @@ public static class EntityXDataManager
     /// </summary>
     public static void RemoveAll()
     {
-        var db = Generic.GetDatabase();
+        Database db = Generic.GetDatabase();
         RemoveAllXDataFromCollection(db.GetAllObjects().Keys.ToList());
     }
 
@@ -60,20 +67,20 @@ public static class EntityXDataManager
     /// </summary>
     private static void RemoveAllXDataFromCollection(IList<ObjectId> objectIds)
     {
-        var db = Generic.GetDatabase();
-        using (var tr = db.TransactionManager.StartTransaction())
+        Database db = Generic.GetDatabase();
+        using Transaction tr = db.TransactionManager.StartTransaction();
+        foreach (ObjectId item in objectIds)
         {
-            foreach (var item in objectIds)
-                try
-                {
-                    item.GetDBObject().RemoveAllXdata();
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex.ToString());
-                }
-
-            tr.Commit();
+            try
+            {
+                item.GetDBObject().RemoveAllXdata();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.ToString());
+            }
         }
+
+        tr.Commit();
     }
 }

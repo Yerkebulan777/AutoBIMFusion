@@ -6,7 +6,7 @@ internal static class DimensionStyleNormalizer
 {
     internal static void NormalizeClonedStyles(
         IdMapping idMap,
-        Transaction trx,
+        Transaction ,
         double targetVisualScale,
         double linearScaleMultiplier)
     {
@@ -18,7 +18,7 @@ internal static class DimensionStyleNormalizer
             if (!pair.IsCloned || !pair.Value.IsValidForOperation())
                 continue;
 
-            var obj = trx.GetObject(pair.Value, OpenMode.ForWrite, false);
+            var obj = .GetObject(pair.Value, OpenMode.ForWrite, false);
 
             switch (obj)
             {
@@ -49,7 +49,7 @@ internal static class DimensionStyleNormalizer
             if (!processedDims.Add(pair.Value))
                 continue;
 
-            if (trx.GetObject(pair.Value, OpenMode.ForWrite, false) is not Dimension dim)
+            if (.GetObject(pair.Value, OpenMode.ForWrite, false) is not Dimension dim)
                 continue;
 
             var needsRecompute = false;

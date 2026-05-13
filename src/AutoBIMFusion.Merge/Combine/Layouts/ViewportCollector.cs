@@ -10,18 +10,18 @@ internal static class ViewportCollector
     {
         List<ViewportInfo> result = [];
 
-        using var trx = db.TransactionManager.StartTransaction();
-        var layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        using var  = db.TransactionManager.StartTransaction();
+        var layoutDict = (DBDictionary).GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         if (!layoutDict.Contains(layoutName))
         {
-            trx.Commit();
+            .Commit();
             return result;
         }
 
         var layoutId = layoutDict.GetAt(layoutName);
-        var layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
-        var btr = (BlockTableRecord)trx.GetObject(layout.BlockTableRecordId, OpenMode.ForRead);
+        var layout = (Layout).GetObject(layoutId, OpenMode.ForRead);
+        var btr = (BlockTableRecord).GetObject(layout.BlockTableRecordId, OpenMode.ForRead);
 
         var viewportClass = RXObject.GetClass(typeof(Viewport));
 
@@ -29,7 +29,7 @@ internal static class ViewportCollector
         {
             if (!id.ObjectClass.IsDerivedFrom(viewportClass)) continue;
 
-            var vp = (Viewport)trx.GetObject(id, OpenMode.ForRead);
+            var vp = (Viewport).GetObject(id, OpenMode.ForRead);
 
             if (vp.Number == 1 || !vp.On) continue;
 
@@ -54,7 +54,7 @@ internal static class ViewportCollector
             result.Add(info);
         }
 
-        trx.Commit();
+        .Commit();
         return result;
     }
 

@@ -11,13 +11,13 @@ public static class StyleUtils
     /// <summary>
     ///     Создаёт (или возвращает существующий) текстовый стиль с заданным шрифтом и высотой 0.
     /// </summary>
-    public static ObjectId GetOrCreateTextStyle(Database db, Transaction trx, string fontName)
+    public static ObjectId GetOrCreateTextStyle(Database db, Transaction , string fontName)
     {
-        var tt = (TextStyleTable)trx.GetObject(db.TextStyleTableId, OpenMode.ForRead);
+        var tt = (TextStyleTable).GetObject(db.TextStyleTableId, OpenMode.ForRead);
 
         if (tt.Has(fontName))
         {
-            var existing = (TextStyleTableRecord)trx.GetObject(tt[fontName], OpenMode.ForRead);
+            var existing = (TextStyleTableRecord).GetObject(tt[fontName], OpenMode.ForRead);
             if (existing.TextSize > 0.0)
             {
                 existing.UpgradeOpen();
@@ -37,14 +37,14 @@ public static class StyleUtils
         };
 
         var id = tt.Add(ts);
-        trx.AddNewlyCreatedDBObject(ts, true);
+        .AddNewlyCreatedDBObject(ts, true);
         return id;
     }
 
     /// <summary>
     ///     Гарантированно получает ObjectId системного блока стрелки.
     /// </summary>
-    public static ObjectId GetArrowBlockId(Database db, Transaction trx, string arrowName = "_ArchTick")
+    public static ObjectId GetArrowBlockId(Database db, Transaction , string arrowName = "_ArchTick")
     {
         var arrObjId = db.Dimblk;
 
@@ -63,7 +63,7 @@ public static class StyleUtils
 
             if (!string.IsNullOrEmpty(oldArrName)) Application.SetSystemVariable("DIMBLK", oldArrName);
 
-            var bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
+            var bt = (BlockTable).GetObject(db.BlockTableId, OpenMode.ForRead);
 
             if (bt.Has(arrowName)) arrObjId = bt[arrowName];
         }
