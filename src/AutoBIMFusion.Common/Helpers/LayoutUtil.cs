@@ -26,7 +26,7 @@ public static class LayoutUtil
             layoutName = layout.LayoutName;
         }
 
-        .Commit();
+        trx.Commit();
         return !string.IsNullOrEmpty(layoutName);
     }
 
@@ -35,20 +35,20 @@ public static class LayoutUtil
     /// </summary>
     public static ObjectId GetLayoutBtrId(Database db, string layoutName)
     {
-        using var  = db.TransactionManager.StartTransaction();
-        var dict = (DBDictionary).GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        using var trx = db.TransactionManager.StartTransaction();
+        var dict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         if (!dict.Contains(layoutName))
         {
-            .Commit();
+            trx.Commit();
             return ObjectId.Null;
         }
 
         var layoutId = dict.GetAt(layoutName);
-        var layout = (Layout).GetObject(layoutId, OpenMode.ForRead);
+        var layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
         var btrId = layout.BlockTableRecordId;
 
-        .Commit();
+        trx.Commit();
         return btrId;
     }
 
@@ -62,18 +62,18 @@ public static class LayoutUtil
         var viewportClass = RXObject.GetClass(typeof(Viewport));
         ObjectIdCollection result = [];
 
-        using var  = db.TransactionManager.StartTransaction();
-        var layoutDict = (DBDictionary).GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        using var trx = db.TransactionManager.StartTransaction();
+        var layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         if (!layoutDict.Contains(layoutName))
         {
-            .Commit();
+            trx.Commit();
             return result;
         }
 
         var layoutId = layoutDict.GetAt(layoutName);
-        var layout = (Layout).GetObject(layoutId, OpenMode.ForRead);
-        var btr = (BlockTableRecord).GetObject(layout.BlockTableRecordId, OpenMode.ForRead);
+        var layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
+        var btr = (BlockTableRecord)trx.GetObject(layout.BlockTableRecordId, OpenMode.ForRead);
 
         foreach (var id in btr)
         {
@@ -82,7 +82,7 @@ public static class LayoutUtil
             _ = result.Add(id);
         }
 
-        .Commit();
+        trx.Commit();
         return result;
     }
 }

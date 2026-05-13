@@ -37,7 +37,7 @@ public static class StyleUtils
         };
 
         var id = tt.Add(ts);
-        .AddNewlyCreatedDBObject(ts, true);
+        trx.AddNewlyCreatedDBObject(ts, true);
         return id;
     }
 
@@ -63,7 +63,7 @@ public static class StyleUtils
 
             if (!string.IsNullOrEmpty(oldArrName)) Application.SetSystemVariable("DIMBLK", oldArrName);
 
-            var bt = (BlockTable).GetObject(db.BlockTableId, OpenMode.ForRead);
+            var bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
 
             if (bt.Has(arrowName)) arrObjId = bt[arrowName];
         }

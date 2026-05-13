@@ -23,10 +23,10 @@ public static class BlockBasePointEditor
         TypedValue[] filterList = new[] { new TypedValue((int)DxfCode.Start, "INSERT") };
         var selectionOptions = new PromptSelectionOptions
         {
-            MessageForAdding = "Selectionnez un bloc",
             SingleOnly = true,
             SinglePickInSpace = true,
-            RejectObjectsOnLockedLayers = true
+            RejectObjectsOnLockedLayers = true,
+            MessageForAdding = "Selectionnez un bloc",
         };
 
         PromptSelectionResult promptResult;
