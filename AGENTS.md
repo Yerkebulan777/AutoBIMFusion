@@ -179,7 +179,7 @@ rg --version           # ripgrep — install: winget install BurntSushi.ripgrep.
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **AutoBIMFusion** (3279 symbols, 6387 relationships, 199 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **AutoBIMFusion** (3293 symbols, 6400 relationships, 199 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
