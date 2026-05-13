@@ -19,7 +19,7 @@ public static class BlockScaleApplier
         Database db = Generic.GetDatabase();
         Editor ed = Generic.GetEditor();
 
-        if (!ed.GetBlocks(out ObjectId[]? perObjIds, "Selectionnez un bloc"))
+        if (!ed.GetBlocks(out ObjectId[]? perObjIds, "Выберите блок"))
         {
             return;
         }
@@ -42,7 +42,7 @@ public static class BlockScaleApplier
 
                 if (!IsUniformScaleAllowNegative(blockRef))
                 {
-                    Generic.WriteMessage($"Le bloc \"{BlkName}\" n'a pas une échelle uniforme.");
+                    Generic.WriteMessage($"Блок \"{BlkName}\" не имеет равномерного масштаба.");
                     continue;
                 }
 
@@ -54,7 +54,7 @@ public static class BlockScaleApplier
 
                 if (Abs(refScale - 1.0) < Generic.LowTolerance.EqualVector && btr.Units == db.Insunits)
                 {
-                    Generic.WriteMessage($"Le bloc \"{BlkName}\" est déjà à l'échelle 1.");
+                    Generic.WriteMessage($"Блок \"{BlkName}\" уже имеет масштаб 1.");
                     continue;
                 }
 

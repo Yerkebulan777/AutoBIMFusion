@@ -15,7 +15,7 @@ using MenuItem = Autodesk.AutoCAD.Windows.MenuItem;
 
 namespace AutoBIMFusion.Common.Functions;
 
-public static class CONVERTIMAGETOOLE
+public static class ImageToOleConverter
 {
     public static void RasterToOle()
     {
@@ -29,14 +29,18 @@ public static class CONVERTIMAGETOOLE
             SingleOnly = false,
             RejectObjectsOnLockedLayers = true
         };
+
         var filterList = new[]
         {
             new TypedValue((int)DxfCode.Start, "IMAGE")
         };
+
         var ent = ed.GetSelection(selectionOptions, new SelectionFilter(filterList));
+
         if (ent.Status != PromptStatus.OK) return;
 
         foreach (var RasterObjectId in ent.Value.GetObjectIds())
+
             using (var tr = db.TransactionManager.StartTransaction())
             {
                 if (RasterObjectId.GetDBObject() is RasterImage rasterImage)
@@ -202,7 +206,7 @@ public static class CONVERTIMAGETOOLE
 
         private static void OnExecute(object? o, EventArgs e)
         {
-            Generic.SendStringToExecute("SIOFORGECAD.CONVERTIMAGETOOLE");
+            Generic.SendStringToExecute("SIOFORGECAD.ImageToOleConverter");
         }
     }
 }

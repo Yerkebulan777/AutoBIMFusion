@@ -99,7 +99,7 @@ public static class DrawingPurger
             tr.Commit();
         }
 
-        VIEWPORTLOCK.DoLockUnlock(true);
+        ViewportLock.DoLockUnlock(true);
     }
 
     private static class PurgeMethods
