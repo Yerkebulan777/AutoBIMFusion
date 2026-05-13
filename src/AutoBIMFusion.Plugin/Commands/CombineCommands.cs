@@ -90,10 +90,13 @@ public sealed class CombineCommands
                 DwgOptimizer.Optimize(doc.Database, log);
 
                 SaveMerged(doc.Database, savePath, log);
-
-                doc.SendStringToExecute("._REGENALL ", true, false, false);
-                doc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
             }
+
+            var docMgr = AcadApp.DocumentManager;
+            var savedDoc = docMgr.Open(savePath, false);
+            docMgr.MdiActiveDocument = savedDoc;
+            savedDoc.SendStringToExecute("._REGENALL ", true, false, false);
+            savedDoc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
 
             sw.Stop();
 
