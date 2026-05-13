@@ -34,6 +34,7 @@ public static class ViewportLock
     {
         var db = Generic.GetDatabase();
         var ed = Generic.GetEditor();
+
         TypedValue[] viewportFilter = [new((int)DxfCode.Start, "Viewport")];
 
         try
