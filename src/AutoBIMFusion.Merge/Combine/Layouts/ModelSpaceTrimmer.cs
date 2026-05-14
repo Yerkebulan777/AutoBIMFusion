@@ -21,7 +21,7 @@ internal static class ModelSpaceTrimmer
 
         if (result.HasValue)
         {
-            log.Debug($"ModelSpaceTrimmer.ComputeBounds: entities={entityIds.Count}, bounds={ExtentsUtils.FormatExtents(result.Value)}");
+            log.Debug($"ComputeBounds: entities={entityIds.Count}, bounds={ExtentsUtils.FormatExtents(result.Value)}");
         }
 
         return result;
