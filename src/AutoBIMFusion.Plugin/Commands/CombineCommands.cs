@@ -74,8 +74,8 @@ public sealed class CombineCommands
                 Stopwatch sw = Stopwatch.StartNew();
 
                 var docMgr = AcadApp.DocumentManager;
-                Document mergeDoc = docMgr.Add(string.Empty);
-                docMgr.MdiActiveDocument = mergeDoc;
+                MergeDocumentSelection target = SelectMergeDocument(docMgr, log);
+                Document mergeDoc = target.Document;
 
                 BlockInserter inserter = new(gapPercent, log);
                 await MergeFiles(dwgFiles, inserter, mergeDoc, stats, log);
@@ -92,6 +92,11 @@ public sealed class CombineCommands
 
                     mergeDoc.SendStringToExecute("._REGENALL ", true, false, false);
                     mergeDoc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
+                }
+
+                if (target.CloseAfterSave)
+                {
+                    CloseSavedMergeDocument(mergeDoc, log);
                 }
 
                 sw.Stop();
@@ -111,6 +116,93 @@ public sealed class CombineCommands
             {
                 _ = _mergeGate.Release();
             }
+        }
+    }
+
+    private static MergeDocumentSelection SelectMergeDocument(DocumentCollection docMgr, Logger log)
+    {
+        Document? activeDoc = docMgr.MdiActiveDocument;
+
+        if (activeDoc is not null && CanUseActiveDocument(activeDoc, log))
+        {
+            log.Information("MERGEDWG: используется текущий пустой документ \"{DocumentName}\".", activeDoc.Name);
+            return new MergeDocumentSelection(activeDoc, false);
+        }
+
+        Document mergeDoc = docMgr.Add(string.Empty);
+        docMgr.MdiActiveDocument = mergeDoc;
+        log.Information("MERGEDWG: создан временный итоговый документ \"{DocumentName}\".", mergeDoc.Name);
+        return new MergeDocumentSelection(mergeDoc, true);
+    }
+
+    private static bool CanUseActiveDocument(Document doc, Logger log)
+    {
+        if (doc.IsNamedDrawing)
+        {
+            log.Information("MERGEDWG: текущий документ \"{DocumentName}\" уже сохранён, результат будет собран во временном документе.", doc.Name);
+            return false;
+        }
+
+        try
+        {
+            using (doc.LockDocument())
+            {
+                bool isEmpty = IsDrawingContentEmpty(doc.Database);
+
+                if (!isEmpty)
+                {
+                    log.Information("MERGEDWG: текущий документ \"{DocumentName}\" не пустой, результат будет собран во временном документе.", doc.Name);
+                }
+
+                return isEmpty;
+            }
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception ex)
+        {
+            log.Warning(ex, "MERGEDWG: не удалось проверить текущий документ \"{DocumentName}\", результат будет собран во временном документе.", doc.Name);
+            return false;
+        }
+    }
+
+    private static bool IsDrawingContentEmpty(Database db)
+    {
+        using Transaction tr = db.TransactionManager.StartOpenCloseTransaction();
+        var blockTable = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+
+        bool isEmpty = IsBlockRecordEmpty(blockTable[BlockTableRecord.ModelSpace], tr)
+            && IsBlockRecordEmpty(blockTable[BlockTableRecord.PaperSpace], tr);
+
+        tr.Commit();
+        return isEmpty;
+    }
+
+    private static bool IsBlockRecordEmpty(ObjectId blockRecordId, Transaction tr)
+    {
+        var blockRecord = (BlockTableRecord)tr.GetObject(blockRecordId, OpenMode.ForRead);
+
+        foreach (ObjectId entityId in blockRecord)
+        {
+            var entity = (Entity)tr.GetObject(entityId, OpenMode.ForRead);
+
+            if (entity is not Viewport)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static void CloseSavedMergeDocument(Document doc, Logger log)
+    {
+        try
+        {
+            doc.CloseAndDiscard();
+            log.Information("MERGEDWG: временный итоговый документ закрыт после сохранения.");
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception ex)
+        {
+            log.Warning(ex, "MERGEDWG: не удалось автоматически закрыть временный итоговый документ \"{DocumentName}\".", doc.Name);
         }
     }
 
@@ -203,4 +295,6 @@ public sealed class CombineCommands
 
         UiDialogService.ShowMessage(summary, commandName);
     }
+
+    private readonly record struct MergeDocumentSelection(Document Document, bool CloseAfterSave);
 }
