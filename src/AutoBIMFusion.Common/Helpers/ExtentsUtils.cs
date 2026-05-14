@@ -97,7 +97,7 @@ public static class ExtentsUtils
     /// </summary>
     /// <param name="a">Первые габариты.</param>
     /// <param name="b">Вторые габариты.</param>
-    /// <returns>True, если прямоугольники пересекаются; иначе false.</returns>
+    /// <returns>True, если прямоугольники пересекаются или касаются; иначе false.</returns>
     public static bool AabbIntersect(Extents3d a, Extents3d b)
     {
         return a.MinPoint.X <= b.MaxPoint.X
@@ -230,5 +230,42 @@ public static class ExtentsUtils
         {
             db.Measurement = MeasurementValue.Metric;
         }
+    }
+
+    /// <summary>
+    ///     Проверяет примерное равенство двух габаритов AABB с заданной точностью.
+    ///     Сравнивает только координаты X и Y.
+    /// </summary>
+    public static bool ExtentsApproxEqual(Extents3d a, Extents3d b, double tolerance = 1e-6)
+    {
+        return Abs(a.MinPoint.X - b.MinPoint.X) <= tolerance
+               && Abs(a.MinPoint.Y - b.MinPoint.Y) <= tolerance
+               && Abs(a.MaxPoint.X - b.MaxPoint.X) <= tolerance
+               && Abs(a.MaxPoint.Y - b.MaxPoint.Y) <= tolerance;
+    }
+
+    /// <summary>
+    ///     Вычисляет объединённый AABB коллекции ObjectId.
+    ///     Возвращает null, если ни один объект не имеет валидных габаритов.
+    /// </summary>
+    public static Extents3d? ComputeBounds(Database db, ObjectIdCollection entityIds)
+    {
+        if (entityIds.Count == 0) return null;
+
+        Extents3d? acc = null;
+        using var trx = db.TransactionManager.StartTransaction();
+
+        foreach (ObjectId id in entityIds)
+        {
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
+
+            var ext = TryGetExtents(ent);
+            if (ext is null) continue;
+
+            acc = acc is null ? ext.Value : Union(acc.Value, ext.Value);
+        }
+
+        trx.Commit();
+        return acc;
     }
 }

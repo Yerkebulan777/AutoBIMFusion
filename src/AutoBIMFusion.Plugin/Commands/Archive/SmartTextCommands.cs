@@ -252,25 +252,7 @@ public sealed class SmartTextCommands
     }
 
     private static int LowerBoundByPerp(List<TextCandidate> sortedCandidates, double value)
-    {
-        int left = 0;
-        int right = sortedCandidates.Count;
-
-        while (left < right)
-        {
-            int middle = left + ((right - left) / 2);
-            if (sortedCandidates[middle].Perp < value)
-            {
-                left = middle + 1;
-            }
-            else
-            {
-                right = middle;
-            }
-        }
-
-        return left;
-    }
+        => AutoBIMFusion.Common.Helpers.AlgorithmUtils.LowerBound(sortedCandidates, value, c => c.Perp);
 
     private static bool AreHeightsClose(double first, double second)
     {
@@ -447,20 +429,7 @@ public sealed class SmartTextCommands
     /// чтобы они не интерпретировались как MText-команды форматирования.
     /// </summary>
     private static string EscapeMTextContent(string text)
-    {
-        if (string.IsNullOrEmpty(text))
-        {
-            return text;
-        }
-
-        // Экранируем обратный слэш первым, иначе последующие замены его задвоят
-        return text
-            .Replace("\\", "\\\\")
-            .Replace("{", "\\{")
-            .Replace("}", "\\}")
-            .Replace("\n", "\\P")
-            .Replace("\r", "");
-    }
+        => AutoBIMFusion.Common.Helpers.MTextUtils.EscapeMTextContent(text);
 
     private sealed record TextCandidate(TextElement Text, double Perp);
 
@@ -476,4 +445,3 @@ public sealed class SmartTextCommands
         Color Color,
         Entity OriginalEntity);
 }
-

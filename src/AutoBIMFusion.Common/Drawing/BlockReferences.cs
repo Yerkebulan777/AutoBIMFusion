@@ -642,4 +642,53 @@ public static class BlockReferences
         Int64 = 13,
         NotRecognized = 19
     }
+
+    // --- Утилиты для работы с блоками (перенесены из Merge) ---
+
+    /// <summary>
+    ///     Находит BlockReference с максимальной площадью среди переданных ObjectId.
+    ///     Возвращает габариты найденного блока или null, если ни одного блока нет.
+    /// </summary>
+    public static Extents3d? FindLargestByArea(Transaction trx, IEnumerable<ObjectId> ids)
+    {
+        Extents3d? bestExtents = null;
+        var bestArea = 0.0;
+
+        foreach (var id in ids)
+        {
+            if (trx.GetObject(id, OpenMode.ForRead) is not BlockReference br) continue;
+
+            var ext = AutoBIMFusion.Common.Helpers.ExtentsUtils.TryGetExtents(br);
+            if (!ext.HasValue) continue;
+
+            var width = ext.Value.MaxPoint.X - ext.Value.MinPoint.X;
+            var height = ext.Value.MaxPoint.Y - ext.Value.MinPoint.Y;
+            var area = width * height;
+
+            if (area > bestArea)
+            {
+                bestArea = area;
+                bestExtents = ext.Value;
+            }
+        }
+
+        return bestExtents;
+    }
+
+    /// <summary>
+    ///     Стирает все сущности внутри BlockTableRecord.
+    /// </summary>
+    public static void EraseBlockContents(Database db, ObjectId btrId)
+    {
+        if (btrId.IsNull) return;
+
+        using var trx = db.TransactionManager.StartTransaction();
+        var btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
+
+        foreach (var id in btr)
+            if (trx.GetObject(id, OpenMode.ForWrite) is Entity entity && !entity.IsErased)
+                entity.Erase();
+
+        trx.Commit();
+    }
 }

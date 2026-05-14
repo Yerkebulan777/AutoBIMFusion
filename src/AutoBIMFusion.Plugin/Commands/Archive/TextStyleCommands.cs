@@ -261,9 +261,7 @@ public sealed class TextStyleCommands
     }
 
     private static double Normalize(double value)
-    {
-        return Round(value / NumericTolerance) * NumericTolerance;
-    }
+        => AutoBIMFusion.Common.Helpers.NumericUtils.NormalizeToTolerance(value, NumericTolerance);
 
     private sealed record TextStyleData(ObjectId StyleId, string Name, TextStyleSignature Signature);
 
@@ -281,4 +279,3 @@ public sealed class TextStyleCommands
         double XScale,
         double ObliquingAngle);
 }
-
