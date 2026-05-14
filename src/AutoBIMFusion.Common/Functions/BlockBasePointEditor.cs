@@ -18,8 +18,10 @@ public static class BlockBasePointEditor
 
     /// <summary>
     ///     Переносит базовые точки пользовательских блоков в левый нижний угол без изменения вида вставок.
+    ///     Игнорирует мелкую геометрию и не трогает слишком маленькие блоки.
     /// </summary>
-    public static void NormalizeAllBlocksBasePoints(Database db)
+    public static void NormalizeAllBlocksBasePoints(Database db, double minEntityDiagonal = 25,
+        double minBlockDiagonal = 50)
     {
         ArgumentNullException.ThrowIfNull(db);
 
@@ -42,8 +44,14 @@ public static class BlockBasePointEditor
                 continue;
             }
 
-            Extents3d? blockExtents = GetBlockDefinitionExtents(blockDef, trx);
+            Extents3d? blockExtents = GetBlockDefinitionExtents(blockDef, trx, minEntityDiagonal);
             if (!blockExtents.HasValue)
+            {
+                continue;
+            }
+
+            double blockDiagonal = blockExtents.Value.MaxPoint.DistanceTo(blockExtents.Value.MinPoint);
+            if (blockDiagonal < minBlockDiagonal)
             {
                 continue;
             }
@@ -354,7 +362,8 @@ public static class BlockBasePointEditor
                || blockDef.Name.StartsWith("*", StringComparison.Ordinal);
     }
 
-    private static Extents3d? GetBlockDefinitionExtents(BlockTableRecord blockDef, Transaction trx)
+    private static Extents3d? GetBlockDefinitionExtents(BlockTableRecord blockDef, Transaction trx,
+        double minEntityDiagonal)
     {
         Extents3d? blockExtents = null;
 
@@ -367,6 +376,12 @@ public static class BlockBasePointEditor
 
             Extents3d? entityExtents = ExtentsUtils.TryGetExtents(entity);
             if (!entityExtents.HasValue)
+            {
+                continue;
+            }
+
+            double entityDiagonal = entityExtents.Value.MaxPoint.DistanceTo(entityExtents.Value.MinPoint);
+            if (entityDiagonal < minEntityDiagonal)
             {
                 continue;
             }
