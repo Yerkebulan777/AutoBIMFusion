@@ -74,7 +74,7 @@ internal static class ViewportTransformer
     ///     Viewport'ы пропускаются; особенности конкретных типов сущностей обрабатывает
     ///     <see cref="EntityTransformUtils" />.
     /// </summary>
-    internal static void ScaleModelSpaceObjects(Database db, Matrix3d matrix, double ratio, Logger log)
+    internal static void ScaleModelSpaceObjects(Database db, Matrix3d matrix, double ratio, ObjectIdCollection isolatedIds, Logger log)
     {
         Dictionary<string, int> errorTypes = [];
 
@@ -85,6 +85,11 @@ internal static class ViewportTransformer
 
         foreach (ObjectId id in modelSpace)
         {
+            if (isolatedIds.Contains(id))
+            {
+                continue;
+            }
+
             if (trx.GetObject(id, OpenMode.ForWrite) is Entity ent)
             {
                 if (ent is Viewport)
