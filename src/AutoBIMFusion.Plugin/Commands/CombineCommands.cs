@@ -89,19 +89,12 @@ public sealed class CombineCommands
                     SaveMerged(mergeDoc.Database, savePath, log);
                 }
 
-                if (ShouldCloseAfterSave(mergeDoc, target, log))
-                {
-                    CloseSavedMergeDocument(mergeDoc, log);
-                }
-                else
-                {
-                    mergeDoc.SendStringToExecute("._REGENALL ", true, false, false);
-                    mergeDoc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
-                }
+                log.Information($"Завершено: {stats}");
+
+                mergeDoc.SendStringToExecute("._REGENALL ", true, false, false);
+                mergeDoc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
 
                 sw.Stop();
-
-                log.Information($"Завершено: {stats}");
 
                 if (showDialogs)
                 {
@@ -223,19 +216,6 @@ public sealed class CombineCommands
 
         log.Warning("MERGEDWG: сохранение не привязало текущий документ \"{DocumentName}\" к файлу, документ будет закрыт после сохранения.", doc.Name);
         return true;
-    }
-
-    private static void CloseSavedMergeDocument(Document doc, Logger log)
-    {
-        try
-        {
-            doc.CloseAndDiscard();
-            log.Information("MERGEDWG: временный итоговый документ закрыт после сохранения.");
-        }
-        catch (Autodesk.AutoCAD.Runtime.Exception ex)
-        {
-            log.Warning(ex, "MERGEDWG: не удалось автоматически закрыть временный итоговый документ \"{DocumentName}\".", doc.Name);
-        }
     }
 
     private static async Task MergeFiles(string[] files, BlockInserter inserter, Document doc, CombineStatistics stats, Logger log)
