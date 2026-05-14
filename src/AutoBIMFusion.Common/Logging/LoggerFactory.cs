@@ -13,11 +13,11 @@ public static class LoggerFactory
 {
     private static readonly Lazy<Logger> SharedLogger = new(CreateFileLogger);
 
+    private const string BootstrapFailureFileName = "logger-bootstrap-failure.log";
     private const long MaxFileSizeBytes = 10L * 1024 * 1024; // 10 MB
     private const string LogLevelEnvVar = "LOG_LEVEL";
-    private const string BootstrapFailureFileName = "logger-bootstrap-failure.log";
-    private const int MaxRetainedFiles = 10;
     private const int AsyncBufferSize = 8192;
+    private const int MaxRetainedFiles = 5;
 
     public static Logger GetSharedLogger()
     {
