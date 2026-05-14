@@ -16,7 +16,6 @@ public static class LoggerFactory
     private const string BootstrapFailureFileName = "logger-bootstrap-failure.log";
     private const long MaxFileSizeBytes = 10L * 1024 * 1024; // 10 MB
     private const string LogLevelEnvVar = "LOG_LEVEL";
-    private const int AsyncBufferSize = 8192;
     private const int MaxRetainedFiles = 5;
 
     public static Logger GetSharedLogger()
@@ -92,18 +91,15 @@ public static class LoggerFactory
                 .MinimumLevel.Is(minimumLevel)
                 .Enrich.WithProperty("ProcessId", Environment.ProcessId)
                 .Enrich.With<ThreadIdEnricher>()
-                .WriteTo.Async(
-                    wt => wt.File(
-                        logFile,
-                        rollingInterval: RollingInterval.Day,
-                        rollOnFileSizeLimit: true,
-                        fileSizeLimitBytes: MaxFileSizeBytes,
-                        retainedFileCountLimit: MaxRetainedFiles,
-                        shared: true,
-                        outputTemplate:
-                        "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] (PID:{ProcessId}, TID:{ThreadId}) {Message:lj}{NewLine}{Exception}"),
-                    bufferSize: AsyncBufferSize,
-                    blockWhenFull: false)
+                .WriteTo.File(
+                    logFile,
+                    rollingInterval: RollingInterval.Day,
+                    rollOnFileSizeLimit: true,
+                    fileSizeLimitBytes: MaxFileSizeBytes,
+                    retainedFileCountLimit: MaxRetainedFiles,
+                    shared: true,
+                    outputTemplate:
+                    "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] (PID:{ProcessId}, TID:{ThreadId}) {Message:lj}{NewLine}{Exception}")
                 .WriteTo.Sink(new DiagnosticSink(minimumLevel))
                 .CreateLogger();
         }
