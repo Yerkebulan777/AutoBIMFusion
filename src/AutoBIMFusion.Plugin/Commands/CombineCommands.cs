@@ -329,4 +329,6 @@ public sealed class CombineCommands
     }
 
     private readonly record struct MergeDocumentSelection(Document Document, bool CloseAfterSave);
+
+
 }
