@@ -53,15 +53,14 @@ public static class ImageToOleConverter
             {
                 Color rasterImageColor = rasterImage.GetSystemDrawingColor();
                 DrawingImage bitmap = DrawingImage.FromFile(rasterImage.Path);
-                var ImageHasAlpha = bitmap.PixelFormat.HasFlag(PixelFormat.Alpha);
-                const string HasAlphaWarningMessage =
-                    "la transparence de l'image sera supprimée et remplacée par la couleur de l'object raster";
-                var ImageIsRotated = rasterImage.Rotation > 0;
-                const string IsRotatedWarningMessage =
-                    "les OLE ne supportent pas les rotations. Un fond sera appliqué de la couleur de l'object raster";
+                bool ImageHasAlpha = bitmap.PixelFormat.HasFlag(PixelFormat.Alpha);
+                const string HasAlphaWarningMessage = "la transparence de l'image sera supprimée et remplacée par la couleur de l'object raster";
+                bool ImageIsRotated = rasterImage.Rotation > 0;
+                const string IsRotatedWarningMessage = "les OLE ne supportent pas les rotations. Un fond sera appliqué de la couleur de l'object raster";
+
                 if (ImageHasAlpha || ImageIsRotated)
                 {
-                    var JoinedMessage = "Attention : ";
+                    string JoinedMessage = "Attention : ";
                     if (ImageHasAlpha && ImageIsRotated)
                     {
                         JoinedMessage += $"\n - {HasAlphaWarningMessage}\n - {IsRotatedWarningMessage}";
@@ -96,7 +95,7 @@ public static class ImageToOleConverter
                     }
                 }
 
-                var BitmapSize = bitmap.GetImageFileSize();
+                string BitmapSize = bitmap.GetImageFileSize();
                 Debug.WriteLine("Bitmap Size :" + BitmapSize);
 
                 Type? clipboardType = Type.GetType("System.Windows.Forms.Clipboard, System.Windows.Forms", false);
@@ -107,7 +106,7 @@ public static class ImageToOleConverter
                     continue;
                 }
 
-                var ClipBackup = clipboardType.GetMethod("GetDataObject", Type.EmptyTypes)?.Invoke(null, null);
+                object? ClipBackup = clipboardType.GetMethod("GetDataObject", Type.EmptyTypes)?.Invoke(null, null);
                 using (DrawingImage RotatedImage = bitmap.RotateImage(rasterImage.Rotation, rasterImageColor))
                 {
                     try
@@ -160,8 +159,8 @@ public static class ImageToOleConverter
                     InsertedOLE.LineWeight = LineWeight.ByBlock;
 
                     // Créer un bloc unique contenant l'OLE
-                    var oleFileName = new FileInfo(rasterImage.Path).Name;
-                    var blockName = BlockReferences.GetUniqueBlockName($"OLE_{oleFileName}");
+                    string oleFileName = new FileInfo(rasterImage.Path).Name;
+                    string blockName = BlockReferences.GetUniqueBlockName($"OLE_{oleFileName}");
 
                     Points blockOrigin = Points.From3DPoint(rasterExtent.MinPoint);
                     DBObject? oleClone = InsertedOLE.Clone() as DBObject;
@@ -196,8 +195,8 @@ public static class ImageToOleConverter
     {
         ExtentsSize FitBoundingBoxSize = FitBoundingBox.Size();
         ExtentsSize EntExtendSize = ent.GetExtents().Size();
-        var HeightRatio = FitBoundingBoxSize.Height / EntExtendSize.Height;
-        var WidthRatio = FitBoundingBoxSize.Width / EntExtendSize.Width;
+        double HeightRatio = FitBoundingBoxSize.Height / EntExtendSize.Height;
+        double WidthRatio = FitBoundingBoxSize.Width / EntExtendSize.Width;
         ent.LockAspect = Abs(HeightRatio - WidthRatio) <= Generic.LowTolerance.EqualPoint;
         ent.WcsHeight = FitBoundingBoxSize.Height;
         ent.WcsWidth = FitBoundingBoxSize.Width;
@@ -230,7 +229,7 @@ public static class ImageToOleConverter
 
         private static void OnExecute(object? o, EventArgs e)
         {
-            Generic.SendStringToExecute("SIOFORGECAD.ImageToOleConverter");
+            Generic.SendStringToExecute("ImageToOleConverter");
         }
     }
 }
