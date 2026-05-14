@@ -165,17 +165,17 @@ public static class ImageToOleCommands
                     Points blockOrigin = Points.From3DPoint(rasterExtent.MinPoint);
                     DBObject? oleClone = InsertedOLE.Clone() as DBObject;
 
-                    _ = BlockReferences.Create(blockName, "OLE Definition", [oleClone],
+                    _ = BlockReferences.Create(blockName, "OLE Definition", [oleClone!],
                         blockOrigin, false, BlockScaling.Uniform);
 
                     // Insérer le bloc et copier les propriétés de l'image raster
-                    ObjectId blkObj = BlockReferences.InsertFromName(blockName, blockOrigin, 0, null, rasterImage.Layer,
-                        rasterImage.Database.BlockTableId.GetDBObject(OpenMode.ForWrite) as BlockTableRecord);
+                    ObjectId blkObj = BlockReferences.InsertFromName(blockName, blockOrigin, 0, null!, rasterImage.Layer,
+                        (rasterImage.Database.BlockTableId.GetDBObject(OpenMode.ForWrite) as BlockTableRecord)!);
 
                     BlockReference? blkRef = blkObj.GetDBObject(OpenMode.ForWrite) as BlockReference;
-                    rasterImage.CopyPropertiesTo(blkRef);
+                    rasterImage.CopyPropertiesTo(blkRef!);
                     Generic.WriteMessage(
-                        $"Taille finale de l'image OLE dans le dessin : {FileUtil.FormatFileSizeFromByte(blkRef.ObjectId.GetObjectByteSize())}");
+                        $"Taille finale de l'image OLE dans le dessin : {FileUtil.FormatFileSizeFromByte(blkRef!.ObjectId.GetObjectByteSize())}");
                     // Nettoyer les objets sources
                     rasterImage.EraseObject();
                     InsertedOLE.EraseObject();

@@ -29,7 +29,7 @@ public static class XDataCommands
             {
                 foreach (object item in ent.ReadXData())
                 {
-                    Generic.WriteMessage(item.ToString());
+                    Generic.WriteMessage(item.ToString()!);
                 }
             }
         }

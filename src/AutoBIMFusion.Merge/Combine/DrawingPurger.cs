@@ -525,7 +525,7 @@ public static class DrawingPurger
             foreach (DBDictionaryEntry VisualStyleEntry in (DBDictionary)trx.GetObject(db.VisualStyleDictionaryId,
                          OpenMode.ForRead))
             {
-                if ((trx.GetObject(VisualStyleEntry.Value, OpenMode.ForRead) as DBVisualStyle).Type ==
+                if ((trx.GetObject(VisualStyleEntry.Value, OpenMode.ForRead) as DBVisualStyle)!.Type ==
                     VisualStyleType.Custom && !trx.GetObject(VisualStyleEntry.Value, OpenMode.ForRead).IsAProxy)
                 {
                     _ = objectIdCollection.Add(VisualStyleEntry.Value);
