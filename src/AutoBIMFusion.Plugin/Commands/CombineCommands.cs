@@ -35,8 +35,7 @@ public sealed class CombineCommands
             {
                 string? sourceFolder = folderPath;
 
-                if (string.IsNullOrWhiteSpace(sourceFolder) &&
-                    !UiDialogService.TrySelectFolder("Выберите папку с файлами DWG для объединения", out sourceFolder))
+                if (string.IsNullOrWhiteSpace(sourceFolder) && !UiDialogService.TrySelectFolder("Выберите папку с файлами DWG для объединения", out sourceFolder))
                 {
                     return;
                 }

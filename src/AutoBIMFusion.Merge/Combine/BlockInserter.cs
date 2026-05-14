@@ -29,37 +29,45 @@ public sealed class BlockInserter(double gapPercent, Logger log)
         double targetVisualScale,
         double linearScaleMultiplier)
     {
-        var insertPt = CalcInsertionPoint(sourceBounds);
+        Point3d insertPt = CalcInsertionPoint(sourceBounds);
         var displacement = Matrix3d.Displacement(new Vector3d(insertPt.X, insertPt.Y, insertPt.Z));
 
         try
         {
             ExtentsUtils.SyncUnits(targetDb);
 
-            var sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
-            var targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
+            ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
+            ObjectId targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
 
             using ObjectIdCollection sourceIds = [];
 
-            using (var srcTrx = sourceDb.TransactionManager.StartTransaction())
+            using (Transaction srcTrx = sourceDb.TransactionManager.StartTransaction())
             {
                 StyleUnificationService.NormalizeTextStyleNames(sourceDb, srcTrx);
                 StyleUnificationService.ApplyGostToAllStyles(sourceDb, srcTrx);
 
                 var ms = (BlockTableRecord)srcTrx.GetObject(sourceMsId, OpenMode.ForRead);
-                foreach (var id in ms)
+
+                foreach (ObjectId id in ms)
+                {
                     if (id.IsValidForOperation())
+                    {
                         _ = sourceIds.Add(id);
+                    }
+                }
 
                 srcTrx.Commit();
             }
 
-            if (sourceIds.Count == 0) return null;
+            if (sourceIds.Count == 0)
+            {
+                return null;
+            }
 
             Extents3d? worldBounds = null;
             var clonedCount = 0;
 
-            using var targetTr = targetDb.TransactionManager.StartTransaction();
+            using Transaction targetTr = targetDb.TransactionManager.StartTransaction();
 
             using IdMapping map = new();
             using (new DatabaseUnitSyncScope(sourceDb, targetDb))
@@ -69,18 +77,23 @@ public sealed class BlockInserter(double gapPercent, Logger log)
 
             foreach (IdPair pair in map)
             {
-                if (!pair.IsCloned || !pair.IsPrimary) continue;
+                if (!pair.IsCloned || !pair.IsPrimary)
+                {
+                    continue;
+                }
 
                 if (targetTr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
                 {
                     ent.TransformBy(displacement);
                     clonedCount++;
 
-                    var ext = ExtentsUtils.TryGetExtents(ent);
+                    Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
                     if (ext.HasValue)
+                    {
                         worldBounds = worldBounds.HasValue
                             ? ExtentsUtils.Union(worldBounds.Value, ext.Value)
                             : ext.Value;
+                    }
                 }
             }
 
