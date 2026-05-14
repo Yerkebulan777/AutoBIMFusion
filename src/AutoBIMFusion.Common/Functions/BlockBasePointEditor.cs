@@ -86,7 +86,7 @@ public static class BlockBasePointEditor
         {
             BlockReference? OriginalBlockRef = OriginalBlockObjectId.GetEntity() as BlockReference;
             oldName = OriginalBlockRef.GetBlockReferenceName();
-            newName = BlockReferences.GetUniqueBlockName("SIOFORGE_INTERNAL_" + oldName);
+            newName = BlockReferences.GetUniqueBlockName("INTERNAL-" + oldName);
             insertedBtrId = BlockReferences.InsertFromName(oldName, new Points(new Point3d(0, 0, 0)));
             BlockReference? insertedBlockRef = insertedBtrId.GetEntity() as BlockReference;
             trx.Commit();
