@@ -6,40 +6,10 @@ using Serilog.Core;
 namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
-///  Применяет масштаб выбранного блока к его определению.
-///  Затем синхронизирует все ссылки на этот блок, чтобы сохранить их визуальные пропорции.
+///  Нормализует масштаб определения блока и всех его вставок.
 /// </summary>
 public static class BlockScaleApplier
 {
-    /// <summary>
-    ///     Выбирает блок, проверяет равномерность его масштаба,
-    ///     масштабирует геометрию определения блока и обновляет все вставки.
-    /// </summary>
-    public static void ApplyBlockScale()
-    {
-        Database db = Generic.GetDatabase();
-        Editor ed = Generic.GetEditor();
-
-        if (!ed.GetBlocks(out ObjectId[]? perObjIds, "Выберите блок"))
-        {
-            return;
-        }
-
-        HashSet<string> processedBlocks = [];
-
-        using Transaction trx = db.TransactionManager.StartTransaction();
-
-        foreach (ObjectId perObjId in perObjIds)
-        {
-            if (trx.GetObject(perObjId, OpenMode.ForWrite) is BlockReference blockRef)
-            {
-                NormalizeBlockScale(db, trx, blockRef, processedBlocks);
-            }
-        }
-
-        trx.Commit();
-    }
-
     /// <summary>
     ///     Нормализует масштаб определения блока и всех его вставок в переданной базе.
     /// </summary>

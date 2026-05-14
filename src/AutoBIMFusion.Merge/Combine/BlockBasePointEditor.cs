@@ -1,9 +1,5 @@
-using AutoBIMFusion.Common.Drawing;
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Helpers;
-using AutoBIMFusion.Common.Mist;
-using AutoBIMFusion.Common.Mist.Geometry;
-using System.Diagnostics;
 
 namespace AutoBIMFusion.Merge.Combine;
 
@@ -66,74 +62,6 @@ public static class BlockBasePointEditor
         }
 
         trx.Commit();
-    }
-
-    /// <summary>
-    ///   Вычисляет матрицу смещения между исходной и временной базовой точкой динамического блока.
-    /// </summary>
-    public static Vector3d GetFakeOriginalBasePointInDynamicBlockMatrix(ObjectId OriginalBlockObjectId, out Extents3d OriginalBounds, out Extents3d EditedBounds)
-    {
-        Editor ed = Generic.GetEditor();
-        Database db = Generic.GetDatabase();
-
-        ObjectId insertedBtrId;
-        ObjectId insertedCopyBtrId;
-
-        string oldName;
-        string newName;
-
-        using (Transaction trx = db.TransactionManager.StartTransaction())
-        {
-            BlockReference? OriginalBlockRef = OriginalBlockObjectId.GetEntity() as BlockReference;
-            oldName = OriginalBlockRef!.GetBlockReferenceName();
-            newName = BlockReferences.GetUniqueBlockName("INTERNAL-" + oldName);
-            insertedBtrId = BlockReferences.InsertFromName(oldName, new Points(new Point3d(0, 0, 0)));
-            BlockReference? insertedBlockRef = insertedBtrId.GetEntity() as BlockReference;
-            trx.Commit();
-            OriginalBounds = insertedBlockRef!.GeometricExtents;
-        }
-
-        using (Transaction trx = db.TransactionManager.StartTransaction())
-        {
-            insertedCopyBtrId = BlockReferences.RenameBlockAndInsert(insertedBtrId, newName);
-            if (insertedCopyBtrId == ObjectId.Null)
-            {
-                Generic.WriteMessage("Echec lors de l'opération");
-                trx.Abort();
-                EditedBounds = OriginalBounds;
-                return Vector3d.ZAxis;
-            }
-
-            Generic.Command("_-BEDIT", newName);
-            SelectionFilter filter = new(new[] { new TypedValue((int)DxfCode.Start, "BASEPOINTPARAMETERENTITY") });
-            PromptSelectionResult selRes = ed.SelectAll(filter);
-            if (selRes.Status == PromptStatus.OK)
-            {
-                foreach (ObjectId objectId in selRes.Value.GetObjectIds())
-                {
-                    _ = objectId.GetDBObject();
-                    objectId.EraseObject();
-                    Debug.WriteLine("Erase BASEPOINTPARAMETERENTITY");
-                }
-            }
-
-            trx.Commit();
-        }
-
-        using (Transaction tr2 = db.TransactionManager.StartTransaction())
-        {
-            Generic.Command("_BCLOSE", "_Save");
-            Generic.Command("_RESETBLOCK", insertedCopyBtrId, "");
-            EditedBounds = insertedCopyBtrId.GetEntity().GeometricExtents;
-            // Очистка временных объектов.
-            insertedBtrId.EraseObject();
-            insertedCopyBtrId.EraseObject();
-            tr2.Commit();
-        }
-
-        BlockReferences.Purge(newName);
-        Vector3d Matrix = OriginalBounds.TopLeft() - EditedBounds.TopLeft();
-        return Matrix;
     }
 
     private static bool ShouldSkipBlockDefinition(BlockTableRecord blockDef)
