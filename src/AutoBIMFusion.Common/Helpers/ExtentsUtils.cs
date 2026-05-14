@@ -1,4 +1,3 @@
-using AutoBIMFusion.Common.Extensions;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
 namespace AutoBIMFusion.Common.Helpers;
@@ -61,13 +60,16 @@ public static class ExtentsUtils
 
     /// <summary>
     ///     Проверяет, находится ли точка внутри габаритов 3D (включая границы).
-    ///     Делегирует к <see cref="Extends3dExtensions.IsPointIn"/>.
     /// </summary>
     /// <param name="extents">Габариты.</param>
     /// <param name="point">Точка.</param>
     /// <returns>True, если точка внутри; иначе false.</returns>
     public static bool IsPointIn(Extents3d extents, Point3d point)
-        => extents.IsPointIn(point);
+    {
+        return point.X >= extents.MinPoint.X && point.X <= extents.MaxPoint.X
+                                             && point.Y >= extents.MinPoint.Y && point.Y <= extents.MaxPoint.Y
+                                             && point.Z >= extents.MinPoint.Z && point.Z <= extents.MaxPoint.Z;
+    }
 
     /// <summary>
     ///     Проверяет, находится ли базовая точка сущности (Position/Location) внутри габаритов.
@@ -92,13 +94,17 @@ public static class ExtentsUtils
 
     /// <summary>
     ///     Проверяет пересечение двух AABB (Axis-Aligned Bounding Box) прямоугольников.
-    ///     Делегирует к <see cref="Extends3dExtensions.CollideWithOrConnected"/>.
     /// </summary>
     /// <param name="a">Первые габариты.</param>
     /// <param name="b">Вторые габариты.</param>
     /// <returns>True, если прямоугольники пересекаются или касаются; иначе false.</returns>
     public static bool AabbIntersect(Extents3d a, Extents3d b)
-        => a.CollideWithOrConnected(b);
+    {
+        return a.MinPoint.X <= b.MaxPoint.X
+               && a.MaxPoint.X >= b.MinPoint.X
+               && a.MinPoint.Y <= b.MaxPoint.Y
+               && a.MaxPoint.Y >= b.MinPoint.Y;
+    }
 
     /// <summary>
     ///     Объединяет два набора габаритов в один, охватывающий оба.
