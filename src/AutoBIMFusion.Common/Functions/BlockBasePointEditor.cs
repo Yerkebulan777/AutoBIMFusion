@@ -20,13 +20,15 @@ public static class BlockBasePointEditor
     {
         Editor ed = Generic.GetEditor();
         Database db = Generic.GetDatabase();
+
         TypedValue[] filterList = new[] { new TypedValue((int)DxfCode.Start, "INSERT") };
+
         PromptSelectionOptions selectionOptions = new()
         {
             SingleOnly = true,
             SinglePickInSpace = true,
             RejectObjectsOnLockedLayers = true,
-            MessageForAdding = "Selectionnez un bloc",
+            MessageForAdding = "Selectionnez un block",
         };
 
         PromptSelectionResult promptResult;
@@ -119,8 +121,7 @@ public static class BlockBasePointEditor
             {
                 if (entId.GetDBObject(OpenMode.ForWrite) is BlockReference otherBlockRef)
                 {
-                    Vector3d TransformedFixPositionV2 = FixPosition.TransformBy(blockRef.BlockTransform.Inverse())
-                        .TransformBy(otherBlockRef.BlockTransform);
+                    Vector3d TransformedFixPositionV2 = FixPosition.TransformBy(blockRef.BlockTransform.Inverse()).TransformBy(otherBlockRef.BlockTransform);
                     otherBlockRef.TransformBy(Matrix3d.Displacement(TransformedFixPositionV2));
                     otherBlockRef.RecordGraphicsModified(true);
                 }
@@ -137,6 +138,7 @@ public static class BlockBasePointEditor
         Point3d BlockReferenceTransformedPoint, out Point3d OriginalBlocBasePointInModelSpace)
     {
         OriginalBlocBasePointInModelSpace = new Point3d(0, 0, 0);
+
         Editor ed = Generic.GetEditor();
         Database db = Generic.GetDatabase();
 
@@ -156,10 +158,8 @@ public static class BlockBasePointEditor
             return [];
         }
 
-        OriginalBlocBasePointInModelSpace =
-            blockRef.Position.TransformBy(Matrix3d.Displacement(FakeOriginalBasePointMatrix));
-        Point3d FakeBlocBasePointInBlocSpace =
-            new Point3d(0, 0, 0).TransformBy(Matrix3d.Displacement(FakeOriginalBasePointMatrix * -1));
+        OriginalBlocBasePointInModelSpace = blockRef.Position.TransformBy(Matrix3d.Displacement(FakeOriginalBasePointMatrix));
+        Point3d FakeBlocBasePointInBlocSpace = new Point3d(0, 0, 0).TransformBy(Matrix3d.Displacement(FakeOriginalBasePointMatrix * -1));
 
         string BlockName = blockRef.GetBlockReferenceName();
         // Собираем все ссылки динамического блока, чтобы после BEDIT обновить их без задержек.
