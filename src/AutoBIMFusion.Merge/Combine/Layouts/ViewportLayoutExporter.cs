@@ -1,6 +1,6 @@
-using System.Runtime.Versioning;
 using AutoBIMFusion.Common.Helpers;
 using Serilog.Core;
+using System.Runtime.Versioning;
 using Exception = System.Exception;
 
 namespace AutoBIMFusion.Merge.Combine.Layouts;
@@ -37,15 +37,18 @@ internal static class ViewportLayoutExporter
 
             ExtentsUtils.SyncUnits(db);
 
-            using (var trx = db.TransactionManager.StartTransaction())
+            using (Transaction trx = db.TransactionManager.StartTransaction())
             {
                 var bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
 
-                foreach (var btrId in bt)
+                foreach (ObjectId btrId in bt)
                 {
                     var btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForWrite);
 
-                    if (!btr.IsFromExternalReference) btr.Units = UnitsValue.Millimeters;
+                    if (!btr.IsFromExternalReference)
+                    {
+                        btr.Units = UnitsValue.Millimeters;
+                    }
                 }
 
                 trx.Commit();
@@ -58,14 +61,16 @@ internal static class ViewportLayoutExporter
                 return null;
             }
 
-            var vps = ViewportCollector.Collect(db, layoutName);
+            List<ViewportInfo> vps = ViewportCollector.Collect(db, layoutName);
 
             DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "source-before-normalize");
 
-            var projection = LayoutProjectionProcessor.ProjectLayoutToModelSpace(db, layoutName, vps, log);
+            LayoutProjectionProcessor.LayoutProjectionResult projection = LayoutProjectionProcessor.ProjectLayoutToModelSpace(db, layoutName, vps, log);
 
             if (projection.FrameBounds.HasValue)
+            {
                 _ = ModelSpaceTrimmer.TrimOutside(db, projection.FrameBounds.Value, log);
+            }
 
             DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "source-after-normalize-before-clone");
 

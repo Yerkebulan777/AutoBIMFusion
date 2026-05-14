@@ -11,16 +11,11 @@ namespace AutoBIMFusion.Merge.Combine;
 public static class BlockScaleApplier
 {
     /// <summary>
-    ///     Нормализует масштаб определения блока и всех его вставок в переданной базе.
+    /// Нормализует масштаб определения блока и всех его вставок в переданной базе.
     /// </summary>
-    public static void NormalizeBlockScale(Database db, Transaction trx, BlockReference blockRef,
-        HashSet<string> processedBlocks)
+    public static void NormalizeBlockScale(Database db, Transaction trx, BlockReference blockRef, HashSet<string> processedBlocks)
     {
-        ArgumentNullException.ThrowIfNull(db);
-        ArgumentNullException.ThrowIfNull(trx);
         ArgumentNullException.ThrowIfNull(blockRef);
-        ArgumentNullException.ThrowIfNull(processedBlocks);
-
         Logger log = LoggerFactory.GetSharedLogger();
 
         ObjectId blockDefinitionId = GetBlockDefinitionId(blockRef);
@@ -31,6 +26,7 @@ public static class BlockScaleApplier
         }
 
         BlockTableRecord btr = (BlockTableRecord)trx.GetObject(blockDefinitionId, OpenMode.ForWrite);
+
         string blockName = btr.Name;
 
         if (!processedBlocks.Add(blockName))

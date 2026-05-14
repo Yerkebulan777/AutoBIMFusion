@@ -48,6 +48,7 @@ public sealed class BlockInserter(double gapPercent, Logger log)
                 StyleUnificationService.ApplyGostToAllStyles(sourceDb, srcTrx);
 
                 var ms = (BlockTableRecord)srcTrx.GetObject(sourceMsId, OpenMode.ForRead);
+
                 HashSet<string> processedBlocks = [];
 
                 foreach (ObjectId id in ms)
