@@ -1,8 +1,6 @@
-using System.Globalization;
 using System.Reflection;
 using System.Text;
 using AutoBIMFusion.Common.Helpers;
-using Autodesk.AutoCAD.Colors;
 using Serilog.Core;
 using Exception = System.Exception;
 
@@ -157,7 +155,7 @@ public static class DimensionStyleDiagnosticUtils
             BuildComparisonKey(styleHandle, style.Name),
             style.Name,
             styleHandle,
-            FormatObjectId(style.ObjectId),
+            FormatUtils.FormatObjectId(style.ObjectId),
             style.IsDependent,
             ReadOptionalBool(style, "IsResolved"),
             usage.Count,
@@ -179,7 +177,7 @@ public static class DimensionStyleDiagnosticUtils
                 continue;
             }
 
-            properties[propertyName] = FormatPropertyValue(style, property);
+            properties[propertyName] = ReflectionHelper.FormatPropertyValue(style, property);
         }
 
         return properties;
@@ -201,14 +199,14 @@ public static class DimensionStyleDiagnosticUtils
     {
         StringBuilder builder = new();
         _ = builder
-            .Append("styleName=\"").Append(Escape(style.Name)).Append("\", ")
+            .Append("styleName=\"").Append(StringUtils.EscapeForQuotedContext(style.Name)).Append("\", ")
             .Append("styleHandle=").Append(style.Handle).Append(",  ")
-            .Append("objectId=").Append(FormatObjectId(style.ObjectId)).Append(", ")
+            .Append("objectId=").Append(FormatUtils.FormatObjectId(style.ObjectId)).Append(", ")
             .Append("isDependent=").Append(style.IsDependent).Append(", ")
             .Append("isResolved=").Append(ReadOptionalBool(style, "IsResolved")).Append(", ")
             .Append("properties={ ");
 
-        AppendDimStyleProperties(builder, style);
+        FormatUtils.AppendDimStyleProperties(builder, style);
         _ = builder.Append(" }");
 
         return builder.ToString();
@@ -242,7 +240,7 @@ public static class DimensionStyleDiagnosticUtils
         {
             if (hasPrevious) _ = builder.Append(", ");
 
-            _ = builder.Append(property.Name).Append('=').Append(FormatPropertyValue(style, property));
+            _ = builder.Append(property.Name).Append('=').Append(ReflectionHelper.FormatPropertyValue(style, property));
             hasPrevious = true;
         }
     }
@@ -251,7 +249,7 @@ public static class DimensionStyleDiagnosticUtils
     {
         StringBuilder builder = new();
         _ = builder
-            .Append("styleName=\"").Append(Escape(style.StyleName)).Append("\", ")
+            .Append("styleName=\"").Append(StringUtils.EscapeForQuotedContext(style.StyleName)).Append("\", ")
             .Append("styleHandle=").Append(style.StyleHandle).Append(", ")
             .Append("objectId=").Append(style.ObjectIdText).Append(", ")
             .Append("isDependent=").Append(style.IsDependent).Append(", ")
@@ -260,7 +258,7 @@ public static class DimensionStyleDiagnosticUtils
             .Append("dimensionHandleSamples=").Append(FormatDimensionHandles(style.DimensionHandleSamples)).Append(", ")
             .Append("properties={ ");
 
-        AppendProperties(builder, style.SummaryProperties);
+        FormatUtils.AppendProperties(builder, style.SummaryProperties);
         _ = builder.Append(" }");
 
         return builder.ToString();
@@ -371,7 +369,7 @@ public static class DimensionStyleDiagnosticUtils
     {
         _ = builder
             .Append("key=").Append(style.ComparisonKey)
-            .Append(", styleName=\"").Append(Escape(style.StyleName)).Append('"')
+            .Append(", styleName=\"").Append(StringUtils.EscapeForQuotedContext(style.StyleName)).Append('"')
             .Append(", styleHandle=").Append(style.StyleHandle);
     }
 
@@ -401,7 +399,7 @@ public static class DimensionStyleDiagnosticUtils
         AppendDiffPrefix(builder, fromStage, toStage, "added");
         AppendDiffStyleIdentity(builder, style);
         _ = builder.Append(", values={ ");
-        AppendProperties(builder, style.SummaryProperties);
+        FormatUtils.AppendProperties(builder, style.SummaryProperties);
         _ = builder.Append(" }");
 
         return builder.ToString();
@@ -465,93 +463,13 @@ public static class DimensionStyleDiagnosticUtils
         }
     }
 
-    private static string FormatColor(Color color)
-    {
-        return $"{color.ColorMethod}:{color.ColorIndex}";
-    }
-
-    private static string FormatObjectId(ObjectId id)
-    {
-        if (id.IsNull) return "Null";
-
-        try
-        {
-            return id.Handle.ToString();
-        }
-        catch (Exception ex)
-        {
-            return $"<error: {ex.GetType().Name}>";
-        }
-    }
-
-    private static string FormatPropertyValue(DimStyleTableRecord style, PropertyInfo property)
-    {
-        try
-        {
-            return FormatValue(property.GetValue(style));
-        }
-        catch (TargetInvocationException ex) when (ex.InnerException is not null)
-        {
-            return $"<error: {ex.InnerException.GetType().Name}>";
-        }
-        catch (Exception ex)
-        {
-            return $"<error: {ex.GetType().Name}>";
-        }
-    }
-
-    private static string FormatValue(object? value)
-    {
-        return value switch
-        {
-            null => "null",
-            string text => $"\"{Escape(text)}\"",
-            double d => F(d),
-            float f => F(f),
-            decimal d => d.ToString("0.######", CultureInfo.InvariantCulture),
-            bool b => b ? "true" : "false",
-            Color color => FormatColor(color),
-            ObjectId id => FormatObjectId(id),
-            Enum e => e.ToString(),
-            IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
-            _ => $"\"{Escape(value.ToString())}\""
-        };
-    }
-
     private static string ReadOptionalBool(DimStyleTableRecord style, string propertyName)
     {
         var property =
             typeof(DimStyleTableRecord).GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public);
         return property is null || property.PropertyType != typeof(bool) || property.GetIndexParameters().Length > 0
             ? "n/a"
-            : FormatPropertyValue(style, property);
-    }
-
-    private static string F(double value)
-    {
-        return double.IsFinite(value) ? value.ToString("F6", CultureInfo.InvariantCulture) : "n/a";
-    }
-
-    /// <summary>
-    ///     Escapes special characters in a string for safe inclusion in a quoted context.
-    /// </summary>
-    /// <remarks>
-    ///     This method replaces backslashes (\), double quotes (") with their escaped forms, and
-    ///     converts carriage return and line feed characters to \r and \n, respectively. This is useful when preparing
-    ///     strings for serialization or display in formats that require escaping of these characters.
-    /// </remarks>
-    /// <param name="value">The string to escape. If null, an empty string is used.</param>
-    /// <returns>
-    ///     A string with backslashes, double quotes, carriage returns, and line feeds replaced by their escaped
-    ///     representations.
-    /// </returns>
-    private static string Escape(string? value)
-    {
-        return (value ?? string.Empty)
-            .Replace("\\", "\\\\", StringComparison.Ordinal)
-            .Replace("\"", "\\\"", StringComparison.Ordinal)
-            .Replace("\r", "\\r", StringComparison.Ordinal)
-            .Replace("\n", "\\n", StringComparison.Ordinal);
+            : ReflectionHelper.FormatPropertyValue(style, property);
     }
 
     private sealed class DimensionStyleUsage

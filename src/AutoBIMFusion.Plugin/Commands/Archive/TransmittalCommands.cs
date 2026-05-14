@@ -1,3 +1,4 @@
+using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Infrastructure.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
@@ -44,7 +45,7 @@ public sealed class TransmittalCommands
 
         try
         {
-            PrepareOutputFolders(destinationRoot, tempFolder, zipFilePath);
+            FileUtil.PrepareOutputFolders(destinationRoot, tempFolder, zipFilePath);
 
             log.Information("Сбор файлов eTransmit...");
 
@@ -82,9 +83,41 @@ public sealed class TransmittalCommands
         }
         finally
         {
-            TryDeleteTempFolder(tempFolder, log);
+            FileUtil.TryDeleteDirectory(tempFolder, log);
             log.Information("Завершение команды CreateETransmitZip.");
         }
+    }
+
+    private static void ConfigureTransmittalInfo(dynamic transmittalInfo, string tempFolder, Logger log)
+    {
+        // AutoCAD версии могут использовать разные имена для поля назначения
+        bool destinationSet = false;
+        foreach (string candidateName in new[] { "destinationRoot", "DestinationRoot", "destination_root", "DestFolder", "destFolder" })
+        {
+            try
+            {
+                ReflectionHelper.SetMemberValue(transmittalInfo, candidateName, tempFolder, required: true);
+                log.Debug($"Поле назначения eTransmit задано через: {candidateName}");
+                destinationSet = true;
+                break;
+            }
+            catch (MissingMemberException)
+            {
+                // Попробуем следующий вариант
+            }
+        }
+
+        if (!destinationSet)
+        {
+            log.Warning("Не удалось задать папку назначения eTransmit — ни одно из известных имён полей не найдено. Пакет может быть создан в папке по умолчанию.");
+        }
+
+        ReflectionHelper.SetMemberValue(transmittalInfo, "preserveSubdirs", 0);
+        ReflectionHelper.SetMemberValue(transmittalInfo, "includeXrefDwg", 1);
+        ReflectionHelper.SetMemberValue(transmittalInfo, "includeImageFile", 1);
+        ReflectionHelper.SetMemberValue(transmittalInfo, "includeFontFile", 1);
+        ReflectionHelper.SetMemberValue(transmittalInfo, "includePlotFile", 1);
+        ReflectionHelper.SetMemberValue(transmittalInfo, "includeDataLinkFile", 1);
     }
 
     private static bool TryCreateTransmittalOperation(out object? operation, out string reason, Logger log)
@@ -104,7 +137,7 @@ public sealed class TransmittalCommands
 
         Type? transmittalOperationType = AppDomain.CurrentDomain
             .GetAssemblies()
-            .SelectMany(SafeGetTypes)
+            .SelectMany(ReflectionHelper.SafeGetTypes)
             .FirstOrDefault(type => string.Equals(type.Name, "TransmittalOperation", StringComparison.Ordinal));
 
         if (transmittalOperationType is null)
@@ -122,97 +155,6 @@ public sealed class TransmittalCommands
 
         operation = instance;
         return true;
-    }
-
-    private static void ConfigureTransmittalInfo(dynamic transmittalInfo, string tempFolder, Logger log)
-    {
-        // AutoCAD версии могут использовать разные имена для поля назначения
-        bool destinationSet = false;
-        foreach (string candidateName in new[] { "destinationRoot", "DestinationRoot", "destination_root", "DestFolder", "destFolder" })
-        {
-            try
-            {
-                SetMemberValue(transmittalInfo, candidateName, tempFolder, log, required: true);
-                log.Debug($"Поле назначения eTransmit задано через: {candidateName}");
-                destinationSet = true;
-                break;
-            }
-            catch (MissingMemberException)
-            {
-                // Попробуем следующий вариант
-            }
-        }
-
-        if (!destinationSet)
-        {
-            log.Warning("Не удалось задать папку назначения eTransmit — ни одно из известных имён полей не найдено. Пакет может быть создан в папке по умолчанию.");
-        }
-
-        SetMemberValue(transmittalInfo, "preserveSubdirs", 0, log);
-        SetMemberValue(transmittalInfo, "includeXrefDwg", 1, log);
-        SetMemberValue(transmittalInfo, "includeImageFile", 1, log);
-        SetMemberValue(transmittalInfo, "includeFontFile", 1, log);
-        SetMemberValue(transmittalInfo, "includePlotFile", 1, log);
-        SetMemberValue(transmittalInfo, "includeDataLinkFile", 1, log);
-    }
-
-    private static void SetMemberValue(object target, string memberName, object value, Logger log, bool required = false)
-    {
-        const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase;
-
-        Type targetType = target.GetType();
-
-        PropertyInfo? property = targetType.GetProperty(memberName, flags);
-        if (property is not null && property.CanWrite)
-        {
-            property.SetValue(target, ConvertMemberValue(value, property.PropertyType));
-            return;
-        }
-
-        FieldInfo? field = targetType.GetField(memberName, flags);
-        if (field is not null)
-        {
-            field.SetValue(target, ConvertMemberValue(value, field.FieldType));
-            return;
-        }
-
-        if (required)
-        {
-            throw new MissingMemberException(targetType.FullName, memberName);
-        }
-
-        log.Debug($"Параметр eTransmit недоступен и будет пропущен: {memberName}");
-    }
-
-    private static object? ConvertMemberValue(object value, Type targetType)
-    {
-        Type effectiveType = Nullable.GetUnderlyingType(targetType) ?? targetType;
-
-        return effectiveType == typeof(bool) && value is int intValue
-            ? intValue != 0
-            : effectiveType == typeof(int) && value is bool boolValue
-            ? boolValue ? 1 : 0
-            : effectiveType.IsEnum
-            ? Enum.ToObject(effectiveType, value)
-            : effectiveType == value.GetType()
-            ? value
-            : Convert.ChangeType(value, effectiveType, CultureInfo.InvariantCulture);
-    }
-
-    private static IEnumerable<Type> SafeGetTypes(Assembly assembly)
-    {
-        try
-        {
-            return assembly.GetTypes();
-        }
-        catch (ReflectionTypeLoadException ex)
-        {
-            return ex.Types.Where(type => type is not null)!;
-        }
-        catch (System.Exception)
-        {
-            return [];
-        }
     }
 
     private static void TryLoadAssemblyByName(string assemblyName, Logger log)
@@ -241,41 +183,4 @@ public sealed class TransmittalCommands
             log.Debug($"TryLoadAssemblyByPath: {assemblyPath} — {ex.GetType().Name}: {ex.Message}");
         }
     }
-
-    private static void PrepareOutputFolders(string destinationRoot, string tempFolder, string zipFilePath)
-    {
-        _ = Directory.CreateDirectory(destinationRoot);
-
-        if (Directory.Exists(tempFolder))
-        {
-            Directory.Delete(tempFolder, true);
-        }
-
-        _ = Directory.CreateDirectory(tempFolder);
-
-        if (File.Exists(zipFilePath))
-        {
-            File.Delete(zipFilePath);
-        }
-    }
-
-    private static void TryDeleteTempFolder(string tempFolder, Logger log)
-    {
-        try
-        {
-            if (Directory.Exists(tempFolder))
-            {
-                Directory.Delete(tempFolder, true);
-            }
-        }
-        catch (IOException ex)
-        {
-            log.Warning(ex, $"Не удалось удалить временную папку: {tempFolder}");
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            log.Warning(ex, $"Нет прав на удаление временной папки: {tempFolder}");
-        }
-    }
 }
-

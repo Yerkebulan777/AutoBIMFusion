@@ -75,7 +75,7 @@ public static class ViewportsExtensions
 
     public static void ModelToPaper(this Entity entity, Viewport viewport)
     {
-        entity.TransformBy(viewport.GetModelToPaperTransform());
+        entity.TransformBy(viewport.GetPaperToModelTransform());
     }
 
     public static void PaperToModel(this IEnumerable<Entity> src, Viewport viewport)
@@ -182,5 +182,77 @@ public static class ViewportsExtensions
         {
             trx.Commit();
         }
+    }
+
+    // --- DCS → WCS координатные преобразования для Viewport ---
+
+    /// <summary>
+    ///     Строит матрицу преобразования DCS → WCS для Viewport.
+    ///     DCS (Display Coordinate System) — система координат экрана Viewport.
+    /// </summary>
+    public static Matrix3d GetDcsToWcsMatrix(this Viewport vp)
+    {
+        return Matrix3d.Displacement(vp.ViewTarget.GetAsVector()) *
+               Matrix3d.PlaneToWorld(vp.ViewDirection) *
+               Matrix3d.Rotation(vp.TwistAngle, Vector3d.ZAxis, Point3d.Origin);
+    }
+
+    /// <summary>
+    ///     Возвращает ViewCenter в WCS.
+    ///     ViewCenter — 2D-точка в DCS; для получения WCS применяется трансформация DCS → WCS.
+    /// </summary>
+    public static Point3d GetViewCenterWcs(this Viewport vp)
+    {
+        var mat = vp.GetDcsToWcsMatrix();
+        return new Point3d(vp.ViewCenter.X, vp.ViewCenter.Y, 0).TransformBy(mat);
+    }
+
+    /// <summary>
+    ///     Разрешает эффективный масштаб Viewport (CustomScale > 0 или вычисленный из ViewHeight).
+    /// </summary>
+    public static double ResolveCustomScale(this Viewport vp)
+    {
+        return vp.CustomScale > 0 ? vp.CustomScale : vp.Height / Max(vp.ViewHeight, 1e-9);
+    }
+
+    /// <summary>
+    ///     Вычисляет AABB в Model Space, видимый через Viewport.
+    ///     Учитывает аспект, ViewHeight, ViewCenter и поворот (TwistAngle + ViewDirection).
+    /// </summary>
+    public static Extents3d ComputeModelWindow(this Viewport vp)
+    {
+        var aspectRatio = vp.Width / Max(vp.Height, 1e-9);
+        var widthModel = vp.ViewHeight * aspectRatio;
+        var heightModel = vp.ViewHeight;
+
+        var halfW = widthModel / 2.0;
+        var halfH = heightModel / 2.0;
+
+        var dcsToWcs = vp.GetDcsToWcsMatrix();
+        var vc = vp.ViewCenter;
+
+        Point3d[] corners =
+        [
+            new Point3d(vc.X - halfW, vc.Y - halfH, 0).TransformBy(dcsToWcs),
+            new Point3d(vc.X + halfW, vc.Y - halfH, 0).TransformBy(dcsToWcs),
+            new Point3d(vc.X + halfW, vc.Y + halfH, 0).TransformBy(dcsToWcs),
+            new Point3d(vc.X - halfW, vc.Y + halfH, 0).TransformBy(dcsToWcs)
+        ];
+
+        double minX = double.PositiveInfinity, maxX = double.NegativeInfinity;
+        double minY = double.PositiveInfinity, maxY = double.NegativeInfinity;
+        double minZ = double.PositiveInfinity, maxZ = double.NegativeInfinity;
+
+        foreach (var p in corners)
+        {
+            minX = Min(minX, p.X);
+            maxX = Max(maxX, p.X);
+            minY = Min(minY, p.Y);
+            maxY = Max(maxY, p.Y);
+            minZ = Min(minZ, p.Z);
+            maxZ = Max(maxZ, p.Z);
+        }
+
+        return new Extents3d(new Point3d(minX, minY, minZ), new Point3d(maxX, maxY, maxZ));
     }
 }

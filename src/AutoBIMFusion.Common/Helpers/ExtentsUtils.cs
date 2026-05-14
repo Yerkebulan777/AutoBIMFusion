@@ -1,3 +1,4 @@
+using AutoBIMFusion.Common.Extensions;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
 namespace AutoBIMFusion.Common.Helpers;
@@ -60,16 +61,13 @@ public static class ExtentsUtils
 
     /// <summary>
     ///     Проверяет, находится ли точка внутри габаритов 3D (включая границы).
+    ///     Делегирует к <see cref="Extends3dExtensions.IsPointIn"/>.
     /// </summary>
     /// <param name="extents">Габариты.</param>
     /// <param name="point">Точка.</param>
     /// <returns>True, если точка внутри; иначе false.</returns>
     public static bool IsPointIn(Extents3d extents, Point3d point)
-    {
-        return point.X >= extents.MinPoint.X && point.X <= extents.MaxPoint.X
-                                             && point.Y >= extents.MinPoint.Y && point.Y <= extents.MaxPoint.Y
-                                             && point.Z >= extents.MinPoint.Z && point.Z <= extents.MaxPoint.Z;
-    }
+        => extents.IsPointIn(point);
 
     /// <summary>
     ///     Проверяет, находится ли базовая точка сущности (Position/Location) внутри габаритов.
@@ -94,17 +92,13 @@ public static class ExtentsUtils
 
     /// <summary>
     ///     Проверяет пересечение двух AABB (Axis-Aligned Bounding Box) прямоугольников.
+    ///     Делегирует к <see cref="Extends3dExtensions.CollideWithOrConnected"/>.
     /// </summary>
     /// <param name="a">Первые габариты.</param>
     /// <param name="b">Вторые габариты.</param>
-    /// <returns>True, если прямоугольники пересекаются; иначе false.</returns>
+    /// <returns>True, если прямоугольники пересекаются или касаются; иначе false.</returns>
     public static bool AabbIntersect(Extents3d a, Extents3d b)
-    {
-        return a.MinPoint.X <= b.MaxPoint.X
-               && a.MaxPoint.X >= b.MinPoint.X
-               && a.MinPoint.Y <= b.MaxPoint.Y
-               && a.MaxPoint.Y >= b.MinPoint.Y;
-    }
+        => a.CollideWithOrConnected(b);
 
     /// <summary>
     ///     Объединяет два набора габаритов в один, охватывающий оба.
@@ -230,5 +224,42 @@ public static class ExtentsUtils
         {
             db.Measurement = MeasurementValue.Metric;
         }
+    }
+
+    /// <summary>
+    ///     Проверяет примерное равенство двух габаритов AABB с заданной точностью.
+    ///     Сравнивает только координаты X и Y.
+    /// </summary>
+    public static bool ExtentsApproxEqual(Extents3d a, Extents3d b, double tolerance = 1e-6)
+    {
+        return Abs(a.MinPoint.X - b.MinPoint.X) <= tolerance
+               && Abs(a.MinPoint.Y - b.MinPoint.Y) <= tolerance
+               && Abs(a.MaxPoint.X - b.MaxPoint.X) <= tolerance
+               && Abs(a.MaxPoint.Y - b.MaxPoint.Y) <= tolerance;
+    }
+
+    /// <summary>
+    ///     Вычисляет объединённый AABB коллекции ObjectId.
+    ///     Возвращает null, если ни один объект не имеет валидных габаритов.
+    /// </summary>
+    public static Extents3d? ComputeBounds(Database db, ObjectIdCollection entityIds)
+    {
+        if (entityIds.Count == 0) return null;
+
+        Extents3d? acc = null;
+        using var trx = db.TransactionManager.StartTransaction();
+
+        foreach (ObjectId id in entityIds)
+        {
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
+
+            var ext = TryGetExtents(ent);
+            if (ext is null) continue;
+
+            acc = acc is null ? ext.Value : Union(acc.Value, ext.Value);
+        }
+
+        trx.Commit();
+        return acc;
     }
 }

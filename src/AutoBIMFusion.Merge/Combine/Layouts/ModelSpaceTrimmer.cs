@@ -1,3 +1,5 @@
+using AutoBIMFusion.Common.Drawing;
+using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Helpers;
 using Serilog.Core;
 
@@ -13,38 +15,17 @@ internal static class ModelSpaceTrimmer
     /// <summary>
     ///     Считает bounding-box указанных объектов (обычно — клонированный paper content).
     ///     Возвращает null, если ни один объект не имеет валидных extents.
+    ///     Делегирует к <see cref="ExtentsUtils.ComputeBounds"/>.
     /// </summary>
     internal static Extents3d? ComputeBounds(Database db, ObjectIdCollection entityIds, Logger log)
     {
-        if (entityIds.Count == 0)
-        {
-            log.Debug("ModelSpaceTrimmer.ComputeBounds: entityIds is empty");
-            return null;
-        }
-
-        Extents3d? acc = null;
-
-        using var trx = db.TransactionManager.StartTransaction();
-
-        foreach (ObjectId id in entityIds)
-        {
-            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
-
-            var ext = ExtentsUtils.TryGetExtents(ent);
-
-            if (ext is null) continue;
-
-            acc = acc is null ? ext.Value : ExtentsUtils.Union(acc.Value, ext.Value);
-        }
-
-        trx.Commit();
-        if (acc.HasValue)
+        var result = ExtentsUtils.ComputeBounds(db, entityIds);
+        if (result.HasValue)
             log.Debug(
-                $"ModelSpaceTrimmer.ComputeBounds: entities={entityIds.Count}, bounds={ExtentsUtils.FormatExtents(acc.Value)}");
+                $"ModelSpaceTrimmer.ComputeBounds: entities={entityIds.Count}, bounds={ExtentsUtils.FormatExtents(result.Value)}");
         else
             log.Debug($"ModelSpaceTrimmer.ComputeBounds: entities={entityIds.Count}, no valid extents");
-
-        return acc;
+        return result;
     }
 
     /// <summary>

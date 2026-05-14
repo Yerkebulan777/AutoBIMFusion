@@ -1,3 +1,5 @@
+using AutoBIMFusion.Common.Drawing;
+using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Helpers;
 using Serilog.Core;
 
@@ -128,33 +130,10 @@ internal static class LayoutProjectionProcessor
 
     /// <summary>
     ///     Находит рамку-штамп (BlockReference с максимальной площадью) в переданном наборе объектов.
-    ///     Работает в рамках переданной транзакции, не открывая новых.
+    ///     Делегирует к <see cref="BlockReferences.FindLargestByArea"/>.
     /// </summary>
     private static Extents3d? FindTitleBlockBounds(Transaction trx, List<ObjectId> paperIds)
-    {
-        Extents3d? bestExtents = null;
-        var bestArea = 0.0;
-
-        foreach (var id in paperIds)
-        {
-            if (trx.GetObject(id, OpenMode.ForRead) is not BlockReference br) continue;
-
-            var ext = ExtentsUtils.TryGetExtents(br);
-            if (!ext.HasValue) continue;
-
-            var width = ext.Value.MaxPoint.X - ext.Value.MinPoint.X;
-            var height = ext.Value.MaxPoint.Y - ext.Value.MinPoint.Y;
-            var area = width * height;
-
-            if (area > bestArea)
-            {
-                bestArea = area;
-                bestExtents = ext.Value;
-            }
-        }
-
-        return bestExtents;
-    }
+        => BlockReferences.FindLargestByArea(trx, paperIds);
 
     /// <summary>
     ///     Фильтрует объекты листа, оставляя только те, что пересекаются с рамкой-штампом.
@@ -184,7 +163,7 @@ internal static class LayoutProjectionProcessor
             if (ent is BlockReference br)
             {
                 var ext = ExtentsUtils.TryGetExtents(br);
-                if (ext.HasValue && ExtentsApproxEqual(ext.Value, bounds))
+                if (ext.HasValue && ExtentsUtils.ExtentsApproxEqual(ext.Value, bounds))
                 {
                     _ = filtered.Add(id);
                     continue;
@@ -202,14 +181,6 @@ internal static class LayoutProjectionProcessor
         }
 
         return filtered;
-    }
-
-    private static bool ExtentsApproxEqual(Extents3d a, Extents3d b, double tolerance = 1e-6)
-    {
-        return Abs(a.MinPoint.X - b.MinPoint.X) <= tolerance
-               && Abs(a.MinPoint.Y - b.MinPoint.Y) <= tolerance
-               && Abs(a.MaxPoint.X - b.MaxPoint.X) <= tolerance
-               && Abs(a.MaxPoint.Y - b.MaxPoint.Y) <= tolerance;
     }
 
     /// <summary>
@@ -248,18 +219,7 @@ internal static class LayoutProjectionProcessor
     }
 
     private static void EraseBlockContents(Database db, ObjectId btrId)
-    {
-        if (btrId.IsNull) return;
-
-        using var trx = db.TransactionManager.StartTransaction();
-        var btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
-
-        foreach (var id in btr)
-            if (trx.GetObject(id, OpenMode.ForWrite) is Entity entity && !entity.IsErased)
-                entity.Erase();
-
-        trx.Commit();
-    }
+        => BlockReferences.EraseBlockContents(db, btrId);
 
     internal sealed record LayoutProjectionResult(
         Extents3d? FrameBounds,
