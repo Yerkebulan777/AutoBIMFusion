@@ -70,14 +70,17 @@ public class CotePoints
         var db = Generic.GetDatabase();
         var ed = Generic.GetEditor();
 
-        //Write a point where the altitude is asked
+        // Укажите место, где требуется указать точку
         var PointDrawingEntity = new DBPoint(Origin.SCG);
+
         ObjectId PointDrawingEntityObjectId;
+
         using (var trx = db.TransactionManager.StartTransaction())
         {
             var acBlkTbl = trx.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
             var acBlkTblRec = Generic.GetCurrentSpaceBlockTableRecord(trx);
-            _ = acBlkTblRec.AppendEntity(PointDrawingEntity);
+
+            acBlkTblRec.AppendEntity(PointDrawingEntity);
             trx.AddNewlyCreatedDBObject(PointDrawingEntity, true);
             PointDrawingEntityObjectId = PointDrawingEntity.ObjectId;
             trx.Commit();
@@ -88,6 +91,7 @@ public class CotePoints
             AllowNegative = false,
             AllowNone = false
         };
+
         var PromptDoubleAltitudeResult = ed.GetDouble(PromptDoubleAltitudeOptions);
 
         //remove the point where the altitude is asked
@@ -119,17 +123,19 @@ public class CotePoints
         {
             var Attribute = (AttributeReference)trx.GetObject(AttributeObjectId, OpenMode.ForRead, true);
 
-            if (Attribute.TextString.Contains("."))
+            var textString = Attribute.TextString.Trim();
+
+            if (textString.Contains('.'))
             {
-                bool IsDouble = double.TryParse(Attribute.TextString.Trim(), out double Altimetrie);
-                if (IsDouble)
+                if (double.TryParse(textString, out double Altimetrie))
                 {
                     Generic.WriteMessage($"Cote sélectionnée : {FormatAltitude(Altimetrie)}");
                     blkRef.RegisterHighlight();
                     return Altimetrie;
                 }
 
-                double? ExtractedAltitude = ExtractDoubleInStringFromPoint(Attribute.TextString.Trim());
+                double? ExtractedAltitude = ExtractDoubleInStringFromPoint(textString);
+
                 if (ExtractedAltitude.HasValue)
                 {
                     blkRef.RegisterHighlight();
