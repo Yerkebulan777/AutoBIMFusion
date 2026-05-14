@@ -48,7 +48,7 @@ internal static class LayoutProjectionProcessor
 
                 Matrix3d matrix = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
 
-                using ObjectIdCollection candidates = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, log);
+                using ObjectIdCollection candidates = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, mainOriginal.ModelWindow, log);
 
                 using ObjectIdCollection toClone = [];
                 var duplicateSkipped = 0;

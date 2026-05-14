@@ -245,8 +245,13 @@ internal static class ViewportTransformer
         return result;
     }
 
+    /// <param name="mainWindow">
+    ///     Модельное окно главного VP. Используется в эвристике: пропускать сущность,
+    ///     только если она огромна И при этом принадлежит главному VP (пересекает mainWindow).
+    ///     Большие сущности, не пересекающие mainWindow, — легитимный контент вспомогательного VP.
+    /// </param>
     internal static ObjectIdCollection SelectModelInside(IReadOnlyList<ModelEntitySnapshot> modelEntities,
-        Extents3d window, Logger log)
+        Extents3d window, Extents3d mainWindow, Logger log)
     {
         const double HugeEntityDiagonalRatio = 3.0;
 
@@ -264,8 +269,12 @@ internal static class ViewportTransformer
                 continue;
             }
 
+            // Эвристика: пропустить только если сущность огромна (фон main VP) И находится в main window.
+            // Большой объект, которого нет в main window, — легитимный контент aux VP, не трогаем.
             double entityDiagonal = entity.Extents.MinPoint.DistanceTo(entity.Extents.MaxPoint);
-            if (windowDiagonal > 0 && entityDiagonal > windowDiagonal * HugeEntityDiagonalRatio)
+            if (windowDiagonal > 0
+                && entityDiagonal > windowDiagonal * HugeEntityDiagonalRatio
+                && ExtentsUtils.AabbIntersect(mainWindow, entity.Extents))
             {
                 skippedHugeObjects++;
                 continue;
