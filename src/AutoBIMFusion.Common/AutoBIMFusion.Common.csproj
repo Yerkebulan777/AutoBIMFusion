@@ -27,6 +27,7 @@
         <PackageReference Include="AutoCAD.NET.Interop" ExcludeAssets="runtime" />
         <PackageReference Include="Serilog" />
         <PackageReference Include="Serilog.Sinks.File" />
+        <PackageReference Include="Serilog.Sinks.Async" />
         <PackageReference Include="System.Drawing.Common" />
     </ItemGroup>
 

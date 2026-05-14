@@ -2,6 +2,7 @@ using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Mist;
 using Autodesk.AutoCAD.GraphicsInterface;
 using Autodesk.AutoCAD.Runtime;
+using Serilog.Core;
 
 namespace AutoBIMFusion.Common.Functions;
 
@@ -43,7 +44,7 @@ public static class DrawingPurger
     /// перед сохранением итогового файла.
     /// Заменяет класс DwgOptimizer.
     /// </summary>
-    public static void Optimize(Database db, Serilog.Core.Logger log)
+    public static void Optimize(Database db, Logger log)
     {
         Dictionary<string, int> purgeReport = CorePurge(db);
         int totalDeletedCount = purgeReport.Values.Sum();
