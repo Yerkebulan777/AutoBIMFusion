@@ -1,5 +1,4 @@
 using AutoBIMFusion.Common.Drawing;
-using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Helpers;
 using Serilog.Core;
 
@@ -7,18 +6,16 @@ namespace AutoBIMFusion.Merge.Combine.Layouts;
 
 internal static class LayoutProjectionProcessor
 {
-    internal static LayoutProjectionResult ProjectLayoutToModelSpace(Database db, string layoutName,
-        IReadOnlyList<ViewportInfo> viewports, Logger log)
+    internal static LayoutProjectionResult ProjectLayoutToModelSpace(Database db, string layoutName, IReadOnlyList<ViewportInfo> viewports, Logger log)
     {
         return viewports.Count == 0
             ? ProjectNoViewport(db, layoutName, log)
             : ProjectWithViewports(db, layoutName, viewports, log);
     }
 
-    private static LayoutProjectionResult ProjectWithViewports(Database db, string layoutName,
-        IReadOnlyList<ViewportInfo> viewports, Logger log)
+    private static LayoutProjectionResult ProjectWithViewports(Database db, string layoutName, IReadOnlyList<ViewportInfo> viewports, Logger log)
     {
-        var mainOriginal = ViewportInfo.PickMainViewport(viewports);
+        ViewportInfo mainOriginal = ViewportInfo.PickMainViewport(viewports);
         var scale = ViewportScaleNormalizer.Normalize(mainOriginal.CustomScale);
         var mainNormalized = mainOriginal with { CustomScale = scale.WorkingCustomScale };
 
@@ -29,8 +26,12 @@ internal static class LayoutProjectionProcessor
         List<Extents3d> allWindows = [mainOriginal.ModelWindow];
 
         foreach (var aux in viewports)
+        {
             if (aux.VpId != mainOriginal.VpId)
+            {
                 allWindows.Add(aux.ModelWindow);
+            }
+        }
 
         if (viewports.Count > 1)
         {
@@ -38,12 +39,18 @@ internal static class LayoutProjectionProcessor
 
             foreach (var aux in viewports)
             {
-                if (aux.VpId == mainOriginal.VpId) continue;
+                if (aux.VpId == mainOriginal.VpId)
+                {
+                    continue;
+                }
 
                 var matrix = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
                 using var toClone = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, log);
 
-                if (toClone.Count == 0) continue;
+                if (toClone.Count == 0)
+                {
+                    continue;
+                }
 
                 using var cloneResult = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log);
                 _ = ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities,
@@ -73,12 +80,16 @@ internal static class LayoutProjectionProcessor
         using (filteredIds)
         {
             if (filteredIds.Count == 0 || btrId.IsNull)
+            {
                 return new LayoutProjectionResult(null, ViewportScaleNormalizer.WorkingScaleMultiplier, 1.0);
+            }
 
             var paperBounds = ModelSpaceTrimmer.ComputeBounds(db, filteredIds, log);
 
             if (!paperBounds.HasValue)
+            {
                 return new LayoutProjectionResult(null, ViewportScaleNormalizer.WorkingScaleMultiplier, 1.0);
+            }
 
             var minPt = paperBounds.Value.MinPoint;
             var matrix = Matrix3d.Scaling(ViewportScaleNormalizer.WorkingScaleMultiplier, Point3d.Origin)
@@ -99,7 +110,7 @@ internal static class LayoutProjectionProcessor
     {
         using var trx = db.TransactionManager.StartTransaction();
 
-        var layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        DBDictionary layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         if (!layoutDict.Contains(layoutName))
         {
@@ -108,17 +119,21 @@ internal static class LayoutProjectionProcessor
         }
 
         var layoutId = layoutDict.GetAt(layoutName);
-        var layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
+        Layout layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
         var btrId = layout.BlockTableRecordId;
-        var btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
+        BlockTableRecord btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
 
         var viewportClass = RXObject.GetClass(typeof(Viewport));
 
         // Один проход: собрать non-viewport IDs
         List<ObjectId> paperIdsList = [];
         foreach (var id in btr)
+        {
             if (!id.ObjectClass.IsDerivedFrom(viewportClass))
+            {
                 paperIdsList.Add(id);
+            }
+        }
 
         // Поиск рамки-штампа и фильтрация в той же транзакции
         var titleBlockBounds = FindTitleBlockBounds(trx, paperIdsList);
@@ -133,7 +148,9 @@ internal static class LayoutProjectionProcessor
     ///     Делегирует к <see cref="BlockReferences.FindLargestByArea"/>.
     /// </summary>
     private static Extents3d? FindTitleBlockBounds(Transaction trx, List<ObjectId> paperIds)
-        => BlockReferences.FindLargestByArea(trx, paperIds);
+    {
+        return BlockReferences.FindLargestByArea(trx, paperIds);
+    }
 
     /// <summary>
     ///     Фильтрует объекты листа, оставляя только те, что пересекаются с рамкой-штампом.
@@ -148,7 +165,10 @@ internal static class LayoutProjectionProcessor
         if (!boundingBox.HasValue)
         {
             // Рамка не найдена — включаем все объекты
-            foreach (var id in paperIds) _ = filtered.Add(id);
+            foreach (var id in paperIds)
+            {
+                _ = filtered.Add(id);
+            }
 
             return filtered;
         }
@@ -157,7 +177,10 @@ internal static class LayoutProjectionProcessor
 
         foreach (var id in paperIds)
         {
-            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent)
+            {
+                continue;
+            }
 
             // Сама рамка-штамп (BlockReference с совпадающими габаритами) включается всегда
             if (ent is BlockReference br)
@@ -177,7 +200,10 @@ internal static class LayoutProjectionProcessor
                 continue;
             }
 
-            if (ExtentsUtils.IsEntityPointIn(ent, bounds)) _ = filtered.Add(id);
+            if (ExtentsUtils.IsEntityPointIn(ent, bounds))
+            {
+                _ = filtered.Add(id);
+            }
         }
 
         return filtered;
@@ -190,7 +216,7 @@ internal static class LayoutProjectionProcessor
     {
         if (Abs(geometryScale - 1.0) > 1e-9)
         {
-            var scaleMatrix = Matrix3d.Scaling(geometryScale, center);
+            Matrix3d scaleMatrix = Matrix3d.Scaling(geometryScale, center);
             ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, geometryScale, log);
         }
     }
@@ -207,7 +233,10 @@ internal static class LayoutProjectionProcessor
         Matrix3d matrix,
         Logger log)
     {
-        if (filteredIds.Count == 0 || paperBtrId.IsNull) return null;
+        if (filteredIds.Count == 0 || paperBtrId.IsNull)
+        {
+            return null;
+        }
 
         var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
         using var cloneResult =
@@ -219,10 +248,9 @@ internal static class LayoutProjectionProcessor
     }
 
     private static void EraseBlockContents(Database db, ObjectId btrId)
-        => BlockReferences.EraseBlockContents(db, btrId);
+    {
+        BlockReferences.EraseBlockContents(db, btrId);
+    }
 
-    internal sealed record LayoutProjectionResult(
-        Extents3d? FrameBounds,
-        double TargetVisualScale,
-        double LinearScaleMultiplier);
+    internal sealed record LayoutProjectionResult(Extents3d? FrameBounds, double TargetVisualScale, double LinearScaleMultiplier);
 }

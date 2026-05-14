@@ -69,7 +69,7 @@ internal static class ViewportLayoutExporter
 
             if (projection.FrameBounds.HasValue)
             {
-                _ = ModelSpaceTrimmer.TrimOutside(db, projection.FrameBounds.Value, log);
+                ModelSpaceTrimmer.TrimOutside(db, projection.FrameBounds.Value);
             }
 
             DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "source-after-normalize-before-clone");

@@ -35,10 +35,8 @@ internal static class ModelSpaceTrimmer
     ///     весь лист), не будут удалены здесь. Основная очистка выполняется в
     ///     ViewportTransformer.EraseEntitiesOutsideMainWindow непосредственно после клонирования.
     /// </summary>
-    internal static int TrimOutside(Database db, Extents3d frameBounds, Logger log)
+    internal static void TrimOutside(Database db, Extents3d frameBounds)
     {
-        int erased = 0;
-
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
         using Transaction trx = db.TransactionManager.StartTransaction();
@@ -47,36 +45,31 @@ internal static class ModelSpaceTrimmer
 
         foreach (ObjectId id in ms)
         {
-            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent)
+            if (trx.GetObject(id, OpenMode.ForRead) is Entity ent)
             {
-                continue;
-            }
+                // Оптимизация: для простых точечных объектов (Text, Point, BlockReference)
+                // проверяем их базовую точку. Если она ВНУТРИ frameBounds, то объект точно пересекается/внутри,
+                // и мы можем пропустить дорогой вызов GeometricExtents.
+                if (ExtentsUtils.IsEntityPointIn(ent, frameBounds))
+                {
+                    continue;
+                }
 
-            // Оптимизация: для простых точечных объектов (Text, Point, BlockReference)
-            // проверяем их базовую точку. Если она ВНУТРИ frameBounds, то объект точно пересекается/внутри,
-            // и мы можем пропустить дорогой вызов GeometricExtents.
-            if (ExtentsUtils.IsEntityPointIn(ent, frameBounds))
-            {
-                continue;
-            }
+                Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
 
-            Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
+                if (ext is null)
+                {
+                    continue;
+                }
 
-            if (ext is null)
-            {
-                continue;
-            }
-
-            if (!ExtentsUtils.AabbIntersect(frameBounds, ext.Value))
-            {
-                ent.UpgradeOpen();
-                ent.Erase();
-                erased++;
+                if (!ExtentsUtils.AabbIntersect(frameBounds, ext.Value))
+                {
+                    ent.UpgradeOpen();
+                    ent.Erase();
+                }
             }
         }
 
         trx.Commit();
-        log.Debug($"ModelSpaceTrimmer.TrimOutside erased={erased}");
-        return erased;
     }
 }
