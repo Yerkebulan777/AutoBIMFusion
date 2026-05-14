@@ -6,7 +6,7 @@ using Autodesk.AutoCAD.Runtime;
 
 namespace AutoBIMFusion.Common.Extensions;
 
-internal static class ObjectIdExtensions
+public static class ObjectIdExtensions
 {
     public static Entity GetEntity(this ObjectId objectId, OpenMode openMode = OpenMode.ForRead)
     {
@@ -198,6 +198,11 @@ internal static class ObjectIdExtensions
     public static bool IsDerivedFrom(this ObjectId objId, Type type)
     {
         return objId != ObjectId.Null && objId.ObjectClass.IsDerivedFrom(RXObject.GetClass(type));
+    }
+
+    public static bool IsValidForOperation(this ObjectId id)
+    {
+        return !id.IsNull && !id.IsErased;
     }
 
     public static long GetObjectByteSize(this ObjectId objId)

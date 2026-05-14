@@ -1,5 +1,5 @@
 using AutoBIMFusion.Common.Compatibility;
-using AutoBIMFusion.Common.Mist.Helpers;
+using AutoBIMFusion.Common.Helpers;
 using Autodesk.AutoCAD.AcInfoCenterConn;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
@@ -19,7 +19,7 @@ public static class Generic
     {
         // Determine path
         byte[]? ressource_bytes = Resources.ResourceManager.GetObject(name) as byte[];
-        if (!Files.IsFileLockedOrReadOnly(ToFilePath))
+        if (!FileUtil.IsFileLockedOrReadOnly(ToFilePath))
         {
             File.WriteAllBytes(ToFilePath, ressource_bytes);
         }
@@ -129,12 +129,12 @@ public static class Generic
 
     public static DwgVersion GetSaveVersion()
     {
-        //AC1015 = AutoCAD 2000 
-        //AC1018 = AutoCAD 2004 
-        //AC1021 = AutoCAD 2007 
-        //AC1024 = AutoCAD 2010 
-        //AC1027 = AutoCAD 2013 
-        //AC1032 = AutoCAD 2018 
+        //AC1015 = AutoCAD 2000
+        //AC1018 = AutoCAD 2004
+        //AC1021 = AutoCAD 2007
+        //AC1024 = AutoCAD 2010
+        //AC1027 = AutoCAD 2013
+        //AC1032 = AutoCAD 2018
         //var ucm = AcadApp.UserConfigurationManager;
         //var profile = ucm.OpenCurrentProfile();
         //var section = profile.OpenSubsection("General");

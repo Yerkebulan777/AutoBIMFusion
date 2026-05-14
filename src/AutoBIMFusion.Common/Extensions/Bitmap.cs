@@ -1,4 +1,4 @@
-using AutoBIMFusion.Common.Mist.Helpers;
+using AutoBIMFusion.Common.Helpers;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.Versioning;
@@ -38,6 +38,6 @@ public static class BitmapExtensions
         using MemoryStream ms = new();
         image.Save(ms, ImageFormat.Jpeg);
 
-        return Files.FormatFileSizeFromByte(ms.Length, 2);
+        return FileUtil.FormatFileSizeFromByte(ms.Length, 2);
     }
 }

@@ -86,7 +86,7 @@ public sealed class CombineCommands
 
                     DimensionStyleDiagnosticUtils.LogStyleSnapshot(mergeDoc.Database, log, "target-after-merge");
 
-                    AutoBIMFusion.Common.Functions.DrawingPurger.Optimize(mergeDoc.Database, log);
+                    DrawingPurger.Optimize(mergeDoc.Database, log);
 
                     SaveMerged(mergeDoc.Database, savePath, log);
 

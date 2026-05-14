@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text;
+using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Helpers;
 using Serilog.Core;
 using Exception = System.Exception;
