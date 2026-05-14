@@ -1,6 +1,6 @@
 using AutoBIMFusion.Common.Extensions;
-using AutoBIMFusion.Common.Functions;
 using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.Mist.AutoCAD;
 using Autodesk.AutoCAD.GraphicsInterface;
 using Autodesk.AutoCAD.Runtime;
 using Serilog.Core;

@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Reflection;
+
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Common;
@@ -31,6 +33,7 @@ public static class UiDialogService
         }
 
         folderPath = (string?)dialogType.GetProperty("SelectedPath")?.GetValue(dialog) ?? string.Empty;
+
         return !string.IsNullOrWhiteSpace(folderPath);
     }
 
@@ -40,15 +43,16 @@ public static class UiDialogService
         {
             AcadApp.ShowAlertDialog($"{caption}\n\n{message}");
         }
-        catch
+        finally
         {
-            // Core Console and invalid UI contexts can reject dialogs; command logs carry the details.
+            Debug.WriteLine($"{caption}\n\n{message}");
         }
     }
 
     private static Type? ResolveWinFormsType(string typeName)
     {
         Type? type = Type.GetType($"{typeName}, System.Windows.Forms", false);
+
         if (type is not null)
         {
             return type;
@@ -64,4 +68,7 @@ public static class UiDialogService
             return null;
         }
     }
+
+
+
 }
