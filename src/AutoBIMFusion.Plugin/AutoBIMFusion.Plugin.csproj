@@ -51,7 +51,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PluginRuntimeDependency Include="$(NuGetPackageRoot)serilog\4.1.0\lib\net8.0\Serilog.dll" Condition="Exists('$(NuGetPackageRoot)serilog\4.1.0\lib\net8.0\Serilog.dll')"/>
+        <PluginRuntimeDependency Include="$(NuGetPackageRoot)serilog\4.0.0\lib\net8.0\Serilog.dll" Condition="Exists('$(NuGetPackageRoot)serilog\4.0.0\lib\net8.0\Serilog.dll')"/>
         <PluginRuntimeDependency Include="$(NuGetPackageRoot)serilog.sinks.file\6.0.0\lib\net8.0\Serilog.Sinks.File.dll" Condition="Exists('$(NuGetPackageRoot)serilog.sinks.file\6.0.0\lib\net8.0\Serilog.Sinks.File.dll')"/>
     </ItemGroup>
 

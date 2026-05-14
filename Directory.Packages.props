@@ -8,7 +8,7 @@
     <ItemGroup>
         <PackageVersion Include="AutoCAD.NET" Version="$(AcadPackageVersion).*" Condition="'$(AcadPackageVersion)' != ''" />
         <PackageVersion Include="AutoCAD.NET.Interop" Version="$(AcadInteropPackageVersion).*" Condition="'$(AcadInteropPackageVersion)' != ''" />
-        <PackageVersion Include="Serilog" Version="4.1.0" />
+        <PackageVersion Include="Serilog" Version="4.0.0" />
         <PackageVersion Include="Serilog.Sinks.File" Version="6.0.0" />
         <PackageVersion Include="System.Drawing.Common" Version="9.0.10" Condition="'$(Configuration)' != 'DebugA27' And '$(Configuration)' != 'ReleaseA27'" />
         <PackageVersion Include="System.Drawing.Common" Version="10.0.0" Condition="'$(Configuration)' == 'DebugA27' Or '$(Configuration)' == 'ReleaseA27'" />
