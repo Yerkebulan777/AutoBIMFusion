@@ -9,7 +9,7 @@ using Exception = System.Exception;
 namespace AutoBIMFusion.Merge.Combine.Layouts;
 
 /// <summary>
-///     Диагностические утилиты для логирования состояния размерных и текстовых стилей базы данных.
+///     Диагностические утилиты для логирования состояния размерных стилей базы данных.
 ///     Используется для отладки: снимок до/после слияния позволяет отследить
 ///     аномалии масштабирования и коллизии стилей.
 /// </summary>
@@ -60,7 +60,7 @@ public static class DimensionStyleDiagnosticUtils
     ];
 
     /// <summary>
-    ///     Записывает в лог снимок всех пользовательских размерных и текстовых стилей базы данных.
+    ///     Записывает в лог снимок всех пользовательских размерных стилей базы данных.
     /// </summary>
     /// <param name="db">База данных AutoCAD.</param>
     /// <param name="log">Экземпляр логгера.</param>
@@ -79,9 +79,6 @@ public static class DimensionStyleDiagnosticUtils
                      StringComparer.OrdinalIgnoreCase))
             log.Information(FormatStageLine("[DIM-STYLE]", stage, style.FullLogLine));
 
-        foreach (var style in snapshot.TextStyles.Order(StringComparer.OrdinalIgnoreCase))
-            log.Information(FormatStageLine("[TEXT-STYLE]", stage, style));
-
         LogSnapshotDiff(snapshot, log);
         StoreSnapshot(snapshot);
     }
@@ -91,7 +88,6 @@ public static class DimensionStyleDiagnosticUtils
         using var trx = db.TransactionManager.StartTransaction();
 
         var dimStyleTable = (DimStyleTable)trx.GetObject(db.DimStyleTableId, OpenMode.ForRead);
-        var textStyleTable = (TextStyleTable)trx.GetObject(db.TextStyleTableId, OpenMode.ForRead);
         var dimensionStyleUsage = CollectDimensionStyleUsage(db, trx);
 
         Dictionary<string, DimensionStyleSnapshotEntry> dimStyles = new(StringComparer.Ordinal);
@@ -106,17 +102,9 @@ public static class DimensionStyleDiagnosticUtils
             dimStyles[entry.ComparisonKey] = entry;
         }
 
-        List<string> textStyles = [];
-
-        foreach (var id in textStyleTable)
-        {
-            var style = (TextStyleTableRecord)trx.GetObject(id, OpenMode.ForRead);
-            if (!style.IsDependent && !style.IsErased) textStyles.Add(FormatTextStyle(style));
-        }
-
         trx.Commit();
 
-        return new DimensionStyleSnapshot(stage, dimStyles, textStyles);
+        return new DimensionStyleSnapshot(stage, dimStyles);
     }
 
     private static Dictionary<ObjectId, DimensionStyleUsage> CollectDimensionStyleUsage(Database db, Transaction trx)
@@ -231,8 +219,7 @@ public static class DimensionStyleDiagnosticUtils
         StringBuilder builder = new();
         _ = builder
             .Append("[STYLE-SNAPSHOT] stage=").Append(snapshot.Stage)
-            .Append(", dimStyles=").Append(snapshot.DimensionStyles.Count)
-            .Append(", textStyles=").Append(snapshot.TextStyles.Count);
+            .Append(", dimStyles=").Append(snapshot.DimensionStyles.Count);
 
         return builder.ToString();
     }
@@ -478,29 +465,6 @@ public static class DimensionStyleDiagnosticUtils
         }
     }
 
-    private static string FormatTextStyle(TextStyleTableRecord style)
-    {
-        var font = style.Font;
-        StringBuilder builder = new();
-        _ = builder
-            .Append("styleName=\"").Append(Escape(style.Name)).Append("\", ")
-            .Append("styleHandle=").Append(style.Handle).Append(", ")
-            .Append("styleFile=\"").Append(Escape(style.FileName)).Append("\", ")
-            .Append("styleBigFont=\"").Append(Escape(style.BigFontFileName)).Append("\", ")
-            .Append("styleTypeface=\"").Append(Escape(font.TypeFace)).Append("\", ")
-            .Append("styleBold=").Append(font.Bold).Append(", ")
-            .Append("styleItalic=").Append(font.Italic).Append(", ")
-            .Append("styleCharacterSet=").Append(font.CharacterSet).Append(", ")
-            .Append("stylePitchAndFamily=").Append(font.PitchAndFamily).Append(", ")
-            .Append("styleIsShapeFile=").Append(style.IsShapeFile).Append(", ")
-            .Append("styleIsVertical=").Append(style.IsVertical).Append(", ")
-            .Append("styleTextSize=").Append(F(style.TextSize)).Append(", ")
-            .Append("styleXScale=").Append(F(style.XScale)).Append(", ")
-            .Append("styleObliquingAngle=").Append(F(style.ObliquingAngle));
-
-        return builder.ToString();
-    }
-
     private static string FormatColor(Color color)
     {
         return $"{color.ColorMethod}:{color.ColorIndex}";
@@ -599,8 +563,7 @@ public static class DimensionStyleDiagnosticUtils
 
     private sealed record DimensionStyleSnapshot(
         string Stage,
-        IReadOnlyDictionary<string, DimensionStyleSnapshotEntry> DimensionStyles,
-        IReadOnlyList<string> TextStyles);
+        IReadOnlyDictionary<string, DimensionStyleSnapshotEntry> DimensionStyles);
 
     private sealed record DimensionStyleSnapshotEntry(
         string ComparisonKey,

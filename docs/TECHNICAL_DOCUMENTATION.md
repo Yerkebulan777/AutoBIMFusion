@@ -90,7 +90,7 @@ AutoBIMFusion.Tests
 | `LayoutProjectionProcessor` | `AutoBIMFusion.Merge` | Перенос Paper Space в Model Space, main/aux vpt projection, scale clamp |
 | `ViewportTransformer` | `AutoBIMFusion.Merge` | Матрицы трансформации, clone/transform, erase outside main VP, draw order |
 | `DimensionStyleNormalizer` | `AutoBIMFusion.Merge` | Очистка DSTYLE overrides и назначение чистого AutoBIM-стиля скопированным размерам |
-| `DimensionStyleDiagnosticUtils` | `AutoBIMFusion.Merge` | Диагностические снимки размерных и текстовых стилей |
+| `DimensionStyleDiagnosticUtils` | `AutoBIMFusion.Merge` | Диагностические снимки размерных стилей |
 | `BlockInserter` | `AutoBIMFusion.Merge` | `WblockCloneObjects` + расстановка по оси X |
 | `RasterImagePathFixer` | `AutoBIMFusion.Merge` | Копирование растров и перевод путей в относительные |
 | `DwgOptimizer` | `AutoBIMFusion.Merge` | Многопроходный `Database.Purge` |
