@@ -17,6 +17,7 @@ public static class CombineOrchestrator
     public static async Task<CombineResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc, Logger log)
     {
         string fileName = Path.GetFileName(filePath);
+
         string layoutName = Path.GetFileNameWithoutExtension(filePath);
 
         if (!FileUtil.TryValidateDwg(filePath, out string? warn))

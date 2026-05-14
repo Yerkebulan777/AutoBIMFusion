@@ -37,30 +37,51 @@ internal static class LayoutProjectionProcessor
         {
             IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
 
+            HashSet<ObjectId> claimedSourceIds = [];
+
             foreach (ViewportInfo aux in viewports)
             {
-                if (aux.VpId != mainOriginal.VpId)
+                if (aux.VpId == mainOriginal.VpId)
                 {
-                    Matrix3d matrix = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
-
-                    using ObjectIdCollection toClone = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, log);
-
-                    if (toClone.Count == 0)
-                    {
-                        continue;
-                    }
-
-                    using ViewportTransformer.CloneTransformResult cloneResult = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log);
-                    foreach (ObjectId clonedId in cloneResult.ClonedIds)
-                    {
-                        if (!isolatedCloneIds.Contains(clonedId))
-                        {
-                            _ = isolatedCloneIds.Add(clonedId);
-                        }
-                    }
-
-                    ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow);
+                    continue;
                 }
+
+                Matrix3d matrix = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
+
+                using ObjectIdCollection candidates = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, log);
+
+                using ObjectIdCollection toClone = [];
+                var duplicateSkipped = 0;
+                foreach (ObjectId id in candidates)
+                {
+                    if (claimedSourceIds.Add(id))
+                    {
+                        _ = toClone.Add(id);
+                    }
+                    else
+                    {
+                        duplicateSkipped++;
+                    }
+                }
+
+                if (toClone.Count == 0)
+                {
+                    log.Debug($"Aux#{aux.Number}: candidates={candidates.Count}, duplicateSkipped={duplicateSkipped}, nothing to clone");
+                    continue;
+                }
+
+                log.Debug($"Aux#{aux.Number}: candidates={candidates.Count}, toClone={toClone.Count}, duplicateSkipped={duplicateSkipped}");
+
+                using ViewportTransformer.CloneTransformResult cloneResult = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log);
+                foreach (ObjectId clonedId in cloneResult.ClonedIds)
+                {
+                    if (!isolatedCloneIds.Contains(clonedId))
+                    {
+                        _ = isolatedCloneIds.Add(clonedId);
+                    }
+                }
+
+                ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow);
             }
         }
 

@@ -248,24 +248,36 @@ internal static class ViewportTransformer
     internal static ObjectIdCollection SelectModelInside(IReadOnlyList<ModelEntitySnapshot> modelEntities,
         Extents3d window, Logger log)
     {
+        const double HugeEntityDiagonalRatio = 3.0;
+
         var outsideWindow = 0;
+        var skippedHugeObjects = 0;
         ObjectIdCollection result = [];
+
+        double windowDiagonal = window.MinPoint.DistanceTo(window.MaxPoint);
 
         foreach (ModelEntitySnapshot entity in modelEntities)
         {
-            if (ExtentsUtils.AabbIntersect(window, entity.Extents))
-            {
-                _ = result.Add(entity.Id);
-            }
-            else
+            if (!ExtentsUtils.AabbIntersect(window, entity.Extents))
             {
                 outsideWindow++;
+                continue;
             }
+
+            double entityDiagonal = entity.Extents.MinPoint.DistanceTo(entity.Extents.MaxPoint);
+            if (windowDiagonal > 0 && entityDiagonal > windowDiagonal * HugeEntityDiagonalRatio)
+            {
+                skippedHugeObjects++;
+                continue;
+            }
+
+            _ = result.Add(entity.Id);
         }
 
         log.Debug(
             $"SelectModelInside cached={modelEntities.Count}, selected={result.Count}, " +
-            $"outsideWindow={outsideWindow}, window={ExtentsUtils.FormatExtents(window)}");
+            $"skippedHuge={skippedHugeObjects}, outsideWindow={outsideWindow}, " +
+            $"window={ExtentsUtils.FormatExtents(window)}");
         return result;
     }
 
