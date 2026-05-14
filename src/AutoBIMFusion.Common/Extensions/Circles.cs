@@ -1,4 +1,4 @@
-﻿namespace AutoBIMFusion.Common.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class CirclesExtensions
 {
@@ -9,7 +9,7 @@ public static class CirclesExtensions
 
     public static Polyline ToPolyline2Pt(this Circle circle)
     {
-        var pline = new Polyline();
+        Polyline pline = new();
         const double bulge = 1.0;
         const double halfWidth = 0.0;
 
@@ -23,8 +23,8 @@ public static class CirclesExtensions
 
     public static Polyline ToPolyline4Pt(this Circle circle)
     {
-        var pline = new Polyline();
-        var bulge = -Tan(90 * PI / 180 / 4); //90 is the angle between points //4 is the number of points
+        Polyline pline = new();
+        double bulge = -Tan(90 * PI / 180 / 4); //90 is the angle between points //4 is the number of points
         const double polyWidth = 0.0;
 
         pline.AddVertexAt(0, new Point2d(circle.Center.X - circle.Radius, circle.Center.Y), bulge, polyWidth,

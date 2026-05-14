@@ -1,5 +1,5 @@
-﻿using System.Runtime.InteropServices;
 using Autodesk.AutoCAD.Windows;
+using System.Runtime.InteropServices;
 
 namespace AutoBIMFusion.Common.Mist.Interop;
 
@@ -53,7 +53,7 @@ internal static class User32PInvoke
     [StructLayout(LayoutKind.Sequential)]
     internal struct Win32Point
     {
-        public Int32 X;
-        public Int32 Y;
+        public int X;
+        public int Y;
     }
 }

@@ -1,8 +1,8 @@
-using System.Diagnostics;
-using System.Reflection;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
+using System.Diagnostics;
+using System.Reflection;
 using Trace = System.Diagnostics.Trace;
 
 namespace AutoBIMFusion.Common.Logging;
@@ -30,8 +30,8 @@ public static class LoggerFactory
     {
         try
         {
-            var logsDir = GetLogsDirectory();
-            var logFile = GetCurrentLogFilePath();
+            string logsDir = GetLogsDirectory();
+            string logFile = GetCurrentLogFilePath();
 
             _ = Directory.CreateDirectory(logsDir);
 
@@ -48,8 +48,11 @@ public static class LoggerFactory
     {
         try
         {
-            var logsDir = Path.GetDirectoryName(logFile);
-            if (!string.IsNullOrEmpty(logsDir)) _ = Directory.CreateDirectory(logsDir);
+            string? logsDir = Path.GetDirectoryName(logFile);
+            if (!string.IsNullOrEmpty(logsDir))
+            {
+                _ = Directory.CreateDirectory(logsDir);
+            }
 
             return new LoggerConfiguration()
                 .MinimumLevel.Information()
@@ -68,7 +71,7 @@ public static class LoggerFactory
 
     private static string GetLogsDirectory()
     {
-        var baseDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+        string baseDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
         return Path.Combine(baseDir, "Logs");
     }
 
@@ -76,13 +79,20 @@ public static class LoggerFactory
     {
         public void Emit(LogEvent logEvent)
         {
-            var msg = $"{logEvent.Timestamp:HH:mm:ss.fff} [{logEvent.Level}] {logEvent.RenderMessage()}";
-            if (logEvent.Exception is not null) msg = $"{msg}{Environment.NewLine}{logEvent.Exception}";
+            string msg = $"{logEvent.Timestamp:HH:mm:ss.fff} [{logEvent.Level}] {logEvent.RenderMessage()}";
+            if (logEvent.Exception is not null)
+            {
+                msg = $"{msg}{Environment.NewLine}{logEvent.Exception}";
+            }
 
             if (Debugger.IsAttached)
+            {
                 Debug.WriteLine(msg);
+            }
             else
+            {
                 Trace.WriteLine(msg);
+            }
         }
     }
 }

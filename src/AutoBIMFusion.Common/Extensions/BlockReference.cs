@@ -1,5 +1,6 @@
 using AutoBIMFusion.Common.Drawing;
 using AutoBIMFusion.Common.Mist;
+using Autodesk.AutoCAD.ApplicationServices;
 
 namespace AutoBIMFusion.Common.Extensions;
 
@@ -12,83 +13,92 @@ internal static class BlockReferenceExtensions
 
     public static bool IsLayoutOrModel(this BlockReference br)
     {
-        var ownerBtr = (BlockTableRecord)br.OwnerId.GetDBObject();
-        if (ownerBtr.IsLayout || ownerBtr.Name == BlockTableRecord.ModelSpace) return true;
+        BlockTableRecord ownerBtr = (BlockTableRecord)br.OwnerId.GetDBObject();
+        if (ownerBtr.IsLayout || ownerBtr.Name == BlockTableRecord.ModelSpace)
+        {
+            return true;
+        }
 
-        var referencedBtr = (BlockTableRecord)br.BlockTableRecord.GetDBObject();
+        BlockTableRecord referencedBtr = (BlockTableRecord)br.BlockTableRecord.GetDBObject();
         return referencedBtr.IsLayout;
     }
 
 
     public static Handle GetDynamicBlockHandleFromAnonymousBlock(this BlockTableRecord btr)
     {
-        if (!btr.IsAnonymous) return ObjectId.Null.Handle;
+        if (!btr.IsAnonymous)
+        {
+            return ObjectId.Null.Handle;
+        }
 
-        var rb = btr.GetXDataForApplication("AcDbBlockRepBTag");
-        if (rb == null) return ObjectId.Null.Handle;
+        ResultBuffer rb = btr.GetXDataForApplication("AcDbBlockRepBTag");
+        if (rb == null)
+        {
+            return ObjectId.Null.Handle;
+        }
 
-        foreach (var tv in rb)
+        foreach (TypedValue tv in rb)
+        {
             if (tv.TypeCode == 1005 && tv.Value is string strValue)
             {
                 var nHandle = Convert.ToInt64(strValue, 16);
                 return new Handle(nHandle);
             }
+        }
 
         return ObjectId.Null.Handle;
     }
 
     public static BlockTableRecord GetBlocDefinition(this Database db, string BlocName)
     {
-        var bt = db.BlockTableId.GetDBObject() as BlockTable;
-        if (!bt.Has(BlocName)) throw new Exception($"Le bloc {BlocName} n'existe pas dans le dessin");
-        return bt[BlocName].GetObject(OpenMode.ForRead) as BlockTableRecord;
+        BlockTable? bt = db.BlockTableId.GetDBObject() as BlockTable;
+        return !bt.Has(BlocName)
+            ? throw new Exception($"Le bloc {BlocName} n'existe pas dans le dessin")
+            : bt[BlocName].GetObject(OpenMode.ForRead) as BlockTableRecord;
     }
 
     public static BlockTableRecord GetBlocDefinition(this BlockReference blkRef, OpenMode OpenMode = OpenMode.ForRead)
     {
-        return blkRef is BlockReference
+        return blkRef is not null
             ? (BlockTableRecord)blkRef.GetBlocDefinitionObjectId().GetDBObject(OpenMode)
             : null;
     }
 
     public static ObjectId GetBlocDefinitionObjectId(this BlockReference blkRef)
     {
-        if (blkRef is BlockReference)
-        {
-            if (blkRef.IsDynamicBlock) return blkRef.DynamicBlockTableRecord;
-
-            return blkRef.BlockTableRecord;
-        }
-
-        return ObjectId.Null;
+        return blkRef is not null ? blkRef.IsDynamicBlock ? blkRef.DynamicBlockTableRecord : blkRef.BlockTableRecord : ObjectId.Null;
     }
 
     public static string GetBlockReferenceName(this BlockReference blockRef)
     {
         if (blockRef?.IsDynamicBlock == true)
+        {
             // If it's a dynamic block, get the true name from the DynamicBlockTableRecord
-            using (var btr = blockRef.DynamicBlockTableRecord.GetDBObject() as BlockTableRecord)
-            {
-                return btr.Name;
-            }
+            using BlockTableRecord? btr = blockRef.DynamicBlockTableRecord.GetDBObject() as BlockTableRecord;
+            return btr.Name;
+        }
 
         return blockRef?.Name;
     }
 
     public static string GetDescription(this BlockReference blkRef)
     {
-        var blockDef = blkRef.BlockTableRecord.GetDBObject() as BlockTableRecord;
+        BlockTableRecord? blockDef = blkRef.BlockTableRecord.GetDBObject() as BlockTableRecord;
         return blockDef.Comments;
     }
 
     public static List<DynamicBlockReferenceProperty> GetDynamicProperties(this BlockReference blockReference)
     {
-        var Values = new List<DynamicBlockReferenceProperty>();
-        var propertyCollection = blockReference.DynamicBlockReferencePropertyCollection;
+        List<DynamicBlockReferenceProperty> Values = [];
+        DynamicBlockReferencePropertyCollection propertyCollection = blockReference.DynamicBlockReferencePropertyCollection;
 
         if (propertyCollection != null)
+        {
             foreach (DynamicBlockReferenceProperty prop in propertyCollection)
+            {
                 Values.Add(prop);
+            }
+        }
 
         return Values;
     }
@@ -96,18 +106,22 @@ internal static class BlockReferenceExtensions
     public static void SetDynamicBlockReferenceProperty(this BlockReference blockReference, string propertyName,
         object value)
     {
-        foreach (var prop in blockReference.GetDynamicProperties())
+        foreach (DynamicBlockReferenceProperty prop in blockReference.GetDynamicProperties())
+        {
             if (!prop.ReadOnly && prop.PropertyName.Equals(propertyName, StringComparison.OrdinalIgnoreCase))
             {
                 prop.Value = value;
                 return;
             }
+        }
     }
 
     public static IEnumerable<KeyValuePair<string, AttributeReference>> GetAttributesByTag(this BlockReference source)
     {
-        foreach (var att in source.AttributeCollection.GetObjects())
+        foreach (AttributeReference att in source.AttributeCollection.GetObjects())
+        {
             yield return new KeyValuePair<string, AttributeReference>(att.Tag, att);
+        }
     }
 
     /// <summary>
@@ -129,12 +143,14 @@ internal static class BlockReferenceExtensions
     /// <returns>The value if attribute was found, null otherwise.</returns>
     public static string SetAttributeValue(this BlockReference target, string tag, string value)
     {
-        foreach (var attRef in target.AttributeCollection.GetObjects())
+        foreach (AttributeReference attRef in target.AttributeCollection.GetObjects())
+        {
             if (attRef.Tag == tag)
             {
                 attRef.TextString = value;
                 return value;
             }
+        }
 
         return null;
     }
@@ -146,28 +162,30 @@ internal static class BlockReferenceExtensions
     /// <param name="attribs">Collection of pairs Tag/Value.</param>
     public static void SetAttributeValues(this BlockReference target, Dictionary<string, string> attribs)
     {
-        var trx = Generic.GetDatabase().TransactionManager.TopTransaction;
-        foreach (var attRef in target.AttributeCollection.GetObjects())
+        Transaction trx = Generic.GetDatabase().TransactionManager.TopTransaction;
+        foreach (AttributeReference attRef in target.AttributeCollection.GetObjects())
+        {
             if (attribs.TryGetValue(attRef.Tag, out var value))
             {
-                trx.GetObject(attRef.ObjectId, OpenMode.ForWrite);
+                _ = trx.GetObject(attRef.ObjectId, OpenMode.ForWrite);
                 attRef.TextString = value;
             }
+        }
     }
 
     public static Point3d ProjectXrefPointToCurrentSpace(this Point3d pointInXref, ObjectId xrefId)
     {
-        var doc = Application.DocumentManager.MdiActiveDocument;
-        var db = doc.Database;
+        Document doc = Application.DocumentManager.MdiActiveDocument;
+        Database db = doc.Database;
 
-        using (var transaction = db.TransactionManager.StartTransaction())
+        using (Transaction transaction = db.TransactionManager.StartTransaction())
         {
-            var xrefBlockReference = transaction.GetObject(xrefId, OpenMode.ForRead) as BlockReference;
+            BlockReference? xrefBlockReference = transaction.GetObject(xrefId, OpenMode.ForRead) as BlockReference;
 
             if (xrefBlockReference != null)
             {
-                var xrefTransform = xrefBlockReference.BlockTransform;
-                var worldPoint = pointInXref.TransformBy(xrefTransform);
+                Matrix3d xrefTransform = xrefBlockReference.BlockTransform;
+                Point3d worldPoint = pointInXref.TransformBy(xrefTransform);
                 transaction.Commit();
 
                 return worldPoint;
@@ -180,49 +198,53 @@ internal static class BlockReferenceExtensions
     public static bool IsThereABlockReference(this Point3d position, string blockName, string attributeValue,
         out BlockReference blockReference)
     {
-        var doc = Application.DocumentManager.MdiActiveDocument;
-        var db = doc.Database;
+        Document doc = Application.DocumentManager.MdiActiveDocument;
+        Database db = doc.Database;
 
-        using (var trx = db.TransactionManager.StartTransaction())
+        using Transaction trx = db.TransactionManager.StartTransaction();
+        BlockTable? bt = trx.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+        BlockTableRecord? modelSpace = trx.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+
+        foreach (ObjectId objId in modelSpace)
         {
-            var bt = trx.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-            var modelSpace = trx.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+            if (objId.ObjectClass.DxfName == "INSERT")
+            {
+                blockReference = trx.GetObject(objId, OpenMode.ForRead) as BlockReference;
 
-            foreach (var objId in modelSpace)
-                if (objId.ObjectClass.DxfName == "INSERT")
+                if (blockReference != null && blockReference.Name == blockName &&
+                    blockReference.Position.IsEqualTo(position, Tolerance.Global))
                 {
-                    blockReference = trx.GetObject(objId, OpenMode.ForRead) as BlockReference;
-
-                    if (blockReference != null && blockReference.Name == blockName &&
-                        blockReference.Position.IsEqualTo(position, Tolerance.Global))
-                        // Check attribute values
-                        foreach (ObjectId attId in blockReference.AttributeCollection)
+                    // Check attribute values
+                    foreach (ObjectId attId in blockReference.AttributeCollection)
+                    {
+                        DBObject obj = trx.GetObject(attId, OpenMode.ForRead);
+                        if (obj is AttributeReference attributeReference)
                         {
-                            var obj = trx.GetObject(attId, OpenMode.ForRead);
-                            if (obj is AttributeReference attributeReference)
-                                if (attributeReference.TextString == attributeValue)
-                                {
-                                    // The block with the same position and attribute values exists
-                                    trx.Commit();
-                                    return true;
-                                }
+                            if (attributeReference.TextString == attributeValue)
+                            {
+                                // The block with the same position and attribute values exists
+                                trx.Commit();
+                                return true;
+                            }
                         }
+                    }
                 }
-
-            // The block does not exist at the same position with the same attribute values
-            trx.Commit();
-            blockReference = null;
-            return false;
+            }
         }
+
+        // The block does not exist at the same position with the same attribute values
+        trx.Commit();
+        blockReference = null;
+        return false;
     }
 
 
     public static ObjectIdCollection GetAllBlkDefinition(this BlockReference BlockRef, bool IncludeParents = false)
     {
-        var BlkDef = BlockRef.GetBlocDefinition();
-        var DynamicBlkRefs = BlockReferences.GetDynamicBlockReferences(BlockRef.GetBlockReferenceName());
-        var ClassicBlkRefs = BlkDef.GetBlockReferenceIds(!IncludeParents, true);
-        var AllBlkRefs = new ObjectIdCollection();
+        BlockTableRecord BlkDef = BlockRef.GetBlocDefinition();
+        ObjectIdCollection DynamicBlkRefs = BlockReferences.GetDynamicBlockReferences(BlockRef.GetBlockReferenceName());
+        ObjectIdCollection ClassicBlkRefs = BlkDef.GetBlockReferenceIds(!IncludeParents, true);
+        ObjectIdCollection AllBlkRefs = [];
         AllBlkRefs.Join(DynamicBlkRefs);
         AllBlkRefs.Join(ClassicBlkRefs);
         return AllBlkRefs;
@@ -231,17 +253,19 @@ internal static class BlockReferenceExtensions
 
     public static void RegenAllBlkDefinition(this BlockReference BlockRef)
     {
-        var db = Generic.GetDatabase();
-        using (var trx = db.TransactionManager.StartTransaction())
+        Database db = Generic.GetDatabase();
+        using Transaction trx = db.TransactionManager.StartTransaction();
+        BlockTableRecord BlkDef = BlockRef.GetBlocDefinition();
+
+        foreach (ObjectId entId in BlockRef.GetAllBlkDefinition(true))
         {
-            var BlkDef = BlockRef.GetBlocDefinition();
-
-            foreach (ObjectId entId in BlockRef.GetAllBlkDefinition(true))
-                if (entId.GetDBObject(OpenMode.ForWrite) is BlockReference otherBlockRef)
-                    otherBlockRef.RecordGraphicsModified(true);
-
-            BlkDef.UpdateAnonymousBlocks();
-            trx.Commit();
+            if (entId.GetDBObject(OpenMode.ForWrite) is BlockReference otherBlockRef)
+            {
+                otherBlockRef.RecordGraphicsModified(true);
+            }
         }
+
+        BlkDef.UpdateAnonymousBlocks();
+        trx.Commit();
     }
 }

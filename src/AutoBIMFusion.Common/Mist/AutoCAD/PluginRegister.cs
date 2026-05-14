@@ -1,5 +1,5 @@
-﻿using System.Diagnostics;
 using Microsoft.Win32;
+using System.Diagnostics;
 using Registry = Autodesk.AutoCAD.Runtime.Registry;
 
 namespace AutoBIMFusion.Common.Mist.AutoCAD;
@@ -11,14 +11,15 @@ internal static class PluginRegister
         try
         {
             // Get the AutoCAD Applications key
-            var sProdKey = HostApplicationServices.Current.UserRegistryProductRootKey;
-            var sAppName = Generic.GetExtensionDLLName();
-            var regAcadProdKey = Registry.CurrentUser.OpenSubKey(sProdKey);
-            var regAcadAppKey = regAcadProdKey.OpenSubKey("Applications", true);
+            string sProdKey = HostApplicationServices.Current.UserRegistryProductRootKey;
+            string sAppName = Generic.GetExtensionDLLName();
+            Autodesk.AutoCAD.Runtime.RegistryKey regAcadProdKey = Registry.CurrentUser.OpenSubKey(sProdKey);
+            Autodesk.AutoCAD.Runtime.RegistryKey regAcadAppKey = regAcadProdKey.OpenSubKey("Applications", true);
 
             // Check to see if the "MyApp" key exists
             string[] subKeys = regAcadAppKey.GetSubKeyNames();
-            foreach (var subKey in subKeys)
+            foreach (string subKey in subKeys)
+            {
                 // If the application is already registered, exit
                 if (subKey.Equals(sAppName))
                 {
@@ -26,12 +27,13 @@ internal static class PluginRegister
                     regAcadAppKey.Close();
                     return;
                 }
+            }
 
             // Get the location of this module
-            var sAssemblyPath = Generic.GetExtensionDLLLocation();
+            string sAssemblyPath = Generic.GetExtensionDLLLocation();
 
             // Register the application
-            var regAppAddInKey = regAcadAppKey.CreateSubKey(sAppName);
+            Autodesk.AutoCAD.Runtime.RegistryKey regAppAddInKey = regAcadAppKey.CreateSubKey(sAppName);
             regAppAddInKey.SetValue("DESCRIPTION", sAppName, RegistryValueKind.String);
             regAppAddInKey.SetValue("LOADCTRLS", 14, RegistryValueKind.DWord);
             regAppAddInKey.SetValue("LOADER", sAssemblyPath, RegistryValueKind.String);
@@ -50,11 +52,11 @@ internal static class PluginRegister
         try
         {
             // Get the AutoCAD Applications key
-            var sProdKey = HostApplicationServices.Current.UserRegistryProductRootKey;
-            var sAppName = Generic.GetExtensionDLLName();
+            string sProdKey = HostApplicationServices.Current.UserRegistryProductRootKey;
+            string sAppName = Generic.GetExtensionDLLName();
 
-            var regAcadProdKey = Registry.CurrentUser.OpenSubKey(sProdKey);
-            var regAcadAppKey = regAcadProdKey.OpenSubKey("Applications", true);
+            Autodesk.AutoCAD.Runtime.RegistryKey regAcadProdKey = Registry.CurrentUser.OpenSubKey(sProdKey);
+            Autodesk.AutoCAD.Runtime.RegistryKey regAcadAppKey = regAcadProdKey.OpenSubKey("Applications", true);
 
             // Delete the key for the application
             regAcadAppKey.DeleteSubKeyTree(sAppName);

@@ -1,4 +1,4 @@
-﻿using AutoBIMFusion.Common.Extensions;
+using AutoBIMFusion.Common.Extensions;
 
 namespace AutoBIMFusion.Common.Mist.Geometry.PolygonOperations;
 
@@ -10,10 +10,7 @@ public class PolyHole : IDisposable
     public PolyHole(Polyline boundary, IEnumerable<Polyline> holes)
     {
         Boundary = boundary;
-        if (holes != null)
-            Holes = holes.ToList();
-        else
-            Holes = new List<Polyline>();
+        Holes = holes != null ? holes.ToList() : [];
     }
 
     public void Dispose()
@@ -26,14 +23,20 @@ public class PolyHole : IDisposable
     public static List<PolyHole> CreateFromList(IEnumerable<Polyline> polylines,
         IEnumerable<Polyline> PossibleHole = null)
     {
-        var polyholes = new List<PolyHole>();
-        foreach (var poly in polylines)
+        List<PolyHole> polyholes = [];
+        foreach (Polyline poly in polylines)
         {
-            var holes = new List<Polyline>();
+            List<Polyline> holes = [];
             if (PossibleHole != null)
-                foreach (var Hole in PossibleHole)
+            {
+                foreach (Polyline? Hole in PossibleHole)
+                {
                     if (Hole?.IsDisposed != true && Hole.IsInside(poly, false))
+                    {
                         holes.Add(Hole);
+                    }
+                }
+            }
 
             polyholes.Add(new PolyHole(poly, holes));
         }
@@ -46,15 +49,23 @@ public static class PolyHoleExtensions
 {
     public static List<Polyline> GetBoundaries(this IEnumerable<PolyHole> polyHolesList)
     {
-        var holes = new List<Polyline>();
-        foreach (var item in polyHolesList) holes.Add(item.Boundary);
+        List<Polyline> holes = [];
+        foreach (PolyHole item in polyHolesList)
+        {
+            holes.Add(item.Boundary);
+        }
+
         return holes;
     }
 
     public static List<Polyline> GetAllHoles(this IEnumerable<PolyHole> polyHolesList)
     {
-        var holes = new List<Polyline>();
-        foreach (var item in polyHolesList) holes.AddRange(item.Holes);
+        List<Polyline> holes = [];
+        foreach (PolyHole item in polyHolesList)
+        {
+            holes.AddRange(item.Holes);
+        }
+
         return holes;
     }
 }

@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Mist;
+using System.Diagnostics;
 
 namespace AutoBIMFusion.Common.Functions;
 
@@ -24,7 +24,7 @@ public static class BlockScaleApplier
             return;
         }
 
-        var AlreadyAppliedScale = new HashSet<string>();
+        HashSet<string> AlreadyAppliedScale = [];
 
         using Transaction trx = db.TransactionManager.StartTransaction();
 
@@ -32,7 +32,7 @@ public static class BlockScaleApplier
         {
             if (perObjId.GetDBObject() is BlockReference blockRef)
             {
-                var BlkName = blockRef.GetBlockReferenceName();
+                string BlkName = blockRef.GetBlockReferenceName();
 
                 if (AlreadyAppliedScale.Contains(BlkName))
                 {
@@ -48,7 +48,7 @@ public static class BlockScaleApplier
 
                 _ = AlreadyAppliedScale.Add(BlkName);
 
-                var refScale = Abs(blockRef.ScaleFactors.X);
+                double refScale = Abs(blockRef.ScaleFactors.X);
 
                 BlockTableRecord btr = blockRef.GetBlocDefinition(OpenMode.ForWrite);
 
@@ -63,13 +63,13 @@ public static class BlockScaleApplier
                     btr.Units = db.Insunits;
                 }
 
-                var scaleMatrix = Matrix3d.Scaling(refScale, Point3d.Origin);
+                Matrix3d scaleMatrix = Matrix3d.Scaling(refScale, Point3d.Origin);
 
                 foreach (ObjectId entId in btr)
                 {
                     try
                     {
-                        var ent = entId.GetDBObject(OpenMode.ForWrite) as Entity;
+                        Entity? ent = entId.GetDBObject(OpenMode.ForWrite) as Entity;
                         ent?.TransformBy(scaleMatrix);
                     }
                     catch (Exception ex)
@@ -79,10 +79,10 @@ public static class BlockScaleApplier
                 }
 
                 // Корректируем все ссылки на блок.
-                var differentScalesFound = false;
+                bool differentScalesFound = false;
                 foreach (ObjectId item in blockRef.GetAllBlkDefinition())
                 {
-                    var ent = item.GetDBObject(OpenMode.ForWrite) as BlockReference;
+                    BlockReference? ent = item.GetDBObject(OpenMode.ForWrite) as BlockReference;
 
                     Scale3d oldScale = ent.ScaleFactors;
 
@@ -91,7 +91,7 @@ public static class BlockScaleApplier
                         differentScalesFound = true;
                     }
 
-                    var scaleFactor = 1.0 / refScale;
+                    double scaleFactor = 1.0 / refScale;
 
                     ent.ScaleFactors = new Scale3d(
                         oldScale.X * scaleFactor,

@@ -1,6 +1,7 @@
-using System.Diagnostics;
 using AutoBIMFusion.Common.Drawing;
 using AutoBIMFusion.Common.Extensions;
+using Autodesk.AutoCAD.ApplicationServices;
+using System.Diagnostics;
 
 namespace AutoBIMFusion.Common.Mist.Geometry;
 
@@ -8,31 +9,43 @@ public static class DelaunayTriangulate
 {
     public static void TriangulateCommand()
     {
-        var doc = Application.DocumentManager.MdiActiveDocument;
-        var db = doc.Database;
-        var ed = doc.Editor;
+        Document doc = Application.DocumentManager.MdiActiveDocument;
+        Database db = doc.Database;
+        Editor ed = doc.Editor;
 
         TypedValue[] PointTypedValue = { new(0, "POINT") };
-        var PointSelectionFilter = new SelectionFilter(PointTypedValue);
-        var SelectPointsPromptOption = new PromptSelectionOptions
+        SelectionFilter PointSelectionFilter = new(PointTypedValue);
+        PromptSelectionOptions SelectPointsPromptOption = new()
         {
             MessageForAdding = "Select Points:",
             AllowDuplicates = false
         };
 
-        var pointSelectionResult = ed.GetSelection(SelectPointsPromptOption, PointSelectionFilter);
+        PromptSelectionResult pointSelectionResult = ed.GetSelection(SelectPointsPromptOption, PointSelectionFilter);
 
-        if (pointSelectionResult.Status == PromptStatus.Error) return;
-
-        if (pointSelectionResult.Status == PromptStatus.Cancel) return;
-
-        using (var trx = db.TransactionManager.StartTransaction())
+        if (pointSelectionResult.Status == PromptStatus.Error)
         {
-            var PointsSet = new List<DBPoint>();
-            foreach (var PointSelectionSet in pointSelectionResult.Value.GetObjectIds())
-                PointsSet.Add(PointSelectionSet.GetDBObject() as DBPoint);
+            return;
+        }
 
-            foreach (var poly in Triangulate(PointsSet)) poly.AddToDrawing();
+        if (pointSelectionResult.Status == PromptStatus.Cancel)
+        {
+            return;
+        }
+
+        using (Transaction trx = db.TransactionManager.StartTransaction())
+        {
+            List<DBPoint> PointsSet = new();
+            foreach (ObjectId PointSelectionSet in pointSelectionResult.Value.GetObjectIds())
+            {
+                PointsSet.Add(PointSelectionSet.GetDBObject() as DBPoint);
+            }
+
+            foreach (Polyline3d poly in Triangulate(PointsSet))
+            {
+                _ = poly.AddToDrawing();
+            }
+
             trx.Commit();
         }
 
@@ -42,9 +55,9 @@ public static class DelaunayTriangulate
 
     public static List<Polyline3d> Triangulate(List<DBPoint> PointsSet)
     {
-        var db = Generic.GetDatabase();
-        var ed = Generic.GetEditor();
-        var Result = new List<Polyline3d>();
+        Database db = Generic.GetDatabase();
+        Editor ed = Generic.GetEditor();
+        List<Polyline3d> Result = new();
 
         var numberOfPoints = PointsSet.Count;
 
@@ -67,16 +80,16 @@ public static class DelaunayTriangulate
         var yCoordinates = new double[numberOfPoints + 3];
         var zCoordinates = new double[numberOfPoints + 3];
         // Triangle definitions
-        var vertexPoint1 = new int[numberOfPoints * 2 + 1];
-        var vertexPoint2 = new int[numberOfPoints * 2 + 1];
-        var vertexPoint3 = new int[numberOfPoints * 2 + 1];
+        var vertexPoint1 = new int[(numberOfPoints * 2) + 1];
+        var vertexPoint2 = new int[(numberOfPoints * 2) + 1];
+        var vertexPoint3 = new int[(numberOfPoints * 2) + 1];
         // Circumscribed circle
-        var centerXValues = new double[numberOfPoints * 2 + 1];
-        var centerYValues = new double[numberOfPoints * 2 + 1];
-        var radiusValues = new double[numberOfPoints * 2 + 1];
+        var centerXValues = new double[(numberOfPoints * 2) + 1];
+        var centerYValues = new double[(numberOfPoints * 2) + 1];
+        var radiusValues = new double[(numberOfPoints * 2) + 1];
         double xMin, yMin, xMax, yMax, deltaX, deltaY, xMid, yMid;
-        var edge1 = new int[numberOfPoints * 2 + 1];
-        var edge2 = new int[numberOfPoints * 2 + 1];
+        var edge1 = new int[(numberOfPoints * 2) + 1];
+        var edge2 = new int[(numberOfPoints * 2) + 1];
         Transaction trx;
         using (trx = db.TransactionManager.StartTransaction())
         {
@@ -89,12 +102,14 @@ public static class DelaunayTriangulate
                 yCoordinates[PtsIndex] = PointElement.Position[1];
                 zCoordinates[PtsIndex] = PointElement.Position[2];
                 for (j = 0; j < PtsIndex; j++)
+                {
                     if (xCoordinates[PtsIndex] == xCoordinates[j] && yCoordinates[PtsIndex] == yCoordinates[j])
                     {
                         PtsIndex--;
                         numberOfPoints--;
                         IgnoredPointWithSameCoordinatesCount++;
                     }
+                }
 
                 k++;
             }
@@ -103,10 +118,12 @@ public static class DelaunayTriangulate
         }
 
         if (IgnoredPointWithSameCoordinatesCount > 0)
+        {
             ed.WriteMessage(
                 "\nIgnored {0} point(s) with same coordinates.",
                 IgnoredPointWithSameCoordinatesCount
             );
+        }
 
         // Supertriangle
         xMin = xCoordinates[0];
@@ -115,13 +132,25 @@ public static class DelaunayTriangulate
         yMax = yMin;
         for (PtsIndex = 0; PtsIndex < numberOfPoints; PtsIndex++)
         {
-            if (xCoordinates[PtsIndex] < xMin) xMin = xCoordinates[PtsIndex];
+            if (xCoordinates[PtsIndex] < xMin)
+            {
+                xMin = xCoordinates[PtsIndex];
+            }
 
-            if (xCoordinates[PtsIndex] > xMax) xMax = xCoordinates[PtsIndex];
+            if (xCoordinates[PtsIndex] > xMax)
+            {
+                xMax = xCoordinates[PtsIndex];
+            }
 
-            if (yCoordinates[PtsIndex] < xMin) yMin = yCoordinates[PtsIndex];
+            if (yCoordinates[PtsIndex] < xMin)
+            {
+                yMin = yCoordinates[PtsIndex];
+            }
 
-            if (yCoordinates[PtsIndex] > xMin) yMax = yCoordinates[PtsIndex];
+            if (yCoordinates[PtsIndex] > xMin)
+            {
+                yMax = yCoordinates[PtsIndex];
+            }
         }
 
         deltaX = xMax - xMin;
@@ -129,22 +158,22 @@ public static class DelaunayTriangulate
         xMid = (xMin + xMax) / 2;
         yMid = (yMin + yMax) / 2;
         PtsIndex = numberOfPoints;
-        xCoordinates[PtsIndex] = xMid - 90 * (deltaX + deltaY) - 100;
-        yCoordinates[PtsIndex] = yMid - 50 * (deltaX + deltaY) - 100;
+        xCoordinates[PtsIndex] = xMid - (90 * (deltaX + deltaY)) - 100;
+        yCoordinates[PtsIndex] = yMid - (50 * (deltaX + deltaY)) - 100;
         zCoordinates[PtsIndex] = 0;
         vertexPoint1[0] = PtsIndex;
         PtsIndex++;
-        xCoordinates[PtsIndex] = xMid + 90 * (deltaX + deltaY) + 100;
-        yCoordinates[PtsIndex] = yMid - 50 * (deltaX + deltaY) - 100;
+        xCoordinates[PtsIndex] = xMid + (90 * (deltaX + deltaY)) + 100;
+        yCoordinates[PtsIndex] = yMid - (50 * (deltaX + deltaY)) - 100;
         zCoordinates[PtsIndex] = 0;
         vertexPoint2[0] = PtsIndex;
         PtsIndex++;
         xCoordinates[PtsIndex] = xMid;
-        yCoordinates[PtsIndex] = yMid + 100 * (deltaX + deltaY + 1);
+        yCoordinates[PtsIndex] = yMid + (100 * (deltaX + deltaY + 1));
         zCoordinates[PtsIndex] = 0;
         vertexPoint3[0] = PtsIndex;
         numberOfTriangles = 1;
-        CalculateCircumscribedCircle(
+        _ = CalculateCircumscribedCircle(
             xCoordinates[vertexPoint1[0]], yCoordinates[vertexPoint1[0]], xCoordinates[vertexPoint2[0]],
             yCoordinates[vertexPoint2[0]], xCoordinates[vertexPoint3[0]], yCoordinates[vertexPoint3[0]],
             ref centerXValues[0], ref centerYValues[0], ref radiusValues[0]
@@ -161,7 +190,7 @@ public static class DelaunayTriangulate
             {
                 deltaX = centerXValues[j] - xMin;
                 deltaY = centerYValues[j] - yMin;
-                if (deltaX * deltaX + deltaY * deltaY < radiusValues[j])
+                if ((deltaX * deltaX) + (deltaY * deltaY) < radiusValues[j])
                 {
                     edge1[numberOfEdges] = vertexPoint1[j];
                     edge2[numberOfEdges] = vertexPoint2[j];
@@ -186,7 +215,9 @@ public static class DelaunayTriangulate
             }
 
             for (j = 0; j < numberOfEdges - 1; j++)
+            {
                 for (k = j + 1; k < numberOfEdges; k++)
+                {
                     if (edge1[j] == edge2[k] && edge2[j] == edge1[k])
                     {
                         edge1[j] = -1;
@@ -194,8 +225,11 @@ public static class DelaunayTriangulate
                         edge1[k] = -1;
                         edge2[k] = -1;
                     }
+                }
+            }
 
             for (j = 0; j < numberOfEdges; j++)
+            {
                 if (edge1[j] >= 0 && edge2[j] >= 0)
                 {
                     vertexPoint1[numberOfTriangles] = edge1[j];
@@ -212,9 +246,14 @@ public static class DelaunayTriangulate
                             ref centerXValues[numberOfTriangles], ref centerYValues[numberOfTriangles],
                             ref radiusValues[numberOfTriangles]
                         );
-                    if (!IsThinTriangle) thinTriangleFoundCount++;
+                    if (!IsThinTriangle)
+                    {
+                        thinTriangleFoundCount++;
+                    }
+
                     numberOfTriangles++;
                 }
+            }
         }
 
         //removal of outer triangles
@@ -239,39 +278,40 @@ public static class DelaunayTriangulate
 
         using (trx = db.TransactionManager.StartTransaction())
         {
-            var bt =
+            BlockTable bt =
                 (BlockTable)trx.GetObject(
                     db.BlockTableId,
                     OpenMode.ForRead,
                     false
                 );
-            var btr = Generic.GetCurrentSpaceBlockTableRecord(trx);
+            BlockTableRecord btr = Generic.GetCurrentSpaceBlockTableRecord(trx);
 
             for (PtsIndex = 0; PtsIndex < numberOfTriangles; PtsIndex++)
             {
-                var vertex1 = new Point3d(xCoordinates[vertexPoint1[PtsIndex]], yCoordinates[vertexPoint1[PtsIndex]],
+                Point3d vertex1 = new(xCoordinates[vertexPoint1[PtsIndex]], yCoordinates[vertexPoint1[PtsIndex]],
                     zCoordinates[vertexPoint1[PtsIndex]]);
-                var vertex2 = new Point3d(xCoordinates[vertexPoint2[PtsIndex]], yCoordinates[vertexPoint2[PtsIndex]],
+                Point3d vertex2 = new(xCoordinates[vertexPoint2[PtsIndex]], yCoordinates[vertexPoint2[PtsIndex]],
                     zCoordinates[vertexPoint2[PtsIndex]]);
-                var vertex3 = new Point3d(xCoordinates[vertexPoint3[PtsIndex]], yCoordinates[vertexPoint3[PtsIndex]],
+                Point3d vertex3 = new(xCoordinates[vertexPoint3[PtsIndex]], yCoordinates[vertexPoint3[PtsIndex]],
                     zCoordinates[vertexPoint3[PtsIndex]]);
-                using (var poly = new Polyline3d())
-                {
-                    poly.AddToDrawingCurrentTransaction();
-                    poly.AddVertex(vertex1);
-                    poly.AddVertex(vertex2);
-                    poly.AddVertex(vertex3);
-                    poly.Closed = true;
-                    Result.Add(poly.Clone() as Polyline3d);
-                    poly.Erase();
-                }
+                using Polyline3d poly = new();
+                _ = poly.AddToDrawingCurrentTransaction();
+                poly.AddVertex(vertex1);
+                poly.AddVertex(vertex2);
+                poly.AddVertex(vertex3);
+                poly.Closed = true;
+                Result.Add(poly.Clone() as Polyline3d);
+                poly.Erase();
             }
 
             trx.Commit();
         }
 
         if (thinTriangleFoundCount > 0)
+        {
             Debug.WriteLine($"Warning! {thinTriangleFoundCount} thin triangle(s) found! Wrong result possible!");
+        }
+
         return Result;
     }
 
@@ -297,7 +337,7 @@ public static class DelaunayTriangulate
                 mx2 = (x2 + x3) / 2;
                 my2 = (y2 + y3) / 2;
                 xc = (x2 + x1) / 2;
-                yc = m2 * (xc - mx2) + my2;
+                yc = (m2 * (xc - mx2)) + my2;
             }
             else if (Abs(y3 - y2) < eps)
             {
@@ -305,7 +345,7 @@ public static class DelaunayTriangulate
                 mx1 = (x1 + x2) / 2;
                 my1 = (y1 + y2) / 2;
                 xc = (x3 + x2) / 2;
-                yc = m1 * (xc - mx1) + my1;
+                yc = (m1 * (xc - mx1)) + my1;
             }
             else
             {
@@ -323,15 +363,15 @@ public static class DelaunayTriangulate
                     mx2 = (x2 + x3) / 2;
                     my1 = (y1 + y2) / 2;
                     my2 = (y2 + y3) / 2;
-                    xc = (m1 * mx1 - m2 * mx2 + my2 - my1) / (m1 - m2);
-                    yc = m1 * (xc - mx1) + my1;
+                    xc = ((m1 * mx1) - (m2 * mx2) + my2 - my1) / (m1 - m2);
+                    yc = (m1 * (xc - mx1)) + my1;
                 }
             }
         }
 
         dx = x2 - xc;
         dy = y2 - yc;
-        r = dx * dx + dy * dy;
+        r = (dx * dx) + (dy * dy);
         return result;
     }
 }

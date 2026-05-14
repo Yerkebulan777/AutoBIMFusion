@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using AutoBIMFusion.Common.Extensions;
+using System.Diagnostics;
 
 namespace AutoBIMFusion.Common.Mist.Geometry.PolygonOperations;
 
@@ -11,24 +11,34 @@ public static partial class PolygonOperation
     {
         BaseCutLine.Elevation = BasePolyline.Elevation;
         //BasePolyline.Cleanup();
-        var InsideCutLines = BasePolyline.GetInsideCutLines(BaseCutLine);
+        DBObjectCollection InsideCutLines = BasePolyline.GetInsideCutLines(BaseCutLine);
 
         //InsideCutLines.AddToDrawing(5, true);
-        var Polygon = new List<Polyline> { BasePolyline.Clone() as Polyline };
+        List<Polyline> Polygon = new()
+        { BasePolyline.Clone() as Polyline };
         foreach (Polyline CutLine in InsideCutLines)
         {
-            if (CutLine == null) continue;
-            foreach (var Poly in Polygon.ToList())
+            if (CutLine == null)
             {
-                var SplittedPolylines = Poly.CutCurveByCurve(CutLine);
+                continue;
+            }
+
+            foreach (Polyline? Poly in Polygon.ToList())
+            {
+                DBObjectCollection SplittedPolylines = Poly.CutCurveByCurve(CutLine);
 
                 //SplittedPolylines.AddToDrawing(5, true);
                 if (SplittedPolylines.Count > 1)
                 {
-                    Polygon.Remove(Poly);
-                    var TempsResult = RecreateClosedPolyline(SplittedPolylines, CutLine);
-                    if (Poly != BasePolyline) Poly.Dispose();
-                    foreach (var TempPoly in TempsResult)
+                    _ = Polygon.Remove(Poly);
+                    List<Polyline> TempsResult = RecreateClosedPolyline(SplittedPolylines, CutLine);
+                    if (Poly != BasePolyline)
+                    {
+                        Poly.Dispose();
+                    }
+
+                    foreach (Polyline TempPoly in TempsResult)
+                    {
                         if (TempPoly.TryGetArea() > 0.01)
                         {
                             TempPoly.Cleanup();
@@ -38,6 +48,7 @@ public static partial class PolygonOperation
                         {
                             TempPoly.Dispose();
                         }
+                    }
                 }
                 else
                 {
@@ -54,12 +65,22 @@ public static partial class PolygonOperation
 
     public static void SetSliceCache(List<Polyline> CachePolygon, Polyline BasePolyline)
     {
-        if (CachePolygon != null && CachePolygon != null)
-            foreach (var item in CachePolygon)
+        if (CachePolygon is not null and not null)
+        {
+            foreach (Polyline item in CachePolygon)
+            {
                 if (item != null)
-                    LastSliceResult?.Remove(item);
+                {
+                    _ = (LastSliceResult?.Remove(item));
+                }
+            }
+        }
 
-        if (BasePolyline != null) LastSliceResult?.Remove(BasePolyline);
+        if (BasePolyline != null)
+        {
+            _ = (LastSliceResult?.Remove(BasePolyline));
+        }
+
         LastSliceResult = CachePolygon;
     }
 
@@ -68,11 +89,11 @@ public static partial class PolygonOperation
         //using (Transaction trx = db.TransactionManager.StartTransaction())
         //{
         //List<Polyline> Cleanned = new List<Polyline>();
-        var array = Polylines.ToArray();
+        Polyline[] array = Polylines.ToArray();
         for (var i = 0; i < array.Length; i++)
         {
-            var item = array[i];
-            Polylines.Remove(item);
+            Polyline item = array[i];
+            _ = Polylines.Remove(item);
 
             GetConnectingPolylineInList(item.StartPoint, ref item, ref CutLine, ref Polylines);
             GetConnectingPolylineInList(item.EndPoint, ref item, ref CutLine, ref Polylines);
@@ -85,7 +106,7 @@ public static partial class PolygonOperation
         //    trx.Commit();
         //}
 
-        void GetConnectingPolylineInList(Point3d Origin, ref Polyline SubPoly, ref Polyline SubCutLine,
+        static void GetConnectingPolylineInList(Point3d Origin, ref Polyline SubPoly, ref Polyline SubCutLine,
             ref List<Polyline> SubPolylines)
         {
             var itineration = 0;
@@ -93,24 +114,27 @@ public static partial class PolygonOperation
                    Origin.DistanceTo(SubCutLine) > Generic.MediumTolerance.EqualPoint)
             {
                 itineration++;
-                foreach (var item1 in SubPolylines.ToArray())
+                foreach (Polyline item1 in SubPolylines.ToArray())
+                {
                     if (item1.StartPoint.IsEqualTo(Origin) || item1.EndPoint.IsEqualTo(Origin))
                     {
                         //Index++;
                         //poly.AddToDrawing(Index, true);
                         //item1.AddToDrawing(Index, true);
                         SubPoly.JoinEntity(item1);
-                        SubPolylines.Remove(item1);
+                        _ = SubPolylines.Remove(item1);
                     }
+                }
             }
         }
     }
 
     public static List<Polyline> RecreateClosedPolyline(DBObjectCollection SplittedPolylines, Polyline CutLine)
     {
-        var SplittedPolylinesWithInsideCutLines = new DBObjectCollection { CutLine }.AddRange(SplittedPolylines);
+        DBObjectCollection SplittedPolylinesWithInsideCutLines = new DBObjectCollection { CutLine }.AddRange(SplittedPolylines);
         TryDetectWrongCut(SplittedPolylines.Cast<Polyline>().ToList(), CutLine);
         foreach (Polyline polyline in SplittedPolylines)
+        {
             if (polyline.IsCurveCanClose(CutLine))
             {
                 //polyline.AddToDrawing(2, true);
@@ -118,10 +142,11 @@ public static partial class PolygonOperation
                 polyline.JoinEntity(CutLine);
                 polyline.Closed = true;
             }
+        }
 
-        var Polylines = SplittedPolylines.ToList();
-        var ClosedPolylines = Polylines.Where(poly => (poly as Polyline).Closed).ToList();
-        var NotClosedPolylines = Polylines.Where(poly => !(poly as Polyline).Closed).ToList();
+        List<DBObject> Polylines = SplittedPolylines.ToList();
+        List<DBObject> ClosedPolylines = Polylines.Where(poly => (poly as Polyline).Closed).ToList();
+        List<DBObject> NotClosedPolylines = Polylines.Where(poly => !(poly as Polyline).Closed).ToList();
 
         var index = 0;
         var LastOperationNotClosedPolylinesCount = -1;
@@ -132,7 +157,10 @@ public static partial class PolygonOperation
             {
                 SameCountRedo--;
                 //If the number are the same, that mean we have not successfuly close any polyline
-                if (SameCountRedo == 0) break;
+                if (SameCountRedo == 0)
+                {
+                    break;
+                }
             }
             else
             {
@@ -140,18 +168,24 @@ public static partial class PolygonOperation
             }
 
             LastOperationNotClosedPolylinesCount = NotClosedPolylines.Count;
-            if (!(NotClosedPolylines[Max(index, 0)] is Polyline PolyligneA)) continue;
-
-            var AvailableNotClosedEntities = NotClosedPolylines.ToList();
-            AvailableNotClosedEntities.Add(CutLine);
-            foreach (var PolyligneB in AvailableNotClosedEntities.Cast<Polyline>())
+            if (NotClosedPolylines[Max(index, 0)] is not Polyline PolyligneA)
             {
-                if (!PolyligneA.CanBeJoinWith(PolyligneB)) continue;
+                continue;
+            }
+
+            List<DBObject> AvailableNotClosedEntities = NotClosedPolylines.ToList();
+            AvailableNotClosedEntities.Add(CutLine);
+            foreach (Polyline PolyligneB in AvailableNotClosedEntities.Cast<Polyline>())
+            {
+                if (!PolyligneA.CanBeJoinWith(PolyligneB))
+                {
+                    continue;
+                }
 
                 try
                 {
                     PolyligneA.JoinEntity(PolyligneB);
-                    NotClosedPolylines.Remove(PolyligneB);
+                    _ = NotClosedPolylines.Remove(PolyligneB);
                     index--;
                 }
                 catch (Exception ex)
@@ -160,14 +194,22 @@ public static partial class PolygonOperation
                 }
             }
 
-            if (PolyligneA.Closed) ClosedPolylines.Add(PolyligneA);
+            if (PolyligneA.Closed)
+            {
+                ClosedPolylines.Add(PolyligneA);
+            }
+
             index++;
         }
 
-        var CutedClosePolyligne = new List<Polyline>();
-        foreach (var polyligne in ClosedPolylines.Cast<Polyline>())
+        List<Polyline> CutedClosePolyligne = new();
+        foreach (Polyline polyligne in ClosedPolylines.Cast<Polyline>())
+        {
             if (polyligne.Closed && polyligne.Area > 0 && !CutedClosePolyligne.Contains(polyligne))
+            {
                 CutedClosePolyligne.Add(polyligne);
+            }
+        }
 
         SplittedPolylines.ToList().Cast<Polyline>()
             .Where(polyligne => !CutedClosePolyligne
@@ -179,20 +221,27 @@ public static partial class PolygonOperation
 
     private static DBObjectCollection GetInsideCutLines(this Polyline BoundaryPolyline, Polyline CutLine)
     {
-        var CutLines = CutLine.CutCurveByCurve(BoundaryPolyline, Intersect.ExtendBoth);
-        if (CutLines.Count == 0) CutLines.Add(CutLine.Clone() as Polyline);
+        DBObjectCollection CutLines = CutLine.CutCurveByCurve(BoundaryPolyline, Intersect.ExtendBoth);
+        if (CutLines.Count == 0)
+        {
+            _ = CutLines.Add(CutLine.Clone() as Polyline);
+        }
         //BoundaryPolyline.AddToDrawing(3, true);
         //CutLines.AddToDrawing(3, true);
-        var InsideCutLines = new DBObjectCollection();
+        DBObjectCollection InsideCutLines = new();
         foreach (Polyline line in CutLines)
         {
             var IsInside = line.IsInside(BoundaryPolyline);
             var IsOverlaping = line.IsOverlaping(BoundaryPolyline);
             if (IsInside && !IsOverlaping)
-                InsideCutLines.Add(line);
+            {
+                _ = InsideCutLines.Add(line);
+            }
             else
+            {
                 // line.AddToDrawing();
                 line.Dispose();
+            }
         }
         //InsideCutLines.AddToDrawing(3, true);
         //Fix splitted lines
@@ -201,45 +250,59 @@ public static partial class PolygonOperation
         while (SuccessfulllyJoinACutLine)
         {
             SuccessfulllyJoinACutLine = false;
-            foreach (var InsideCutLine_A in InsideCutLines.ToList().Cast<Polyline>())
-            foreach (var InsideCutLine_B in InsideCutLines.ToList().Cast<Polyline>())
-                if (InsideCutLines.Contains(InsideCutLine_A) && InsideCutLines.Contains(InsideCutLine_B))
-                    if (InsideCutLine_A.CanBeJoinWith(InsideCutLine_B))
+            foreach (Polyline InsideCutLine_A in InsideCutLines.ToList().Cast<Polyline>())
+            {
+                foreach (Polyline InsideCutLine_B in InsideCutLines.ToList().Cast<Polyline>())
+                {
+                    if (InsideCutLines.Contains(InsideCutLine_A) && InsideCutLines.Contains(InsideCutLine_B))
                     {
-                        SuccessfulllyJoinACutLine = true;
-                        InsideCutLine_A.JoinEntity(InsideCutLine_B);
-                        InsideCutLines.Remove(InsideCutLine_B);
-                        InsideCutLine_B.Dispose();
+                        if (InsideCutLine_A.CanBeJoinWith(InsideCutLine_B))
+                        {
+                            SuccessfulllyJoinACutLine = true;
+                            InsideCutLine_A.JoinEntity(InsideCutLine_B);
+                            InsideCutLines.Remove(InsideCutLine_B);
+                            InsideCutLine_B.Dispose();
+                        }
                     }
+                }
+            }
         }
 
         //InsideCutLines.AddToDrawing(2, true);
 
         //Extend line to boundary intersection
-        foreach (var InsideCutLine in InsideCutLines.ToList().Cast<Polyline>())
+        foreach (Polyline InsideCutLine in InsideCutLines.ToList().Cast<Polyline>())
         {
-            BoundaryPolyline.IsSegmentIntersecting(InsideCutLine, out var Intersection, Intersect.ExtendArgument);
+            _ = BoundaryPolyline.IsSegmentIntersecting(InsideCutLine, out Point3dCollection? Intersection, Intersect.ExtendArgument);
             if (Intersection.Count > 0)
             {
                 if (!Intersection.ContainsTolerance(InsideCutLine.StartPoint))
                 {
-                    var OrderedIntersectionPointsFounds =
+                    Point3dCollection OrderedIntersectionPointsFounds =
                         Intersection.OrderByDistanceFromPoint(InsideCutLine.StartPoint);
-                    var NewStartPoint = OrderedIntersectionPointsFounds[0];
+                    Point3d NewStartPoint = OrderedIntersectionPointsFounds[0];
                     if (NewStartPoint.DistanceTo(InsideCutLine.StartPoint) < CutLine.Length / 2)
+                    {
                         if (InsideCutLine.EndPoint.DistanceTo(NewStartPoint) >=
                             InsideCutLine.EndPoint.DistanceTo(InsideCutLine.StartPoint))
+                        {
                             InsideCutLine.SetPointAt(0, NewStartPoint.ToPoint2d());
+                        }
+                    }
                 }
 
                 if (!Intersection.ContainsTolerance(InsideCutLine.EndPoint))
                 {
-                    var OrderedIntersectionPointsFounds = Intersection.OrderByDistanceFromPoint(InsideCutLine.EndPoint);
-                    var NewEndPoint = OrderedIntersectionPointsFounds[0];
+                    Point3dCollection OrderedIntersectionPointsFounds = Intersection.OrderByDistanceFromPoint(InsideCutLine.EndPoint);
+                    Point3d NewEndPoint = OrderedIntersectionPointsFounds[0];
                     if (NewEndPoint.DistanceTo(InsideCutLine.EndPoint) < CutLine.Length / 2)
+                    {
                         if (InsideCutLine.StartPoint.DistanceTo(NewEndPoint) >=
                             InsideCutLine.StartPoint.DistanceTo(InsideCutLine.EndPoint))
+                        {
                             InsideCutLine.SetPointAt(InsideCutLine.NumberOfVertices - 1, NewEndPoint.ToPoint2d());
+                        }
+                    }
                 }
             }
         }
@@ -249,18 +312,20 @@ public static partial class PolygonOperation
 
     public static DoubleCollection GetSplitPoints(this Polyline polyline, Point3dCollection IntersectionPointsFounds)
     {
-        var OrderedIntersectionPointsFounds = IntersectionPointsFounds.OrderByDistanceOnLine(polyline);
-        var DblCollection = new DoubleCollection();
+        Point3dCollection OrderedIntersectionPointsFounds = IntersectionPointsFounds.OrderByDistanceOnLine(polyline);
+        DoubleCollection DblCollection = new();
         foreach (Point3d Point in OrderedIntersectionPointsFounds)
+        {
             if (Point.IsOnPolyline(polyline))
             {
                 var param = polyline.GetParamAtPointX(Point);
                 if (!ContainsTolerance(DblCollection, param))
                 {
-                    DblCollection.Add(param);
-                    DblCollection.Add(param);
+                    _ = DblCollection.Add(param);
+                    _ = DblCollection.Add(param);
                 }
             }
+        }
 
         return DblCollection;
     }
@@ -268,8 +333,12 @@ public static partial class PolygonOperation
     private static bool ContainsTolerance(DoubleCollection doubles, double Value)
     {
         foreach (var item in doubles)
+        {
             if (Abs(item - Value) < Generic.MediumTolerance.EqualPoint)
+            {
                 return true;
+            }
+        }
 
         return false;
     }
@@ -277,14 +346,17 @@ public static partial class PolygonOperation
     public static DBObjectCollection TryGetSplitCurves(this Polyline polyline, DoubleCollection DblCollection)
     {
         if (DblCollection.Count == 0)
+        {
             //If this is here, that mean maybe we found point near but not on the curve
-            return new DBObjectCollection
-            {
+            return
+            [
                 polyline.Clone() as DBObject
-            };
+            ];
+        }
+
         try
         {
-            var SplittedCurves = polyline.GetSplitCurves(DblCollection);
+            DBObjectCollection SplittedCurves = polyline.GetSplitCurves(DblCollection);
             return SplittedCurves;
         }
         catch (Exception ex)
@@ -292,16 +364,16 @@ public static partial class PolygonOperation
             Debug.WriteLine("TryGetSplitCurves" + ex);
         }
 
-        return new DBObjectCollection();
+        return [];
     }
 
     public static DBObjectCollection CutCurveByCurve(this Polyline polyline, Polyline CutLine,
         Intersect intersect = Intersect.OnBothOperands)
     {
-        polyline.IsSegmentIntersecting(CutLine, out var IntersectionPointsFounds, intersect);
-        IntersectionPointsFounds.Add(CutLine.StartPoint);
-        IntersectionPointsFounds.Add(CutLine.EndPoint);
-        var DblCollection = polyline.GetSplitPoints(IntersectionPointsFounds);
+        _ = polyline.IsSegmentIntersecting(CutLine, out Point3dCollection? IntersectionPointsFounds, intersect);
+        _ = IntersectionPointsFounds.Add(CutLine.StartPoint);
+        _ = IntersectionPointsFounds.Add(CutLine.EndPoint);
+        DoubleCollection DblCollection = polyline.GetSplitPoints(IntersectionPointsFounds);
         return polyline.TryGetSplitCurves(DblCollection);
     }
 }

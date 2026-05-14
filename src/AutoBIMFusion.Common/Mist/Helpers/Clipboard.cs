@@ -1,5 +1,5 @@
-﻿using System.Runtime.InteropServices;
 using AutoBIMFusion.Common.Mist.Interop;
+using System.Runtime.InteropServices;
 
 namespace AutoBIMFusion.Common.Mist.Helpers;
 
@@ -9,29 +9,44 @@ public static class Clipboard
 
     public static bool SetRawDataToClipboard(string Format, byte[] EPS, bool Append = false)
     {
-        var cfEps = User32PInvoke.RegisterClipboardFormat(Format);
+        uint cfEps = User32PInvoke.RegisterClipboardFormat(Format);
 
-        if (!User32PInvoke.OpenClipboard(IntPtr.Zero)) return false;
+        if (!User32PInvoke.OpenClipboard(IntPtr.Zero))
+        {
+            return false;
+        }
 
         try
         {
-            if (Append && !User32PInvoke.EmptyClipboard()) return false;
+            if (Append && !User32PInvoke.EmptyClipboard())
+            {
+                return false;
+            }
 
-            var size = (UIntPtr)EPS.Length;
-            var hGlobal = User32PInvoke.GlobalAlloc(GMEM_MOVEABLE, size);
-            if (hGlobal == IntPtr.Zero) return false;
+            nuint size = (UIntPtr)EPS.Length;
+            nint hGlobal = User32PInvoke.GlobalAlloc(GMEM_MOVEABLE, size);
+            if (hGlobal == IntPtr.Zero)
+            {
+                return false;
+            }
 
-            var ptr = User32PInvoke.GlobalLock(hGlobal);
-            if (ptr == IntPtr.Zero) return false;
+            nint ptr = User32PInvoke.GlobalLock(hGlobal);
+            if (ptr == IntPtr.Zero)
+            {
+                return false;
+            }
 
             Marshal.Copy(EPS, 0, ptr, EPS.Length);
-            User32PInvoke.GlobalUnlock(hGlobal);
+            _ = User32PInvoke.GlobalUnlock(hGlobal);
 
-            if (User32PInvoke.SetClipboardData(cfEps, hGlobal) == IntPtr.Zero) return false;
+            if (User32PInvoke.SetClipboardData(cfEps, hGlobal) == IntPtr.Zero)
+            {
+                return false;
+            }
         }
         finally
         {
-            User32PInvoke.CloseClipboard();
+            _ = User32PInvoke.CloseClipboard();
         }
 
         return true;

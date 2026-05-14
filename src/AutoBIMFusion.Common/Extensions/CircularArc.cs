@@ -1,4 +1,4 @@
-﻿namespace AutoBIMFusion.Common.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class CircularArcExtensions
 {
@@ -6,13 +6,13 @@ public static class CircularArcExtensions
     {
         if (circularArc.EndPoint.IsEqualTo(circularArc.StartPoint) && circularArc.Radius > 0)
         {
-            var Circle = new Circle(circularArc.Center.ToPoint3d(), Vector3d.YAxis, circularArc.Radius);
+            Circle Circle = new(circularArc.Center.ToPoint3d(), Vector3d.YAxis, circularArc.Radius);
             return Circle;
         }
 
-        var startAngle = circularArc.IsClockWise ? -circularArc.EndAngle : circularArc.StartAngle;
-        var endAngle = circularArc.IsClockWise ? -circularArc.StartAngle : circularArc.EndAngle;
-        var arc = new Arc(
+        double startAngle = circularArc.IsClockWise ? -circularArc.EndAngle : circularArc.StartAngle;
+        double endAngle = circularArc.IsClockWise ? -circularArc.StartAngle : circularArc.EndAngle;
+        Arc arc = new(
             new Point3d(circularArc.Center.X, circularArc.Center.Y, 0.0),
             circularArc.Radius,
             circularArc.ReferenceVector.Angle + startAngle,
@@ -25,11 +25,11 @@ public static class CircularArcExtensions
         var center = circArc.Center;
         var normal = circArc.Normal;
         var referenceVector = circArc.ReferenceVector;
-        var plane = new Plane(center, normal);
-        var num = referenceVector.AngleOnPlane(plane);
+        Plane plane = new(center, normal);
+        double num = referenceVector.AngleOnPlane(plane);
 
-        if (circArc.EndPoint.IsEqualTo(circArc.StartPoint) && circArc.Radius > 0)
-            return new Circle(circArc.Center, Vector3d.YAxis, circArc.Radius);
-        return new Arc(center, normal, circArc.Radius, circArc.StartAngle + num, circArc.EndAngle + num);
+        return circArc.EndPoint.IsEqualTo(circArc.StartPoint) && circArc.Radius > 0
+            ? new Circle(circArc.Center, Vector3d.YAxis, circArc.Radius)
+            : new Arc(center, normal, circArc.Radius, circArc.StartAngle + num, circArc.EndAngle + num);
     }
 }

@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Mist;
+using System.Diagnostics;
 
 namespace AutoBIMFusion.Common.Functions;
 
@@ -8,12 +8,12 @@ public static class ViewportLock
 {
     public static void Menu()
     {
-        var ed = Generic.GetEditor();
+        Editor ed = Generic.GetEditor();
 
         const string lockAllKeyword = "Заблокировать все";
         const string unlockAllKeyword = "Разблокировать все";
 
-        var promptKeywordOptions = new PromptKeywordOptions("Выберите операцию:")
+        PromptKeywordOptions promptKeywordOptions = new("Выберите операцию:")
         {
             AllowArbitraryInput = false,
             AppendKeywordsToMessage = true
@@ -22,7 +22,7 @@ public static class ViewportLock
         promptKeywordOptions.Keywords.Default = lockAllKeyword;
         promptKeywordOptions.Keywords.Add(unlockAllKeyword);
 
-        var keyResult = ed.GetKeywords(promptKeywordOptions);
+        PromptResult keyResult = ed.GetKeywords(promptKeywordOptions);
         if (!keyResult.Status.HasFlag(PromptStatus.OK) && !keyResult.Status.HasFlag(PromptStatus.Keyword))
         {
             return;
@@ -33,30 +33,28 @@ public static class ViewportLock
 
     public static void DoLockUnlock(bool @lock)
     {
-        var db = Generic.GetDatabase();
-        var ed = Generic.GetEditor();
+        Database db = Generic.GetDatabase();
+        Editor ed = Generic.GetEditor();
 
         TypedValue[] viewportFilter = [new((int)DxfCode.Start, "Viewport")];
 
         try
         {
-            var viewportSelection = ed.SelectAll(new SelectionFilter(viewportFilter));
-            var selectionSet = viewportSelection.Value;
+            PromptSelectionResult viewportSelection = ed.SelectAll(new SelectionFilter(viewportFilter));
+            SelectionSet? selectionSet = viewportSelection.Value;
             if (selectionSet is null)
             {
                 return;
             }
 
-            using (var trx = db.TransactionManager.StartTransaction())
+            using Transaction trx = db.TransactionManager.StartTransaction();
+            foreach (ObjectId objectId in selectionSet.GetObjectIds())
             {
-                foreach (var objectId in selectionSet.GetObjectIds())
-                {
-                    var viewport = (Viewport)objectId.GetDBObject(OpenMode.ForWrite);
-                    viewport.Locked = @lock;
-                }
-
-                trx.Commit();
+                Viewport viewport = (Viewport)objectId.GetDBObject(OpenMode.ForWrite);
+                viewport.Locked = @lock;
             }
+
+            trx.Commit();
         }
         catch (Exception ex)
         {

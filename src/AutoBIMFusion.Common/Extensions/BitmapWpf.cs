@@ -12,19 +12,17 @@ public static class BitmapWpfExtensions
 {
     public static BitmapSource ToBitmapSource(this Image Image)
     {
-        using (var ms = new MemoryStream())
-        {
-            Image.Save(ms, ImageFormat.Bmp);
-            ms.Seek(0, SeekOrigin.Begin);
+        using MemoryStream ms = new();
+        Image.Save(ms, ImageFormat.Bmp);
+        _ = ms.Seek(0, SeekOrigin.Begin);
 
-            var bitmapImage = new BitmapImage();
-            bitmapImage.BeginInit();
-            bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-            bitmapImage.StreamSource = ms;
-            bitmapImage.EndInit();
+        BitmapImage bitmapImage = new();
+        bitmapImage.BeginInit();
+        bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+        bitmapImage.StreamSource = ms;
+        bitmapImage.EndInit();
 
-            return bitmapImage;
-        }
+        return bitmapImage;
     }
 
     public static BitmapSource? CreateBitmapSourceFromBitmap(this Bitmap bitmap)
@@ -35,13 +33,19 @@ public static class BitmapWpfExtensions
     public static BitmapSource? CreateBitmapSourceFromBitmap(this Bitmap bitmap, IntPtr palette, Int32Rect sourceRect,
         BitmapSizeOptions sizeOptions)
     {
-        if (bitmap == null) return null;
+        if (bitmap == null)
+        {
+            return null;
+        }
 
-        var hbitmap = bitmap.GetHbitmap();
-        if (hbitmap == IntPtr.Zero) return null;
+        nint hbitmap = bitmap.GetHbitmap();
+        if (hbitmap == IntPtr.Zero)
+        {
+            return null;
+        }
 
         var result = Imaging.CreateBitmapSourceFromHBitmap(hbitmap, palette, sourceRect, sizeOptions);
-        DeleteObject(hbitmap);
+        _ = DeleteObject(hbitmap);
         return result;
     }
 

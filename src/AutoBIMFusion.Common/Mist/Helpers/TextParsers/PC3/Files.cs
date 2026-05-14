@@ -1,4 +1,4 @@
-﻿using System.IO.Compression;
+using System.IO.Compression;
 using System.Text;
 
 namespace AutoBIMFusion.Common.Mist.Helpers.TextParsers.PC3;
@@ -8,25 +8,19 @@ public static class Files
 {
     public static void Decode(string filePath)
     {
-        using (var fs = File.Open(filePath, FileMode.Open, FileAccess.Read))
-        {
-            // On se place à l'offset 60 comme avant
-            fs.Seek(60L, SeekOrigin.Begin);
+        using FileStream fs = File.Open(filePath, FileMode.Open, FileAccess.Read);
+        // On se place à l'offset 60 comme avant
+        _ = fs.Seek(60L, SeekOrigin.Begin);
 
-            // LIRE LES 2 OCTETS ZLIB (78 DA) pour les ignorer
-            fs.ReadByte();
-            fs.ReadByte();
+        // LIRE LES 2 OCTETS ZLIB (78 DA) pour les ignorer
+        _ = fs.ReadByte();
+        _ = fs.ReadByte();
 
-            // On utilise DeflateStream au lieu de GZipStream
-            using (var ds = new DeflateStream(fs, CompressionMode.Decompress))
-            {
-                using (var sr = new StreamReader(ds, Encoding.UTF8))
-                {
-                    var s = sr.ReadToEnd();
-                    File.WriteAllText(filePath + ".txt", s, Encoding.Default);
-                }
-            }
-        }
+        // On utilise DeflateStream au lieu de GZipStream
+        using DeflateStream ds = new(fs, CompressionMode.Decompress);
+        using StreamReader sr = new(ds, Encoding.UTF8);
+        var s = sr.ReadToEnd();
+        File.WriteAllText(filePath + ".txt", s, Encoding.Default);
     }
 
 
@@ -44,9 +38,9 @@ public static class Files
 
         //Compresser les données en mémoire avec le DeflateStream natif
         byte[] rawDeflateBytes;
-        using (var ms = new MemoryStream())
+        using (MemoryStream ms = new())
         {
-            using (var ds = new DeflateStream(ms, CompressionMode.Compress, true))
+            using (DeflateStream ds = new(ms, CompressionMode.Compress, true))
             {
                 ds.Write(uncompressedBytes, 0, uncompressedBytes.Length);
             }
@@ -65,31 +59,29 @@ public static class Files
         Buffer.BlockCopy(rawDeflateBytes, 0, zlibStreamBytes, 2, rawDeflateBytes.Length);
 
         // Ajout du Trailer Zlib à la fin (Adler32 en Big-Endian obligatoire pour Zlib)
-        zlibStreamBytes[zlibStreamBytes.Length - 4] = (byte)(adler >> 24);
-        zlibStreamBytes[zlibStreamBytes.Length - 3] = (byte)(adler >> 16);
-        zlibStreamBytes[zlibStreamBytes.Length - 2] = (byte)(adler >> 8);
-        zlibStreamBytes[zlibStreamBytes.Length - 1] = (byte)adler;
+        zlibStreamBytes[^4] = (byte)(adler >> 24);
+        zlibStreamBytes[^3] = (byte)(adler >> 16);
+        zlibStreamBytes[^2] = (byte)(adler >> 8);
+        zlibStreamBytes[^1] = (byte)adler;
 
-        using (var fsOut = File.Create(outputFilePath))
-        {
-            //Écrire l'en-tête texte (48 octets)
-            fsOut.Write(header48, 0, 48);
+        using FileStream fsOut = File.Create(outputFilePath);
+        //Écrire l'en-tête texte (48 octets)
+        fsOut.Write(header48, 0, 48);
 
-            //Générer et écrire le bloc de validation AutoCAD (12 octets)
-            var checkSumBlock = new byte[12];
-            //AutoCAD lit ces valeurs en Little-Endian (format Windows standard)
-            BitConverter.GetBytes((int)adler).CopyTo(checkSumBlock, 0);
-            BitConverter.GetBytes(uncompressedBytes.Length).CopyTo(checkSumBlock, 4);
-            BitConverter.GetBytes(zlibStreamBytes.Length).CopyTo(checkSumBlock, 8);
+        //Générer et écrire le bloc de validation AutoCAD (12 octets)
+        var checkSumBlock = new byte[12];
+        //AutoCAD lit ces valeurs en Little-Endian (format Windows standard)
+        BitConverter.GetBytes((int)adler).CopyTo(checkSumBlock, 0);
+        BitConverter.GetBytes(uncompressedBytes.Length).CopyTo(checkSumBlock, 4);
+        BitConverter.GetBytes(zlibStreamBytes.Length).CopyTo(checkSumBlock, 8);
 
-            fsOut.Write(checkSumBlock, 0, 12);
+        fsOut.Write(checkSumBlock, 0, 12);
 
-            //Écrire le flux Zlib complet
-            fsOut.Write(zlibStreamBytes, 0, zlibStreamBytes.Length);
+        //Écrire le flux Zlib complet
+        fsOut.Write(zlibStreamBytes, 0, zlibStreamBytes.Length);
 
-            //Caractère de fin de fichier (0x00)
-            fsOut.WriteByte(0);
-        }
+        //Caractère de fin de fichier (0x00)
+        fsOut.WriteByte(0);
     }
 
     /// <summary>

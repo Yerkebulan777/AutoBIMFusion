@@ -1,4 +1,4 @@
-﻿namespace AutoBIMFusion.Common.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class DBTextExtensions
 {
@@ -19,7 +19,7 @@ public static class DBTextExtensions
             // sometimes cause an eNotApplicable error)
             // We'll create the text at the WCS origin
             // with no rotation, so it's easier to use its extents
-            var txt2 = new DBText
+            DBText txt2 = new()
             {
                 Normal = Vector3d.ZAxis,
                 Position = Point3d.Origin,
@@ -40,21 +40,24 @@ public static class DBTextExtensions
             // (which it should, as the original did)
             if (txt2.Bounds.HasValue)
             {
-                var maxPt = txt2.Bounds.Value.MaxPoint;
+                Point3d maxPt = txt2.Bounds.Value.MaxPoint;
                 // Place all four corners of the bounding box
                 // in an array
-                var bounds = new[]
+                Point2d[] bounds = new[]
                 {
                     Point2d.Origin, new Point2d(0.0, maxPt.Y), new Point2d(maxPt.X, maxPt.Y), new Point2d(maxPt.X, 0.0)
                 };
 
                 // We're going to get each point's WCS coordinates
                 // using the plane the text is on
-                var pl = new Plane(txt.Position, txt.Normal);
+                Plane pl = new(txt.Position, txt.Normal);
 
                 // Rotate each point and add its WCS location to the collection
 
-                foreach (var pt in bounds) pts?.Add(pl.EvaluatePoint(pt.RotateBy(txt.Rotation, Point2d.Origin)));
+                foreach (Point2d pt in bounds)
+                {
+                    _ = (pts?.Add(pl.EvaluatePoint(pt.RotateBy(txt.Rotation, Point2d.Origin))));
+                }
             }
         }
     }

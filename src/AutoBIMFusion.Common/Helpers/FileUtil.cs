@@ -25,12 +25,18 @@ public static class FileUtil
 
         List<string> files = [];
 
-        foreach (var path in Directory.EnumerateFiles(rootPath, "*.dwg", opts))
+        foreach (string path in Directory.EnumerateFiles(rootPath, "*.dwg", opts))
         {
-            var fileName = Path.GetFileName(path);
-            if (fileName.StartsWith(excludePrefix, StringComparison.OrdinalIgnoreCase)) continue;
+            string fileName = Path.GetFileName(path);
+            if (fileName.StartsWith(excludePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
 
-            if (new FileInfo(path).Length > MaxFileSizeBytes) continue;
+            if (new FileInfo(path).Length > MaxFileSizeBytes)
+            {
+                continue;
+            }
 
             files.Add(path);
         }

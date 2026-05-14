@@ -26,9 +26,15 @@ public sealed class DatabaseUnitSyncScope : IDisposable
         _originalMeasurement =
             sourceDb.Measurement; // Сохраняем оригинальную систему измерения, чтобы восстановить её в Dispose
 
-        if (_sourceDb.Insunits != targetDb.Insunits) _sourceDb.Insunits = UnitsValue.Millimeters;
+        if (_sourceDb.Insunits != targetDb.Insunits)
+        {
+            _sourceDb.Insunits = UnitsValue.Millimeters;
+        }
 
-        if (_sourceDb.Measurement != MeasurementValue.Metric) _sourceDb.Measurement = MeasurementValue.Metric;
+        if (_sourceDb.Measurement != MeasurementValue.Metric)
+        {
+            _sourceDb.Measurement = MeasurementValue.Metric;
+        }
 
         _sourceDb.Dimalt = targetDb.Dimalt;
     }

@@ -1,4 +1,4 @@
-﻿using Autodesk.AutoCAD.BoundaryRepresentation;
+using Autodesk.AutoCAD.BoundaryRepresentation;
 
 namespace AutoBIMFusion.Common.Extensions;
 
@@ -9,26 +9,26 @@ public static class RegionsExtensions
         // We will return a collection of entities
         // (should include closed Polylines and other
         // closed curves, such as Circles)
-        var res = new DBObjectCollection();
+        DBObjectCollection res = [];
         // Explode Region -> collection of Curves / Regions
-        var cvs = new DBObjectCollection();
+        DBObjectCollection cvs = [];
         reg.Explode(cvs);
 
         // Create a plane to convert 3D coords
         // into Region coord system
-        var pl = new Plane(new Point3d(0, 0, 0), reg.Normal);
+        Plane pl = new(new Point3d(0, 0, 0), reg.Normal);
 
         using (pl)
         {
-            var finished = false;
+            bool finished = false;
             while (!finished && cvs.Count > 0)
             {
                 // Count the Curves and the non-Curves, and find
                 // the index of the first Curve in the collection
                 int cvCnt = 0, nonCvCnt = 0, fstCvIdx = -1;
-                for (var i = 0; i < cvs.Count; i++)
+                for (int i = 0; i < cvs.Count; i++)
                 {
-                    var tmpCv = cvs[i] as Curve;
+                    Curve? tmpCv = cvs[i] as Curve;
                     if (tmpCv == null)
                     {
                         nonCvCnt++;
@@ -40,7 +40,7 @@ public static class RegionsExtensions
                         // to the Curve count
                         if (tmpCv.Closed)
                         {
-                            res.Add(tmpCv);
+                            _ = res.Add(tmpCv);
                             cvs.Remove(tmpCv);
                             // Decrement, so we don't miss an item
                             i--;
@@ -48,7 +48,10 @@ public static class RegionsExtensions
                         else
                         {
                             cvCnt++;
-                            if (fstCvIdx == -1) fstCvIdx = i;
+                            if (fstCvIdx == -1)
+                            {
+                                fstCvIdx = i;
+                            }
                         }
                     }
                 }
@@ -58,9 +61,9 @@ public static class RegionsExtensions
                     // For the initial segment take the first
                     // Curve in the collection
 
-                    var fstCv = (Curve)cvs[fstCvIdx];
+                    Curve fstCv = (Curve)cvs[fstCvIdx];
                     // The resulting Polyline
-                    var p = new Polyline();
+                    Polyline p = new();
                     // Set common entity properties from the Region
                     p.SetPropertiesFrom(reg);
                     // Add the first two vertices, but only set the bulge on the first (the second will be set retroactively from the second segment)
@@ -78,27 +81,35 @@ public static class RegionsExtensions
                     // So we store the previous curve count and assume that if this count has not been decreased by looping completely through the segments once, then we should not continue to loop.
                     // Hopefully this will never happen, as the curves should form a closed loop, but anyway...
                     // Set the previous count as artificially high,  so that we loop once, at least.
-                    var prevCnt = cvs.Count + 1;
+                    int prevCnt = cvs.Count + 1;
                     while (cvs.Count > nonCvCnt && cvs.Count < prevCnt)
                     {
                         prevCnt = cvs.Count;
                         foreach (DBObject obj in cvs)
                         {
-                            var cv = obj as Curve;
+                            Curve? cv = obj as Curve;
                             if (cv != null)
+                            {
                                 // If one end of the curve connects with the point we're looking for...
                                 if (cv.StartPoint == nextPt || cv.EndPoint == nextPt)
                                 {
                                     // Calculate the bulge for the curve and set it on the previous vertex
-                                    var bulge = BulgeFromCurve(cv, cv.EndPoint == nextPt);
-                                    if (bulge != 0.0) p.SetBulgeAt(p.NumberOfVertices - 1, bulge);
+                                    double bulge = BulgeFromCurve(cv, cv.EndPoint == nextPt);
+                                    if (bulge != 0.0)
+                                    {
+                                        p.SetBulgeAt(p.NumberOfVertices - 1, bulge);
+                                    }
 
                                     // Reverse the points, if needed
                                     if (cv.StartPoint == nextPt)
+                                    {
                                         nextPt = cv.EndPoint;
+                                    }
                                     else
+                                    {
                                         // cv.EndPoint == nextPt
                                         nextPt = cv.StartPoint;
+                                    }
 
                                     // Add out new vertex (bulge will be set next time through, as needed)
                                     p.AddVertexAt(p.NumberOfVertices, nextPt.Convert2d(pl), 0, 0, 0);
@@ -106,31 +117,43 @@ public static class RegionsExtensions
                                     cvs.Remove(cv);
                                     break;
                                 }
+                            }
                         }
                     }
 
                     // Once we have added all the Polyline's vertices, transform it to the original region's plane
                     p.TransformBy(Matrix3d.PlaneToWorld(pl));
-                    res.Add(p);
-                    if (cvs.Count == nonCvCnt) finished = true;
+                    _ = res.Add(p);
+                    if (cvs.Count == nonCvCnt)
+                    {
+                        finished = true;
+                    }
                 }
 
                 // If there are any Regions in the collection, recurse to explode and add their geometry
                 if (nonCvCnt > 0 && cvs.Count > 0)
+                {
                     foreach (DBObject obj in cvs)
                     {
-                        var subReg = obj as Region;
+                        Region? subReg = obj as Region;
                         if (subReg != null)
                         {
                             var subRes =
                                 subReg.GetPolylines();
-                            foreach (DBObject o in subRes) res.Add(o);
+                            foreach (DBObject o in subRes)
+                            {
+                                _ = res.Add(o);
+                            }
 
                             cvs.Remove(subReg);
                         }
                     }
+                }
 
-                if (cvs.Count == 0) finished = true;
+                if (cvs.Count == 0)
+                {
+                    finished = true;
+                }
             }
         }
 
@@ -139,24 +162,23 @@ public static class RegionsExtensions
 
     private static double BulgeFromCurve(Curve cv, bool clockwise)
     {
-        var bulge = 0.0;
-        var a = cv as Arc;
+        double bulge = 0.0;
+        Arc? a = cv as Arc;
         if (a != null)
         {
-            double newStart;
+            double newStart = a.StartAngle > a.EndAngle ? a.StartAngle - (8 * Atan(1)) : a.StartAngle;
             // The start angle is usually greater than the end, as arcs are all counter-clockwise.
             // (If it isn't it's because the arc crosses the  0-degree line, and we can subtract 2PI from the start angle.)
 
-            if (a.StartAngle > a.EndAngle)
-                newStart = a.StartAngle - 8 * Atan(1);
-            else
-                newStart = a.StartAngle;
 
             // Bulge is defined as the tan of
             // one fourth of the included angle
             bulge = Tan((a.EndAngle - newStart) / 4);
             // If the curve is clockwise, we negate the bulge
-            if (clockwise) bulge = -bulge;
+            if (clockwise)
+            {
+                bulge = -bulge;
+            }
         }
 
         return bulge;
@@ -164,37 +186,43 @@ public static class RegionsExtensions
 
     public static IEnumerable<(HatchLoopTypes, Curve2dCollection, IntegerCollection)> GetLoops(this Region region)
     {
-        var plane = new Plane(Point3d.Origin, region.Normal);
+        Plane plane = new(Point3d.Origin, region.Normal);
         // Get the region boundary representation
-        using (var brep = new Brep(region))
+        using Brep brep = new(region);
+        foreach (var complex in brep.Complexes)
         {
-            foreach (var complex in brep.Complexes)
             foreach (var loop in complex.Shells.First().Faces.First().Loops)
             {
-                var edgePtrCollection = new Curve2dCollection();
-                var edgeTypeCollection = new IntegerCollection();
+                Curve2dCollection edgePtrCollection = [];
+                IntegerCollection edgeTypeCollection = [];
                 foreach (var edge in loop.Edges.Select(e => ((ExternalCurve3d)e.Curve).NativeCurve).ToOrderedArray())
+                {
                     if (edge is CircularArc3d arc)
                     {
-                        edgePtrCollection.Add(new CircularArc2d(
+                        _ = edgePtrCollection.Add(new CircularArc2d(
                             arc.StartPoint.Convert2d(plane),
                             arc.EvaluatePoint((arc.GetParameterOf(arc.StartPoint) + arc.GetParameterOf(arc.EndPoint)) /
                                               2.0).Convert2d(plane),
                             arc.EndPoint.Convert2d(plane)));
-                        edgeTypeCollection.Add(2);
+                        _ = edgeTypeCollection.Add(2);
                     }
                     else if (edge is LineSegment3d line)
                     {
-                        edgePtrCollection.Add(new LineSegment2d(
+                        _ = edgePtrCollection.Add(new LineSegment2d(
                             line.StartPoint.Convert2d(plane),
                             line.EndPoint.Convert2d(plane)));
-                        edgeTypeCollection.Add(1);
+                        _ = edgeTypeCollection.Add(1);
                     }
+                }
 
                 if (loop.LoopType == LoopType.LoopExterior)
+                {
                     yield return (HatchLoopTypes.External, edgePtrCollection, edgeTypeCollection);
+                }
                 else
+                {
                     yield return (HatchLoopTypes.Default, edgePtrCollection, edgeTypeCollection);
+                }
             }
         }
     }

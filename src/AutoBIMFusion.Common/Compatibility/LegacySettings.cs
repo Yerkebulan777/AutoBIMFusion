@@ -1,6 +1,6 @@
 using System.Resources;
 
-namespace AutoBIMFusion.Common
+namespace AutoBIMFusion.Common.Compatibility
 {
     public static class Settings
     {
@@ -16,20 +16,17 @@ namespace AutoBIMFusion.Common.Compatibility
     {
         public static int TransientPrimaryColorIndex
         {
-            get => global::AutoBIMFusion.Common.Settings.TransientPrimaryColorIndex;
-            set => global::AutoBIMFusion.Common.Settings.TransientPrimaryColorIndex = value;
+            get => global::AutoBIMFusion.Common.Compatibility.Settings.TransientPrimaryColorIndex;
+            set => global::AutoBIMFusion.Common.Compatibility.Settings.TransientPrimaryColorIndex = value;
         }
 
         public static int TransientSecondaryColorIndex
         {
-            get => global::AutoBIMFusion.Common.Settings.TransientSecondaryColorIndex;
-            set => global::AutoBIMFusion.Common.Settings.TransientSecondaryColorIndex = value;
+            get => global::AutoBIMFusion.Common.Compatibility.Settings.TransientSecondaryColorIndex;
+            set => global::AutoBIMFusion.Common.Compatibility.Settings.TransientSecondaryColorIndex = value;
         }
 
-        public static int MultithreadingMaxNumberOfThread
-        {
-            get => global::AutoBIMFusion.Common.Settings.MultithreadingMaxNumberOfThread;
-        }
+        public static int MultithreadingMaxNumberOfThread => global::AutoBIMFusion.Common.Compatibility.Settings.MultithreadingMaxNumberOfThread;
     }
 
     public sealed class LegacyAppSettings

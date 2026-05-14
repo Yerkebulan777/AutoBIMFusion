@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 
 namespace AutoBIMFusion.Common.Mist.Helpers;
 
@@ -11,9 +11,12 @@ public static class Files
 
         string SizeSuffix(long value, int decimalPlaces = 1)
         {
-            if (value < 0) return "-" + SizeSuffix(-value, decimalPlaces);
+            if (value < 0)
+            {
+                return "-" + SizeSuffix(-value, decimalPlaces);
+            }
 
-            var i = 0;
+            int i = 0;
             decimal dValue = value;
             while (Round(dValue, decimalPlaces) >= 1000)
             {
@@ -34,7 +37,11 @@ public static class Files
 
     public static bool IsFileLockedOrReadOnly(FileInfo fi)
     {
-        if (!fi.Exists) return false;
+        if (!fi.Exists)
+        {
+            return false;
+        }
+
         FileStream fs = null;
         try
         {
@@ -42,7 +49,11 @@ public static class Files
         }
         catch (Exception ex)
         {
-            if (ex is IOException || ex is UnauthorizedAccessException) return true;
+            if (ex is IOException or UnauthorizedAccessException)
+            {
+                return true;
+            }
+
             throw;
         }
         finally
@@ -59,26 +70,30 @@ public static class Files
 
     public static DateTime GetLinkerTime(this Assembly assembly, TimeZoneInfo target = null)
     {
-        var filePath = assembly.Location;
+        string filePath = assembly.Location;
         const int c_PeHeaderOffset = 60;
         const int c_LinkerTimestampOffset = 8;
 
-        var buffer = new byte[2048];
+        byte[] buffer = new byte[2048];
 
-        using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+        using (FileStream stream = new(filePath, FileMode.Open, FileAccess.Read))
         {
-            var totalRead = 0;
+            int totalRead = 0;
             while (totalRead < 2048)
             {
-                var read = stream.Read(buffer, totalRead, 2048 - totalRead);
-                if (read == 0) break;
+                int read = stream.Read(buffer, totalRead, 2048 - totalRead);
+                if (read == 0)
+                {
+                    break;
+                }
+
                 totalRead += read;
             }
         }
 
-        var offset = BitConverter.ToInt32(buffer, c_PeHeaderOffset);
-        var secondsSince1970 = BitConverter.ToInt32(buffer, offset + c_LinkerTimestampOffset);
-        var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        int offset = BitConverter.ToInt32(buffer, c_PeHeaderOffset);
+        int secondsSince1970 = BitConverter.ToInt32(buffer, offset + c_LinkerTimestampOffset);
+        DateTime epoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         var linkTimeUtc = epoch.AddSeconds(secondsSince1970);
 

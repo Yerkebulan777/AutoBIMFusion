@@ -10,17 +10,20 @@ public static class LayoutUtil
     /// </summary>
     public static bool TryFindFirstLayout(Database db, out string layoutName)
     {
-        using var trx = db.TransactionManager.StartTransaction();
-        var layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        using Transaction trx = db.TransactionManager.StartTransaction();
+        DBDictionary layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         layoutName = string.Empty;
         var bestOrder = int.MaxValue;
 
-        foreach (var entry in layoutDict)
+        foreach (DBDictionaryEntry entry in layoutDict)
         {
-            var layout = (Layout)trx.GetObject(entry.Value, OpenMode.ForRead);
+            Layout layout = (Layout)trx.GetObject(entry.Value, OpenMode.ForRead);
 
-            if (layout.ModelType || layout.TabOrder >= bestOrder) continue;
+            if (layout.ModelType || layout.TabOrder >= bestOrder)
+            {
+                continue;
+            }
 
             bestOrder = layout.TabOrder;
             layoutName = layout.LayoutName;
@@ -35,8 +38,8 @@ public static class LayoutUtil
     /// </summary>
     public static ObjectId GetLayoutBtrId(Database db, string layoutName)
     {
-        using var trx = db.TransactionManager.StartTransaction();
-        var dict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        using Transaction trx = db.TransactionManager.StartTransaction();
+        DBDictionary dict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         if (!dict.Contains(layoutName))
         {
@@ -44,9 +47,9 @@ public static class LayoutUtil
             return ObjectId.Null;
         }
 
-        var layoutId = dict.GetAt(layoutName);
-        var layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
-        var btrId = layout.BlockTableRecordId;
+        ObjectId layoutId = dict.GetAt(layoutName);
+        Layout layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
+        ObjectId btrId = layout.BlockTableRecordId;
 
         trx.Commit();
         return btrId;
@@ -59,11 +62,11 @@ public static class LayoutUtil
     public static ObjectIdCollection GetPaperSpaceEntities(
         Database db, string layoutName, bool excludeViewports)
     {
-        var viewportClass = RXObject.GetClass(typeof(Viewport));
+        RXClass viewportClass = RXObject.GetClass(typeof(Viewport));
         ObjectIdCollection result = [];
 
-        using var trx = db.TransactionManager.StartTransaction();
-        var layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        using Transaction trx = db.TransactionManager.StartTransaction();
+        DBDictionary layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         if (!layoutDict.Contains(layoutName))
         {
@@ -71,13 +74,16 @@ public static class LayoutUtil
             return result;
         }
 
-        var layoutId = layoutDict.GetAt(layoutName);
-        var layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
-        var btr = (BlockTableRecord)trx.GetObject(layout.BlockTableRecordId, OpenMode.ForRead);
+        ObjectId layoutId = layoutDict.GetAt(layoutName);
+        Layout layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
+        BlockTableRecord btr = (BlockTableRecord)trx.GetObject(layout.BlockTableRecordId, OpenMode.ForRead);
 
-        foreach (var id in btr)
+        foreach (ObjectId id in btr)
         {
-            if (excludeViewports && id.ObjectClass.IsDerivedFrom(viewportClass)) continue;
+            if (excludeViewports && id.ObjectClass.IsDerivedFrom(viewportClass))
+            {
+                continue;
+            }
 
             _ = result.Add(id);
         }

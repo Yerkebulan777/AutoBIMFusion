@@ -1,4 +1,4 @@
-﻿using AutoBIMFusion.Common.Drawing;
+using AutoBIMFusion.Common.Drawing;
 
 namespace AutoBIMFusion.Common.Extensions;
 
@@ -6,8 +6,8 @@ public static class Vector3dExtensions
 {
     public static ObjectId DrawVector(this Vector3d vector3d, Point3d startPoint, int ColorIndex = 0)
     {
-        var vectorEndPoint = startPoint.Add(vector3d);
-        var vectorLine = new Line(startPoint, vectorEndPoint)
+        Point3d vectorEndPoint = startPoint.Add(vector3d);
+        Line vectorLine = new(startPoint, vectorEndPoint)
         {
             ColorIndex = ColorIndex
         };
@@ -24,7 +24,7 @@ public static class Vector3dExtensions
         // Normaliser les vecteurs
         vectorToCheckSide = vectorToCheckSide.GetNormal();
         referenceVector = referenceVector.GetNormal();
-        var crossProduct = vectorToCheckSide.CrossProduct(referenceVector);
+        Vector3d crossProduct = vectorToCheckSide.CrossProduct(referenceVector);
         // Vérifier la composante Z du produit vectoriel pour déterminer l'orientation
         return crossProduct.Z >= 0;
     }
@@ -41,7 +41,7 @@ public static class Vector3dExtensions
 
     public static double GetRotationRelativeToSCG(this Vector3d vector)
     {
-        var xAxisWCS = new Vector2d(0, 1);
+        Vector2d xAxisWCS = new(0, 1);
         var dot = DotProduct(vector.ToVector2d(),
             xAxisWCS); //vector.X * xAxisWCS.X + vector.Y * xAxisWCS.Y;      // Dot product between [x1, y1] and [x2, y2]
         var det = vector.ToVector2d().CrossProduct(xAxisWCS); //vector.X * xAxisWCS.Y - vector.Y * xAxisWCS.X;     
@@ -68,7 +68,7 @@ public static class Vector3dExtensions
     /// <returns>The dot product.</returns>
     public static double DotProduct(this Vector2d v1, Vector2d v2)
     {
-        return v1.X * v2.X + v1.Y * v2.Y;
+        return (v1.X * v2.X) + (v1.Y * v2.Y);
     }
 
     /// <summary>
@@ -79,7 +79,7 @@ public static class Vector3dExtensions
     /// <returns>The cross product.</returns>
     public static double CrossProduct(this Vector2d v1, Vector2d v2)
     {
-        return v1.X * v2.Y - v1.Y * v2.X;
+        return (v1.X * v2.Y) - (v1.Y * v2.X);
     }
 
     public static bool IsColinear(this Vector3d v1, Vector3d v2, Tolerance tol)
@@ -95,13 +95,13 @@ public static class Vector3dExtensions
     public static Point3d FindProjectedIntersection(this Vector3d FirstVector, Point3d FirstVectorBasePoint,
         Vector3d SecondVector, Point3d SecondVectorBasePoint)
     {
-        var deltaStartPoints = FirstVectorBasePoint - SecondVectorBasePoint;
+        Vector3d deltaStartPoints = FirstVectorBasePoint - SecondVectorBasePoint;
         var a = FirstVector.DotProduct(FirstVector);
         var b = FirstVector.DotProduct(SecondVector);
         var c = SecondVector.DotProduct(SecondVector);
         var d = FirstVector.DotProduct(deltaStartPoints);
         var e = SecondVector.DotProduct(deltaStartPoints);
-        var s = (a * e - b * d) / (a * c - b * b);
-        return SecondVectorBasePoint + s * SecondVector;
+        var s = ((a * e) - (b * d)) / ((a * c) - (b * b));
+        return SecondVectorBasePoint + (s * SecondVector);
     }
 }

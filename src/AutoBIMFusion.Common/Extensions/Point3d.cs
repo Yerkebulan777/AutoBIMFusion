@@ -1,7 +1,7 @@
-﻿using System.Diagnostics;
 using AutoBIMFusion.Common.Drawing;
 using AutoBIMFusion.Common.Mist;
 using AutoBIMFusion.Common.Mist.Geometry;
+using System.Diagnostics;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
 namespace AutoBIMFusion.Common.Extensions;
@@ -30,55 +30,61 @@ public static class Point3dExtensions
 
     public static ObjectId AddToDrawing(this Point3d pnt, int? ColorIndex = null)
     {
-        var dBPoint = new DBPoint(pnt);
+        DBPoint dBPoint = new(pnt);
         return dBPoint.AddToDrawing(ColorIndex);
     }
 
     public static ObjectId AddToDrawing(this Point2d pnt, int? ColorIndex = null)
     {
-        var dBPoint = new DBPoint(new Point3d(pnt.X, pnt.Y, 0));
+        DBPoint dBPoint = new(new Point3d(pnt.X, pnt.Y, 0));
         return dBPoint.AddToDrawing(ColorIndex);
     }
 
     public static Point3d GetMiddlePoint(this Point3d A, Point3d B)
     {
-        var X = (A.X + B.X) / 2;
-        var Z = (A.Z + B.Z) / 2;
-        var Y = (A.Y + B.Y) / 2;
+        double X = (A.X + B.X) / 2;
+        double Z = (A.Z + B.Z) / 2;
+        double Y = (A.Y + B.Y) / 2;
         return new Point3d(X, Y, Z);
     }
 
     public static Point3d GetMiddlePoint(this Point2d A, Point2d B)
     {
-        var X = (A.X + B.X) / 2;
-        var Y = (A.Y + B.Y) / 2;
+        double X = (A.X + B.X) / 2;
+        double Y = (A.Y + B.Y) / 2;
         return new Point3d(X, Y, 0);
     }
 
     public static Point3d GetIntermediatePoint(this Point3d A, Point3d B, double Pourcentage)
     {
-        var X = A.X.IntermediatePercentage(B.X, Pourcentage);
-        var Z = A.Z.IntermediatePercentage(B.Z, Pourcentage);
-        var Y = A.Y.IntermediatePercentage(B.Y, Pourcentage);
+        double X = A.X.IntermediatePercentage(B.X, Pourcentage);
+        double Z = A.Z.IntermediatePercentage(B.Z, Pourcentage);
+        double Y = A.Y.IntermediatePercentage(B.Y, Pourcentage);
         return new Point3d(X, Y, Z);
     }
 
     public static double GetAngleWith(this Point3d A, Point3d B)
     {
-        using (var line = new Line(A, B))
-        {
-            return line.Angle;
-        }
+        using Line line = new(A, B);
+        return line.Angle;
     }
 
     public static bool IsEqualTo(this IEnumerable<Point3d> A, IEnumerable<Point3d> B)
     {
-        if (A.Count() != B.Count()) return false;
+        if (A.Count() != B.Count())
+        {
+            return false;
+        }
+
         var ArrayA = A.ToArray();
         var ArrayB = B.ToArray();
-        for (var i = 0; i < A.Count(); i++)
+        for (int i = 0; i < A.Count(); i++)
+        {
             if (!ArrayA[i].IsEqualTo(ArrayB[i]))
+            {
                 return false;
+            }
+        }
 
         return true;
     }
@@ -86,8 +92,12 @@ public static class Point3dExtensions
     public static bool Contains(this IEnumerable<Point3d> points, Point3d Point)
     {
         foreach (var item in points)
+        {
             if (item.IsEqualTo(Point))
+            {
                 return true;
+            }
+        }
 
         return false;
     }
@@ -95,8 +105,12 @@ public static class Point3dExtensions
     public static bool ContainsAll(this IEnumerable<Point3d> pointsA, IEnumerable<Point3d> pointsB)
     {
         foreach (var item in pointsB)
+        {
             if (!pointsA.Contains(item))
+            {
                 return false;
+            }
+        }
 
         return true;
     }
@@ -118,8 +132,12 @@ public static class Point3dExtensions
         try
         {
             var NoArcPoly = polyline.ToPolygon();
-            var Pnts = NoArcPoly.GetPoints().ToPoint3dCollection();
-            if (NoArcPoly != polyline) NoArcPoly.Dispose();
+            Point3dCollection Pnts = NoArcPoly.GetPoints().ToPoint3dCollection();
+            if (NoArcPoly != polyline)
+            {
+                NoArcPoly.Dispose();
+            }
+
             return point.ToPoint2d().IsPointInsidePolygonMcMartin(Pnts);
         }
         catch (Exception ex)
@@ -137,39 +155,47 @@ public static class Point3dExtensions
 
     public static Point3dCollection OrderByDistanceOnLine(this Point3dCollection collection, Polyline poly)
     {
-        List<(Point3d Point, double Distance)> List = new();
+        List<(Point3d Point, double Distance)> List = [];
         foreach (Point3d point in collection)
         {
-            var param = poly.GetParamAtPointX(point);
-            var distance = poly.GetDistanceAtParameter(param);
+            double param = poly.GetParamAtPointX(point);
+            double distance = poly.GetDistanceAtParameter(param);
             List.Add((point, distance));
         }
 
-        var orderedList = List.OrderBy(item => item.Distance).ToList();
-        var newCollection = new Point3dCollection();
-        foreach (var item in orderedList) newCollection.Add(item.Point);
+        List<(Point3d Point, double Distance)> orderedList = List.OrderBy(item => item.Distance).ToList();
+        Point3dCollection newCollection = [];
+        foreach (var (Point, Distance) in orderedList)
+        {
+            _ = newCollection.Add(Point);
+        }
+
         return newCollection;
     }
 
     public static Point3dCollection OrderByDistanceFromPoint(this Point3dCollection collection, Point3d Origin)
     {
-        List<(Point3d Point, double Distance)> List = new();
+        List<(Point3d Point, double Distance)> List = [];
         foreach (Point3d point in collection)
         {
-            var distance = point.DistanceTo(Origin);
+            double distance = point.DistanceTo(Origin);
             List.Add((point, distance));
         }
 
-        var orderedList = List.OrderBy(item => item.Distance).ToList();
-        var newCollection = new Point3dCollection();
-        foreach (var item in orderedList) newCollection.Add(item.Point);
+        List<(Point3d Point, double Distance)> orderedList = List.OrderBy(item => item.Distance).ToList();
+        Point3dCollection newCollection = [];
+        foreach (var (Point, Distance) in orderedList)
+        {
+            _ = newCollection.Add(Point);
+        }
+
         return newCollection;
     }
 
     public static double GetArea(this Point2d pt1, Point2d pt2, Point2d pt3)
     {
-        return ((pt2.X - pt1.X) * (pt3.Y - pt1.Y) -
-                (pt3.X - pt1.X) * (pt2.Y - pt1.Y)) / 2.0;
+        return (((pt2.X - pt1.X) * (pt3.Y - pt1.Y)) -
+                ((pt3.X - pt1.X) * (pt2.Y - pt1.Y))) / 2.0;
     }
 
     public static double DistanceTo(this Point3d pt, Polyline pl)
@@ -179,22 +205,30 @@ public static class Point3dExtensions
 
     public static bool IsOnPolyline(this Point3d pt, Polyline pl)
     {
-        var isOn = false;
+        bool isOn = false;
 
-        for (var i = 0; i < pl.NumberOfVertices; i++)
+        for (int i = 0; i < pl.NumberOfVertices; i++)
         {
             Curve3d seg = null;
             var segType = pl.GetSegmentType(i);
 
             if (segType == SegmentType.Arc)
+            {
                 seg = pl.GetArcSegmentAt(i);
-            else if (segType == SegmentType.Line) seg = pl.GetLineSegmentAt(i);
+            }
+            else if (segType == SegmentType.Line)
+            {
+                seg = pl.GetLineSegmentAt(i);
+            }
 
             if (seg != null)
             {
                 isOn = seg.IsOn(pt, Generic.MediumTolerance);
 
-                if (isOn) break;
+                if (isOn)
+                {
+                    break;
+                }
             }
         }
 
@@ -209,18 +243,23 @@ public static class Point3dExtensions
     /// <returns>True if the point is within the polyline, otherwise false</returns>
     public static bool IsPointInsidePolygon(this Point2d p, Point3dCollection verts)
     {
-        var counter = 0;
-        var VertexCount = verts.Count;
-        var p1 = verts[0].ToPoint2d();
-        for (var index = 1; index <= VertexCount; index++)
+        int counter = 0;
+        int VertexCount = verts.Count;
+        Point2d p1 = verts[0].ToPoint2d();
+        for (int index = 1; index <= VertexCount; index++)
         {
-            var p2 = verts[index % VertexCount].ToPoint2d();
+            Point2d p2 = verts[index % VertexCount].ToPoint2d();
             if (p.Y > Min(p1.Y, p2.Y) && p.Y <= Max(p1.Y, p2.Y) && p.X <= Max(p1.X, p2.X))
+            {
                 if (p1.Y != p2.Y)
                 {
-                    var xinters = (p.Y - p1.Y) * ((p2.X - p1.X) / (p2.Y - p1.Y)) + p1.X;
-                    if (p1.X == p2.X || p.X <= xinters) counter++;
+                    double xinters = ((p.Y - p1.Y) * ((p2.X - p1.X) / (p2.Y - p1.Y))) + p1.X;
+                    if (p1.X == p2.X || p.X <= xinters)
+                    {
+                        counter++;
+                    }
                 }
+            }
 
             p1 = p2;
         }
@@ -232,37 +271,42 @@ public static class Point3dExtensions
     {
         //https://erich.realtimerendering.com/ptinpoly/
         //https://www.realtimerendering.com/resources/RTNews/html//rtnv5n3.html#art3
-        var tx = p.X;
-        var ty = p.Y;
+        double tx = p.X;
+        double ty = p.Y;
 
         //get initial test bit for above/below X axis
         var vtx0 = verts[0];
-        var yflag0 = vtx0[1] >= ty;
+        bool yflag0 = vtx0[1] >= ty;
 
-        var inside_flag = false;
-        for (var i = 1; i < verts.Count; i++)
+        bool inside_flag = false;
+        for (int i = 1; i < verts.Count; i++)
         {
             var vtx1 = verts[i];
 
-            var yflag1 = vtx1[1] >= ty;
+            bool yflag1 = vtx1[1] >= ty;
             // check if endpoints straddle (are on opposite sides) of X axis
             // (i.e. the Y's differ); if so, +X ray could intersect this edge.
             if (yflag0 != yflag1)
             {
-                var xflag0 = vtx0[0] >= tx;
+                bool xflag0 = vtx0[0] >= tx;
                 // check if endpoints are on same side of the Y axis (i.e. X's
                 // are the same); if so, it's easy to test if edge hits or misses.
-                if (xflag0 == vtx1[0] >= tx)
+                if (xflag0 == (vtx1[0] >= tx))
                 {
                     //if edge's X values both right of the point, must hit
-                    if (xflag0) inside_flag = !inside_flag;
+                    if (xflag0)
+                    {
+                        inside_flag = !inside_flag;
+                    }
                 }
                 else
                 {
                     // compute intersection of pgon segment with +X ray, note
                     //if >= point's X; if so, the ray hits it.
-                    if (vtx1[0] - (vtx1[1] - ty) * (vtx0[0] - vtx1[0]) / (vtx0[1] - vtx1[1]) >= tx)
+                    if (vtx1[0] - ((vtx1[1] - ty) * (vtx0[0] - vtx1[0]) / (vtx0[1] - vtx1[1])) >= tx)
+                    {
                         inside_flag = !inside_flag;
+                    }
                 }
             }
 

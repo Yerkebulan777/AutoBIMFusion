@@ -1,4 +1,4 @@
-﻿using AutoBIMFusion.Common.Drawing;
+using AutoBIMFusion.Common.Drawing;
 using AutoBIMFusion.Common.Mist;
 
 namespace AutoBIMFusion.Common.Extensions;
@@ -7,7 +7,7 @@ public static class Point3dCollectionExtensions
 {
     public static Point3d[] ToArray(this Point3dCollection collection)
     {
-        var array = new Point3d[collection.Count];
+        Point3d[] array = new Point3d[collection.Count];
         collection.CopyTo(array, 0);
         return array;
     }
@@ -16,63 +16,86 @@ public static class Point3dCollectionExtensions
     {
         foreach (Point3d item in collection)
         {
-            var dBPoint = new DBPoint(item);
-            if (ColorIndex != null) dBPoint.ColorIndex = (int)ColorIndex;
-            dBPoint.AddToDrawing();
+            DBPoint dBPoint = new(item);
+            if (ColorIndex != null)
+            {
+                dBPoint.ColorIndex = (int)ColorIndex;
+            }
+
+            _ = dBPoint.AddToDrawing();
         }
     }
 
     public static Point3dCollection AddRange(this Point3dCollection A, Point3dCollection B)
     {
         foreach (Point3d pt in B)
+        {
             if (!A.Contains(pt))
-                A.Add(pt);
+            {
+                _ = A.Add(pt);
+            }
+        }
 
         return A;
     }
 
     public static Point3dCollection ConvertToUCS(this Point3dCollection SCGPoint3DCollection)
     {
-        var ed = Generic.GetEditor();
-        var SCGToUCS = ed.CurrentUserCoordinateSystem.Inverse();
+        Editor ed = Generic.GetEditor();
+        Matrix3d SCGToUCS = ed.CurrentUserCoordinateSystem.Inverse();
 
-        var UCSPoint3dCollection = new Point3dCollection();
-        foreach (Point3d point in SCGPoint3DCollection) UCSPoint3dCollection.Add(point.TransformBy(SCGToUCS));
+        Point3dCollection UCSPoint3dCollection = [];
+        foreach (Point3d point in SCGPoint3DCollection)
+        {
+            _ = UCSPoint3dCollection.Add(point.TransformBy(SCGToUCS));
+        }
+
         return UCSPoint3dCollection;
     }
 
     public static Point3dCollection Flatten(this Point3dCollection SCGPoint3DCollection, double Elevation = 0)
     {
-        var FlattenPoint3dCollection = new Point3dCollection();
+        Point3dCollection FlattenPoint3dCollection = [];
         foreach (Point3d point in SCGPoint3DCollection)
-            FlattenPoint3dCollection.Add(new Point3d(point.X, point.Y, Elevation));
+        {
+            _ = FlattenPoint3dCollection.Add(new Point3d(point.X, point.Y, Elevation));
+        }
+
         return FlattenPoint3dCollection;
     }
 
     public static Point3dCollection ToPoint3dCollection(this IEnumerable<Point3d> IEnumCollection)
     {
-        return new Point3dCollection(IEnumCollection.ToArray());
+        return [.. IEnumCollection.ToArray()];
     }
 
     public static Point2dCollection ToPoint2dCollection(this IEnumerable<Point2d> IEnumCollection)
     {
-        return new Point2dCollection(IEnumCollection.ToArray());
+        return [.. IEnumCollection.ToArray()];
     }
 
     public static Point2dCollection ToPoint2dCollection(this Point3dCollection collection)
     {
-        var point2dCollection = new Point2dCollection();
-        foreach (Point3d point in collection) point2dCollection.Add(point.ToPoint2d());
+        Point2dCollection point2dCollection = [];
+        foreach (Point3d point in collection)
+        {
+            _ = point2dCollection.Add(point.ToPoint2d());
+        }
+
         return point2dCollection;
     }
 
     public static bool ContainsTolerance(this Point3dCollection collection, Point3d Point,
         Tolerance? CustomTolerance = null)
     {
-        if (CustomTolerance is null) CustomTolerance = Generic.MediumTolerance;
+        CustomTolerance ??= Generic.MediumTolerance;
         foreach (Point3d CollectionPoint in collection)
+        {
             if (CollectionPoint.IsEqualTo(Point, (Tolerance)CustomTolerance))
+            {
                 return true;
+            }
+        }
 
         return false;
     }
@@ -80,19 +103,29 @@ public static class Point3dCollectionExtensions
     public static bool HasDuplicatePoints(this Point3dCollection points, Tolerance tolerance)
     {
         for (var i = 0; i < points.Count; i++)
-        for (var j = i + 1; j < points.Count; j++)
-            if (points[i].IsEqualTo(points[j], tolerance))
-                return true;
+        {
+            for (var j = i + 1; j < points.Count; j++)
+            {
+                if (points[i].IsEqualTo(points[j], tolerance))
+                {
+                    return true;
+                }
+            }
+        }
 
         return false;
     }
 
     public static Point3dCollection RemoveDuplicatePoints(this Point3dCollection points, Tolerance tolerance)
     {
-        var NoDuplicateCollection = new Point3dCollection();
+        Point3dCollection NoDuplicateCollection = [];
         foreach (Point3d point in points)
+        {
             if (!NoDuplicateCollection.ContainsTolerance(point, tolerance))
-                NoDuplicateCollection.Add(point);
+            {
+                _ = NoDuplicateCollection.Add(point);
+            }
+        }
 
         return NoDuplicateCollection;
     }

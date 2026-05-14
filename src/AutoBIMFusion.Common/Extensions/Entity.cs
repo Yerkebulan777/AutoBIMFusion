@@ -1,7 +1,8 @@
-using System.Diagnostics;
 using AutoBIMFusion.Common.Drawing;
 using AutoBIMFusion.Common.Mist;
+using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
+using System.Diagnostics;
 
 namespace AutoBIMFusion.Common.Extensions;
 
@@ -9,55 +10,89 @@ public static class EntityExtensions
 {
     public static List<T> Clone<T>(this IEnumerable<T> list)
     {
-        var NewList = new List<T>();
-        foreach (var item in list)
+        List<T> NewList = [];
+        foreach (T? item in list)
+        {
             if (item is Entity)
+            {
                 NewList.Add((T)(item as Entity).Clone());
+            }
+        }
 
         return NewList;
     }
 
     public static void EraseObject(this Entity ObjectToErase)
     {
-        var doc = Generic.GetDocument();
-        using (var trx = doc.TransactionManager.StartTransaction())
+        Document doc = Generic.GetDocument();
+        using Transaction trx = doc.TransactionManager.StartTransaction();
+        if (ObjectToErase.IsErased)
         {
-            if (ObjectToErase.IsErased) return;
-            try
-            {
-                if (!ObjectToErase.IsWriteEnabled) ObjectToErase.UpgradeOpen();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex.Message);
-            }
-
-            if (!ObjectToErase.IsErased && ObjectToErase.ObjectId != ObjectId.Null) ObjectToErase.Erase(true);
-            trx.Commit();
+            return;
         }
+
+        try
+        {
+            if (!ObjectToErase.IsWriteEnabled)
+            {
+                ObjectToErase.UpgradeOpen();
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex.Message);
+        }
+
+        if (!ObjectToErase.IsErased && ObjectToErase.ObjectId != ObjectId.Null)
+        {
+            ObjectToErase.Erase(true);
+        }
+
+        trx.Commit();
     }
 
     public static void CopyPropertiesTo(this Entity Origin, Entity Target)
     {
-        if (Origin == null || Target == null) return;
+        if (Origin == null || Target == null)
+        {
+            return;
+        }
 
         //Default for each Entities
         if (Origin.EntityColor.IsNone)
+        {
             Target.Color = Color.FromColorIndex(ColorMethod.ByLayer, 0);
+        }
         else if (Origin.EntityColor.IsByColor)
+        {
             Target.Color = Origin.Color;
+        }
         else
+        {
             Target.ColorIndex = Origin.ColorIndex;
+        }
 
-        if (Origin.LayerId != ObjectId.Null) Target.LayerId = Origin.LayerId;
+        if (Origin.LayerId != ObjectId.Null)
+        {
+            Target.LayerId = Origin.LayerId;
+        }
 
-        if (Origin.Linetype != "") Target.Linetype = Origin.Linetype;
+        if (Origin.Linetype != "")
+        {
+            Target.Linetype = Origin.Linetype;
+        }
 
         Target.LinetypeScale = Origin.LinetypeScale;
         Target.LineWeight = Origin.LineWeight;
-        if (Origin.Material != "") Target.Material = Origin.Material;
+        if (Origin.Material != "")
+        {
+            Target.Material = Origin.Material;
+        }
 
-        if (Origin.OwnerId != ObjectId.Null) Target.OwnerId = Origin.OwnerId;
+        if (Origin.OwnerId != ObjectId.Null)
+        {
+            Target.OwnerId = Origin.OwnerId;
+        }
 
         Target.ReceiveShadows = Origin.ReceiveShadows;
         Target.Transparency = Origin.Transparency;
@@ -79,7 +114,7 @@ public static class EntityExtensions
         {
             if (Origin is Hatch OriginHatch)
             {
-                var TargetHatch = Target as Hatch;
+                Hatch? TargetHatch = Target as Hatch;
                 if (OriginHatch.IsGradient)
                 {
                     TargetHatch.SetHatchPattern(OriginHatch.PatternType, OriginHatch.PatternName);
@@ -109,8 +144,8 @@ public static class EntityExtensions
 
                 if (OriginHatch.NumberOfPatternDefinitions >= 1 && TargetHatch.NumberOfPatternDefinitions >= 1)
                 {
-                    var OriginHatchPatternDefinition = OriginHatch.GetPatternDefinitionAt(0);
-                    var TargetHatchPatternDefinition = TargetHatch.GetPatternDefinitionAt(0);
+                    PatternDefinition OriginHatchPatternDefinition = OriginHatch.GetPatternDefinitionAt(0);
+                    PatternDefinition TargetHatchPatternDefinition = TargetHatch.GetPatternDefinitionAt(0);
 
                     var angleA = OriginHatchPatternDefinition.Angle; // objet 1
                     var angleB = TargetHatchPatternDefinition.Angle; // objet 2
@@ -134,14 +169,14 @@ public static class EntityExtensions
 
             if (Origin is BlockReference OriginBlkRef)
             {
-                var TargetBlockReference = Target as BlockReference;
+                BlockReference? TargetBlockReference = Target as BlockReference;
                 TargetBlockReference.Rotation = OriginBlkRef.Rotation;
                 TargetBlockReference.ScaleFactors = OriginBlkRef.ScaleFactors;
             }
 
             if (Origin is Polyline OriginPolyline)
             {
-                var TargetPolyline = Target as Polyline;
+                Polyline? TargetPolyline = Target as Polyline;
                 TargetPolyline.Elevation = OriginPolyline.Elevation;
                 try
                 {
@@ -158,13 +193,13 @@ public static class EntityExtensions
 
             if (Origin is Polyline2d OriginPolyline2d)
             {
-                var TargetPolyline = Target as Polyline;
+                Polyline? TargetPolyline = Target as Polyline;
                 TargetPolyline.Elevation = OriginPolyline2d.Elevation;
             }
 
             if (Origin is Ole2Frame OriginOle2Frame)
             {
-                var TargetOle2Frame = Target as Ole2Frame;
+                Ole2Frame? TargetOle2Frame = Target as Ole2Frame;
                 TargetOle2Frame.AutoOutputQuality = OriginOle2Frame.AutoOutputQuality;
                 TargetOle2Frame.LockAspect = OriginOle2Frame.LockAspect;
                 TargetOle2Frame.WcsHeight = OriginOle2Frame.WcsHeight;
@@ -177,12 +212,12 @@ public static class EntityExtensions
 
     public static void CopyDrawOrderTo(this Entity Origin, Entity Target)
     {
-        var db = Generic.GetDatabase();
-        var trx = db.TransactionManager.TopTransaction;
-        var btr = Generic.GetCurrentSpaceBlockTableRecord(trx);
-        var orderTable = trx.GetObject(btr.DrawOrderTableId, OpenMode.ForWrite) as DrawOrderTable;
+        Database db = Generic.GetDatabase();
+        Transaction trx = db.TransactionManager.TopTransaction;
+        BlockTableRecord btr = Generic.GetCurrentSpaceBlockTableRecord(trx);
+        DrawOrderTable? orderTable = trx.GetObject(btr.DrawOrderTableId, OpenMode.ForWrite) as DrawOrderTable;
 
-        var DrawOrderCollection = new ObjectIdCollection();
+        ObjectIdCollection DrawOrderCollection = [];
         DrawOrderCollection.Insert(0, Target.ObjectId);
         try
         {
@@ -196,7 +231,11 @@ public static class EntityExtensions
 
     public static double TryGetArea(this Entity ent)
     {
-        if (ent?.IsDisposed != false) return 0;
+        if (ent?.IsDisposed != false)
+        {
+            return 0;
+        }
+
         try
         {
             switch (ent)
@@ -231,25 +270,27 @@ public static class EntityExtensions
         if (entity is Polyline2d polyline2d)
         {
             polyline2d.Elevation = 0;
-            using (var pline = polyline2d.ToPolyline())
+            using Polyline pline = polyline2d.ToPolyline();
+            polyline2d.CopyPropertiesTo(pline);
+            if (pline.AddToDrawing() != ObjectId.Null)
             {
-                polyline2d.CopyPropertiesTo(pline);
-                if (pline.AddToDrawing() != ObjectId.Null) polyline2d.Erase();
+                polyline2d.Erase();
             }
         }
 
         if (entity is Polyline3d polyline3d)
         {
-            using (var pline = polyline3d.ToPolyline())
+            using Polyline pline = polyline3d.ToPolyline();
+            polyline3d.CopyPropertiesTo(pline);
+            if (pline.AddToDrawing() != ObjectId.Null)
             {
-                polyline3d.CopyPropertiesTo(pline);
-                if (pline.AddToDrawing() != ObjectId.Null) polyline3d.Erase();
+                polyline3d.Erase();
             }
         }
         else if (entity is Polyline polyline)
         {
             polyline.Elevation = 0;
-            polyline.FixNormals();
+            _ = polyline.FixNormals();
             polyline.Flatten();
         }
         else if (entity is Ellipse ellipse)
@@ -314,7 +355,7 @@ public static class EntityExtensions
         {
             for (var i = 0; i < spline.NumControlPoints; i++)
             {
-                var point = spline.GetControlPointAt(i);
+                Point3d point = spline.GetControlPointAt(i);
                 spline.SetControlPointAt(i, point.Flatten());
             }
         }
@@ -324,12 +365,12 @@ public static class EntityExtensions
         }
         else if (entity is Wipeout wipeout)
         {
-            var orient = wipeout.Orientation;
+            CoordinateSystem3d orient = wipeout.Orientation;
             wipeout.Orientation = new CoordinateSystem3d(orient.Origin.Flatten(), orient.Xaxis, orient.Yaxis);
         }
         else if (entity is RasterImage rasterimage)
         {
-            var orient = rasterimage.Orientation;
+            CoordinateSystem3d orient = rasterimage.Orientation;
             rasterimage.Orientation = new CoordinateSystem3d(orient.Origin.Flatten(), orient.Xaxis, orient.Yaxis);
         }
         else if (entity is RotatedDimension rotatedDimension)
@@ -463,6 +504,7 @@ public static class EntityExtensions
             //IN PROGRESS DOES NOT WORK ???
             mLeader.TextLocation = mLeader.TextLocation.Flatten();
             for (var LeaderLineCount = 0; LeaderLineCount < mLeader.LeaderLineCount; LeaderLineCount++)
+            {
                 try
                 {
                     mLeader.SetFirstVertex(LeaderLineCount, mLeader.GetFirstVertex(LeaderLineCount).Flatten());
@@ -471,7 +513,7 @@ public static class EntityExtensions
                          LeaderVerticesCount < mLeader.VerticesCount(LeaderLineCount);
                          LeaderVerticesCount++)
                     {
-                        var Point = mLeader.GetVertex(LeaderLineCount, LeaderVerticesCount);
+                        Point3d Point = mLeader.GetVertex(LeaderLineCount, LeaderVerticesCount);
                         mLeader.SetVertex(LeaderLineCount, LeaderVerticesCount, Point.Flatten());
 
                         Debug.WriteLine($"Flatten point {mLeader.GetVertex(LeaderLineCount, LeaderVerticesCount)}");
@@ -480,6 +522,7 @@ public static class EntityExtensions
                 catch (Exception)
                 {
                 }
+            }
         }
         else if (entity is Leader ld)
         {
@@ -508,7 +551,10 @@ public static class EntityExtensions
 
     public static void AddXData(this Entity ent, string value)
     {
-        if (value.Length > 255) throw new ArgumentException("La chaine est trop longue");
+        if (value.Length > 255)
+        {
+            throw new ArgumentException("La chaine est trop longue");
+        }
 
         ent.AddXData(new TypedValue((int)DxfCode.ExtendedDataAsciiString, value));
     }
@@ -526,12 +572,14 @@ public static class EntityExtensions
     public static List<object> ReadXData(this Entity ent)
     {
         var AppName = Generic.GetExtensionDLLName();
-        var list = new List<object>();
+        List<object> list = [];
         //using (Transaction trx = db.TransactionManager.StartTransaction())
         //{
-        var rb = ent.GetXDataForApplication(AppName);
+        ResultBuffer rb = ent.GetXDataForApplication(AppName);
         if (rb != null)
-            foreach (var tv in rb.AsArray())
+        {
+            foreach (TypedValue tv in rb.AsArray())
+            {
                 switch ((DxfCode)tv.TypeCode)
                 {
                     case DxfCode.ExtendedDataAsciiString:
@@ -543,6 +591,8 @@ public static class EntityExtensions
                         list.Add(int16);
                         break;
                 }
+            }
+        }
 
         //trx.Commit();
         //}
@@ -551,35 +601,33 @@ public static class EntityExtensions
 
     public static void AddXData(this Entity ent, TypedValue typedValue)
     {
-        var db = Generic.GetDatabase();
-        using (var trx = db.TransactionManager.StartTransaction())
+        Database db = Generic.GetDatabase();
+        using Transaction trx = db.TransactionManager.StartTransaction();
+        ent.TryUpgradeOpen();
+
+        RegAppTable regTable = (RegAppTable)trx.GetObject(db.RegAppTableId, OpenMode.ForRead);
+        var AppName = Generic.GetExtensionDLLName();
+        if (!regTable.Has(AppName))
         {
-            ent.TryUpgradeOpen();
-
-            var regTable = (RegAppTable)trx.GetObject(db.RegAppTableId, OpenMode.ForRead);
-            var AppName = Generic.GetExtensionDLLName();
-            if (!regTable.Has(AppName))
+            regTable.UpgradeOpen();
+            RegAppTableRecord app = new()
             {
-                regTable.UpgradeOpen();
-                var app = new RegAppTableRecord
-                {
-                    Name = AppName
-                };
-                regTable.Add(app);
-                trx.AddNewlyCreatedDBObject(app, true);
-            }
-
-            //https://help.autodesk.com/view/OARX/2023/ENU/?guid=GUID-A2A628B0-3699-4740-A215-C560E7242F63
-            ent.XData = new ResultBuffer(new TypedValue(1001, AppName), typedValue);
-            trx.Commit();
+                Name = AppName
+            };
+            _ = regTable.Add(app);
+            trx.AddNewlyCreatedDBObject(app, true);
         }
+
+        //https://help.autodesk.com/view/OARX/2023/ENU/?guid=GUID-A2A628B0-3699-4740-A215-C560E7242F63
+        ent.XData = new ResultBuffer(new TypedValue(1001, AppName), typedValue);
+        trx.Commit();
     }
 
     public static void TransformToFitBoundingBox(this Entity ent, Extents3d FitBoundingBox)
     {
-        var entExtent = ent.GetExtents();
-        var entExtentSize = entExtent.Size();
-        var FitBoundingBoxSize = FitBoundingBox.Size();
+        Extents3d entExtent = ent.GetExtents();
+        ExtentsSize entExtentSize = entExtent.Size();
+        ExtentsSize FitBoundingBoxSize = FitBoundingBox.Size();
 
         var scaleX = entExtentSize.Width / FitBoundingBoxSize.Width;
         var scaleY = entExtentSize.Height / FitBoundingBoxSize.Height;

@@ -15,10 +15,16 @@ public static class AttributeCollectionExtensions
     public static IEnumerable<AttributeReference> GetObjects(this AttributeCollection source,
         OpenMode mode = OpenMode.ForRead, bool openErased = false, bool forceOpenOnLockedLayers = false)
     {
-        var trx = Generic.GetDatabase().TransactionManager.TopTransaction;
+        Transaction trx = Generic.GetDatabase().TransactionManager.TopTransaction;
         if (source.Count > 0)
+        {
             foreach (ObjectId id in source)
+            {
                 if (!id.IsErased || openErased)
+                {
                     yield return (AttributeReference)trx.GetObject(id, mode, openErased, forceOpenOnLockedLayers);
+                }
+            }
+        }
     }
 }

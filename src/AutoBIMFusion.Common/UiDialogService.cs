@@ -9,7 +9,7 @@ public static class UiDialogService
     {
         folderPath = string.Empty;
 
-        var dialogType = ResolveWinFormsType("System.Windows.Forms.FolderBrowserDialog");
+        Type? dialogType = ResolveWinFormsType("System.Windows.Forms.FolderBrowserDialog");
 
         if (dialogType is null)
         {
@@ -17,7 +17,7 @@ public static class UiDialogService
             return false;
         }
 
-        using var dialog = (IDisposable)Activator.CreateInstance(dialogType)!;
+        using IDisposable dialog = (IDisposable)Activator.CreateInstance(dialogType)!;
 
         dialogType.GetProperty("Description")?.SetValue(dialog, description);
         dialogType.GetProperty("RootFolder")?.SetValue(dialog, Environment.SpecialFolder.Desktop);
@@ -48,12 +48,15 @@ public static class UiDialogService
 
     private static Type? ResolveWinFormsType(string typeName)
     {
-        var type = Type.GetType($"{typeName}, System.Windows.Forms", false);
-        if (type is not null) return type;
+        Type? type = Type.GetType($"{typeName}, System.Windows.Forms", false);
+        if (type is not null)
+        {
+            return type;
+        }
 
         try
         {
-            var assembly = Assembly.Load("System.Windows.Forms");
+            Assembly assembly = Assembly.Load("System.Windows.Forms");
             return assembly.GetType(typeName, false);
         }
         catch

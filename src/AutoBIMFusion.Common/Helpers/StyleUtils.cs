@@ -1,3 +1,4 @@
+using Autodesk.AutoCAD.GraphicsInterface;
 using System.Globalization;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 
@@ -13,11 +14,11 @@ public static class StyleUtils
     /// </summary>
     public static ObjectId GetOrCreateTextStyle(Database db, Transaction trx, string fontName)
     {
-        var tt = (TextStyleTable)trx.GetObject(db.TextStyleTableId, OpenMode.ForRead);
+        TextStyleTable tt = (TextStyleTable)trx.GetObject(db.TextStyleTableId, OpenMode.ForRead);
 
         if (tt.Has(fontName))
         {
-            var existing = (TextStyleTableRecord)trx.GetObject(tt[fontName], OpenMode.ForRead);
+            TextStyleTableRecord existing = (TextStyleTableRecord)trx.GetObject(tt[fontName], OpenMode.ForRead);
             if (existing.TextSize > 0.0)
             {
                 existing.UpgradeOpen();
@@ -27,7 +28,10 @@ public static class StyleUtils
             return tt[fontName];
         }
 
-        if (!tt.IsWriteEnabled) tt.UpgradeOpen();
+        if (!tt.IsWriteEnabled)
+        {
+            tt.UpgradeOpen();
+        }
 
         TextStyleTableRecord ts = new()
         {
@@ -36,7 +40,7 @@ public static class StyleUtils
             TextSize = 0.0
         };
 
-        var id = tt.Add(ts);
+        ObjectId id = tt.Add(ts);
         trx.AddNewlyCreatedDBObject(ts, true);
         return id;
     }
@@ -46,7 +50,7 @@ public static class StyleUtils
     /// </summary>
     public static ObjectId GetArrowBlockId(Database db, Transaction trx, string arrowName = "_ArchTick")
     {
-        var arrObjId = db.Dimblk;
+        ObjectId arrObjId = db.Dimblk;
 
         var obj = Application.GetSystemVariable("DIMBLK");
 
@@ -61,11 +65,17 @@ public static class StyleUtils
                 return arrObjId;
             }
 
-            if (!string.IsNullOrEmpty(oldArrName)) Application.SetSystemVariable("DIMBLK", oldArrName);
+            if (!string.IsNullOrEmpty(oldArrName))
+            {
+                Application.SetSystemVariable("DIMBLK", oldArrName);
+            }
 
-            var bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
+            BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
 
-            if (bt.Has(arrowName)) arrObjId = bt[arrowName];
+            if (bt.Has(arrowName))
+            {
+                arrObjId = bt[arrowName];
+            }
         }
 
         return arrObjId;
@@ -77,7 +87,7 @@ public static class StyleUtils
     public static string BuildStyleName(TextStyleTableRecord ts)
     {
         var fontBase = ResolveBaseFontName(ts);
-        var font = ts.Font;
+        FontDescriptor font = ts.Font;
 
         var heightPart = ts.TextSize > 0
             ? ts.TextSize.ToString("0.##", CultureInfo.InvariantCulture)
@@ -87,9 +97,15 @@ public static class StyleUtils
 
         var name = fontBase;
 
-        if (heightPart.Length > 0) name += "-" + heightPart;
+        if (heightPart.Length > 0)
+        {
+            name += "-" + heightPart;
+        }
 
-        if (modifiers.Length > 0) name += "-" + modifiers;
+        if (modifiers.Length > 0)
+        {
+            name += "-" + modifiers;
+        }
 
         return string.IsNullOrWhiteSpace(name) ? "TextStyle" : name;
     }
@@ -112,12 +128,17 @@ public static class StyleUtils
     public static string MakeUnique(string candidate, HashSet<string> existing, string currentName)
     {
         if (!existing.Contains(candidate) || StringComparer.OrdinalIgnoreCase.Equals(candidate, currentName))
+        {
             return candidate;
+        }
 
         for (var i = 2; i < 1000; i++)
         {
             var suffixed = $"{candidate}_{i}";
-            if (!existing.Contains(suffixed)) return suffixed;
+            if (!existing.Contains(suffixed))
+            {
+                return suffixed;
+            }
         }
 
         return candidate;

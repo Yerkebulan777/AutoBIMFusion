@@ -10,26 +10,32 @@ public static class ViewportsExtensions
     public static IntegerCollection GetViewPortsNumbers(this TransientManager _)
     {
         //https://www.keanw.com/2011/03/drawing-transient-graphics-appropriately-in-autocad-within-multiple-paperspace-viewports-using-net.html
-        var db = Generic.GetDatabase();
-        var ed = Generic.GetEditor();
+        Database db = Generic.GetDatabase();
+        Editor ed = Generic.GetEditor();
         // Are we in model space outside floating viewports?
         // Then we'll initalize an empty IntegerCollection
 
-        if (db.TileMode) return new IntegerCollection();
+        if (db.TileMode)
+        {
+            return [];
+        }
 
-        var vps = new List<int>();
+        List<int> vps = new();
 
-        var trx = db.TransactionManager.StartTransaction();
+        Transaction trx = db.TransactionManager.StartTransaction();
         using (trx)
         {
-            var vp = trx.GetObject(ed.ActiveViewportId, OpenMode.ForRead) as Viewport;
+            Viewport? vp = trx.GetObject(ed.ActiveViewportId, OpenMode.ForRead) as Viewport;
 
             // Are we in paper space and not inside a floating
             // viewport? Then only the paper space viewport itself
             // is of interest
             if (vp?.Number == 1)
+            {
                 vps.Add(1);
+            }
             else
+            {
                 // Now we're inside a floating viewport and
                 // will display transients in active viewports
                 foreach (ObjectId vpId in db.GetViewports(false))
@@ -37,6 +43,7 @@ public static class ViewportsExtensions
                     vp = (Viewport)trx.GetObject(vpId, OpenMode.ForRead);
                     vps.Add(vp.Number);
                 }
+            }
 
             trx.Commit();
         }
@@ -49,7 +56,7 @@ public static class ViewportsExtensions
     public static Matrix3d GetModelToPaperTransform(this Viewport vport)
     {
         //https://www.theswamp.org/index.php?action=post;quote=477118;topic=42503.0;last_msg=596197
-        var center = new Point3d(vport.ViewCenter.X, vport.ViewCenter.Y, 0.0);
+        Point3d center = new(vport.ViewCenter.X, vport.ViewCenter.Y, 0.0);
         return Matrix3d.Displacement(new Vector3d(vport.CenterPoint.X - center.X, vport.CenterPoint.Y - center.Y, 0.0))
                * Matrix3d.Scaling(vport.CustomScale, center)
                * Matrix3d.Rotation(vport.TwistAngle, Vector3d.ZAxis, Point3d.Origin)
@@ -73,14 +80,20 @@ public static class ViewportsExtensions
 
     public static void PaperToModel(this IEnumerable<Entity> src, Viewport viewport)
     {
-        var xform = viewport.GetModelToPaperTransform().Inverse();
-        foreach (var ent in src) ent.TransformBy(xform);
+        Matrix3d xform = viewport.GetModelToPaperTransform().Inverse();
+        foreach (Entity ent in src)
+        {
+            ent.TransformBy(xform);
+        }
     }
 
     public static void ModelToPaper(this IEnumerable<Entity> src, Viewport viewport)
     {
-        var xform = viewport.GetModelToPaperTransform();
-        foreach (var ent in src) ent.TransformBy(xform);
+        Matrix3d xform = viewport.GetModelToPaperTransform();
+        foreach (Entity ent in src)
+        {
+            ent.TransformBy(xform);
+        }
     }
 
     public static bool IsInModel(this Editor _)
@@ -95,16 +108,11 @@ public static class ViewportsExtensions
 
     public static bool IsInLayoutPaper(this Editor ed)
     {
-        var db = ed.Document.Database;
+        Database db = ed.Document.Database;
 
-        if (db.TileMode ||
-            db.PaperSpaceVportId == ObjectId.Null ||
-            ed.CurrentViewportObjectId == ObjectId.Null)
-            return false;
-
-        if (ed.CurrentViewportObjectId == db.PaperSpaceVportId) return true;
-
-        return false;
+        return !db.TileMode &&
+            db.PaperSpaceVportId != ObjectId.Null &&
+            ed.CurrentViewportObjectId != ObjectId.Null && ed.CurrentViewportObjectId == db.PaperSpaceVportId;
     }
 
     public static bool IsInLayoutViewport(this Editor ed)
@@ -115,15 +123,17 @@ public static class ViewportsExtensions
 
     public static List<ObjectId> GetAllViewportsInPaperSpace(this Editor _, BlockTableRecord btr)
     {
-        var db = Generic.GetDatabase();
+        Database db = Generic.GetDatabase();
 
-        var ListOfViewPorts = new List<ObjectId>();
+        List<ObjectId> ListOfViewPorts = new();
 
-        foreach (var objId in btr)
+        foreach (ObjectId objId in btr)
         {
-            var entity = objId.GetEntity();
+            Entity entity = objId.GetEntity();
             if (entity != null && entity is Viewport && db.GetViewports(false).Contains(entity.ObjectId))
+            {
                 ListOfViewPorts.Add(entity.ObjectId);
+            }
         }
 
         return ListOfViewPorts;
@@ -131,45 +141,46 @@ public static class ViewportsExtensions
 
     public static Polyline GetBoundary(this Viewport viewport)
     {
-        var db = Generic.GetDatabase();
+        Database db = Generic.GetDatabase();
 
-        using (var trx = db.TransactionManager.StartTransaction())
+        using Transaction trx = db.TransactionManager.StartTransaction();
+        try
         {
-            try
+            if (viewport == null)
             {
-                if (viewport == null) return null;
-                if (viewport.NonRectClipEntityId != ObjectId.Null)
-                {
-                    // Get the non-rectangular clipping boundary
-                    var clipEntity = viewport.NonRectClipEntityId.GetEntity();
-                    if (clipEntity is Curve clipEntCurve) return clipEntCurve.ToPolyline();
-                    return null;
-                }
-                else
-                {
-                    // Get the standard rectangular boundary
-                    var center = viewport.CenterPoint;
-                    var width = viewport.Width;
-                    var height = viewport.Height;
-
-                    var lowerLeft = new Point3d(center.X - width / 2, center.Y - height / 2, center.Z);
-                    var lowerRight = new Point3d(center.X + width / 2, center.Y - height / 2, center.Z);
-                    var upperRight = new Point3d(center.X + width / 2, center.Y + height / 2, center.Z);
-                    var upperLeft = new Point3d(center.X - width / 2, center.Y + height / 2, center.Z);
-
-                    var polyline = new Polyline();
-                    polyline.AddVertexAt(0, lowerLeft.ToPoint2d(), 0, 0, 0);
-                    polyline.AddVertexAt(1, lowerRight.ToPoint2d(), 0, 0, 0);
-                    polyline.AddVertexAt(2, upperRight.ToPoint2d(), 0, 0, 0);
-                    polyline.AddVertexAt(3, upperLeft.ToPoint2d(), 0, 0, 0);
-                    polyline.Closed = true;
-                    return polyline;
-                }
+                return null;
             }
-            finally
+
+            if (viewport.NonRectClipEntityId != ObjectId.Null)
             {
-                trx.Commit();
+                // Get the non-rectangular clipping boundary
+                Entity clipEntity = viewport.NonRectClipEntityId.GetEntity();
+                return clipEntity is Curve clipEntCurve ? clipEntCurve.ToPolyline() : null;
             }
+            else
+            {
+                // Get the standard rectangular boundary
+                Point3d center = viewport.CenterPoint;
+                var width = viewport.Width;
+                var height = viewport.Height;
+
+                Point3d lowerLeft = new(center.X - (width / 2), center.Y - (height / 2), center.Z);
+                Point3d lowerRight = new(center.X + (width / 2), center.Y - (height / 2), center.Z);
+                Point3d upperRight = new(center.X + (width / 2), center.Y + (height / 2), center.Z);
+                Point3d upperLeft = new(center.X - (width / 2), center.Y + (height / 2), center.Z);
+
+                Polyline polyline = new();
+                polyline.AddVertexAt(0, lowerLeft.ToPoint2d(), 0, 0, 0);
+                polyline.AddVertexAt(1, lowerRight.ToPoint2d(), 0, 0, 0);
+                polyline.AddVertexAt(2, upperRight.ToPoint2d(), 0, 0, 0);
+                polyline.AddVertexAt(3, upperLeft.ToPoint2d(), 0, 0, 0);
+                polyline.Closed = true;
+                return polyline;
+            }
+        }
+        finally
+        {
+            trx.Commit();
         }
     }
 }

@@ -1,6 +1,6 @@
 using AutoBIMFusion.Common.Extensions;
-using System.Diagnostics;
 using AutoBIMFusion.Common.Mist;
+using System.Diagnostics;
 
 namespace AutoBIMFusion.Common.Functions;
 
@@ -26,7 +26,7 @@ public static class EntityXDataManager
 
             if (result.ObjectId.GetDBObject() is Entity ent)
             {
-                foreach (var item in ent.ReadXData())
+                foreach (object item in ent.ReadXData())
                 {
                     Generic.WriteMessage(item.ToString());
                 }

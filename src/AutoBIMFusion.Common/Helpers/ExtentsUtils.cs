@@ -41,12 +41,18 @@ public static class ExtentsUtils
         beforeDiagonal = 0.0;
         afterDiagonal = 0.0;
 
-        if (!before.HasValue || !after.HasValue) return false;
+        if (!before.HasValue || !after.HasValue)
+        {
+            return false;
+        }
 
         beforeDiagonal = before.Value.MaxPoint.DistanceTo(before.Value.MinPoint);
         afterDiagonal = after.Value.MaxPoint.DistanceTo(after.Value.MinPoint);
 
-        if (beforeDiagonal <= MinValidDiagonal) return false;
+        if (beforeDiagonal <= MinValidDiagonal)
+        {
+            return false;
+        }
 
         ratio = afterDiagonal / beforeDiagonal;
         return true;
@@ -131,8 +137,8 @@ public static class ExtentsUtils
         try
         {
             db.UpdateExt(true);
-            var min = db.Extmin;
-            var max = db.Extmax;
+            Point3d min = db.Extmin;
+            Point3d max = db.Extmax;
 
             // В AutoCAD, если база пуста, Extmin > Extmax
             return min.X > max.X || min.Y > max.Y || min.Z > max.Z ? null : new Extents3d(min, max);
@@ -163,17 +169,17 @@ public static class ExtentsUtils
             new(ext.MinPoint.X, ext.MinPoint.Y, ext.MaxPoint.Z)
         ];
 
-        var first = corners[0].TransformBy(mat);
-        var minX = first.X;
-        var minY = first.Y;
-        var minZ = first.Z;
-        var maxX = first.X;
-        var maxY = first.Y;
-        var maxZ = first.Z;
+        Point3d first = corners[0].TransformBy(mat);
+        double minX = first.X;
+        double minY = first.Y;
+        double minZ = first.Z;
+        double maxX = first.X;
+        double maxY = first.Y;
+        double maxZ = first.Z;
 
-        for (var i = 1; i < corners.Length; i++)
+        for (int i = 1; i < corners.Length; i++)
         {
-            var p = corners[i].TransformBy(mat);
+            Point3d p = corners[i].TransformBy(mat);
             minX = Min(minX, p.X);
             minY = Min(minY, p.Y);
             minZ = Min(minZ, p.Z);
@@ -215,8 +221,14 @@ public static class ExtentsUtils
     /// <param name="db">База данных AutoCAD.</param>
     public static void SyncUnits(Database db)
     {
-        if (db.Insunits != UnitsValue.Millimeters) db.Insunits = UnitsValue.Millimeters;
+        if (db.Insunits != UnitsValue.Millimeters)
+        {
+            db.Insunits = UnitsValue.Millimeters;
+        }
 
-        if (db.Measurement != MeasurementValue.Metric) db.Measurement = MeasurementValue.Metric;
+        if (db.Measurement != MeasurementValue.Metric)
+        {
+            db.Measurement = MeasurementValue.Metric;
+        }
     }
 }

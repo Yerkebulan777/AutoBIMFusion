@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+using System.Drawing;
 
 namespace AutoBIMFusion.Common.Extensions;
 
@@ -16,8 +16,8 @@ public static class ColorsEntensions
 
     public static Autodesk.AutoCAD.Colors.Color ConvertColorToGray(this Autodesk.AutoCAD.Colors.Color BaseColor)
     {
-        var DrawingColor = BaseColor.ColorValue;
-        var Gray = (byte)(0.2989 * DrawingColor.R + 0.5870 * DrawingColor.G + 0.1140 * DrawingColor.B);
+        Color DrawingColor = BaseColor.ColorValue;
+        byte Gray = (byte)((0.2989 * DrawingColor.R) + (0.5870 * DrawingColor.G) + (0.1140 * DrawingColor.B));
         return Autodesk.AutoCAD.Colors.Color.FromRgb(Gray, Gray, Gray);
     }
 }

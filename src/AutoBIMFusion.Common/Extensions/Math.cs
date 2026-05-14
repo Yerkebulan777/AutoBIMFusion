@@ -1,4 +1,4 @@
-﻿namespace AutoBIMFusion.Common.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class MathExtensions
 {
@@ -15,6 +15,6 @@ public static class MathExtensions
     public static double IntermediatePercentage(this double a, double b, double percentage)
     {
         // Calculate the intermediate percentage
-        return a + percentage * (b - a) / 100;
+        return a + (percentage * (b - a) / 100);
     }
 }

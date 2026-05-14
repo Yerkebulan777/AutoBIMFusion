@@ -26,10 +26,13 @@ public sealed class AcadWarningSuppressScope : IDisposable
     public void Dispose()
     {
         // Восстанавливаем в обратном порядке для корректного стека зависимостей.
-        for (var i = _vars.Count - 1; i >= 0; i--)
+        for (int i = _vars.Count - 1; i >= 0; i--)
         {
-            var (name, oldValue, isSet) = _vars[i];
-            if (!isSet) continue;
+            (string? name, object? oldValue, bool isSet) = _vars[i];
+            if (!isSet)
+            {
+                continue;
+            }
 
             try
             {
@@ -46,7 +49,7 @@ public sealed class AcadWarningSuppressScope : IDisposable
     {
         try
         {
-            var oldValue = AcadApp.GetSystemVariable(name);
+            object oldValue = AcadApp.GetSystemVariable(name);
             AcadApp.SetSystemVariable(name, value);
             _vars.Add((name, oldValue, true));
         }

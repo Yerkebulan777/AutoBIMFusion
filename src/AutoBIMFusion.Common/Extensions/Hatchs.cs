@@ -9,19 +9,23 @@ public static class HatchsExtensions
     public static bool GetPolyHole(this Hatch Hachure, out PolyHole polyHole)
     {
         polyHole = null;
-        if (!Hachure.GetHatchPolyline(out var ExternalCurves, out var OtherCurves)) return false;
-        var ExternalMergedCurves = ExternalCurves.JoinMerge();
+        if (!Hachure.GetHatchPolyline(out List<Curve>? ExternalCurves, out List<(Curve curve, HatchLoopTypes looptype)>? OtherCurves))
+        {
+            return false;
+        }
+
+        List<Curve>? ExternalMergedCurves = ExternalCurves.JoinMerge();
         try
         {
             ExternalCurves.RemoveCommun(ExternalMergedCurves).DeepDispose();
-            var InnerCurves = OtherCurves.ConvertAll(tuple => tuple.curve);
+            List<Curve> InnerCurves = OtherCurves.ConvertAll(tuple => tuple.curve);
             if (Hachure.HatchStyle == HatchStyle.Ignore)
             {
                 InnerCurves.DeepDispose();
                 InnerCurves.Clear();
             }
 
-            var InnerMergedCurves = InnerCurves.JoinMerge();
+            List<Curve> InnerMergedCurves = InnerCurves.JoinMerge();
             InnerCurves.RemoveCommun(InnerMergedCurves).DeepDispose();
 
             if (Hachure is null || ExternalMergedCurves is null || ExternalMergedCurves.Count == 0)
@@ -36,7 +40,7 @@ public static class HatchsExtensions
                 return false;
             }
 
-            var Boundary = ExternalMergedCurves[0].ToPolyline();
+            Polyline Boundary = ExternalMergedCurves[0].ToPolyline();
             if (Boundary.TryGetArea() == 0)
             {
                 Generic.WriteMessage(
@@ -56,13 +60,16 @@ public static class HatchsExtensions
 
     public static double GetAssociatedBoundary(this Hatch Hachure, out Curve Boundary)
     {
-        var objectIdCollection = Hachure.GetAssociatedObjectIds();
+        ObjectIdCollection objectIdCollection = Hachure.GetAssociatedObjectIds();
         Boundary = null;
         if (objectIdCollection.Count >= 1)
         {
             Boundary = objectIdCollection[0].GetNoTransactionDBObject(OpenMode.ForWrite) as Curve;
             //If boundary is on a locked layer, we cannot give it back
-            if (Boundary.IsEntityOnLockedLayer()) return 0;
+            if (Boundary.IsEntityOnLockedLayer())
+            {
+                return 0;
+            }
         }
 
         return objectIdCollection.Count;
@@ -71,16 +78,20 @@ public static class HatchsExtensions
     public static bool GetHatchPolyline(this Hatch Hachure, out List<Curve> ExternalCurves,
         out List<(Curve curve, HatchLoopTypes looptype)> OtherCurves)
     {
-        ExternalCurves = new List<Curve>();
-        OtherCurves = new List<(Curve curve, HatchLoopTypes looptype)>();
+        ExternalCurves = [];
+        OtherCurves = [];
 
-        foreach (var (curve, looptype) in GetHatchBoundary(Hachure))
+        foreach ((Curve? curve, HatchLoopTypes looptype) in GetHatchBoundary(Hachure))
         {
             Hachure.CopyPropertiesTo(curve);
             if (looptype.HasFlag(HatchLoopTypes.External))
+            {
                 ExternalCurves.Add(curve);
+            }
             else
+            {
                 OtherCurves.Add((curve, looptype));
+            }
         }
 
         return true;
@@ -89,17 +100,17 @@ public static class HatchsExtensions
     private static List<(Curve, HatchLoopTypes)> GetHatchBoundary(Hatch hatch)
     {
         var numberOfLoops = hatch.NumberOfLoops;
-        var result = new List<(Curve, HatchLoopTypes)>(numberOfLoops);
+        List<(Curve, HatchLoopTypes)> result = new(numberOfLoops);
         for (var i = 0; i < numberOfLoops; i++)
         {
-            var loop = hatch.GetLoopAt(i);
+            HatchLoop loop = hatch.GetLoopAt(i);
             if (loop.IsPolyline)
             {
-                var bulges = loop.Polyline;
-                var pline = new Polyline(bulges.Count);
+                BulgeVertexCollection bulges = loop.Polyline;
+                Polyline pline = new(bulges.Count);
                 for (var j = 0; j < bulges.Count; j++)
                 {
-                    var vertex = bulges[j];
+                    BulgeVertex vertex = bulges[j];
                     pline.AddVertexAt(j, vertex.Vertex, vertex.Bulge, 0.0, 0.0);
                 }
 
@@ -109,12 +120,12 @@ public static class HatchsExtensions
             }
             else
             {
-                var plane = hatch.GetPlane();
-                var xform = Matrix3d.PlaneToWorld(plane);
-                var curves = loop.Curves;
+                Plane plane = hatch.GetPlane();
+                Matrix3d xform = Matrix3d.PlaneToWorld(plane);
+                Curve2dCollection curves = loop.Curves;
                 foreach (Curve2d curve in curves)
                 {
-                    var spline = curve.ConvertToCurve();
+                    Curve spline = curve.ConvertToCurve();
                     spline.TransformBy(xform);
                     result.Add((spline, loop.LoopType));
                 }
@@ -127,15 +138,18 @@ public static class HatchsExtensions
     public static Hatch HatchRegion(this Region region, Transaction trx, bool Associative = true)
     {
         // Create a hatch and set its properties
-        var hatch = new Hatch();
-        Generic.GetCurrentSpaceBlockTableRecord(trx).AppendEntity(hatch);
+        Hatch hatch = new();
+        _ = Generic.GetCurrentSpaceBlockTableRecord(trx).AppendEntity(hatch);
         trx.AddNewlyCreatedDBObject(hatch, true);
 
         hatch.Associative = Associative;
 
         // Add the hatch loops and complete the hatch
         foreach ((HatchLoopTypes loopType, Curve2dCollection edgePtrs, IntegerCollection edgeTypes) item in
-                 region.GetLoops()) hatch.AppendLoop(item.loopType, item.edgePtrs, item.edgeTypes);
+                 region.GetLoops())
+        {
+            hatch.AppendLoop(item.loopType, item.edgePtrs, item.edgeTypes);
+        }
 
         hatch.EvaluateHatch(true);
         return hatch;
@@ -143,6 +157,9 @@ public static class HatchsExtensions
 
     public static void RemoveAllLoops(this Hatch hatch)
     {
-        for (var i = 0; i < hatch.NumberOfLoops; i++) hatch.RemoveLoopAt(i);
+        for (var i = 0; i < hatch.NumberOfLoops; i++)
+        {
+            hatch.RemoveLoopAt(i);
+        }
     }
 }

@@ -7,8 +7,8 @@ public static class FIXDRAWING
 {
     public static void Fix()
     {
-        var ed = Generic.GetEditor();
-        var db = Generic.GetDatabase();
+        Editor ed = Generic.GetEditor();
+        Database db = Generic.GetDatabase();
 
         // Configure plot stamp settings
         Generic.Command("_-PLOTSTAMP", "_LOG", "_NO", "plot.log", "");
@@ -17,8 +17,8 @@ public static class FIXDRAWING
         Generic.Command("_AUDIT", "_YES");
 
         // Save current layout
-        var lm = LayoutManager.Current;
-        var SavedCurrentLayout = lm.CurrentLayout;
+        LayoutManager lm = LayoutManager.Current;
+        string SavedCurrentLayout = lm.CurrentLayout;
 
         // Set ModelSpace settings
         Generic.WriteMessage("Modifying variables in model space...");
@@ -36,7 +36,7 @@ public static class FIXDRAWING
         db.SetAnnotativeScale("1:1", 1, 1);
 
         // Apply settings to all layouts
-        foreach (var layout in ed.GetAllLayout())
+        foreach (Layout layout in ed.GetAllLayout())
         {
             Generic.WriteMessage($"Modifying variables on layout \"{layout.LayoutName}\"...");
             lm.CurrentLayout = layout.LayoutName;

@@ -1,4 +1,4 @@
-﻿using Autodesk.AutoCAD.Colors;
+using Autodesk.AutoCAD.Colors;
 
 namespace AutoBIMFusion.Common.Mist.AutoCAD;
 
@@ -20,18 +20,18 @@ public class GetStringTransientNoColorChange : TransientBase
 
     public PromptResult GetString(string Message, string DefaultValue = "")
     {
-        var ed = Application.DocumentManager.MdiActiveDocument.Editor;
+        Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
 
         CreateTransGraphics();
 
-        var options = new PromptStringOptions("\n" + Message)
+        PromptStringOptions options = new("\n" + Message)
         {
             AllowSpaces = false, // Empêche les espaces pour forcer la validation sur "Espace"
             DefaultValue = DefaultValue,
             UseDefaultValue = !string.IsNullOrEmpty(DefaultValue)
         };
 
-        var result = ed.GetString(options);
+        PromptResult result = ed.GetString(options);
 
         ClearTransGraphics();
 

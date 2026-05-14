@@ -1,9 +1,9 @@
-using System.Diagnostics;
 using AutoBIMFusion.Common.Drawing;
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Mist;
 using AutoBIMFusion.Common.Mist.AutoCAD;
 using AutoBIMFusion.Common.Mist.Geometry;
+using System.Diagnostics;
 
 namespace AutoBIMFusion.Common.Functions;
 
@@ -21,7 +21,7 @@ public static class BlockBasePointEditor
         Editor ed = Generic.GetEditor();
         Database db = Generic.GetDatabase();
         TypedValue[] filterList = new[] { new TypedValue((int)DxfCode.Start, "INSERT") };
-        var selectionOptions = new PromptSelectionOptions
+        PromptSelectionOptions selectionOptions = new()
         {
             SingleOnly = true,
             SinglePickInSpace = true,
@@ -58,12 +58,12 @@ public static class BlockBasePointEditor
         BlockReference blockRef;
         BlockTableRecord blockDef;
         PromptPointResult pointResult;
-        var IsDynamicBlock = false;
+        bool IsDynamicBlock = false;
         ObjectId blockRefId = promptResult.Value.GetObjectIds().First();
         using (Transaction trx = db.TransactionManager.StartTransaction())
         {
             blockRefId.RegisterHighlight();
-            var pointOptions = new PromptPointOptions("Veuillez sélectionner son nouveau point de base : ");
+            PromptPointOptions pointOptions = new("Veuillez sélectionner son nouveau point de base : ");
             pointResult = ed.GetPoint(pointOptions);
             blockRefId.RegisterUnhighlight();
             if (pointResult.Status != PromptStatus.OK)
@@ -110,7 +110,7 @@ public static class BlockBasePointEditor
         }
         else
         {
-            var rotationMatrix = Matrix3d.Rotation(PI, Vector3d.ZAxis, Point3d.Origin);
+            Matrix3d rotationMatrix = Matrix3d.Rotation(PI, Vector3d.ZAxis, Point3d.Origin);
 
             iter = ChangeBasePointStaticBlock(blockRefId, BlockReferenceTransformedPoint.TransformBy(rotationMatrix));
             // Перемещаем вставки блока, чтобы сохранить их исходное положение.
@@ -161,7 +161,7 @@ public static class BlockBasePointEditor
         Point3d FakeBlocBasePointInBlocSpace =
             new Point3d(0, 0, 0).TransformBy(Matrix3d.Displacement(FakeOriginalBasePointMatrix * -1));
 
-        var BlockName = blockRef.GetBlockReferenceName();
+        string BlockName = blockRef.GetBlockReferenceName();
         // Собираем все ссылки динамического блока, чтобы после BEDIT обновить их без задержек.
         iter = BlockReferences.GetDynamicBlockReferences(BlockName);
         iter.Join((blockRef.BlockTableRecord.GetDBObject() as BlockTableRecord).GetBlockReferenceIds(true, false));
@@ -169,7 +169,7 @@ public static class BlockBasePointEditor
         Generic.Command("_-BEDIT", BlockName);
 
         // У динамического блока может быть только одна базовая точка, поэтому удаляем старую.
-        var filter = new SelectionFilter(new[] { new TypedValue((int)DxfCode.Start, "BASEPOINTPARAMETERENTITY") });
+        SelectionFilter filter = new(new[] { new TypedValue((int)DxfCode.Start, "BASEPOINTPARAMETERENTITY") });
         PromptSelectionResult selRes = ed.SelectAll(filter);
         if (selRes.Status == PromptStatus.OK)
         {
@@ -183,7 +183,7 @@ public static class BlockBasePointEditor
 
         // Создаём временную точку, чтобы избежать некорректного позиционирования параметра.
         ObjectId PtObjectId;
-        using (var Pt = new DBPoint(ReelBlockReferenceTransformedPoint))
+        using (DBPoint Pt = new(ReelBlockReferenceTransformedPoint))
         {
             PtObjectId = Pt.AddToDrawingCurrentTransaction();
         }
@@ -209,16 +209,16 @@ public static class BlockBasePointEditor
             return [];
         }
 
-        var blockDef = trx.GetObject(blockRef.BlockTableRecord, OpenMode.ForWrite) as BlockTableRecord;
+        BlockTableRecord? blockDef = trx.GetObject(blockRef.BlockTableRecord, OpenMode.ForWrite) as BlockTableRecord;
 
-        var DisplacementVector =
+        Matrix3d DisplacementVector =
             Matrix3d.Displacement(
                 new Point3d(0, 0, BlockReferenceTransformedPoint.Z).GetVectorTo(BlockReferenceTransformedPoint
                     .Flatten()));
 
         foreach (ObjectId entId in blockDef)
         {
-            var entity = trx.GetObject(entId, OpenMode.ForWrite) as Entity;
+            Entity? entity = trx.GetObject(entId, OpenMode.ForWrite) as Entity;
             entity?.TransformBy(DisplacementVector);
         }
 
@@ -243,11 +243,11 @@ public static class BlockBasePointEditor
         string newName;
         using (Transaction trx = db.TransactionManager.StartTransaction())
         {
-            var OriginalBlockRef = OriginalBlockObjectId.GetEntity() as BlockReference;
+            BlockReference? OriginalBlockRef = OriginalBlockObjectId.GetEntity() as BlockReference;
             oldName = OriginalBlockRef.GetBlockReferenceName();
             newName = BlockReferences.GetUniqueBlockName("SIOFORGE_INTERNAL_" + oldName);
             insertedBtrId = BlockReferences.InsertFromName(oldName, new Points(new Point3d(0, 0, 0)));
-            var insertedBlockRef = insertedBtrId.GetEntity() as BlockReference;
+            BlockReference? insertedBlockRef = insertedBtrId.GetEntity() as BlockReference;
             trx.Commit();
             OriginalBounds = insertedBlockRef.GeometricExtents;
         }
@@ -264,7 +264,7 @@ public static class BlockBasePointEditor
             }
 
             Generic.Command("_-BEDIT", newName);
-            var filter = new SelectionFilter(new[] { new TypedValue((int)DxfCode.Start, "BASEPOINTPARAMETERENTITY") });
+            SelectionFilter filter = new(new[] { new TypedValue((int)DxfCode.Start, "BASEPOINTPARAMETERENTITY") });
             PromptSelectionResult selRes = ed.SelectAll(filter);
             if (selRes.Status == PromptStatus.OK)
             {

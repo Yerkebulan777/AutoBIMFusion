@@ -1,11 +1,11 @@
-﻿namespace AutoBIMFusion.Common.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 internal static class Matrix3dExtensions
 {
     public static Matrix3d ToMatrix3d(this Matrix2d matrix2D)
     {
         // Récupère les 9 éléments de la matrice 2D (3x3)
-        var m = matrix2D.ToArray();
+        double[] m = matrix2D.ToArray();
 
         // Crée une nouvelle matrice 3D (4x4) avec 16 éléments
         return new Matrix3d(new[]
