@@ -21,8 +21,6 @@ internal static class LayoutProjectionProcessor
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
-        using ObjectIdCollection isolatedCloneIds = [];
-
         List<Extents3d> allWindows = [mainOriginal.ModelWindow];
 
         foreach (ViewportInfo aux in viewports)
@@ -73,19 +71,12 @@ internal static class LayoutProjectionProcessor
                 log.Debug($"Aux#{aux.Number}: candidates={candidates.Count}, toClone={toClone.Count}, duplicateSkipped={duplicateSkipped}");
 
                 using ViewportTransformer.CloneTransformResult cloneResult = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log);
-                foreach (ObjectId clonedId in cloneResult.ClonedIds)
-                {
-                    if (!isolatedCloneIds.Contains(clonedId))
-                    {
-                        _ = isolatedCloneIds.Add(clonedId);
-                    }
-                }
 
                 ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow);
             }
         }
 
-        NormalizeModelSpaceScale(db, scale.GeometryScale, mainOriginal.ViewCenter, isolatedCloneIds, log);
+        NormalizeModelSpaceScale(db, scale.GeometryScale, mainOriginal.ViewCenter, log);
 
         // Одна транзакция: сбор paper-сущностей + поиск рамки + фильтрация
         (ObjectId paperBtrId, ObjectIdCollection? filteredIds) = CollectAndFilterLayoutData(db, layoutName);
@@ -247,12 +238,12 @@ internal static class LayoutProjectionProcessor
     /// <summary>
     ///     Масштабирует объекты Model Space вокруг указанного центра до рабочего масштаба 1:100.
     /// </summary>
-    private static void NormalizeModelSpaceScale(Database db, double geometryScale, Point3d center, ObjectIdCollection isolatedIds, Logger log)
+    private static void NormalizeModelSpaceScale(Database db, double geometryScale, Point3d center, Logger log)
     {
         if (Abs(geometryScale - 1.0) > 1e-9)
         {
             Matrix3d scaleMatrix = Matrix3d.Scaling(geometryScale, center);
-            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, geometryScale, isolatedIds, log);
+            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, geometryScale, log);
         }
     }
 
