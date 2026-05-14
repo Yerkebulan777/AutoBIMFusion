@@ -69,7 +69,7 @@ public static class BlockBasePointEditor
     }
 
     /// <summary>
-    ///     Вычисляет матрицу смещения между исходной и временной базовой точкой динамического блока.
+    ///   Вычисляет матрицу смещения между исходной и временной базовой точкой динамического блока.
     /// </summary>
     public static Vector3d GetFakeOriginalBasePointInDynamicBlockMatrix(ObjectId OriginalBlockObjectId, out Extents3d OriginalBounds, out Extents3d EditedBounds)
     {
@@ -81,6 +81,7 @@ public static class BlockBasePointEditor
 
         string oldName;
         string newName;
+
         using (Transaction trx = db.TransactionManager.StartTransaction())
         {
             BlockReference? OriginalBlockRef = OriginalBlockObjectId.GetEntity() as BlockReference;
