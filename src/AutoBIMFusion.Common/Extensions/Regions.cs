@@ -75,7 +75,7 @@ public static class RegionsExtensions
                     p.AddVertexAt(p.NumberOfVertices, fstCv.EndPoint.Convert2d(pl), 0, 0, 0);
                     cvs.Remove(fstCv);
                     // The next point to look for
-                    var nextPt = fstCv.EndPoint;
+                    Point3d nextPt = fstCv.EndPoint;
                     // Find the line that is connected to the next point
                     // If for some reason the lines returned were not connected, we could loop endlessly.
                     // So we store the previous curve count and assume that if this count has not been decreased by looping completely through the segments once, then we should not continue to loop.
@@ -138,7 +138,7 @@ public static class RegionsExtensions
                         Region? subReg = obj as Region;
                         if (subReg != null)
                         {
-                            var subRes =
+                            DBObjectCollection subRes =
                                 subReg.GetPolylines();
                             foreach (DBObject o in subRes)
                             {
@@ -189,13 +189,13 @@ public static class RegionsExtensions
         Plane plane = new(Point3d.Origin, region.Normal);
         // Get the region boundary representation
         using Brep brep = new(region);
-        foreach (var complex in brep.Complexes)
+        foreach (Complex? complex in brep.Complexes)
         {
-            foreach (var loop in complex.Shells.First().Faces.First().Loops)
+            foreach (BoundaryLoop? loop in complex.Shells.First().Faces.First().Loops)
             {
                 Curve2dCollection edgePtrCollection = [];
                 IntegerCollection edgeTypeCollection = [];
-                foreach (var edge in loop.Edges.Select(e => ((ExternalCurve3d)e.Curve).NativeCurve).ToOrderedArray())
+                foreach (Curve3d edge in loop.Edges.Select(e => ((ExternalCurve3d)e.Curve).NativeCurve).ToOrderedArray())
                 {
                     if (edge is CircularArc3d arc)
                     {

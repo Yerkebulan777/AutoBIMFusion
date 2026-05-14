@@ -22,7 +22,7 @@ public static class LayoutsExtensions
         Layout newLayout = (Layout)trx.GetObject(newLayoutId, OpenMode.ForWrite);
         BlockTableRecord newBtr = (BlockTableRecord)trx.GetObject(newLayout.BlockTableRecordId, OpenMode.ForWrite);
 
-        IdMapping mapping = new();
+        IdMapping mapping = [];
         db.DeepCloneObjects(sourceBtr.Cast<ObjectId>().ToObjectIdCollection(), newBtr.ObjectId, mapping, false);
 
         // 3. Copie les réglages de tracé
@@ -45,8 +45,8 @@ public static class LayoutsExtensions
         BlockTableRecord btr = (BlockTableRecord)trx.GetObject(lay.BlockTableRecordId, OpenMode.ForRead);
 
         using View view = new();
-        var w = ext.MaxPoint.X - ext.MinPoint.X;
-        var h = ext.MaxPoint.Y - ext.MinPoint.Y;
+        double w = ext.MaxPoint.X - ext.MinPoint.X;
+        double h = ext.MaxPoint.Y - ext.MinPoint.Y;
         Point3d center = new(ext.MinPoint.X + (w / 2), ext.MinPoint.Y + (h / 2), 0);
 
         // Position de la caméra (Z+1) pour ne pas être "dans" le dessin
@@ -71,8 +71,8 @@ public static class LayoutsExtensions
     public static Bitmap RenderLayoutSnapshot(this Layout layout)
     {
         Database db = Generic.GetDatabase();
-        var bmpW = 100;
-        var bmpH = 100;
+        int bmpW = 100;
+        int bmpH = 100;
         using (Transaction transaction = db.TransactionManager.StartTransaction())
         {
             try
@@ -88,15 +88,15 @@ public static class LayoutsExtensions
                     ext = layout.Extents;
                 }
 
-                var realW = ext.MaxPoint.X - ext.MinPoint.X;
-                var realH = ext.MaxPoint.Y - ext.MinPoint.Y;
+                double realW = ext.MaxPoint.X - ext.MinPoint.X;
+                double realH = ext.MaxPoint.Y - ext.MinPoint.Y;
 
                 if (realW <= 0.001 || realH <= 0.001)
                 {
                     return null;
                 }
 
-                var ratio = Min(512.0 / realW, 512.0 / realH);
+                double ratio = Min(512.0 / realW, 512.0 / realH);
 
                 bmpW = (int)(realW * ratio);
                 bmpH = (int)(realH * ratio);

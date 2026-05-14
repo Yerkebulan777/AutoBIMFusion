@@ -19,7 +19,7 @@ public static class FrameworkElementExtensions
         int height = (int)Ceiling(element.ActualHeight);
         RenderTargetBitmap rtb = new(width, height, 96d, 96d, PixelFormats.Pbgra32);
         DrawingVisual drawingVisual = new();
-        using (var drawingContext = drawingVisual.RenderOpen())
+        using (DrawingContext drawingContext = drawingVisual.RenderOpen())
         {
             VisualBrush visualBrush = new(element);
             drawingContext.DrawRectangle(visualBrush, null, new Rect(new Point(0, 0), new Size(width, height)));
@@ -47,7 +47,7 @@ public static class FrameworkElementExtensions
 
         RenderTargetBitmap rtb = new(width, height, 96, 96, PixelFormats.Pbgra32);
         DrawingVisual dv = new();
-        using (var dc = dv.RenderOpen())
+        using (DrawingContext dc = dv.RenderOpen())
         {
             dc.PushOpacity(0.70);
             dc.PushTransform(new ScaleTransform(scale, scale));

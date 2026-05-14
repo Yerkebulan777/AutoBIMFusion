@@ -10,8 +10,8 @@ public static class LoggerFactory
 {
     private static readonly Lazy<Logger> SharedLogger = new(CreateFileLogger);
 
-    private const string LogLevelEnvVar = "AUTOBIMFUSION_LOG_LEVEL";
     private const long MaxFileSizeBytes = 10L * 1024 * 1024; // 10 MB
+    private const string LogLevelEnvVar = "LOG_LEVEL";
     private const int MaxRetainedFiles = 10;
     private const int AsyncBufferSize = 8192;
 
@@ -36,8 +36,11 @@ public static class LoggerFactory
         if (!string.IsNullOrEmpty(assemblyLocation))
         {
             string? baseDir = Path.GetDirectoryName(assemblyLocation);
+
             if (baseDir is not null)
+            {
                 return Path.Combine(baseDir, "Logs");
+            }
         }
 
         // Fallback: use the app context base directory (e.g., C:\Program Files\Autodesk\...)
@@ -110,19 +113,18 @@ public static class LoggerFactory
     {
         string? envValue = Environment.GetEnvironmentVariable(LogLevelEnvVar);
 
-        if (string.IsNullOrWhiteSpace(envValue))
-            return LogEventLevel.Information;
-
-        return envValue.Trim().ToUpperInvariant() switch
-        {
-            "VERBOSE" => LogEventLevel.Verbose,
-            "DEBUG" => LogEventLevel.Debug,
-            "INFORMATION" or "INFO" => LogEventLevel.Information,
-            "WARNING" or "WARN" => LogEventLevel.Warning,
-            "ERROR" => LogEventLevel.Error,
-            "FATAL" => LogEventLevel.Fatal,
-            _ => LogEventLevel.Information
-        };
+        return string.IsNullOrWhiteSpace(envValue)
+            ? LogEventLevel.Information
+            : envValue.Trim().ToUpperInvariant() switch
+            {
+                "VERBOSE" => LogEventLevel.Verbose,
+                "DEBUG" => LogEventLevel.Debug,
+                "INFORMATION" or "INFO" => LogEventLevel.Information,
+                "WARNING" or "WARN" => LogEventLevel.Warning,
+                "ERROR" => LogEventLevel.Error,
+                "FATAL" => LogEventLevel.Fatal,
+                _ => LogEventLevel.Information
+            };
     }
 
     private sealed class ThreadIdEnricher : ILogEventEnricher
@@ -146,7 +148,9 @@ public static class LoggerFactory
         public void Emit(LogEvent logEvent)
         {
             if (logEvent.Level < _minimumLevel)
+            {
                 return;
+            }
 
             string msg = $"{logEvent.Timestamp:HH:mm:ss.fff} [{logEvent.Level}] {logEvent.RenderMessage()}";
             if (logEvent.Exception is not null)

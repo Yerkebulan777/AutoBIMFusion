@@ -28,7 +28,7 @@ public static partial class PolygonOperation
         if (AllowMarginError)
         {
             //Offset the PolyHole boundary so you can merge a nearly touching polyline
-            var PolyHoleListCopy = PolyHoleList.ToList();
+            List<PolyHole> PolyHoleListCopy = PolyHoleList.ToList();
             for (int i = 0; i < PolyHoleListCopy.Count; i++)
             {
                 PolyHole PolyHole = PolyHoleListCopy[i];
@@ -45,7 +45,7 @@ public static partial class PolygonOperation
         List<Polyline> GlobalSplittedCurves = RemoveInsideCutLine(PolyHoleList, SplittedCurvesOrigin);
 
 
-        var PossibleBoundary = GlobalSplittedCurves.JoinMerge().Cast<Polyline>().ToList();
+        List<Polyline> PossibleBoundary = GlobalSplittedCurves.JoinMerge().Cast<Polyline>().ToList();
         if (!(PossibleBoundary.Count == 1 && PossibleBoundary.First().Closed))
         {
             PossibleBoundary.DeepDispose();
@@ -98,7 +98,7 @@ public static partial class PolygonOperation
             List<Polyline> clonedBoundaries = PossibleBoundary.ConvertAll(pe => (Polyline)pe.Clone());
             clonedBoundaries.ForEach(CleanPolylineSegments);
             //clonedBoundaries.AddToDrawing(5, true);
-            var mergedBoundaries = clonedBoundaries.JoinMerge().Cast<Polyline>().ToList();
+            List<Polyline> mergedBoundaries = clonedBoundaries.JoinMerge().Cast<Polyline>().ToList();
             //mergedBoundaries.AddToDrawing(6, true);
 
             clonedBoundaries.RemoveCommun(mergedBoundaries).DeepDispose();
@@ -118,7 +118,7 @@ public static partial class PolygonOperation
 
         if (AllowMarginError)
         {
-            var UnionResultCopy = UnionResult.ToList();
+            List<PolyHole> UnionResultCopy = UnionResult.ToList();
             //UnionResultCopy.GetBoundaries().AddToDrawing(1, true);
 
             if (UnionResultCopy.Count == 0)
@@ -244,7 +244,7 @@ public static partial class PolygonOperation
     private static List<Polyline> RemoveOverlaping(List<Polyline> Curves)
     {
         object _lock = new();
-        var NoOverlapingCurves = new List<Polyline>(Curves);
+        List<Polyline> NoOverlapingCurves = [.. Curves];
         _ = Parallel.ForEach(Curves,
             new ParallelOptions { MaxDegreeOfParallelism = Settings.MultithreadingMaxNumberOfThread }, SplittedCurveA =>
             {
@@ -274,8 +274,8 @@ public static partial class PolygonOperation
     private static List<Polyline> RemoveInsideCutLine(List<PolyHole> PolyHoleList,
         ConcurrentBag<(HashSet<Polyline> Splitted, Polyline GeometryOrigin)> SplittedCurvesOrigin)
     {
-        var GlobalSplittedCurves = new ConcurrentBag<Polyline>();
-        var NoArcPolygonCache = new ConcurrentDictionary<Polyline, Polyline>();
+        ConcurrentBag<Polyline> GlobalSplittedCurves = [];
+        ConcurrentDictionary<Polyline, Polyline> NoArcPolygonCache = new();
         _ = Parallel.ForEach(SplittedCurvesOrigin.ToArray(),
             new ParallelOptions { MaxDegreeOfParallelism = Settings.MultithreadingMaxNumberOfThread },
             SplittedCurveOrigin =>
@@ -350,7 +350,7 @@ public static partial class PolygonOperation
 
     private static List<Polyline> UnionHoles(List<PolyHole> PolyHoleList, bool RequestAllowMarginError = false)
     {
-        var HoleUnionResult = new List<Polyline>();
+        List<Polyline> HoleUnionResult = [];
         if (PolyHoleList.Count == 0)
         {
             return [];
@@ -387,13 +387,13 @@ public static partial class PolygonOperation
 
             using (PolyHoleBoundary)
             {
-                var HoleUnionResultList = HoleUnionResult.ToList();
+                List<Polyline> HoleUnionResultList = HoleUnionResult.ToList();
                 for (int i = 0; i < HoleUnionResultList.Count; i++)
                 {
                     Polyline ParsedHole = HoleUnionResultList[i];
                     if (RequestAllowMarginError)
                     {
-                        var OffsetParsedHole = ParsedHole.SmartOffset(-Margin).ToList();
+                        List<Polyline> OffsetParsedHole = ParsedHole.SmartOffset(-Margin).ToList();
                         if (OffsetParsedHole.Count > 0)
                         {
                             ParsedHole = OffsetParsedHole.First();
@@ -480,7 +480,7 @@ public static partial class PolygonOperation
 
     private static List<PolyHole> OffsetPolyHole(ref PolyHole polyHole, double OffsetDistance)
     {
-        var polyHoles = new List<PolyHole>();
+        List<PolyHole> polyHoles = [];
         List<Polyline> OffsetCurve;
         if (polyHole.Boundary.Area <= Generic.MediumTolerance.EqualPoint)
         {
@@ -524,7 +524,7 @@ public static partial class PolygonOperation
                 continue;
             }
 
-            var GlobalIntersectionPointsFounds = new Point3dCollection();
+            Point3dCollection GlobalIntersectionPointsFounds = [];
             Extents3d PolyBaseExtend = PolyBase.GetExtents();
             foreach (Polyline PolyCut in Polylines)
             {
@@ -548,7 +548,7 @@ public static partial class PolygonOperation
             if (GlobalIntersectionPointsFounds.Count > 0)
             {
                 //Make sure all points are on the line because IntersectWith give not egnouht precise value (0.0001). This fix some cut
-                var OnLineIntersectionPointsFounds = new Point3dCollection(GlobalIntersectionPointsFounds.ToArray());
+                Point3dCollection OnLineIntersectionPointsFounds = [.. GlobalIntersectionPointsFounds.ToArray()];
                 foreach (Point3d item in GlobalIntersectionPointsFounds)
                 {
                     Point3d newPt = PolyBase.GetClosestPointTo(item, false);
@@ -559,7 +559,7 @@ public static partial class PolygonOperation
                 }
 
                 DoubleCollection SplitDouble = PolyBase.GetSplitPoints(OnLineIntersectionPointsFounds);
-                var Splitted = PolyBase.TryGetSplitCurves(SplitDouble).Cast<Polyline>().ToHashSet();
+                HashSet<Polyline> Splitted = PolyBase.TryGetSplitCurves(SplitDouble).Cast<Polyline>().ToHashSet();
 
                 //Remove zero length line
                 foreach (Polyline? curv in Splitted.ToList())

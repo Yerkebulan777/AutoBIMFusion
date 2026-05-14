@@ -52,7 +52,7 @@ public static class StyleUtils
     {
         ObjectId arrObjId = db.Dimblk;
 
-        var obj = Application.GetSystemVariable("DIMBLK");
+        object obj = Application.GetSystemVariable("DIMBLK");
 
         if (obj is string oldArrName && !string.IsNullOrEmpty(oldArrName))
         {
@@ -86,16 +86,16 @@ public static class StyleUtils
     /// </summary>
     public static string BuildStyleName(TextStyleTableRecord ts)
     {
-        var fontBase = ResolveBaseFontName(ts);
+        string fontBase = ResolveBaseFontName(ts);
         FontDescriptor font = ts.Font;
 
-        var heightPart = ts.TextSize > 0
+        string heightPart = ts.TextSize > 0
             ? ts.TextSize.ToString("0.##", CultureInfo.InvariantCulture)
             : string.Empty;
 
-        var modifiers = (font.Bold ? "B" : string.Empty) + (font.Italic ? "I" : string.Empty);
+        string modifiers = (font.Bold ? "B" : string.Empty) + (font.Italic ? "I" : string.Empty);
 
-        var name = fontBase;
+        string name = fontBase;
 
         if (heightPart.Length > 0)
         {
@@ -132,9 +132,9 @@ public static class StyleUtils
             return candidate;
         }
 
-        for (var i = 2; i < 1000; i++)
+        for (int i = 2; i < 1000; i++)
         {
-            var suffixed = $"{candidate}_{i}";
+            string suffixed = $"{candidate}_{i}";
             if (!existing.Contains(suffixed))
             {
                 return suffixed;

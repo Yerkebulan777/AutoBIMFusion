@@ -43,7 +43,7 @@ internal static class BlockReferenceExtensions
         {
             if (tv.TypeCode == 1005 && tv.Value is string strValue)
             {
-                var nHandle = Convert.ToInt64(strValue, 16);
+                long nHandle = Convert.ToInt64(strValue, 16);
                 return new Handle(nHandle);
             }
         }
@@ -167,7 +167,7 @@ internal static class BlockReferenceExtensions
         Transaction trx = Generic.GetDatabase().TransactionManager.TopTransaction;
         foreach (AttributeReference attRef in target.AttributeCollection.GetObjects())
         {
-            if (attribs.TryGetValue(attRef.Tag, out var value))
+            if (attribs.TryGetValue(attRef.Tag, out string? value))
             {
                 _ = trx.GetObject(attRef.ObjectId, OpenMode.ForWrite);
                 attRef.TextString = value;

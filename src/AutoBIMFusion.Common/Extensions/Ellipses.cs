@@ -28,7 +28,7 @@ public static class EllipsesExtensions
 
     public static Polyline ToPolyline(this Ellipse ellipse, int NumberOfVertices = 36)
     {
-        var poly = new Polyline();
+        Polyline poly = new();
         if (ellipse.StartAngle == ellipse.EndAngle)
         {
             return poly;
@@ -45,7 +45,7 @@ public static class EllipsesExtensions
         while (true)
         {
             Vector3d vector = (ellipse.MajorAxis * Cos(angle)) + (ellipse.MinorAxis * Sin(angle));
-            var CurrentPt = new Point3d(ellipse.Center.X + vector.X, ellipse.Center.Y + vector.Y, ellipse.Center.Z);
+            Point3d CurrentPt = new(ellipse.Center.X + vector.X, ellipse.Center.Y + vector.Y, ellipse.Center.Z);
 
             if (vertexIndex > 0)
             {

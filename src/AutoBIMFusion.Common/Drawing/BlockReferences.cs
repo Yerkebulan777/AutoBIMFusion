@@ -17,7 +17,7 @@ public static class BlockReferences
 
         using Transaction trx = db.TransactionManager.StartTransaction();
         BlockTable? bt = trx.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-        ObjectIdCollection objectIdCollection = new();
+        ObjectIdCollection objectIdCollection = [];
 
         // On parcourt tous les BlockTableRecord (ModelSpace, PaperSpace, blocs, etc.)
         foreach (ObjectId btrId in bt)
@@ -58,7 +58,7 @@ public static class BlockReferences
 
             if (ent is BlockReference br)
             {
-                var IsEntOnLockedLayer = ent.IsEntityOnLockedLayer();
+                bool IsEntOnLockedLayer = ent.IsEntityOnLockedLayer();
                 Dictionary<string, string>? propertiesToCopy = PreserveProperties ? GetPropertiesFromBlock(trx, br) : null;
                 if (IsEntOnLockedLayer)
                 {
@@ -106,7 +106,7 @@ public static class BlockReferences
         Database db = Generic.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
         BlockTable? bt = db.BlockTableId.GetDBObject(OpenMode.ForWrite) as BlockTable;
-        var BlockName = Name;
+        string BlockName = Name;
 
         if (BlockName != "*U") //creating an anonymous block
         {
@@ -152,7 +152,7 @@ public static class BlockReferences
         Database db = Generic.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
         BlockTable? bt = db.BlockTableId.GetDBObject(OpenMode.ForWrite) as BlockTable;
-        var BlockName = Name;
+        string BlockName = Name;
         if (string.IsNullOrWhiteSpace(BlockName))
         {
             BlockName = "*U";
@@ -170,7 +170,7 @@ public static class BlockReferences
         }
 
         Database MemoryDatabase = new(true, false);
-        IdMapping acIdMap = new();
+        IdMapping acIdMap = [];
         using (Transaction MemoryTransaction = MemoryDatabase.TransactionManager.StartTransaction())
         {
             BlockTable? acBlkTblNewDoc =
@@ -189,7 +189,7 @@ public static class BlockReferences
                 return ObjectId.Null;
             }
 
-            var UcsRotation = Vector3d.XAxis.GetAngleTo(ed.CurrentUserCoordinateSystem.CoordinateSystem3d.Xaxis,
+            double UcsRotation = Vector3d.XAxis.GetAngleTo(ed.CurrentUserCoordinateSystem.CoordinateSystem3d.Xaxis,
                 Vector3d.ZAxis);
             Matrix3d CounterRotation = Matrix3d.Rotation(-UcsRotation, Vector3d.ZAxis, new Point3d(0, 0, Origin.SCG.Z));
             Matrix3d DisplacementVector =
@@ -239,13 +239,13 @@ public static class BlockReferences
             return ObjectId.Null;
         }
 
-        ObjectIdCollection acObjIdColl = new() { BlockReferenceObjectId };
+        ObjectIdCollection acObjIdColl = [BlockReferenceObjectId];
 
         Document ActualDocument = Generic.GetDocument();
         Database ActualDatabase = ActualDocument.Database;
 
         Database MemoryDatabase = new(true, false);
-        IdMapping acIdMap = new();
+        IdMapping acIdMap = [];
         using (Transaction MemoryTransaction = MemoryDatabase.TransactionManager.StartTransaction())
         {
             BlockTable? acBlkTblNewDoc =
@@ -289,8 +289,8 @@ public static class BlockReferences
             return ObjectId.Null;
         }
 
-        ObjectIdCollection acObjIdColl2 = new() { newBlocRefenceId };
-        IdMapping acIdMap2 = new();
+        ObjectIdCollection acObjIdColl2 = [newBlocRefenceId];
+        IdMapping acIdMap2 = [];
 
         using (Generic.GetLock())
         using (Transaction ActualTransaction = ActualDatabase.TransactionManager.StartTransaction())
@@ -312,10 +312,10 @@ public static class BlockReferences
         Database db = Generic.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
         BlockTable? bt = trx.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-        var newName = oldName;
+        string newName = oldName;
 
 
-        for (var index = 1; bt.Has(newName); index++)
+        for (int index = 1; bt.Has(newName); index++)
         {
             newName = SymbolUtilityServices.RepairSymbolName($"{oldName}_Copy{(index > 1 ? $" ({index})" : "")}",
                 false);
@@ -341,7 +341,7 @@ public static class BlockReferences
         }
 
         Database db = Generic.GetDatabase();
-        ObjectIdCollection result = new();
+        ObjectIdCollection result = [];
 
         using (Transaction trx = db.TransactionManager.StartTransaction())
         {
@@ -417,7 +417,7 @@ public static class BlockReferences
 
     private static Dictionary<string, string> GetPropertiesFromBlock(Transaction trx, BlockReference br)
     {
-        Dictionary<string, string> propertiesToCopy = new();
+        Dictionary<string, string> propertiesToCopy = [];
 
         foreach (ObjectId attId in br.AttributeCollection)
         {
@@ -454,10 +454,10 @@ public static class BlockReferences
             AttributeDefinition? attDef = obj as AttributeDefinition;
             if (attDef?.Constant == false)
             {
-                var PropertyName = attDef.Tag.ToUpperInvariant();
+                string PropertyName = attDef.Tag.ToUpperInvariant();
                 if (attributesValues.ContainsKey(PropertyName))
                 {
-                    if (attributesValues.TryGetValue(PropertyName, out var AttributeDefinitionTargetValue))
+                    if (attributesValues.TryGetValue(PropertyName, out string? AttributeDefinitionTargetValue))
                     {
                         using AttributeReference attRef = new();
                         attRef.SetAttributeFromBlock(attDef, blockRef.BlockTransform);
@@ -471,10 +471,10 @@ public static class BlockReferences
 
         //Settings Dynamic block attributes
         DynamicBlockReferencePropertyCollection BlocPropertyCollection = blockRef.DynamicBlockReferencePropertyCollection;
-        Dictionary<string, DynamicBlockReferenceProperty> BlocPropertyCollectionDictionnary = new();
+        Dictionary<string, DynamicBlockReferenceProperty> BlocPropertyCollectionDictionnary = [];
         foreach (DynamicBlockReferenceProperty BlocProperty in BlocPropertyCollection.OfType<DynamicBlockReferenceProperty>())
         {
-            var PropertyName = BlocProperty.PropertyName.ToUpperInvariant();
+            string PropertyName = BlocProperty.PropertyName.ToUpperInvariant();
             if (BlocPropertyCollectionDictionnary.ContainsKey(PropertyName))
             {
                 continue;
@@ -483,11 +483,11 @@ public static class BlockReferences
             BlocPropertyCollectionDictionnary.Add(PropertyName, BlocProperty);
         }
 
-        foreach (var ValueKey in attributesValues.Keys)
+        foreach (string ValueKey in attributesValues.Keys)
         {
             if (BlocPropertyCollectionDictionnary.TryGetValue(ValueKey, out DynamicBlockReferenceProperty? BlocProperty))
             {
-                var Value = ConvertValueToProperty((DwgDataType)BlocProperty.PropertyTypeCode,
+                object Value = ConvertValueToProperty((DwgDataType)BlocProperty.PropertyTypeCode,
                     attributesValues[ValueKey]);
                 if (Value is int ValueAsInt)
                 {
@@ -546,7 +546,7 @@ public static class BlockReferences
     {
         Database db = Generic.GetDatabase();
         Editor ed = Generic.GetEditor();
-        DBObjectCollection ents = new();
+        DBObjectCollection ents = [];
         using (Transaction trx = db.TransactionManager.StartTransaction())
         {
             //The first block is added for initialising the process and then deleted. Be sure to add a value.
@@ -574,8 +574,8 @@ public static class BlockReferences
 
         if (!bt.Has(BlocName))
         {
-            var TempFolderPath = Path.GetTempPath();
-            var TempFolderFilePath = Path.Combine(TempFolderPath, $"{BlocName}.dwg");
+            string TempFolderPath = Path.GetTempPath();
+            string TempFolderFilePath = Path.Combine(TempFolderPath, $"{BlocName}.dwg");
             Generic.ReadWriteToFileResource(BlocName, TempFolderFilePath);
 
             Database sourceDb = new(false, true); //Temporary database to hold data for block we want to import
@@ -603,7 +603,7 @@ public static class BlockReferences
         switch (dataType)
         {
             case DwgDataType.Real:
-                if (double.TryParse(valueToConvert, out var convertedValueDouble))
+                if (double.TryParse(valueToConvert, out double convertedValueDouble))
                 {
                     return convertedValueDouble;
                 }
@@ -611,7 +611,7 @@ public static class BlockReferences
                 break;
             case DwgDataType.Int16:
             case DwgDataType.Int32:
-                if (int.TryParse(valueToConvert, out var convertedValueInt))
+                if (int.TryParse(valueToConvert, out int convertedValueInt))
                 {
                     return convertedValueInt;
                 }

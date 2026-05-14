@@ -14,7 +14,7 @@ public static class LayoutUtil
         DBDictionary layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         layoutName = string.Empty;
-        var bestOrder = int.MaxValue;
+        int bestOrder = int.MaxValue;
 
         foreach (DBDictionaryEntry entry in layoutDict)
         {

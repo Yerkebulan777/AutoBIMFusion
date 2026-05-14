@@ -66,7 +66,7 @@ public class TransientBase(DBObjectCollection Entities, Func<Points, Dictionary<
         Dictionary<string, string> Values = UpdateFunction != null ? UpdateFunction(new Points(moveToPt)) : [];
         for (int i = 0; i < Drawable.Count; i++)
         {
-            var e = Drawable[i] as Entity;
+            Entity? e = Drawable[i] as Entity;
             if (e is BlockReference blockReference)
             {
                 // Open the block reference for write
@@ -220,7 +220,7 @@ public class TransientBase(DBObjectCollection Entities, Func<Points, Dictionary<
 
     public Entity CreateTransGraphicsEntity(Entity EntityToMakeDrawable, int index, bool IsStaticDrawable)
     {
-        var drawableClone = EntityToMakeDrawable.Clone() as Entity;
+        Entity? drawableClone = EntityToMakeDrawable.Clone() as Entity;
         drawableClone.Color = GetTransGraphicsColor(drawableClone, IsStaticDrawable);
         drawableClone.Transparency = GetTransGraphicsTransparency(drawableClone, IsStaticDrawable);
         _ = TransientManager.CurrentTransientManager.AddTransient(drawableClone, TransientDrawingMode.DirectShortTerm,
@@ -253,7 +253,7 @@ public class GetPointTransient : TransientBase
         }
 
         ed.PointMonitor += PointMonitorHandler;
-        var pointOptions = new PromptPointOptions("\n" + Message);
+        PromptPointOptions pointOptions = new("\n" + Message);
         foreach (string KeyWord in KeyWords)
         {
             if (string.IsNullOrWhiteSpace(KeyWord))
@@ -293,7 +293,7 @@ public class GetPointTransient : TransientBase
         }
 
         ed.PointMonitor -= PointMonitorHandler;
-        var InsertionPointResult = Points.GetFromPromptPointResult(InsertionPromptPointResult);
+        Points InsertionPointResult = Points.GetFromPromptPointResult(InsertionPromptPointResult);
         ClearTransGraphics();
         if (InsertionPromptPointResult.Status == PromptStatus.OK)
         {
@@ -315,7 +315,7 @@ public class GetPointTransient : TransientBase
 
     public override void TransformEntities(Entity entity, Point3d currentPoint, Point3d destinationPoint)
     {
-        var mat = Matrix3d.Displacement(currentPoint.GetVectorTo(destinationPoint));
+        Matrix3d mat = Matrix3d.Displacement(currentPoint.GetVectorTo(destinationPoint));
         entity.TransformBy(mat);
     }
 }

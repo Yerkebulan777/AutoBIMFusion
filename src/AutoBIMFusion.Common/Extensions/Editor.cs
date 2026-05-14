@@ -31,7 +31,7 @@ public static class EditorExtensions
         double h = (double)Application.GetSystemVariable("VIEWSIZE");
         //Get current view width,
         //by calculate current view's width-height ratio
-        var screen = (Point2d)Application.GetSystemVariable("SCREENSIZE");
+        Point2d screen = (Point2d)Application.GetSystemVariable("SCREENSIZE");
         double w = h * (screen.X / screen.Y);
         return new SizeF((float)w, (float)h);
     }
@@ -49,8 +49,8 @@ public static class EditorExtensions
         //need to be transformed back to World CS
         Point3d cent = ((Point3d)Application.GetSystemVariable("VIEWCTR")).TransformBy(ed.CurrentUserCoordinateSystem);
 
-        var minPoint = new Point3d(cent.X - (w / 2.0), cent.Y - (h / 2.0), 0);
-        var maxPoint = new Point3d(cent.X + (w / 2.0), cent.Y + (h / 2.0), 0);
+        Point3d minPoint = new(cent.X - (w / 2.0), cent.Y - (h / 2.0), 0);
+        Point3d maxPoint = new(cent.X + (w / 2.0), cent.Y + (h / 2.0), 0);
 
         return new Extents3d(minPoint, maxPoint);
     }
@@ -58,18 +58,18 @@ public static class EditorExtensions
     public static List<Layout> GetAllLayout(this Editor _)
     {
         Database db = Generic.GetDatabase();
-        var AllLayout = new List<Layout>();
+        List<Layout> AllLayout = [];
 
         using (Transaction trx = db.TransactionManager.StartTransaction())
         {
             foreach (ObjectId btrId in db.BlockTableId.GetDBObject() as BlockTable)
             {
-                var btr = btrId.GetDBObject() as BlockTableRecord;
+                BlockTableRecord? btr = btrId.GetDBObject() as BlockTableRecord;
 
                 if (btr.IsLayout && !btr.Name.Equals(BlockTableRecord.ModelSpace,
                         StringComparison.InvariantCultureIgnoreCase))
                 {
-                    var layout = btr.LayoutId.GetDBObject() as Layout;
+                    Layout? layout = btr.LayoutId.GetDBObject() as Layout;
                     if (!layout.ModelType)
                     {
                         AllLayout.Add(layout);
@@ -91,11 +91,11 @@ public static class EditorExtensions
         {
             foreach (ObjectId btrId in db.BlockTableId.GetDBObject() as BlockTable)
             {
-                var btr = btrId.GetDBObject() as BlockTableRecord;
+                BlockTableRecord? btr = btrId.GetDBObject() as BlockTableRecord;
 
                 if (btr.Name.Equals(BlockTableRecord.ModelSpace, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    var layout = btr.LayoutId.GetDBObject() as Layout;
+                    Layout? layout = btr.LayoutId.GetDBObject() as Layout;
                     if (layout.ModelType)
                     {
                         return layout;
@@ -152,7 +152,7 @@ public static class EditorExtensions
                 }
 
                 // Get the BlockTableRecord for the current layout
-                var btr = trx.GetObject(Generic.GetDatabase().CurrentSpaceId, OpenMode.ForRead) as BlockTableRecord;
+                BlockTableRecord? btr = trx.GetObject(Generic.GetDatabase().CurrentSpaceId, OpenMode.ForRead) as BlockTableRecord;
                 List<ObjectId> Viewports = ed.GetAllViewportsInPaperSpace(btr);
                 if (Viewports.Count == 1)
                 {
@@ -161,8 +161,8 @@ public static class EditorExtensions
                 }
 
                 ed.SwitchToModelSpace();
-                var promptPointOptions =
-                    new PromptPointOptions("Activez la fenêtre CIBLE et appuyez sur ENTREE pour continuer.")
+                PromptPointOptions promptPointOptions =
+                    new("Activez la fenêtre CIBLE et appuyez sur ENTREE pour continuer.")
                     {
                         AllowNone = true,
                         AllowArbitraryInput = true
@@ -186,7 +186,7 @@ public static class EditorExtensions
     {
         objectId = Array.Empty<ObjectId>();
         TypedValue[] filterList = new[] { new TypedValue((int)DxfCode.Start, "INSERT") };
-        var selectionOptions = new PromptSelectionOptions
+        PromptSelectionOptions selectionOptions = new()
         {
             MessageForAdding = Message,
             SingleOnly = SingleOnly,
@@ -219,7 +219,7 @@ public static class EditorExtensions
         bool RejectObjectsOnLockedLayers = true)
     {
         objectId = ObjectId.Null;
-        var selectionOptions = new PromptEntityOptions(Message)
+        PromptEntityOptions selectionOptions = new(Message)
         {
             AllowObjectOnLockedLayer = RejectObjectsOnLockedLayers,
             AllowNone = false
@@ -248,9 +248,9 @@ public static class EditorExtensions
     public static (PromptStatus Status, string StringResult) GetOptions(this Editor ed, string Message,
         bool LowerCaseOptions, params string[] Keywords)
     {
-        var options = new PromptKeywordOptions("");
+        PromptKeywordOptions options = new("");
 
-        var optionsDic = new Dictionary<string, string>();
+        Dictionary<string, string> optionsDic = [];
         foreach (string item in Keywords)
         {
             string SanitizedName = item.SanitizeToAlphanumericHyphens();
@@ -286,7 +286,7 @@ public static class EditorExtensions
     public static PromptSelectionResult GetCurves(this Editor ed, string Message, bool SingleOnly = true,
         bool RejectObjectsOnLockedLayers = true)
     {
-        var promptSelectionOptions = new PromptSelectionOptions
+        PromptSelectionOptions promptSelectionOptions = new()
         {
             MessageForAdding = Message,
             SingleOnly = SingleOnly,
@@ -353,7 +353,7 @@ public static class EditorExtensions
     {
         Message ??= SingleOnly ? "Veuillez selectionner des entités" : "Veuillez selectionner une entité";
 
-        var selectionOptions = new PromptSelectionOptions
+        PromptSelectionOptions selectionOptions = new()
         {
             MessageForAdding = Message,
             SingleOnly = SingleOnly,
@@ -446,7 +446,7 @@ public static class EditorExtensions
             }
 
             EntObjectId = polyResult.Value[0].ObjectId;
-            var SelectedEntity = EntObjectId.GetNoTransactionDBObject() as Entity;
+            Entity? SelectedEntity = EntObjectId.GetNoTransactionDBObject() as Entity;
             if (SelectedEntity is Polyline ProjectionTargetPolyline)
             {
                 return Clone ? (Polyline)ProjectionTargetPolyline.Clone() : ProjectionTargetPolyline;
@@ -483,8 +483,8 @@ public static class EditorExtensions
 
         if (HatchObjectId == ObjectId.Null)
         {
-            var option =
-                new PromptEntityOptions("\n" +
+            PromptEntityOptions option =
+                new("\n" +
                                         (string.IsNullOrWhiteSpace(AskText) ? "Selectionnez une hachure" : AskText))
                 {
                     AllowNone = true,
@@ -543,7 +543,7 @@ public static class EditorExtensions
         Database db = Generic.GetDatabase();
 
         using Transaction trx = db.TransactionManager.StartTransaction();
-        var viewport = ed.ActiveViewportId.GetDBObject() as Viewport;
+        Viewport? viewport = ed.ActiveViewportId.GetDBObject() as Viewport;
         trx.Commit();
         return viewport?.Locked == true;
     }
@@ -553,7 +553,7 @@ public static class EditorExtensions
         Database db = Generic.GetDatabase();
 
         using Transaction trx = db.TransactionManager.StartTransaction();
-        var viewport = ed.ActiveViewportId.GetDBObject() as Viewport;
+        Viewport? viewport = ed.ActiveViewportId.GetDBObject() as Viewport;
         trx.Commit();
         return viewport?.Number == 1;
     }

@@ -102,9 +102,9 @@ public static class Point3dCollectionExtensions
 
     public static bool HasDuplicatePoints(this Point3dCollection points, Tolerance tolerance)
     {
-        for (var i = 0; i < points.Count; i++)
+        for (int i = 0; i < points.Count; i++)
         {
-            for (var j = i + 1; j < points.Count; j++)
+            for (int j = i + 1; j < points.Count; j++)
             {
                 if (points[i].IsEqualTo(points[j], tolerance))
                 {

@@ -42,11 +42,11 @@ public static class Vector3dExtensions
     public static double GetRotationRelativeToSCG(this Vector3d vector)
     {
         Vector2d xAxisWCS = new(0, 1);
-        var dot = DotProduct(vector.ToVector2d(),
+        double dot = DotProduct(vector.ToVector2d(),
             xAxisWCS); //vector.X * xAxisWCS.X + vector.Y * xAxisWCS.Y;      // Dot product between [x1, y1] and [x2, y2]
-        var det = vector.ToVector2d().CrossProduct(xAxisWCS); //vector.X * xAxisWCS.Y - vector.Y * xAxisWCS.X;     
-        var angle = Atan2(det, dot);
-        var angleDegrees = angle * (180.0 / PI);
+        double det = vector.ToVector2d().CrossProduct(xAxisWCS); //vector.X * xAxisWCS.Y - vector.Y * xAxisWCS.X;     
+        double angle = Atan2(det, dot);
+        double angleDegrees = angle * (180.0 / PI);
         return angleDegrees < 0 ? 360.0 + angleDegrees : angleDegrees;
     }
 
@@ -96,12 +96,12 @@ public static class Vector3dExtensions
         Vector3d SecondVector, Point3d SecondVectorBasePoint)
     {
         Vector3d deltaStartPoints = FirstVectorBasePoint - SecondVectorBasePoint;
-        var a = FirstVector.DotProduct(FirstVector);
-        var b = FirstVector.DotProduct(SecondVector);
-        var c = SecondVector.DotProduct(SecondVector);
-        var d = FirstVector.DotProduct(deltaStartPoints);
-        var e = SecondVector.DotProduct(deltaStartPoints);
-        var s = ((a * e) - (b * d)) / ((a * c) - (b * b));
+        double a = FirstVector.DotProduct(FirstVector);
+        double b = FirstVector.DotProduct(SecondVector);
+        double c = SecondVector.DotProduct(SecondVector);
+        double d = FirstVector.DotProduct(deltaStartPoints);
+        double e = SecondVector.DotProduct(deltaStartPoints);
+        double s = ((a * e) - (b * d)) / ((a * c) - (b * b));
         return SecondVectorBasePoint + (s * SecondVector);
     }
 }

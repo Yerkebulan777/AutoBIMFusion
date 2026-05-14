@@ -30,13 +30,13 @@ public static class Writer
         if (type == typeof(string))
         {
             _ = stringBuilder.Append('"');
-            var str = (string)item;
-            for (var i = 0; i < str.Length; ++i)
+            string str = (string)item;
+            for (int i = 0; i < str.Length; ++i)
             {
                 if (str[i] is < ' ' or '"' or '\\')
                 {
                     _ = stringBuilder.Append('\\');
-                    var j = "\"\\\n\r\t\b\f".IndexOf(str[i]);
+                    int j = "\"\\\n\r\t\b\f".IndexOf(str[i]);
                     _ = j >= 0 ? stringBuilder.Append("\"\\nrtbf"[j]) : stringBuilder.AppendFormat("u{0:X4}", (uint)str[i]);
                 }
                 else
@@ -66,9 +66,9 @@ public static class Writer
         else if (item is IList)
         {
             _ = stringBuilder.Append('[');
-            var isFirst = true;
+            bool isFirst = true;
             IList? list = item as IList;
-            for (var i = 0; i < list.Count; i++)
+            for (int i = 0; i < list.Count; i++)
             {
                 if (isFirst)
                 {
@@ -101,8 +101,8 @@ public static class Writer
 
             _ = stringBuilder.Append('{');
             IDictionary? dict = item as IDictionary;
-            var isFirst = true;
-            foreach (var key in dict.Keys)
+            bool isFirst = true;
+            foreach (object? key in dict.Keys)
             {
                 if (isFirst)
                 {
@@ -125,13 +125,13 @@ public static class Writer
         {
             _ = stringBuilder.Append('{');
 
-            var isFirst = true;
+            bool isFirst = true;
             FieldInfo[] fieldInfos = type.GetFields();
-            for (var i = 0; i < fieldInfos.Length; i++)
+            for (int i = 0; i < fieldInfos.Length; i++)
             {
                 if (fieldInfos[i].IsPublic && !fieldInfos[i].IsStatic)
                 {
-                    var value = fieldInfos[i].GetValue(item);
+                    object? value = fieldInfos[i].GetValue(item);
                     if (value != null)
                     {
                         if (isFirst)
@@ -152,11 +152,11 @@ public static class Writer
             }
 
             PropertyInfo[] propertyInfo = type.GetProperties();
-            for (var i = 0; i < propertyInfo.Length; i++)
+            for (int i = 0; i < propertyInfo.Length; i++)
             {
                 if (propertyInfo[i].CanRead)
                 {
-                    var value = propertyInfo[i].GetValue(item, null);
+                    object? value = propertyInfo[i].GetValue(item, null);
                     if (value != null)
                     {
                         if (isFirst)

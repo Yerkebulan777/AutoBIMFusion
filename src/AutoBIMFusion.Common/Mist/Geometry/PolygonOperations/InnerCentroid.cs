@@ -18,10 +18,10 @@ public static partial class PolygonOperation
 
         Extents3d Extend = PolylinePolygon.GetExtents();
         ExtentsSize ExtendSize = Extend.Size();
-        var width = ExtendSize.Width;
-        var height = ExtendSize.Height;
-        var cellSize = Min(width, height);
-        var h = cellSize / 2;
+        double width = ExtendSize.Width;
+        double height = ExtendSize.Height;
+        double cellSize = Min(width, height);
+        double h = cellSize / 2;
 
         if (cellSize == 0)
         {
@@ -32,9 +32,9 @@ public static partial class PolygonOperation
         Queue<Cell> cellQueue = new();
 
         //cover polygon with initial cells
-        for (var x = Extend.MinPoint.X; x < Extend.MaxPoint.X; x += cellSize)
+        for (double x = Extend.MinPoint.X; x < Extend.MaxPoint.X; x += cellSize)
         {
-            for (var y = Extend.MinPoint.Y; y < Extend.MaxPoint.Y; y += cellSize)
+            for (double y = Extend.MinPoint.Y; y < Extend.MaxPoint.Y; y += cellSize)
             {
                 Point3d CellCenter = new(x + h, y + h, 0);
                 cellQueue.Enqueue(new Cell(CellCenter, h, PolylinePolygon, PolygonPtnsCollection, null));
@@ -52,7 +52,7 @@ public static partial class PolygonOperation
             bestCell = bboxCell;
         }
 
-        var numProbes = cellQueue.Count;
+        int numProbes = cellQueue.Count;
 
         while (cellQueue.Count > 0)
         {
@@ -90,17 +90,17 @@ public static partial class PolygonOperation
 
     private static Cell GetCentroidCell(Polyline polygon, Point3dCollection PolygonPtnsCollection)
     {
-        var area = 0.0;
-        var x = 0.0;
-        var y = 0.0;
+        double area = 0.0;
+        double x = 0.0;
+        double y = 0.0;
 
-        var len = PolygonPtnsCollection.Count;
-        var j = len - 1;
-        for (var i = 0; i < len; j = i++)
+        int len = PolygonPtnsCollection.Count;
+        int j = len - 1;
+        for (int i = 0; i < len; j = i++)
         {
             Point3d a = PolygonPtnsCollection[i];
             Point3d b = PolygonPtnsCollection[j];
-            var f = (a.X * b.Y) - (b.X * a.Y);
+            double f = (a.X * b.Y) - (b.X * a.Y);
             x += (a.X + b.X) * f;
             y += (a.Y + b.Y) * f;
             area += f * 3;
@@ -163,11 +163,11 @@ public static partial class PolygonOperation
         //distance from point to polygon outline (negative if point is outside)
         private double PointToPolygonDist(Point3d Point, Polyline polygon, Point3dCollection PtnsCollection)
         {
-            var inside = IsFullyInside == null
+            bool inside = IsFullyInside == null
                 ? Point.ToPoint2d().IsPointInsidePolygonMcMartin(PtnsCollection)
                 : (bool)IsFullyInside;
             Point3d ClosestPoint = polygon.GetClosestPointTo(Point, false);
-            var minDistSq = ClosestPoint.DistanceTo(Point);
+            double minDistSq = ClosestPoint.DistanceTo(Point);
             return (inside ? 1 : -1) * minDistSq;
         }
     }

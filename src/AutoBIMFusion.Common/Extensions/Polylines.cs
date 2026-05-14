@@ -33,7 +33,7 @@ public static class PolylinesExtensions
     public static Polyline GetPolylineFromPoints(this IEnumerable<Points> listOfPoints)
     {
         Polyline polyline = new();
-        foreach (var point in listOfPoints)
+        foreach (Points point in listOfPoints)
         {
             polyline.AddVertexAt(polyline.NumberOfVertices, point.SCG.ToPoint2d(), 0, 0, 0);
         }
@@ -45,8 +45,8 @@ public static class PolylinesExtensions
     {
         for (int segmentIndex = 0; segmentIndex < BasePolyline.NumberOfVertices - 1; segmentIndex++)
         {
-            var startPoint = BasePolyline.GetPoint3dAt(segmentIndex);
-            var endPoint = BasePolyline.GetPoint3dAt(segmentIndex + 1);
+            Point3d startPoint = BasePolyline.GetPoint3dAt(segmentIndex);
+            Point3d endPoint = BasePolyline.GetPoint3dAt(segmentIndex + 1);
 
             Vector2d polylineVector = new(endPoint.X - startPoint.X, endPoint.Y - startPoint.Y);
             Vector2d pointVector = new(TargetPoint.X - startPoint.X, TargetPoint.Y - startPoint.Y);
@@ -90,7 +90,7 @@ public static class PolylinesExtensions
             for (int i = 0; i < polyline.NumberOfVertices; i++)
             {
                 //var acPlArc = acPlLwObj.GetArcSegmentAt(i);
-                var acPl3DPoint = polyline.GetPoint3dAt(i);
+                Point3d acPl3DPoint = polyline.GetPoint3dAt(i);
                 Point2d acPl2DPointNew = new(acPl3DPoint.X, acPl3DPoint.Y);
                 polyline.SetPointAt(i, acPl2DPointNew);
                 polyline.SetBulgeAt(i, -polyline.GetBulgeAt(i));
@@ -107,7 +107,7 @@ public static class PolylinesExtensions
     {
         for (int i = 0; i < polyline.NumberOfVertices; i++)
         {
-            var acPl3DPoint = polyline.GetPoint3dAt(i);
+            Point3d acPl3DPoint = polyline.GetPoint3dAt(i);
             Point2d acPl2DPointNew = new(acPl3DPoint.X, acPl3DPoint.Y);
             polyline.SetPointAt(i, acPl2DPointNew);
         }
@@ -117,12 +117,12 @@ public static class PolylinesExtensions
     {
         for (int i = 0; i < TargetPolyline.NumberOfVertices - 2; i++)
         {
-            var pt1 = TargetPolyline.GetPoint2dAt(i);
-            var pt2 = TargetPolyline.GetPoint2dAt(i + 1);
-            var pt3 = TargetPolyline.GetPoint2dAt(i + 2);
+            Point2d pt1 = TargetPolyline.GetPoint2dAt(i);
+            Point2d pt2 = TargetPolyline.GetPoint2dAt(i + 1);
+            Point2d pt3 = TargetPolyline.GetPoint2dAt(i + 2);
 
-            var v1 = pt2 - pt1;
-            var v2 = pt3 - pt2;
+            Vector2d v1 = pt2 - pt1;
+            Vector2d v2 = pt3 - pt2;
 
             double angle = v1.GetAngleTo(v2) * (180.0 / PI);
 
@@ -140,14 +140,14 @@ public static class PolylinesExtensions
     {
         int NumberOfVertices = TargetPolyline.NumberOfVertices;
         double Bulge = TargetPolyline.GetBulgeAt(Index);
-        var PolylineSegmentStart = TargetPolyline.GetPoint3dAt(Index);
+        Point3d PolylineSegmentStart = TargetPolyline.GetPoint3dAt(Index);
         Index++;
         if (Index >= NumberOfVertices)
         {
             Index = 0;
         }
 
-        var PolylineSegmentEnd = TargetPolyline.GetPoint3dAt(Index);
+        Point3d PolylineSegmentEnd = TargetPolyline.GetPoint3dAt(Index);
         return (PolylineSegmentStart, PolylineSegmentEnd, Bulge);
     }
 
@@ -160,7 +160,7 @@ public static class PolylinesExtensions
         }
 
         int last = pline.NumberOfVertices - 1;
-        var p0 = pline.GetPoint2dAt(0);
+        Point2d p0 = pline.GetPoint2dAt(0);
 
         if (pline.GetBulgeAt(0) != 0.0)
         {
@@ -186,8 +186,8 @@ public static class PolylinesExtensions
 
     public static DBObjectCollection BreakAt(this Polyline poly, params Point3d[] points)
     {
-        DoubleCollection DblCollection = new();
-        foreach (var point in points)
+        DoubleCollection DblCollection = [];
+        foreach (Point3d point in points)
         {
             double param = poly.GetParamAtPointX(point);
             _ = DblCollection.Add(param);
@@ -199,7 +199,7 @@ public static class PolylinesExtensions
 
     public static void CleanupPolylines(this IEnumerable<Polyline> ListOfPolyline)
     {
-        foreach (var Line in ListOfPolyline)
+        foreach (Polyline Line in ListOfPolyline)
         {
             Line.Cleanup();
         }
@@ -234,8 +234,8 @@ public static class PolylinesExtensions
             int index = 1;
             while (polyline.GetReelNumberOfVertices() > index)
             {
-                var lastPoint = polyline.GetPoint3dAt(index - 1);
-                var currentPoint = polyline.GetPoint3dAt(index);
+                Point3d lastPoint = polyline.GetPoint3dAt(index - 1);
+                Point3d currentPoint = polyline.GetPoint3dAt(index);
                 Point3d nextPoint = polyline.NumberOfVertices <= index + 1 ? polyline.StartPoint : polyline.GetPoint3dAt(index + 1);
                 Vector2d vector1 = currentPoint.GetVectorTo(lastPoint).ToVector2d();
                 Vector2d vector2 = nextPoint.GetVectorTo(currentPoint).ToVector2d();
@@ -285,7 +285,7 @@ public static class PolylinesExtensions
             {
                 try
                 {
-                    var (StartPoint, EndPoint, Bulge) = polyline.GetSegmentAt(index);
+                    (Point3d StartPoint, Point3d EndPoint, double Bulge) = polyline.GetSegmentAt(index);
                     if (StartPoint.IsEqualTo(EndPoint, Generic.LowTolerance))
                     {
                         polyline.RemoveVertexAt(index);
@@ -396,20 +396,20 @@ public static class PolylinesExtensions
 
             for (int VerticeIndex = 0; VerticeIndex < poly.NumberOfVertices; VerticeIndex++)
             {
-                var CurrentPoint = poly.GetPoint3dAt(VerticeIndex);
+                Point3d CurrentPoint = poly.GetPoint3dAt(VerticeIndex);
                 NewPoly.AddVertex(CurrentPoint);
                 if (poly.GetSegmentType(VerticeIndex) == SegmentType.Line)
                 {
                 }
                 else if (poly.GetSegmentType(VerticeIndex) == SegmentType.Arc)
                 {
-                    var Segment = poly.GetArcSegmentAt(VerticeIndex);
-                    using var Arc = Segment.ToCircleOrArc();
+                    CircularArc3d Segment = poly.GetArcSegmentAt(VerticeIndex);
+                    using Curve Arc = Segment.ToCircleOrArc();
                     double ReelNumberOfVertex = NumberOfVertexPerArc * Max(Abs(poly.GetBulgeAt(VerticeIndex)), 1);
                     double Interval = (Arc.EndParam - Arc.StartParam) / (ReelNumberOfVertex + 1);
                     for (int NumberOfInterval = 1; NumberOfInterval < ReelNumberOfVertex + 1; NumberOfInterval++)
                     {
-                        var Pt = Arc.GetPointAtParam(Arc.StartParam + (Interval * NumberOfInterval));
+                        Point3d Pt = Arc.GetPointAtParam(Arc.StartParam + (Interval * NumberOfInterval));
                         NewPoly.AddVertex(Pt);
                     }
                 }
@@ -477,8 +477,8 @@ public static class PolylinesExtensions
         double area = 0.0;
         for (int i = 0; i < poly.NumberOfVertices; i++)
         {
-            var p1 = poly.GetPoint2dAt(i);
-            var p2 = poly.GetPoint2dAt((i + 1) % poly.NumberOfVertices);
+            Point2d p1 = poly.GetPoint2dAt(i);
+            Point2d p2 = poly.GetPoint2dAt((i + 1) % poly.NumberOfVertices);
             area += (p2.X - p1.X) * (p2.Y + p1.Y);
         }
 
@@ -494,13 +494,13 @@ public static class PolylinesExtensions
     {
         int index = poly.GetPolyPoints().Count();
         int index1 = 0;
-        var Points = poly1.GetPoints();
+        IEnumerable<Point3d> Points = poly1.GetPoints();
         if (!poly.IsWriteEnabled)
         {
             poly.UpgradeOpen();
         }
 
-        foreach (var point in Points)
+        foreach (Point3d point in Points)
         {
             poly.AddVertexAt(index, point.ToPoint2d(), poly1.GetBulgeAt(index1), 0, 0);
             index++;
@@ -538,7 +538,7 @@ public static class PolylinesExtensions
     {
         if (poly2d.PolyType is Poly2dType.QuadSplinePoly or Poly2dType.CubicSplinePoly)
         {
-            var Spline = poly2d.Spline;
+            Spline Spline = poly2d.Spline;
             return Spline.ToPolyline() as Polyline;
         }
 
@@ -565,7 +565,7 @@ public static class PolylinesExtensions
         //Forcing close can result in weird point, we need to cleanup these before executing a offset
         poly.Cleanup();
 
-        var OffsetResult = InternalSmartOffset(poly);
+        IEnumerable<Polyline> OffsetResult = InternalSmartOffset(poly);
         if (!OffsetResult.Any())
         {
             poly.Inverse();
@@ -589,14 +589,14 @@ public static class PolylinesExtensions
                     int index = 0;
                     while (index < InternalPoly.GetReelNumberOfVertices())
                     {
-                        var CurrentPoint = InternalPoly.GetPoint2dAt(index);
+                        Point2d CurrentPoint = InternalPoly.GetPoint2dAt(index);
                         int nextPoint = index + 1;
                         if (nextPoint >= InternalPoly.GetReelNumberOfVertices())
                         {
                             nextPoint = 0;
                         }
 
-                        var NextPoint = InternalPoly.GetPoint2dAt(nextPoint);
+                        Point2d NextPoint = InternalPoly.GetPoint2dAt(nextPoint);
                         double DistanceBetween = CurrentPoint.GetDistanceTo(NextPoint);
                         if (InternalPoly.GetSegmentType(index) == SegmentType.Line)
                         {
@@ -610,15 +610,15 @@ public static class PolylinesExtensions
                         else if (InternalPoly.GetSegmentType(index) == SegmentType.Arc)
                         {
                             //If there is 0.2 with gap, that mean previous offset generated Arc, we need to remove those.
-                            var Segment = InternalPoly.GetArcSegmentAt(index);
+                            CircularArc3d Segment = InternalPoly.GetArcSegmentAt(index);
                             //Multiply by 2 + 5% of error margin
                             if (DistanceBetween <= Abs(ShrinkDistance) * 2.05)
                             {
-                                using var Arc = Segment.ToCircleOrArc();
-                                var ArcMidPoint = Arc.GetPointAtParam((Arc.StartParam + Arc.EndParam) / 2);
-                                var SegMidPoint = CurrentPoint.GetMiddlePoint(NextPoint);
+                                using Curve Arc = Segment.ToCircleOrArc();
+                                Point3d ArcMidPoint = Arc.GetPointAtParam((Arc.StartParam + Arc.EndParam) / 2);
+                                Point3d SegMidPoint = CurrentPoint.GetMiddlePoint(NextPoint);
 
-                                var NewPoint = ArcMidPoint.TransformBy(Matrix3d.Displacement(SegMidPoint
+                                Point3d NewPoint = ArcMidPoint.TransformBy(Matrix3d.Displacement(SegMidPoint
                                     .GetVectorTo(ArcMidPoint).SetLength(Abs(ShrinkDistance * 100))));
 
                                 InternalPoly.SetBulgeAt(index, 0);
@@ -637,12 +637,12 @@ public static class PolylinesExtensions
                 OffsetPolylineResult = InternalPoly.OffsetPolyline(ShrinkDistance, false).Cast<Polyline>().ToList();
             }
 
-            var OffsetMergedPolylineResult = OffsetPolylineResult.JoinMerge();
+            List<Curve> OffsetMergedPolylineResult = OffsetPolylineResult.JoinMerge();
             OffsetPolylineResult.DeepDispose();
             List<Polyline> ReturnOffsetMergedPolylineResult = OffsetMergedPolylineResult.Cast<Polyline>()
                 .Where(p => p?.Closed == true && p.NumberOfVertices >= 2).ToList();
             OffsetMergedPolylineResult.RemoveCommun(ReturnOffsetMergedPolylineResult).DeepDispose();
-            foreach (var item in ReturnOffsetMergedPolylineResult)
+            foreach (Polyline item in ReturnOffsetMergedPolylineResult)
             {
                 item.Cleanup();
             }
@@ -653,8 +653,8 @@ public static class PolylinesExtensions
 
     public static Point3d GetInnerCentroid(this Polyline poly)
     {
-        var polygon = poly.ToPolygon(10);
-        var pt = PolygonOperation.GetInnerCentroid(polygon);
+        Polyline polygon = poly.ToPolygon(10);
+        Point3d pt = PolygonOperation.GetInnerCentroid(polygon);
         if (polygon != poly)
         {
             polygon?.Dispose();
@@ -674,7 +674,7 @@ public static class PolylinesExtensions
         double sumX = 0, sumY = 0, sumZ = 0;
         for (int i = 0; i < count; i++)
         {
-            var pt = pl.GetPoint3dAt(i);
+            Point3d pt = pl.GetPoint3dAt(i);
             sumX += pt.X;
             sumY += pt.Y;
             sumZ += pt.Z;
@@ -688,8 +688,8 @@ public static class PolylinesExtensions
         int NumberOfVertices = LineA.GetReelNumberOfVertices();
         for (int PolylineSegmentIndex = 0; PolylineSegmentIndex < NumberOfVertices; PolylineSegmentIndex++)
         {
-            var (StartPoint, EndPoint, _) = LineA.GetSegmentAt(PolylineSegmentIndex);
-            var MiddlePoint = StartPoint.GetMiddlePoint(EndPoint);
+            (Point3d StartPoint, Point3d EndPoint, double _) = LineA.GetSegmentAt(PolylineSegmentIndex);
+            Point3d MiddlePoint = StartPoint.GetMiddlePoint(EndPoint);
 
             if (StartPoint.DistanceTo(EndPoint) / 2 >
                 Generic.MediumTolerance.EqualPoint)
@@ -715,7 +715,7 @@ public static class PolylinesExtensions
 
         for (int PolylineSegmentIndex = 0; PolylineSegmentIndex < NumberOfVertices; PolylineSegmentIndex++)
         {
-            var (StartPoint, EndPoint, _) = LineA.GetSegmentAt(PolylineSegmentIndex);
+            (Point3d StartPoint, Point3d EndPoint, double _) = LineA.GetSegmentAt(PolylineSegmentIndex);
             if (StartPoint.DistanceTo(EndPoint) / 2 >
                 Generic.MediumTolerance.EqualPoint)
             {
@@ -761,7 +761,7 @@ public static class PolylinesExtensions
             return false;
         }
 
-        var tol = Generic.MediumTolerance;
+        Tolerance tol = Generic.MediumTolerance;
 
         bool IsClockwisePolyA = polylineA.IsClockwise();
         bool IsClockwisePolyB = polylineB.IsClockwise();
@@ -779,8 +779,8 @@ public static class PolylinesExtensions
 
         for (int i = 0; i < polylineA.GetReelNumberOfVertices(); i++)
         {
-            var (StartPoint, EndPoint, Bulge) = polylineA.GetSegmentAt(i);
-            var SegB = polylineB.GetSegmentAt(i);
+            (Point3d StartPoint, Point3d EndPoint, double Bulge) = polylineA.GetSegmentAt(i);
+            (Point3d StartPoint, Point3d EndPoint, double Bulge) SegB = polylineB.GetSegmentAt(i);
             if (!StartPoint.IsEqualTo(SegB.StartPoint, tol))
             {
                 return false;
@@ -815,10 +815,10 @@ public static class PolylinesExtensions
 
     public static bool ContainsSegment(this Polyline poly, Point3d Start, Point3d End)
     {
-        var tol = Generic.MediumTolerance;
+        Tolerance tol = Generic.MediumTolerance;
         for (int i = 0; i < poly.GetReelNumberOfVertices(); i++)
         {
-            var (StartPoint, EndPoint, _) = poly.GetSegmentAt(i);
+            (Point3d StartPoint, Point3d EndPoint, double _) = poly.GetSegmentAt(i);
             if (StartPoint.IsEqualTo(Start, tol) && EndPoint.IsEqualTo(End, tol))
             {
                 return true;
@@ -835,7 +835,7 @@ public static class PolylinesExtensions
 
     public static double GetPassingThroughBulgeFrom(this Point3d Through, Point3d Start, Point3d End)
     {
-        var MiddlePoint = Start.GetMiddlePoint(End);
+        Point3d MiddlePoint = Start.GetMiddlePoint(End);
         double D1 = MiddlePoint.DistanceTo(Through);
         double D2 = MiddlePoint.DistanceTo(Start);
         return D1 / D2;

@@ -118,7 +118,7 @@ public static class LinesExtentions
     /// <returns>A polyline.</returns>
     public static Polyline ToPolyline(this Line line)
     {
-        var poly = new Polyline();
+        Polyline poly = new();
         poly.AddVertexAt(0, line.StartPoint.ToPoint2d(), 0, 0, 0);
         poly.AddVertexAt(1, line.EndPoint.ToPoint2d(), 0, 0, 0);
         return poly;
@@ -131,7 +131,7 @@ public static class LinesExtentions
     /// <returns>A polyline.</returns>
     public static Polyline ToPolyline(this Arc arc)
     {
-        var poly = new Polyline();
+        Polyline poly = new();
         poly.AddVertexAt(0, arc.StartPoint.ToPoint2d(), arc.GetArcBulge(arc.StartPoint), 0, 0);
         poly.AddVertexAt(1, arc.EndPoint.ToPoint2d(), 0, 0, 0);
         return poly;

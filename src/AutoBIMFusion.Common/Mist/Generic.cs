@@ -59,8 +59,8 @@ public static class Generic
 
     public static void WriteInfoCenterBalloonMessage(object message)
     {
-        var infoCenterManager = new InfoCenterManager();
-        var resultItem = new ResultItem
+        InfoCenterManager infoCenterManager = new();
+        ResultItem resultItem = new()
         {
             Category = GetExtensionDLLName(),
             Title = message.ToString()
@@ -90,14 +90,14 @@ public static class Generic
         Document doc = GetDocument();
         Database db = GetDatabase();
         using Transaction newTransaction = doc.TransactionManager.StartTransaction();
-        var newBlockTable = newTransaction.GetObject(doc.Database.BlockTableId, OpenMode.ForRead) as BlockTable;
+        BlockTable? newBlockTable = newTransaction.GetObject(doc.Database.BlockTableId, OpenMode.ForRead) as BlockTable;
         BlockTableRecord newBlockTableRecord = GetCurrentSpaceBlockTableRecord(newTransaction);
-        var newTextStyleTable = newTransaction.GetObject(db.TextStyleTableId, OpenMode.ForRead) as TextStyleTable;
+        TextStyleTable? newTextStyleTable = newTransaction.GetObject(db.TextStyleTableId, OpenMode.ForRead) as TextStyleTable;
 
         if (!newTextStyleTable.Has(font.ToUpperInvariant())) //The TextStyle is currently not in the database
         {
             newTextStyleTable.UpgradeOpen();
-            var newTextStyleTableRecord = new TextStyleTableRecord
+            TextStyleTableRecord newTextStyleTableRecord = new()
             {
                 FileName = font,
                 Name = font.ToUpperInvariant()

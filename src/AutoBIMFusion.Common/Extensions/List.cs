@@ -50,7 +50,7 @@ public static class ListExtensions
     {
         List<double> doubles = values.ConvertAll(v =>
         {
-            return v is double d ? d : double.TryParse(v.ToString(), out var res) ? res : 0.0;
+            return v is double d ? d : double.TryParse(v.ToString(), out double res) ? res : 0.0;
         });
 
         return doubles.Count != 0 ? doubles.Sum() : 0d;

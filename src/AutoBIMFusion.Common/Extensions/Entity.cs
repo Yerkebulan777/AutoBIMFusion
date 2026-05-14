@@ -147,9 +147,9 @@ public static class EntityExtensions
                     PatternDefinition OriginHatchPatternDefinition = OriginHatch.GetPatternDefinitionAt(0);
                     PatternDefinition TargetHatchPatternDefinition = TargetHatch.GetPatternDefinitionAt(0);
 
-                    var angleA = OriginHatchPatternDefinition.Angle; // objet 1
-                    var angleB = TargetHatchPatternDefinition.Angle; // objet 2
-                    var compensation = angleA - angleB;
+                    double angleA = OriginHatchPatternDefinition.Angle; // objet 1
+                    double angleB = TargetHatchPatternDefinition.Angle; // objet 2
+                    double compensation = angleA - angleB;
                     TargetHatch.PatternAngle += compensation;
 
 
@@ -353,7 +353,7 @@ public static class EntityExtensions
         }
         else if (entity is Spline spline)
         {
-            for (var i = 0; i < spline.NumControlPoints; i++)
+            for (int i = 0; i < spline.NumControlPoints; i++)
             {
                 Point3d point = spline.GetControlPointAt(i);
                 spline.SetControlPointAt(i, point.Flatten());
@@ -503,13 +503,13 @@ public static class EntityExtensions
         {
             //IN PROGRESS DOES NOT WORK ???
             mLeader.TextLocation = mLeader.TextLocation.Flatten();
-            for (var LeaderLineCount = 0; LeaderLineCount < mLeader.LeaderLineCount; LeaderLineCount++)
+            for (int LeaderLineCount = 0; LeaderLineCount < mLeader.LeaderLineCount; LeaderLineCount++)
             {
                 try
                 {
                     mLeader.SetFirstVertex(LeaderLineCount, mLeader.GetFirstVertex(LeaderLineCount).Flatten());
                     mLeader.SetLastVertex(LeaderLineCount, mLeader.GetLastVertex(LeaderLineCount).Flatten());
-                    for (var LeaderVerticesCount = 0;
+                    for (int LeaderVerticesCount = 0;
                          LeaderVerticesCount < mLeader.VerticesCount(LeaderLineCount);
                          LeaderVerticesCount++)
                     {
@@ -571,7 +571,7 @@ public static class EntityExtensions
 
     public static List<object> ReadXData(this Entity ent)
     {
-        var AppName = Generic.GetExtensionDLLName();
+        string AppName = Generic.GetExtensionDLLName();
         List<object> list = [];
         //using (Transaction trx = db.TransactionManager.StartTransaction())
         //{
@@ -583,7 +583,7 @@ public static class EntityExtensions
                 switch ((DxfCode)tv.TypeCode)
                 {
                     case DxfCode.ExtendedDataAsciiString:
-                        var asciiStr = (string)tv.Value;
+                        string asciiStr = (string)tv.Value;
                         list.Add(asciiStr);
                         break;
                     case DxfCode.ExtendedDataInteger16:
@@ -606,7 +606,7 @@ public static class EntityExtensions
         ent.TryUpgradeOpen();
 
         RegAppTable regTable = (RegAppTable)trx.GetObject(db.RegAppTableId, OpenMode.ForRead);
-        var AppName = Generic.GetExtensionDLLName();
+        string AppName = Generic.GetExtensionDLLName();
         if (!regTable.Has(AppName))
         {
             regTable.UpgradeOpen();
@@ -629,8 +629,8 @@ public static class EntityExtensions
         ExtentsSize entExtentSize = entExtent.Size();
         ExtentsSize FitBoundingBoxSize = FitBoundingBox.Size();
 
-        var scaleX = entExtentSize.Width / FitBoundingBoxSize.Width;
-        var scaleY = entExtentSize.Height / FitBoundingBoxSize.Height;
+        double scaleX = entExtentSize.Width / FitBoundingBoxSize.Width;
+        double scaleY = entExtentSize.Height / FitBoundingBoxSize.Height;
         ent.TransformBy(Matrix3d.Scaling(Min(scaleX, scaleY), entExtent.MinPoint));
     }
 }

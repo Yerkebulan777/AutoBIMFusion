@@ -149,8 +149,8 @@ public static class Layers
         using Transaction trans = db.TransactionManager.StartTransaction();
         try
         {
-            var layerName = OldName;
-            var newLayerName = NewName;
+            string layerName = OldName;
+            string newLayerName = NewName;
 
             // Renommer le calque
             LayerTable lt = (LayerTable)trans.GetObject(db.LayerTableId, OpenMode.ForWrite);
@@ -242,7 +242,7 @@ public static class Layers
             return;
         }
 
-        var sourceLayerName = sourceLayer.Name;
+        string sourceLayerName = sourceLayer.Name;
 
         // Move every entities
         foreach (ObjectId blockId in trx.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable)

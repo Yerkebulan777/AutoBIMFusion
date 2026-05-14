@@ -99,16 +99,16 @@ public static class HatchsExtensions
 
     private static List<(Curve, HatchLoopTypes)> GetHatchBoundary(Hatch hatch)
     {
-        var numberOfLoops = hatch.NumberOfLoops;
+        int numberOfLoops = hatch.NumberOfLoops;
         List<(Curve, HatchLoopTypes)> result = new(numberOfLoops);
-        for (var i = 0; i < numberOfLoops; i++)
+        for (int i = 0; i < numberOfLoops; i++)
         {
             HatchLoop loop = hatch.GetLoopAt(i);
             if (loop.IsPolyline)
             {
                 BulgeVertexCollection bulges = loop.Polyline;
                 Polyline pline = new(bulges.Count);
-                for (var j = 0; j < bulges.Count; j++)
+                for (int j = 0; j < bulges.Count; j++)
                 {
                     BulgeVertex vertex = bulges[j];
                     pline.AddVertexAt(j, vertex.Vertex, vertex.Bulge, 0.0, 0.0);
@@ -157,7 +157,7 @@ public static class HatchsExtensions
 
     public static void RemoveAllLoops(this Hatch hatch)
     {
-        for (var i = 0; i < hatch.NumberOfLoops; i++)
+        for (int i = 0; i < hatch.NumberOfLoops; i++)
         {
             hatch.RemoveLoopAt(i);
         }

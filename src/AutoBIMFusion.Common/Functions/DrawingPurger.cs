@@ -64,17 +64,17 @@ public static class DrawingPurger
 
     private static Dictionary<string, int> CorePurge(Database db)
     {
-        var purgeReport = new Dictionary<string, int>();
+        Dictionary<string, int> purgeReport = [];
         int totalDeletedCount = 0;
 
         using (Transaction trx = db.TransactionManager.StartTransaction())
         {
             // Временно снимаем блокировку со всех слоёв, чтобы выполнить очистку.
-            var list = new List<LayerTableRecord>();
+            List<LayerTableRecord> list = [];
 
             foreach (ObjectId objectId in (LayerTable)trx.GetObject(db.LayerTableId, OpenMode.ForRead))
             {
-                var layerTableRecord = (LayerTableRecord)trx.GetObject(objectId, OpenMode.ForRead);
+                LayerTableRecord layerTableRecord = (LayerTableRecord)trx.GetObject(objectId, OpenMode.ForRead);
                 if (layerTableRecord.IsLocked)
                 {
                     _ = trx.GetObject(layerTableRecord.ObjectId, OpenMode.ForWrite);
@@ -147,8 +147,8 @@ public static class DrawingPurger
         /// </summary>
         public static int Database(Database db)
         {
-            var tableIds = new ObjectIdCollection();
-            var dictIds = new ObjectIdCollection();
+            ObjectIdCollection tableIds = [];
+            ObjectIdCollection dictIds = [];
 
             _ = tableIds.Add(db.BlockTableId);
             _ = tableIds.Add(db.LayerTableId);
@@ -161,11 +161,11 @@ public static class DrawingPurger
             _ = dictIds.Add(db.TableStyleDictionaryId);
             _ = dictIds.Add(db.PlotStyleNameDictionaryId);
 
-            var objectIdCollection = new ObjectIdCollection();
+            ObjectIdCollection objectIdCollection = [];
             using Transaction trx = db.TransactionManager.StartTransaction();
             foreach (object? obj in tableIds)
             {
-                var objectId = (ObjectId)obj;
+                ObjectId objectId = (ObjectId)obj;
                 foreach (ObjectId objectId2 in (SymbolTable)objectId.GetDBObject())
                 {
                     if (!((SymbolTableRecord)objectId2.GetDBObject()).IsDependent)
@@ -177,7 +177,7 @@ public static class DrawingPurger
 
             foreach (object? obj2 in dictIds)
             {
-                var objectId3 = (ObjectId)obj2;
+                ObjectId objectId3 = (ObjectId)obj2;
                 foreach (DBDictionaryEntry dbdictionaryEntry in (DBDictionary)objectId3.GetDBObject())
                 {
                     if (dbdictionaryEntry.Value.IsValid && !dbdictionaryEntry.Value.GetDBObject().IsAProxy)
@@ -213,7 +213,7 @@ public static class DrawingPurger
                     {
                         if (objectId3.ObjectClass.IsDerivedFrom(CurveRXClass))
                         {
-                            var curve = (Curve)trx.GetObject(objectId3, OpenMode.ForRead);
+                            Curve curve = (Curve)trx.GetObject(objectId3, OpenMode.ForRead);
                             if (curve is not Xline && curve is not Ray &&
                                 curve.GetDistanceAtParameter(curve.EndParam) == 0.0)
                             {
@@ -252,7 +252,7 @@ public static class DrawingPurger
                     {
                         if (objectId3.ObjectClass == DBTextRXClass)
                         {
-                            var dbtext = (DBText)trx.GetObject(objectId3, OpenMode.ForRead);
+                            DBText dbtext = (DBText)trx.GetObject(objectId3, OpenMode.ForRead);
                             if (dbtext.TextString.Trim()?.Length == 0)
                             {
                                 objectId3.GetDBObject(OpenMode.ForWrite).Erase();
@@ -285,7 +285,7 @@ public static class DrawingPurger
             {
                 if (!XrefId.IsErased)
                 {
-                    var blockTableRecord = (BlockTableRecord)trx.GetObject(XrefId, OpenMode.ForRead);
+                    BlockTableRecord blockTableRecord = (BlockTableRecord)trx.GetObject(XrefId, OpenMode.ForRead);
                     if (!blockTableRecord.IsLayout && blockTableRecord.IsFromExternalReference &&
                         blockTableRecord.GetBlockReferenceIds(true, false).Count == 0)
                     {
@@ -305,11 +305,11 @@ public static class DrawingPurger
         public static int MLeaderStyle(Database db)
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
-            var objectIdCollection = new ObjectIdCollection();
-            var dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
+            ObjectIdCollection objectIdCollection = [];
+            DBDictionary dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
             if (dbdictionary.Contains("ACAD_MLEADERSTYLE"))
             {
-                var MLeaderStyleObjectIdCollection = new ObjectIdCollection();
+                ObjectIdCollection MLeaderStyleObjectIdCollection = [];
                 foreach (DBDictionaryEntry MLeaderStyleEntry in (DBDictionary)dbdictionary.GetAt("ACAD_MLEADERSTYLE")
                              .GetDBObject())
                 {
@@ -344,11 +344,11 @@ public static class DrawingPurger
         public static int DWF(Database db)
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
-            var objectIdCollection = new ObjectIdCollection();
-            var dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
+            ObjectIdCollection objectIdCollection = [];
+            DBDictionary dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
             if (dbdictionary.Contains("ACAD_DWFDEFINITIONS"))
             {
-                var DwfDefinitionsObjectIdCollection = new ObjectIdCollection();
+                ObjectIdCollection DwfDefinitionsObjectIdCollection = [];
                 foreach (DBDictionaryEntry DwfEntry in (DBDictionary)dbdictionary.GetAt("ACAD_DWFDEFINITIONS").GetDBObject())
                 {
                     _ = DwfDefinitionsObjectIdCollection.Add(DwfEntry.Value);
@@ -382,11 +382,11 @@ public static class DrawingPurger
         public static int PDF(Database db)
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
-            var objectIdCollection = new ObjectIdCollection();
-            var dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
+            ObjectIdCollection objectIdCollection = [];
+            DBDictionary dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
             if (dbdictionary.Contains("ACAD_PDFDEFINITIONS"))
             {
-                var PdfDefinitionsObjectIdCollection = new ObjectIdCollection();
+                ObjectIdCollection PdfDefinitionsObjectIdCollection = [];
                 foreach (DBDictionaryEntry PdfEntry in (DBDictionary)dbdictionary.GetAt("ACAD_PDFDEFINITIONS").GetDBObject())
                 {
                     _ = PdfDefinitionsObjectIdCollection.Add(PdfEntry.Value);
@@ -419,12 +419,12 @@ public static class DrawingPurger
         /// </summary>
         public static int DGN(Database db)
         {
-            var objectIdCollection = new ObjectIdCollection();
+            ObjectIdCollection objectIdCollection = [];
             using Transaction trx = db.TransactionManager.StartTransaction();
-            var dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
+            DBDictionary dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
             if (dbdictionary.Contains("ACAD_DGNDEFINITIONS"))
             {
-                var DgnDefinitionsObjectIdCollection = new ObjectIdCollection();
+                ObjectIdCollection DgnDefinitionsObjectIdCollection = [];
                 foreach (DBDictionaryEntry DgnEntry in (DBDictionary)dbdictionary.GetAt("ACAD_DGNDEFINITIONS").GetDBObject())
                 {
                     _ = DgnDefinitionsObjectIdCollection.Add(DgnEntry.Value);
@@ -458,15 +458,15 @@ public static class DrawingPurger
         public static int RasterImages(Database db)
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
-            var objectIdCollection = new ObjectIdCollection();
-            var dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
+            ObjectIdCollection objectIdCollection = [];
+            DBDictionary dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
             if (dbdictionary.Contains("ACAD_IMAGE_DICT"))
             {
                 foreach (DBDictionaryEntry ImageEntry in (DBDictionary)dbdictionary.GetAt("ACAD_IMAGE_DICT").GetDBObject())
                 {
                     if (ImageEntry.Value.IsValid)
                     {
-                        var rasterImageDef = trx.GetObject(ImageEntry.Value, OpenMode.ForRead) as RasterImageDef;
+                        RasterImageDef? rasterImageDef = trx.GetObject(ImageEntry.Value, OpenMode.ForRead) as RasterImageDef;
                         if (rasterImageDef?.IsAProxy == false && rasterImageDef.GetEntityCount(out _) == 0)
                         {
                             _ = objectIdCollection.Add(ImageEntry.Value);
@@ -491,8 +491,8 @@ public static class DrawingPurger
         public static int ScaleList(Database db)
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
-            var objectIdCollection = new ObjectIdCollection();
-            var dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
+            ObjectIdCollection objectIdCollection = [];
+            DBDictionary dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
             if (dbdictionary.Contains("ACAD_SCALELIST"))
             {
                 foreach (DBDictionaryEntry ScaleEntry in (DBDictionary)dbdictionary.GetAt("ACAD_SCALELIST").GetDBObject())
@@ -520,7 +520,7 @@ public static class DrawingPurger
         public static int VisualStyle(Database db)
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
-            var objectIdCollection = new ObjectIdCollection();
+            ObjectIdCollection objectIdCollection = [];
             foreach (DBDictionaryEntry VisualStyleEntry in (DBDictionary)trx.GetObject(db.VisualStyleDictionaryId,
                          OpenMode.ForRead))
             {
@@ -547,7 +547,7 @@ public static class DrawingPurger
         public static int Material(Database db)
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
-            var objectIdCollection = new ObjectIdCollection();
+            ObjectIdCollection objectIdCollection = [];
             foreach (DBDictionaryEntry MaterialEntry in (DBDictionary)trx.GetObject(db.MaterialDictionaryId, OpenMode.ForRead,
                          false))
             {
@@ -575,10 +575,10 @@ public static class DrawingPurger
         public static int TextStyle(Database db)
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
-            var objectIdCollection = new ObjectIdCollection();
+            ObjectIdCollection objectIdCollection = [];
             foreach (ObjectId TextStyleTableId in (TextStyleTable)trx.GetObject(db.TextStyleTableId, OpenMode.ForRead))
             {
-                var textStyleTableRecord = (TextStyleTableRecord)trx.GetObject(TextStyleTableId, OpenMode.ForRead);
+                TextStyleTableRecord textStyleTableRecord = (TextStyleTableRecord)trx.GetObject(TextStyleTableId, OpenMode.ForRead);
                 if (textStyleTableRecord.IsShapeFile && textStyleTableRecord.Name != "" &&
                     !textStyleTableRecord.IsAProxy &&
                     !textStyleTableRecord.IsDependent)
@@ -606,7 +606,7 @@ public static class DrawingPurger
             int CountDeleted = 0;
             foreach (DBDictionaryEntry GroupEntry in (DBDictionary)trx.GetObject(db.GroupDictionaryId, OpenMode.ForRead, false))
             {
-                var group = (Group)trx.GetObject(GroupEntry.Value, OpenMode.ForRead, false);
+                Group group = (Group)trx.GetObject(GroupEntry.Value, OpenMode.ForRead, false);
                 if (group.NumEntities < 2)
                 {
                     group.ObjectId.GetDBObject(OpenMode.ForWrite).Erase();

@@ -6,7 +6,7 @@ public static class GripDataCollectionExtensions
     {
         GripData[] newArray = new GripData[grips.Count];
         int index = 0;
-        foreach (var item in grips)
+        foreach (GripData? item in grips)
         {
             newArray.SetValue(item, index++);
         }

@@ -35,14 +35,14 @@ public static class Hatchs
         {
             BlockTableRecord btr = Generic.GetCurrentSpaceBlockTableRecord(trx);
             DrawOrderTable? orderTable = trx.GetObject(btr.DrawOrderTableId, OpenMode.ForWrite) as DrawOrderTable;
-            ObjectIdCollection DrawOrderCollection = new();
+            ObjectIdCollection DrawOrderCollection = [];
             if (OutsidePolyline.IsNewObject)
             {
                 OutsidePolyline.Closed = true;
                 _ = OutsidePolyline.AddToDrawingCurrentTransaction();
             }
 
-            List<ObjectId> Inside = new();
+            List<ObjectId> Inside = [];
             foreach (Curve InsidePolyline in OuterMostCurves)
             {
                 if (InsidePolyline == OutsidePolyline)
@@ -72,7 +72,7 @@ public static class Hatchs
                 _ = DrawOrderCollection.Add(OutsidePolyline.ObjectId);
             }
 
-            ObjectIdCollection OutsideObjId = new() { OutsidePolyline.ObjectId };
+            ObjectIdCollection OutsideObjId = [OutsidePolyline.ObjectId];
 
             Hatch oHatch = new();
             ObjectId oHatchObjectId = btr.AppendEntity(oHatch);
@@ -92,7 +92,7 @@ public static class Hatchs
 
             foreach (ObjectId item in Inside)
             {
-                ObjectIdCollection InsideObjId = new() { item };
+                ObjectIdCollection InsideObjId = [item];
 
                 bool TryAppendLoop(HatchLoopTypes hatchLoopTypes)
                 {

@@ -16,7 +16,7 @@ public class GetDoubleTransient(DBObjectCollection Entities) : TransientBase(Ent
             UseDefaultValue = false // Désactivé pour que "Entrée" renvoie bien le status 'None' et pas 'OK'
         };
 
-        foreach (var KeyWord in KeyWords)
+        foreach (string KeyWord in KeyWords)
         {
             if (!string.IsNullOrWhiteSpace(KeyWord))
             {

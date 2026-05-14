@@ -60,7 +60,7 @@ public static class BlockScaleApplier
             return;
         }
 
-        var btr = (BlockTableRecord)trx.GetObject(blockDefinitionId, OpenMode.ForWrite);
+        BlockTableRecord btr = (BlockTableRecord)trx.GetObject(blockDefinitionId, OpenMode.ForWrite);
         string blockName = btr.Name;
 
         if (!processedBlocks.Add(blockName))
@@ -178,7 +178,7 @@ public static class BlockScaleApplier
 
         foreach (ObjectId anonymousBtrId in btr.GetAnonymousBlockIds())
         {
-            var anonymousBtr = (BlockTableRecord)trx.GetObject(anonymousBtrId, OpenMode.ForRead);
+            BlockTableRecord anonymousBtr = (BlockTableRecord)trx.GetObject(anonymousBtrId, OpenMode.ForRead);
             result.Join(anonymousBtr.GetBlockReferenceIds(true, true));
         }
 

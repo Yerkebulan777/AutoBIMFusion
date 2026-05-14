@@ -149,7 +149,7 @@ public static class Parser
                 return string.Empty;
             }
 
-            var stringBuilder = new StringBuilder();
+            StringBuilder stringBuilder = new();
             for (int i = 1; i < json.Length - 1; ++i)
             {
                 if (json[i] == '\\' && i + 1 < json.Length - 1)
@@ -222,7 +222,7 @@ public static class Parser
             }
 
             List<string> elems = Split(json);
-            var newArray = Array.CreateInstance(arrayType, elems.Count);
+            Array newArray = Array.CreateInstance(arrayType, elems.Count);
             for (int i = 0; i < elems.Count; i++)
             {
                 newArray.SetValue(ParseValue(arrayType, elems[i]), i);
@@ -241,7 +241,7 @@ public static class Parser
             }
 
             List<string> elems = Split(json);
-            var list = (IList)type.GetConstructor(new[] { typeof(int) }).Invoke(new object[] { elems.Count });
+            IList list = (IList)type.GetConstructor(new[] { typeof(int) }).Invoke(new object[] { elems.Count });
             for (int i = 0; i < elems.Count; i++)
             {
                 _ = list.Add(ParseValue(listType, elems[i]));
@@ -284,7 +284,7 @@ public static class Parser
                 return null;
             }
 
-            var dictionary =
+            IDictionary dictionary =
                 (IDictionary)type.GetConstructor(new[] { typeof(int) }).Invoke(new object[] { elems.Count / 2 });
             for (int i = 0; i < elems.Count; i += 2)
             {
@@ -338,7 +338,7 @@ public static class Parser
                 return null;
             }
 
-            var dict = new Dictionary<string, object>(elems.Count / 2);
+            Dictionary<string, object> dict = new(elems.Count / 2);
             for (int i = 0; i < elems.Count; i += 2)
             {
                 dict.Add(elems[i][1..^1], ParseAnonymousValue(elems[i + 1]));
@@ -350,7 +350,7 @@ public static class Parser
         if (json[0] == '[' && json[^1] == ']')
         {
             List<string> items = Split(json);
-            var finalList = new List<object>(items.Count);
+            List<object> finalList = new(items.Count);
             for (int i = 0; i < items.Count; i++)
             {
                 finalList.Add(ParseAnonymousValue(items[i]));

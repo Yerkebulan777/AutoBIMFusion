@@ -20,7 +20,7 @@ public static class ViewportsExtensions
             return [];
         }
 
-        List<int> vps = new();
+        List<int> vps = [];
 
         Transaction trx = db.TransactionManager.StartTransaction();
         using (trx)
@@ -48,7 +48,7 @@ public static class ViewportsExtensions
             trx.Commit();
         }
 
-        var ints = new int[vps.Count];
+        int[] ints = new int[vps.Count];
         vps.CopyTo(ints, 0);
         return ints.ToIntegerCollection();
     }
@@ -125,7 +125,7 @@ public static class ViewportsExtensions
     {
         Database db = Generic.GetDatabase();
 
-        List<ObjectId> ListOfViewPorts = new();
+        List<ObjectId> ListOfViewPorts = [];
 
         foreach (ObjectId objId in btr)
         {
@@ -161,8 +161,8 @@ public static class ViewportsExtensions
             {
                 // Get the standard rectangular boundary
                 Point3d center = viewport.CenterPoint;
-                var width = viewport.Width;
-                var height = viewport.Height;
+                double width = viewport.Width;
+                double height = viewport.Height;
 
                 Point3d lowerLeft = new(center.X - (width / 2), center.Y - (height / 2), center.Z);
                 Point3d lowerRight = new(center.X + (width / 2), center.Y - (height / 2), center.Z);

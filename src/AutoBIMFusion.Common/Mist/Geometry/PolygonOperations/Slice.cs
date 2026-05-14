@@ -14,8 +14,7 @@ public static partial class PolygonOperation
         DBObjectCollection InsideCutLines = BasePolyline.GetInsideCutLines(BaseCutLine);
 
         //InsideCutLines.AddToDrawing(5, true);
-        List<Polyline> Polygon = new()
-        { BasePolyline.Clone() as Polyline };
+        List<Polyline> Polygon = [BasePolyline.Clone() as Polyline];
         foreach (Polyline CutLine in InsideCutLines)
         {
             if (CutLine == null)
@@ -90,7 +89,7 @@ public static partial class PolygonOperation
         //{
         //List<Polyline> Cleanned = new List<Polyline>();
         Polyline[] array = Polylines.ToArray();
-        for (var i = 0; i < array.Length; i++)
+        for (int i = 0; i < array.Length; i++)
         {
             Polyline item = array[i];
             _ = Polylines.Remove(item);
@@ -109,7 +108,7 @@ public static partial class PolygonOperation
         static void GetConnectingPolylineInList(Point3d Origin, ref Polyline SubPoly, ref Polyline SubCutLine,
             ref List<Polyline> SubPolylines)
         {
-            var itineration = 0;
+            int itineration = 0;
             while (itineration <= SubPolylines.Count &&
                    Origin.DistanceTo(SubCutLine) > Generic.MediumTolerance.EqualPoint)
             {
@@ -148,9 +147,9 @@ public static partial class PolygonOperation
         List<DBObject> ClosedPolylines = Polylines.Where(poly => (poly as Polyline).Closed).ToList();
         List<DBObject> NotClosedPolylines = Polylines.Where(poly => !(poly as Polyline).Closed).ToList();
 
-        var index = 0;
-        var LastOperationNotClosedPolylinesCount = -1;
-        var SameCountRedo = 3;
+        int index = 0;
+        int LastOperationNotClosedPolylinesCount = -1;
+        int SameCountRedo = 3;
         while (NotClosedPolylines.Count > index)
         {
             if (LastOperationNotClosedPolylinesCount == NotClosedPolylines.Count)
@@ -202,7 +201,7 @@ public static partial class PolygonOperation
             index++;
         }
 
-        List<Polyline> CutedClosePolyligne = new();
+        List<Polyline> CutedClosePolyligne = [];
         foreach (Polyline polyligne in ClosedPolylines.Cast<Polyline>())
         {
             if (polyligne.Closed && polyligne.Area > 0 && !CutedClosePolyligne.Contains(polyligne))
@@ -228,11 +227,11 @@ public static partial class PolygonOperation
         }
         //BoundaryPolyline.AddToDrawing(3, true);
         //CutLines.AddToDrawing(3, true);
-        DBObjectCollection InsideCutLines = new();
+        DBObjectCollection InsideCutLines = [];
         foreach (Polyline line in CutLines)
         {
-            var IsInside = line.IsInside(BoundaryPolyline);
-            var IsOverlaping = line.IsOverlaping(BoundaryPolyline);
+            bool IsInside = line.IsInside(BoundaryPolyline);
+            bool IsOverlaping = line.IsOverlaping(BoundaryPolyline);
             if (IsInside && !IsOverlaping)
             {
                 _ = InsideCutLines.Add(line);
@@ -246,7 +245,7 @@ public static partial class PolygonOperation
         //InsideCutLines.AddToDrawing(3, true);
         //Fix splitted lines
 
-        var SuccessfulllyJoinACutLine = true;
+        bool SuccessfulllyJoinACutLine = true;
         while (SuccessfulllyJoinACutLine)
         {
             SuccessfulllyJoinACutLine = false;
@@ -313,12 +312,12 @@ public static partial class PolygonOperation
     public static DoubleCollection GetSplitPoints(this Polyline polyline, Point3dCollection IntersectionPointsFounds)
     {
         Point3dCollection OrderedIntersectionPointsFounds = IntersectionPointsFounds.OrderByDistanceOnLine(polyline);
-        DoubleCollection DblCollection = new();
+        DoubleCollection DblCollection = [];
         foreach (Point3d Point in OrderedIntersectionPointsFounds)
         {
             if (Point.IsOnPolyline(polyline))
             {
-                var param = polyline.GetParamAtPointX(Point);
+                double param = polyline.GetParamAtPointX(Point);
                 if (!ContainsTolerance(DblCollection, param))
                 {
                     _ = DblCollection.Add(param);
@@ -332,7 +331,7 @@ public static partial class PolygonOperation
 
     private static bool ContainsTolerance(DoubleCollection doubles, double Value)
     {
-        foreach (var item in doubles)
+        foreach (double item in doubles)
         {
             if (Abs(item - Value) < Generic.MediumTolerance.EqualPoint)
             {

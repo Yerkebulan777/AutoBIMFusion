@@ -126,7 +126,7 @@ public class CotePoints
         {
             AttributeReference Attribute = (AttributeReference)trx.GetObject(AttributeObjectId, OpenMode.ForRead, true);
 
-            var textString = Attribute.TextString.Trim();
+            string textString = Attribute.TextString.Trim();
 
             if (textString.Contains('.'))
             {

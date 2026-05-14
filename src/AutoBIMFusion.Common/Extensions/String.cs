@@ -101,7 +101,7 @@ internal static class StringExtensions
         //var PossibleValuesSeparators = new List<string> { ";", "," };
         string LanguageSeparator =
             CultureInfo.CurrentUICulture.NumberFormat.NumberDecimalSeparator; //french use , as decimal separaror
-        var newdelimiters = delimiters.Where(car => car.Trim() != LanguageSeparator);
+        IEnumerable<string> newdelimiters = delimiters.Where(car => car.Trim() != LanguageSeparator);
         return input.SplitByListString(newdelimiters).ToArray();
     }
 

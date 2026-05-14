@@ -11,7 +11,7 @@ public static class DWGDataStorage
         using Transaction trx = db.TransactionManager.StartTransaction();
         DBDictionary nod = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
 
-        var myDictName = Generic.GetExtensionDLLName();
+        string myDictName = Generic.GetExtensionDLLName();
 
         DBDictionary myDict;
         if (!nod.Contains(myDictName))
@@ -47,7 +47,7 @@ public static class DWGDataStorage
         using DocumentLock docLock = Generic.GetDocument().LockDocument();
         using Transaction trx = db.TransactionManager.StartTransaction();
         DBDictionary nod = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
-        var myDictName = Generic.GetExtensionDLLName();
+        string myDictName = Generic.GetExtensionDLLName();
         if (!nod.Contains(myDictName))
         {
             return null;
@@ -68,7 +68,7 @@ public static class DWGDataStorage
     {
         using Transaction trx = db.TransactionManager.StartTransaction();
         DBDictionary nod = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
-        var myDictName = Generic.GetExtensionDLLName();
+        string myDictName = Generic.GetExtensionDLLName();
         if (!nod.Contains(myDictName))
         {
             return;

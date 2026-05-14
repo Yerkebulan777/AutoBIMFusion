@@ -76,8 +76,8 @@ public static class Point3dExtensions
             return false;
         }
 
-        var ArrayA = A.ToArray();
-        var ArrayB = B.ToArray();
+        Point3d[] ArrayA = A.ToArray();
+        Point3d[] ArrayB = B.ToArray();
         for (int i = 0; i < A.Count(); i++)
         {
             if (!ArrayA[i].IsEqualTo(ArrayB[i]))
@@ -91,7 +91,7 @@ public static class Point3dExtensions
 
     public static bool Contains(this IEnumerable<Point3d> points, Point3d Point)
     {
-        foreach (var item in points)
+        foreach (Point3d item in points)
         {
             if (item.IsEqualTo(Point))
             {
@@ -104,7 +104,7 @@ public static class Point3dExtensions
 
     public static bool ContainsAll(this IEnumerable<Point3d> pointsA, IEnumerable<Point3d> pointsB)
     {
-        foreach (var item in pointsB)
+        foreach (Point3d item in pointsB)
         {
             if (!pointsA.Contains(item))
             {
@@ -117,7 +117,7 @@ public static class Point3dExtensions
 
     public static Point3d TranformToBlockReferenceTransformation(this Point3d OriginPoint, BlockReference blkRef)
     {
-        var selectedPointInBlockRefSpace = OriginPoint.TransformBy(blkRef.BlockTransform.Inverse());
+        Point3d selectedPointInBlockRefSpace = OriginPoint.TransformBy(blkRef.BlockTransform.Inverse());
         // Matrix3d rotationMatrix = Matrix3d.Rotation(Math.PI, Vector3d.ZAxis, Point3d.Origin);
         return selectedPointInBlockRefSpace; //.TransformBy(rotationMatrix);
     }
@@ -131,7 +131,7 @@ public static class Point3dExtensions
     {
         try
         {
-            var NoArcPoly = polyline.ToPolygon();
+            Polyline NoArcPoly = polyline.ToPolygon();
             Point3dCollection Pnts = NoArcPoly.GetPoints().ToPoint3dCollection();
             if (NoArcPoly != polyline)
             {
@@ -149,7 +149,7 @@ public static class Point3dExtensions
 
     public static Matrix3d GetDisplacementMatrixTo(this Point3d Origin, Point3d Destination)
     {
-        var DisplacementVector = Origin.GetVectorTo(Destination);
+        Vector3d DisplacementVector = Origin.GetVectorTo(Destination);
         return Matrix3d.Displacement(DisplacementVector);
     }
 
@@ -165,7 +165,7 @@ public static class Point3dExtensions
 
         List<(Point3d Point, double Distance)> orderedList = List.OrderBy(item => item.Distance).ToList();
         Point3dCollection newCollection = [];
-        foreach (var (Point, Distance) in orderedList)
+        foreach ((Point3d Point, double Distance) in orderedList)
         {
             _ = newCollection.Add(Point);
         }
@@ -184,7 +184,7 @@ public static class Point3dExtensions
 
         List<(Point3d Point, double Distance)> orderedList = List.OrderBy(item => item.Distance).ToList();
         Point3dCollection newCollection = [];
-        foreach (var (Point, Distance) in orderedList)
+        foreach ((Point3d Point, double Distance) in orderedList)
         {
             _ = newCollection.Add(Point);
         }
@@ -210,7 +210,7 @@ public static class Point3dExtensions
         for (int i = 0; i < pl.NumberOfVertices; i++)
         {
             Curve3d seg = null;
-            var segType = pl.GetSegmentType(i);
+            SegmentType segType = pl.GetSegmentType(i);
 
             if (segType == SegmentType.Arc)
             {
@@ -275,13 +275,13 @@ public static class Point3dExtensions
         double ty = p.Y;
 
         //get initial test bit for above/below X axis
-        var vtx0 = verts[0];
+        Point3d vtx0 = verts[0];
         bool yflag0 = vtx0[1] >= ty;
 
         bool inside_flag = false;
         for (int i = 1; i < verts.Count; i++)
         {
-            var vtx1 = verts[i];
+            Point3d vtx1 = verts[i];
 
             bool yflag1 = vtx1[1] >= ty;
             // check if endpoints straddle (are on opposite sides) of X axis

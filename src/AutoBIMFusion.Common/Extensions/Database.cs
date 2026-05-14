@@ -20,7 +20,7 @@ public static class DatabaseExtensions
 
     public static Dictionary<ObjectId, string> GetAllObjects(this Database db)
     {
-        var dict = new Dictionary<ObjectId, string>();
+        Dictionary<ObjectId, string> dict = [];
         for (long i = 0; i < db.Handseed.Value; i++)
         {
             if (db.TryGetObjectId(new Handle(i), out ObjectId id))
@@ -34,13 +34,13 @@ public static class DatabaseExtensions
 
     public static Dictionary<ObjectId, string> GetAllEntities(this Database db)
     {
-        var dict = new Dictionary<ObjectId, string>();
+        Dictionary<ObjectId, string> dict = [];
         using (OpenCloseTransaction trx = db.TransactionManager.StartOpenCloseTransaction())
         {
-            var bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
+            BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
             foreach (ObjectId btrId in bt)
             {
-                var btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
+                BlockTableRecord btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
                 if (btr.IsLayout)
                 {
                     foreach (ObjectId id in btr)
@@ -124,21 +124,21 @@ public static class DatabaseExtensions
     public static ObjectId GetObjectIdFromAppDictionary(this Database db, Transaction trx, string appDictName,
         string keyName)
     {
-        var nod = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
+        DBDictionary nod = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
 
         if (!nod.Contains(appDictName))
         {
             return ObjectId.Null;
         }
 
-        var appDict = (DBDictionary)trx.GetObject(nod.GetAt(appDictName), OpenMode.ForRead);
+        DBDictionary appDict = (DBDictionary)trx.GetObject(nod.GetAt(appDictName), OpenMode.ForRead);
 
         if (!appDict.Contains(keyName))
         {
             return ObjectId.Null;
         }
 
-        var xrec = (Xrecord)trx.GetObject(appDict.GetAt(keyName), OpenMode.ForRead);
+        Xrecord xrec = (Xrecord)trx.GetObject(appDict.GetAt(keyName), OpenMode.ForRead);
         TypedValue[] data = xrec.Data.AsArray();
 
         return data.Length == 0 || data[0].Value is not ObjectId ? ObjectId.Null : (ObjectId)data[0].Value;
@@ -148,7 +148,7 @@ public static class DatabaseExtensions
     public static void StoreObjectIdInAppDictionary(this Database db, Transaction trx, string appDictName,
         string keyName, ObjectId objectId)
     {
-        var nod = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
+        DBDictionary nod = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
 
         DBDictionary appDict;
         if (!nod.Contains(appDictName))
@@ -169,7 +169,7 @@ public static class DatabaseExtensions
         }
 
         appDict.UpgradeOpen();
-        var xrec = new Xrecord
+        Xrecord xrec = new()
         {
             Data = new ResultBuffer(new TypedValue((int)DxfCode.SoftPointerId, objectId))
         };
@@ -194,7 +194,7 @@ public static class DatabaseExtensions
         {
             db.SaveAs(tempFilePath, version);
 
-            var fi = new FileInfo(tempFilePath);
+            FileInfo fi = new(tempFilePath);
             sizeBytes = fi.Length;
         }
         catch (Exception ex)

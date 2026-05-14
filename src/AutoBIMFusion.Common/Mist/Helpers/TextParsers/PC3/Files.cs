@@ -19,7 +19,7 @@ public static class Files
         // On utilise DeflateStream au lieu de GZipStream
         using DeflateStream ds = new(fs, CompressionMode.Decompress);
         using StreamReader sr = new(ds, Encoding.UTF8);
-        var s = sr.ReadToEnd();
+        string s = sr.ReadToEnd();
         File.WriteAllText(filePath + ".txt", s, Encoding.Default);
     }
 
@@ -29,12 +29,12 @@ public static class Files
     /// </summary>
     public static void Encode(string textFilePath, string outputFilePath)
     {
-        var newText = File.ReadAllText(textFilePath, Encoding.Default);
-        var uncompressedBytes = Encoding.Default.GetBytes(newText);
+        string newText = File.ReadAllText(textFilePath, Encoding.Default);
+        byte[] uncompressedBytes = Encoding.Default.GetBytes(newText);
 
-        var header48 = Encoding.Default.GetBytes("PIAFILEVERSION_2.0,PC3VER1,compress\r\npmzlibcodec");
+        byte[] header48 = Encoding.Default.GetBytes("PIAFILEVERSION_2.0,PC3VER1,compress\r\npmzlibcodec");
         //Calculer l'Adler32 (utilisé à deux endroits !)
-        var adler = CalculateAdler32(uncompressedBytes);
+        uint adler = CalculateAdler32(uncompressedBytes);
 
         //Compresser les données en mémoire avec le DeflateStream natif
         byte[] rawDeflateBytes;
@@ -50,7 +50,7 @@ public static class Files
 
         //Construire le flux Zlib complet
         //Taille = 2 octets (En-tête Zlib) + X octets (Données) + 4 octets (Trailer Adler32)
-        var zlibStreamBytes = new byte[2 + rawDeflateBytes.Length + 4];
+        byte[] zlibStreamBytes = new byte[2 + rawDeflateBytes.Length + 4];
 
         zlibStreamBytes[0] = 0x78; // En-tête Zlib
         zlibStreamBytes[1] = 0xDA; // Niveau de compression par défaut
@@ -69,7 +69,7 @@ public static class Files
         fsOut.Write(header48, 0, 48);
 
         //Générer et écrire le bloc de validation AutoCAD (12 octets)
-        var checkSumBlock = new byte[12];
+        byte[] checkSumBlock = new byte[12];
         //AutoCAD lit ces valeurs en Little-Endian (format Windows standard)
         BitConverter.GetBytes((int)adler).CopyTo(checkSumBlock, 0);
         BitConverter.GetBytes(uncompressedBytes.Length).CopyTo(checkSumBlock, 4);
@@ -94,13 +94,13 @@ public static class Files
         uint s1 = 1;
         uint s2 = 0;
 
-        var length = data.Length;
-        var offset = 0;
+        int length = data.Length;
+        int offset = 0;
 
         while (length > 0)
         {
             // Traitement par lots de 3800 octets pour optimiser les performances (retarde le modulo)
-            var n = length < 3800 ? length : 3800;
+            int n = length < 3800 ? length : 3800;
             length -= n;
 
             while (--n >= 0)

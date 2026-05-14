@@ -23,7 +23,7 @@ public static class UiDialogService
         dialogType.GetProperty("RootFolder")?.SetValue(dialog, Environment.SpecialFolder.Desktop);
         dialogType.GetProperty("ShowNewFolderButton")?.SetValue(dialog, false);
 
-        var result = dialogType.GetMethod("ShowDialog", Type.EmptyTypes)?.Invoke(dialog, null);
+        object? result = dialogType.GetMethod("ShowDialog", Type.EmptyTypes)?.Invoke(dialog, null);
         if (!string.Equals(result?.ToString(), "OK", StringComparison.Ordinal))
         {
             ShowMessage("Отменено пользователем.", "MERGEDWG");

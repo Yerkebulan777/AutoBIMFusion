@@ -37,7 +37,7 @@ public static class SelectInXref
     {
         Database db = HostApplicationServices.WorkingDatabase;
         using Transaction trx = db.TransactionManager.StartTransaction();
-        List<string> Path = new();
+        List<string> Path = [];
         foreach (ObjectId id in res.GetContainers().Reverse())
         {
             BlockReference? container = trx.GetObject(id, OpenMode.ForRead) as BlockReference;

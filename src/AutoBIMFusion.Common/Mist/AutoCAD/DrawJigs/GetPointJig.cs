@@ -58,7 +58,7 @@ public class GetPointJig : DrawJig, IDisposable
 
         if (_keywords != null)
         {
-            foreach (var kv in _keywords)
+            foreach (string kv in _keywords)
             {
                 ppo.Keywords.Add(kv);
             }

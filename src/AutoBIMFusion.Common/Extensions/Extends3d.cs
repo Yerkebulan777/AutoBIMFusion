@@ -106,7 +106,7 @@ public static class Extends3dExtensions
         if (entities.Any())
         {
             Extents3d extent = new();
-            foreach (var dbobj in entities)
+            foreach (object dbobj in entities)
             {
                 if (dbobj is Entity ent)
                 {
@@ -192,10 +192,10 @@ public static class Extends3dExtensions
         {
             // Two points are enough for a line, we'll go with
             // a higher number for other curves
-            var segs = ent is Line ? 2 : 20;
-            var param = cur.EndParam - cur.StartParam;
+            int segs = ent is Line ? 2 : 20;
+            double param = cur.EndParam - cur.StartParam;
 
-            for (var i = 0; i < segs; i++)
+            for (int i = 0; i < segs; i++)
             {
                 try
                 {
@@ -372,20 +372,20 @@ public static class Extends3dExtensions
 
     public static bool IsInside(this Polyline LineB, Extents3d extents, bool CheckEach = true)
     {
-        var NumberOfVertices = 1;
+        int NumberOfVertices = 1;
         if (CheckEach)
         {
             NumberOfVertices = LineB.GetReelNumberOfVertices();
         }
 
-        for (var PolylineSegmentIndex = 0; PolylineSegmentIndex < NumberOfVertices; PolylineSegmentIndex++)
+        for (int PolylineSegmentIndex = 0; PolylineSegmentIndex < NumberOfVertices; PolylineSegmentIndex++)
         {
             (Point3d StartPoint, Point3d EndPoint, double _) = LineB.GetSegmentAt(PolylineSegmentIndex);
             Point3d MiddlePoint;
             if (LineB.GetSegmentType(PolylineSegmentIndex) == SegmentType.Arc)
             {
-                var Startparam = LineB.GetParameterAtPoint(StartPoint);
-                var Endparam = LineB.GetParameterAtPoint(EndPoint);
+                double Startparam = LineB.GetParameterAtPoint(StartPoint);
+                double Endparam = LineB.GetParameterAtPoint(EndPoint);
                 MiddlePoint = LineB.GetPointAtParam(Startparam + ((Endparam - Startparam) / 2));
             }
             else
@@ -441,14 +441,14 @@ public static class Extends3dExtensions
                          Matrix3d.PlaneToWorld(acView.ViewDirection);
 
         // Calculate the ratio between the width and height of the current view
-        var dViewRatio = acView.Width / acView.Height;
+        double dViewRatio = acView.Width / acView.Height;
 
         // Tranform the extents of the view
         extents.TransformBy(matWCS2DCS.Inverse());
 
         // Calculate the new width and height of the current view
-        var dWidth = extents.MaxPoint.X - extents.MinPoint.X;
-        var dHeight = extents.MaxPoint.Y - extents.MinPoint.Y;
+        double dWidth = extents.MaxPoint.X - extents.MinPoint.X;
+        double dHeight = extents.MaxPoint.Y - extents.MinPoint.Y;
 
         // Check to see if the new width fits in current window
         if (dWidth > dHeight * dViewRatio)

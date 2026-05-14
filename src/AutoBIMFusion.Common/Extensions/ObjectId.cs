@@ -28,7 +28,7 @@ internal static class ObjectIdExtensions
 
     public static List<ObjectId> GetObjectIds(this IEnumerable<DBObject> dBObjects)
     {
-        List<ObjectId> ObjectIds = new();
+        List<ObjectId> ObjectIds = [];
         foreach (DBObject obj in dBObjects)
         {
             ObjectIds.Add(obj.ObjectId);
@@ -53,7 +53,7 @@ internal static class ObjectIdExtensions
 
     public static DBObjectCollection Explode(this IEnumerable<ObjectId> ObjectsToExplode, bool EraseOriginal = true)
     {
-        DBObjectCollection objs = new();
+        DBObjectCollection objs = [];
 
         // Loop through the selected objects
         foreach (ObjectId ObjectToExplode in ObjectsToExplode)
@@ -79,7 +79,7 @@ internal static class ObjectIdExtensions
     public static DBObjectCollection ToDBObjectCollection(this SelectionSet entities)
     {
         ObjectId[] ObjectIdsCollection = entities.GetObjectIds();
-        DBObjectCollection NewDBObjectCollection = new();
+        DBObjectCollection NewDBObjectCollection = [];
         foreach (ObjectId ObjectId in ObjectIdsCollection)
         {
             _ = NewDBObjectCollection.Add(ObjectId.GetDBObject());
@@ -90,7 +90,7 @@ internal static class ObjectIdExtensions
 
     public static ObjectIdCollection ToObjectIdCollection(this IEnumerable<ObjectId> objectId)
     {
-        ObjectIdCollection NewObjectIdCollection = new();
+        ObjectIdCollection NewObjectIdCollection = [];
         foreach (ObjectId ObjectId in objectId)
         {
             _ = NewObjectIdCollection.Add(ObjectId);
@@ -101,7 +101,7 @@ internal static class ObjectIdExtensions
 
     public static DBObjectCollection ToDBObjectCollection(this IEnumerable<DBObject> entities)
     {
-        DBObjectCollection NewDBObjectCollection = new();
+        DBObjectCollection NewDBObjectCollection = [];
         foreach (DBObject entity in entities)
         {
             _ = NewDBObjectCollection.Add(entity);
@@ -112,8 +112,8 @@ internal static class ObjectIdExtensions
 
     public static List<DBObject> ToList(this DBObjectCollection entities)
     {
-        List<DBObject> list = new();
-        foreach (var ent in entities)
+        List<DBObject> list = [];
+        foreach (object? ent in entities)
         {
             list.Add(ent as DBObject);
         }
@@ -123,11 +123,7 @@ internal static class ObjectIdExtensions
 
     public static List<ObjectId> ToList(this ObjectIdCollection collection)
     {
-        List<ObjectId> list = new();
-        foreach (ObjectId objid in collection)
-        {
-            list.Add(objid);
-        }
+        List<ObjectId> list = [.. collection.Cast<ObjectId>()];
 
         return list;
     }
@@ -183,10 +179,10 @@ internal static class ObjectIdExtensions
 
     public static Hatch HatchObject(this ObjectId Obj, string Layer)
     {
-        ObjectIdCollection acObjIdColl = new()
-        {
+        ObjectIdCollection acObjIdColl =
+        [
             Obj
-        };
+        ];
         Hatch acHatch = new();
 
         acHatch.SetHatchPattern(HatchPatternType.PreDefined, "SOLID");
@@ -213,14 +209,14 @@ internal static class ObjectIdExtensions
         }
 
         using Database emptyDb = new(true, true);
-        var emptyDwgByteSize = emptyDb.GetSize(currentDb.GetDwgVersion());
+        long emptyDwgByteSize = emptyDb.GetSize(currentDb.GetDwgVersion());
 
         ObjectId modelSpaceId = SymbolUtilityServices.GetBlockModelSpaceId(emptyDb);
 
-        ObjectIdCollection ids = new() { objId };
+        ObjectIdCollection ids = [objId];
         emptyDb.WblockCloneObjects(ids, modelSpaceId, [], DuplicateRecordCloning.Replace, false);
 
-        var finalDwgByteSize = emptyDb.GetSize(currentDb.GetDwgVersion());
+        long finalDwgByteSize = emptyDb.GetSize(currentDb.GetDwgVersion());
         return Max(finalDwgByteSize - emptyDwgByteSize, 0);
     }
 }

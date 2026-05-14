@@ -37,7 +37,7 @@ public static class DelaunayTriangulate
 
         using (Transaction trx = db.TransactionManager.StartTransaction())
         {
-            List<DBPoint> PointsSet = new();
+            List<DBPoint> PointsSet = [];
             foreach (ObjectId PointSelectionSet in pointSelectionResult.Value.GetObjectIds())
             {
                 PointsSet.Add(PointSelectionSet.GetDBObject() as DBPoint);
@@ -59,9 +59,9 @@ public static class DelaunayTriangulate
     {
         Database db = Generic.GetDatabase();
         Editor ed = Generic.GetEditor();
-        List<Polyline3d> Result = new();
+        List<Polyline3d> Result = [];
 
-        var numberOfPoints = PointsSet.Count;
+        int numberOfPoints = PointsSet.Count;
 
         if (numberOfPoints < 3)
         {
@@ -78,20 +78,20 @@ public static class DelaunayTriangulate
             IgnoredPointWithSameCoordinatesCount = 0;
 
         // Point coordinates
-        var xCoordinates = new double[numberOfPoints + 3];
-        var yCoordinates = new double[numberOfPoints + 3];
-        var zCoordinates = new double[numberOfPoints + 3];
+        double[] xCoordinates = new double[numberOfPoints + 3];
+        double[] yCoordinates = new double[numberOfPoints + 3];
+        double[] zCoordinates = new double[numberOfPoints + 3];
         // Triangle definitions
-        var vertexPoint1 = new int[(numberOfPoints * 2) + 1];
-        var vertexPoint2 = new int[(numberOfPoints * 2) + 1];
-        var vertexPoint3 = new int[(numberOfPoints * 2) + 1];
+        int[] vertexPoint1 = new int[(numberOfPoints * 2) + 1];
+        int[] vertexPoint2 = new int[(numberOfPoints * 2) + 1];
+        int[] vertexPoint3 = new int[(numberOfPoints * 2) + 1];
         // Circumscribed circle
-        var centerXValues = new double[(numberOfPoints * 2) + 1];
-        var centerYValues = new double[(numberOfPoints * 2) + 1];
-        var radiusValues = new double[(numberOfPoints * 2) + 1];
+        double[] centerXValues = new double[(numberOfPoints * 2) + 1];
+        double[] centerYValues = new double[(numberOfPoints * 2) + 1];
+        double[] radiusValues = new double[(numberOfPoints * 2) + 1];
         double xMin, yMin, xMax, yMax, deltaX, deltaY, xMid, yMid;
-        var edge1 = new int[(numberOfPoints * 2) + 1];
-        var edge2 = new int[(numberOfPoints * 2) + 1];
+        int[] edge1 = new int[(numberOfPoints * 2) + 1];
+        int[] edge2 = new int[(numberOfPoints * 2) + 1];
         Transaction trx;
         using (trx = db.TransactionManager.StartTransaction())
         {
@@ -237,7 +237,7 @@ public static class DelaunayTriangulate
                     vertexPoint1[numberOfTriangles] = edge1[j];
                     vertexPoint2[numberOfTriangles] = edge2[j];
                     vertexPoint3[numberOfTriangles] = PtsIndex;
-                    var IsThinTriangle =
+                    bool IsThinTriangle =
                         CalculateCircumscribedCircle(
                             xCoordinates[vertexPoint1[numberOfTriangles]],
                             yCoordinates[vertexPoint1[numberOfTriangles]],
@@ -321,7 +321,7 @@ public static class DelaunayTriangulate
     {
         // Calculation of circumscribed circle coordinates and squared radius
 
-        var result = true;
+        bool result = true;
         const double eps = 1e-6;
         double m1, m2, mx1, mx2, my1, my2, dx, dy;
 

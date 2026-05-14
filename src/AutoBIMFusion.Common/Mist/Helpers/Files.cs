@@ -95,10 +95,10 @@ public static class Files
         int secondsSince1970 = BitConverter.ToInt32(buffer, offset + c_LinkerTimestampOffset);
         DateTime epoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        var linkTimeUtc = epoch.AddSeconds(secondsSince1970);
+        DateTime linkTimeUtc = epoch.AddSeconds(secondsSince1970);
 
-        var tz = target ?? TimeZoneInfo.Local;
-        var localTime = TimeZoneInfo.ConvertTimeFromUtc(linkTimeUtc, tz);
+        TimeZoneInfo tz = target ?? TimeZoneInfo.Local;
+        DateTime localTime = TimeZoneInfo.ConvertTimeFromUtc(linkTimeUtc, tz);
 
         return localTime;
     }

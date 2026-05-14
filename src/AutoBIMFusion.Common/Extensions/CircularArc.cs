@@ -22,9 +22,9 @@ public static class CircularArcExtensions
 
     public static Curve ToCircleOrArc(this CircularArc3d circArc)
     {
-        var center = circArc.Center;
-        var normal = circArc.Normal;
-        var referenceVector = circArc.ReferenceVector;
+        Point3d center = circArc.Center;
+        Vector3d normal = circArc.Normal;
+        Vector3d referenceVector = circArc.ReferenceVector;
         Plane plane = new(center, normal);
         double num = referenceVector.AngleOnPlane(plane);
 

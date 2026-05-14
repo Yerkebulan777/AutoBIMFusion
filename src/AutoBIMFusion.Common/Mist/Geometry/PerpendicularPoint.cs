@@ -40,7 +40,7 @@ public static class PerpendicularPoint
         Database db = doc.Database;
         Editor ed = doc.Editor;
 
-        var PerpendicularLinesCollection = new List<Line>();
+        List<Line> PerpendicularLinesCollection = [];
         for (int PolylineSegmentIndex = 0;
              PolylineSegmentIndex < TargetPolyline.GetReelNumberOfVertices();
              PolylineSegmentIndex++)
@@ -50,14 +50,14 @@ public static class PerpendicularPoint
             Vector3d PerpendicularVectorLine = GetPerpendicularLinePointProjectionVector(StartPoint,
                 EndPoint, BasePoint.SCG);
 
-            using var SegmentLine = new Line(StartPoint, EndPoint);
+            using Line SegmentLine = new(StartPoint, EndPoint);
             Point3d IntersectionPoint = FindIntersection(BasePoint.SCG, PerpendicularVectorLine, SegmentLine);
             if (IntersectionPoint == Point3d.Origin)
             {
                 continue;
             }
 
-            var PerpendicularLine = new Line(BasePoint.SCG, IntersectionPoint);
+            Line PerpendicularLine = new(BasePoint.SCG, IntersectionPoint);
             bool IsLineIsIntersectingOtherSegments = CheckForSegmentIntersections &&
                                                     CheckIfLineIsIntersectingOtherSegments(TargetPolyline,
                                                         PerpendicularLine, PolylineSegmentIndex);
@@ -87,7 +87,7 @@ public static class PerpendicularPoint
             }
 
             (Point3d StartPoint, Point3d EndPoint, double _) = TargetPolyline.GetSegmentAt(PolylineSegmentIndex);
-            using var SegmentLineIntersectTest = new Line(StartPoint, EndPoint);
+            using Line SegmentLineIntersectTest = new(StartPoint, EndPoint);
             return SegmentLineIntersectTest.IsCutting(PerpendicularLine);
         }
 

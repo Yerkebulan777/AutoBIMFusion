@@ -44,7 +44,7 @@ public static class BitmapWpfExtensions
             return null;
         }
 
-        var result = Imaging.CreateBitmapSourceFromHBitmap(hbitmap, palette, sourceRect, sizeOptions);
+        BitmapSource result = Imaging.CreateBitmapSourceFromHBitmap(hbitmap, palette, sourceRect, sizeOptions);
         _ = DeleteObject(hbitmap);
         return result;
     }

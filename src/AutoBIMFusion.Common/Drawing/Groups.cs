@@ -11,9 +11,9 @@ public static class Groups
         using Transaction trx = db.TransactionManager.StartTransaction();
         Group grp = new(Description, true);
         DBDictionary? gd = db.GroupDictionaryId.GetDBObject(OpenMode.ForWrite) as DBDictionary;
-        var DuplicateNameIndex = 0;
+        int DuplicateNameIndex = 0;
 
-        var GroupName = SymbolUtilityServices.RepairSymbolName(Name, false);
+        string GroupName = SymbolUtilityServices.RepairSymbolName(Name, false);
 
         while (gd.Contains(GroupName))
         {
