@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace AutoBIMFusion.Common.Mist.AutoCAD;
+namespace AutoBIMFusion.Plugin.Ribbon;
 
 public static class LayerPaletteControls
 {

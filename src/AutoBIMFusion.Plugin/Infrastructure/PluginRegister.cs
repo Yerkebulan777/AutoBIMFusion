@@ -1,8 +1,10 @@
+using AutoBIMFusion.Common.Mist;
 using Microsoft.Win32;
 using System.Diagnostics;
+using Exception = System.Exception;
 using Registry = Autodesk.AutoCAD.Runtime.Registry;
 
-namespace AutoBIMFusion.Common.Mist.AutoCAD;
+namespace AutoBIMFusion.Plugin.Infrastructure;
 
 internal static class PluginRegister
 {

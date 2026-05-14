@@ -1,10 +1,11 @@
 using AutoBIMFusion.Common.Extensions;
+using AutoBIMFusion.Common.Functions;
 using AutoBIMFusion.Common.Mist;
 using Autodesk.AutoCAD.GraphicsInterface;
 using Autodesk.AutoCAD.Runtime;
 using Serilog.Core;
 
-namespace AutoBIMFusion.Common.Functions;
+namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
 ///  Выполняет очистку чертежа от неиспользуемых объектов и служебного мусора.
@@ -524,7 +525,7 @@ public static class DrawingPurger
             foreach (DBDictionaryEntry VisualStyleEntry in (DBDictionary)trx.GetObject(db.VisualStyleDictionaryId,
                          OpenMode.ForRead))
             {
-                if ((trx.GetObject(VisualStyleEntry.Value, OpenMode.ForRead) as DBVisualStyle).Type ==
+                if ((trx.GetObject(VisualStyleEntry.Value, OpenMode.ForRead) as DBVisualStyle)!.Type ==
                     VisualStyleType.Custom && !trx.GetObject(VisualStyleEntry.Value, OpenMode.ForRead).IsAProxy)
                 {
                     _ = objectIdCollection.Add(VisualStyleEntry.Value);

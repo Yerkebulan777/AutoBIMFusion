@@ -1,3 +1,4 @@
+using System.Reflection;
 using Serilog.Core;
 using Exception = System.Exception;
 
@@ -149,6 +150,114 @@ public static class FileUtil
         }
 
         return (destinationPath, Path.GetFileName(destinationPath));
+    }
+
+    /// <summary>
+    ///     Форматирует размер файла из байтов в читаемую строку (KB, MB, GB и т.д.).
+    /// </summary>
+    public static string FormatFileSizeFromByte(long ovalue, int odecimalPlaces = 1)
+    {
+        string[] SizeSuffixes =
+            { "bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
+
+        string SizeSuffix(long value, int decimalPlaces = 1)
+        {
+            if (value < 0)
+            {
+                return "-" + SizeSuffix(-value, decimalPlaces);
+            }
+
+            int i = 0;
+            decimal dValue = value;
+            while (Round(dValue, decimalPlaces) >= 1000)
+            {
+                dValue /= 1024;
+                i++;
+            }
+
+            return string.Format("{0:n" + decimalPlaces + "} {1}", dValue, SizeSuffixes[i]);
+        }
+
+        return SizeSuffix(ovalue, odecimalPlaces);
+    }
+
+    /// <summary>
+    ///     Проверяет, заблокирован ли файл для записи или доступен только для чтения.
+    /// </summary>
+    public static bool IsFileLockedOrReadOnly(string path)
+    {
+        return IsFileLockedOrReadOnly(new FileInfo(path));
+    }
+
+    /// <summary>
+    ///     Проверяет, заблокирован ли файл для записи или доступен только для чтения.
+    /// </summary>
+    public static bool IsFileLockedOrReadOnly(FileInfo fi)
+    {
+        if (!fi.Exists)
+        {
+            return false;
+        }
+
+        FileStream fs = null;
+        try
+        {
+            fs = fi.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        }
+        catch (Exception ex)
+        {
+            if (ex is IOException or UnauthorizedAccessException)
+            {
+                return true;
+            }
+
+            throw;
+        }
+        finally
+        {
+            fs?.Close();
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///     Возвращает дату сборки (linker timestamp) из PE-заголовка сборки.
+    ///     https://blog.codinghorror.com/determining-build-date-the-hard-way/
+    /// </summary>
+    public static DateTime GetLinkerTime(this Assembly assembly, TimeZoneInfo target = null)
+    {
+        string filePath = assembly.Location;
+        const int c_PeHeaderOffset = 60;
+        const int c_LinkerTimestampOffset = 8;
+
+        byte[] buffer = new byte[2048];
+
+        using (FileStream stream = new(filePath, FileMode.Open, FileAccess.Read))
+        {
+            int totalRead = 0;
+            while (totalRead < 2048)
+            {
+                int read = stream.Read(buffer, totalRead, 2048 - totalRead);
+                if (read == 0)
+                {
+                    break;
+                }
+
+                totalRead += read;
+            }
+        }
+
+        int offset = BitConverter.ToInt32(buffer, c_PeHeaderOffset);
+        int secondsSince1970 = BitConverter.ToInt32(buffer, offset + c_LinkerTimestampOffset);
+        DateTime epoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        DateTime linkTimeUtc = epoch.AddSeconds(secondsSince1970);
+
+        TimeZoneInfo tz = target ?? TimeZoneInfo.Local;
+        DateTime localTime = TimeZoneInfo.ConvertTimeFromUtc(linkTimeUtc, tz);
+
+        return localTime;
     }
 
     /// <summary>

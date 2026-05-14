@@ -1,8 +1,8 @@
 using AutoBIMFusion.Common.Drawing;
 using AutoBIMFusion.Common.Extensions;
+using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Common.Mist;
 using AutoBIMFusion.Common.Mist.Geometry;
-using AutoBIMFusion.Common.Mist.Helpers;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.Windows;
@@ -13,12 +13,12 @@ using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 
 using Color = System.Drawing.Color;
 using DrawingImage = System.Drawing.Image;
-using Exception = Autodesk.AutoCAD.Runtime.Exception;
+using Exception = System.Exception;
 using MenuItem = Autodesk.AutoCAD.Windows.MenuItem;
 
-namespace AutoBIMFusion.Common.Functions;
+namespace AutoBIMFusion.Plugin.Commands;
 
-public static class ImageToOleConverter
+public static class ImageToOleCommands
 {
     public static void RasterToOle()
     {
@@ -165,17 +165,17 @@ public static class ImageToOleConverter
                     Points blockOrigin = Points.From3DPoint(rasterExtent.MinPoint);
                     DBObject? oleClone = InsertedOLE.Clone() as DBObject;
 
-                    _ = BlockReferences.Create(blockName, "OLE Definition", [oleClone],
+                    _ = BlockReferences.Create(blockName, "OLE Definition", [oleClone!],
                         blockOrigin, false, BlockScaling.Uniform);
 
                     // Insérer le bloc et copier les propriétés de l'image raster
-                    ObjectId blkObj = BlockReferences.InsertFromName(blockName, blockOrigin, 0, null, rasterImage.Layer,
-                        rasterImage.Database.BlockTableId.GetDBObject(OpenMode.ForWrite) as BlockTableRecord);
+                    ObjectId blkObj = BlockReferences.InsertFromName(blockName, blockOrigin, 0, null!, rasterImage.Layer,
+                        (rasterImage.Database.BlockTableId.GetDBObject(OpenMode.ForWrite) as BlockTableRecord)!);
 
                     BlockReference? blkRef = blkObj.GetDBObject(OpenMode.ForWrite) as BlockReference;
-                    rasterImage.CopyPropertiesTo(blkRef);
+                    rasterImage.CopyPropertiesTo(blkRef!);
                     Generic.WriteMessage(
-                        $"Taille finale de l'image OLE dans le dessin : {Files.FormatFileSizeFromByte(blkRef.ObjectId.GetObjectByteSize())}");
+                        $"Taille finale de l'image OLE dans le dessin : {FileUtil.FormatFileSizeFromByte(blkRef!.ObjectId.GetObjectByteSize())}");
                     // Nettoyer les objets sources
                     rasterImage.EraseObject();
                     InsertedOLE.EraseObject();

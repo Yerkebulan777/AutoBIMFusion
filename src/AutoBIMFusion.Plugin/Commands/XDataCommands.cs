@@ -1,14 +1,15 @@
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Mist;
 using System.Diagnostics;
+using Exception = System.Exception;
 
-namespace AutoBIMFusion.Common.Functions;
+namespace AutoBIMFusion.Plugin.Commands;
 
 /// <summary>
 /// Управляет расширенными данными объектов (XData).
 /// Позволяет просматривать и удалять XData у выбранных или всех объектов чертежа.
 /// </summary>
-public static class EntityXDataManager
+public static class XDataCommands
 {
     /// <summary>
     /// Показывает XData выбранной сущности в командной строке.
@@ -28,7 +29,7 @@ public static class EntityXDataManager
             {
                 foreach (object item in ent.ReadXData())
                 {
-                    Generic.WriteMessage(item.ToString());
+                    Generic.WriteMessage(item.ToString()!);
                 }
             }
         }

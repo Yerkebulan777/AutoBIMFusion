@@ -3,7 +3,7 @@ using AutoBIMFusion.Common.Logging;
 using AutoBIMFusion.Common.Mist;
 using Serilog.Core;
 
-namespace AutoBIMFusion.Common.Functions;
+namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
 ///  Применяет масштаб выбранного блока к его определению.

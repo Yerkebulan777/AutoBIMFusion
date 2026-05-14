@@ -5,7 +5,7 @@ using AutoBIMFusion.Common.Mist;
 using AutoBIMFusion.Common.Mist.Geometry;
 using System.Diagnostics;
 
-namespace AutoBIMFusion.Common.Functions;
+namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
 /// Позволяет изменять базовую точку блока.
@@ -85,12 +85,12 @@ public static class BlockBasePointEditor
         using (Transaction trx = db.TransactionManager.StartTransaction())
         {
             BlockReference? OriginalBlockRef = OriginalBlockObjectId.GetEntity() as BlockReference;
-            oldName = OriginalBlockRef.GetBlockReferenceName();
+            oldName = OriginalBlockRef!.GetBlockReferenceName();
             newName = BlockReferences.GetUniqueBlockName("INTERNAL-" + oldName);
             insertedBtrId = BlockReferences.InsertFromName(oldName, new Points(new Point3d(0, 0, 0)));
             BlockReference? insertedBlockRef = insertedBtrId.GetEntity() as BlockReference;
             trx.Commit();
-            OriginalBounds = insertedBlockRef.GeometricExtents;
+            OriginalBounds = insertedBlockRef!.GeometricExtents;
         }
 
         using (Transaction trx = db.TransactionManager.StartTransaction())

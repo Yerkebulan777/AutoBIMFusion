@@ -1,5 +1,4 @@
 using System.Runtime.Versioning;
-using AutoBIMFusion.Common.Functions;
 using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Merge.Combine.Layouts;
 using Autodesk.AutoCAD.ApplicationServices;

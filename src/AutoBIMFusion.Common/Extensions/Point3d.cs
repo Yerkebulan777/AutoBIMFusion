@@ -1,4 +1,5 @@
 using AutoBIMFusion.Common.Drawing;
+using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Common.Mist;
 using AutoBIMFusion.Common.Mist.Geometry;
 using System.Diagnostics;

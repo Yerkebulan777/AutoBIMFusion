@@ -1,9 +1,9 @@
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Mist;
 
-namespace AutoBIMFusion.Common.Helpers;
+namespace AutoBIMFusion.Merge.Combine;
 
-public static class FIXDRAWING
+public static class DrawingStandardizer
 {
     public static void Fix()
     {
