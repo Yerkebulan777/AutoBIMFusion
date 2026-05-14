@@ -1,4 +1,5 @@
 using System.Runtime.Versioning;
+using AutoBIMFusion.Common.Functions;
 using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Merge.Combine.Layouts;
 using Autodesk.AutoCAD.ApplicationServices;
@@ -27,6 +28,8 @@ public static class CombineOrchestrator
             using var prepared = ViewportLayoutExporter.PrepareDatabaseForMerge(filePath, fileName, log);
 
             if (prepared == null) return CombineResult.Warn(fileName, "Листы не найдены");
+
+            BlockBasePointEditor.NormalizeAllBlocksBasePoints(prepared.Db);
 
             var bounds = ExtentsUtils.GetDatabaseExtents(prepared.Db);
 

@@ -1,5 +1,6 @@
 using AutoBIMFusion.Common.Drawing;
 using AutoBIMFusion.Common.Extensions;
+using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Common.Mist;
 using AutoBIMFusion.Common.Mist.AutoCAD;
 using AutoBIMFusion.Common.Mist.Geometry;
@@ -13,6 +14,54 @@ namespace AutoBIMFusion.Common.Functions;
 /// </summary>
 public static class BlockBasePointEditor
 {
+    private const double BasePointTolerance = 0.001;
+
+    /// <summary>
+    ///     Переносит базовые точки пользовательских блоков в левый нижний угол без изменения вида вставок.
+    /// </summary>
+    public static void NormalizeAllBlocksBasePoints(Database db)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+
+        using Transaction trx = db.TransactionManager.StartTransaction();
+        if (trx.GetObject(db.BlockTableId, OpenMode.ForRead) is not BlockTable blockTable)
+        {
+            trx.Commit();
+            return;
+        }
+
+        foreach (ObjectId blockRecordId in blockTable)
+        {
+            if (trx.GetObject(blockRecordId, OpenMode.ForRead) is not BlockTableRecord blockDef)
+            {
+                continue;
+            }
+
+            if (ShouldSkipBlockDefinition(blockDef))
+            {
+                continue;
+            }
+
+            Extents3d? blockExtents = GetBlockDefinitionExtents(blockDef, trx);
+            if (!blockExtents.HasValue)
+            {
+                continue;
+            }
+
+            Point3d bottomLeft = new(blockExtents.Value.MinPoint.X, blockExtents.Value.MinPoint.Y, 0);
+            Vector3d offset = Point3d.Origin.GetVectorTo(bottomLeft);
+            if (offset.Length < BasePointTolerance)
+            {
+                continue;
+            }
+
+            MoveBlockDefinitionGeometry(blockDef, trx, -offset);
+            MoveBlockReferences(blockDef, trx, offset);
+        }
+
+        trx.Commit();
+    }
+
     /// <summary>
     /// Запрашивает выбор блока и переносит его базовую точку в указанное пользователем место.
     /// </summary>
@@ -293,5 +342,84 @@ public static class BlockBasePointEditor
         BlockReferences.Purge(newName);
         Vector3d Matrix = OriginalBounds.TopLeft() - EditedBounds.TopLeft();
         return Matrix;
+    }
+
+    private static bool ShouldSkipBlockDefinition(BlockTableRecord blockDef)
+    {
+        return blockDef.IsLayout
+               || blockDef.IsFromExternalReference
+               || blockDef.IsFromOverlayReference
+               || blockDef.IsAnonymous
+               || blockDef.IsDynamicBlock
+               || blockDef.Name.StartsWith("*", StringComparison.Ordinal);
+    }
+
+    private static Extents3d? GetBlockDefinitionExtents(BlockTableRecord blockDef, Transaction trx)
+    {
+        Extents3d? blockExtents = null;
+
+        foreach (ObjectId entityId in blockDef)
+        {
+            if (trx.GetObject(entityId, OpenMode.ForRead) is not Entity entity)
+            {
+                continue;
+            }
+
+            Extents3d? entityExtents = ExtentsUtils.TryGetExtents(entity);
+            if (!entityExtents.HasValue)
+            {
+                continue;
+            }
+
+            blockExtents = blockExtents.HasValue
+                ? ExtentsUtils.Union(blockExtents.Value, entityExtents.Value)
+                : entityExtents.Value;
+        }
+
+        return blockExtents;
+    }
+
+    private static void MoveBlockDefinitionGeometry(BlockTableRecord blockDef, Transaction trx, Vector3d displacement)
+    {
+        Matrix3d matrix = Matrix3d.Displacement(displacement);
+
+        foreach (ObjectId entityId in blockDef)
+        {
+            if (trx.GetObject(entityId, OpenMode.ForWrite) is Entity entity)
+            {
+                entity.TransformBy(matrix);
+            }
+        }
+    }
+
+    private static void MoveBlockReferences(BlockTableRecord blockDef, Transaction trx, Vector3d offset)
+    {
+        ObjectIdCollection blockReferenceIds = blockDef.GetBlockReferenceIds(true, true);
+        foreach (ObjectId blockReferenceId in blockReferenceIds)
+        {
+            if (trx.GetObject(blockReferenceId, OpenMode.ForWrite) is not BlockReference blockReference)
+            {
+                continue;
+            }
+
+            Vector3d compensation = offset.TransformBy(GetMatrixWithoutTranslation(blockReference.BlockTransform));
+            blockReference.TransformBy(Matrix3d.Displacement(compensation));
+            blockReference.RecordGraphicsModified(true);
+        }
+    }
+
+    private static Matrix3d GetMatrixWithoutTranslation(Matrix3d matrix)
+    {
+        CoordinateSystem3d coordinateSystem = matrix.CoordinateSystem3d;
+
+        return Matrix3d.AlignCoordinateSystem(
+            Point3d.Origin,
+            Vector3d.XAxis,
+            Vector3d.YAxis,
+            Vector3d.ZAxis,
+            Point3d.Origin,
+            coordinateSystem.Xaxis,
+            coordinateSystem.Yaxis,
+            coordinateSystem.Zaxis);
     }
 }
