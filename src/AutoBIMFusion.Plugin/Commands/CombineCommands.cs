@@ -89,14 +89,16 @@ public sealed class CombineCommands
                     DrawingPurger.Optimize(mergeDoc.Database, log);
 
                     SaveMerged(mergeDoc.Database, savePath, log);
-
-                    mergeDoc.SendStringToExecute("._REGENALL ", true, false, false);
-                    mergeDoc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
                 }
 
-                if (target.CloseAfterSave)
+                if (ShouldCloseAfterSave(mergeDoc, target, log))
                 {
                     CloseSavedMergeDocument(mergeDoc, log);
+                }
+                else
+                {
+                    mergeDoc.SendStringToExecute("._REGENALL ", true, false, false);
+                    mergeDoc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
                 }
 
                 sw.Stop();
@@ -169,11 +171,27 @@ public sealed class CombineCommands
         using Transaction tr = db.TransactionManager.StartOpenCloseTransaction();
         var blockTable = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
 
-        bool isEmpty = IsBlockRecordEmpty(blockTable[BlockTableRecord.ModelSpace], tr)
-            && IsBlockRecordEmpty(blockTable[BlockTableRecord.PaperSpace], tr);
+        if (!IsBlockRecordEmpty(blockTable[BlockTableRecord.ModelSpace], tr))
+        {
+            tr.Commit();
+            return false;
+        }
+
+        var layoutDictionary = (DBDictionary)tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+
+        foreach (DBDictionaryEntry entry in layoutDictionary)
+        {
+            var layout = (Layout)tr.GetObject(entry.Value, OpenMode.ForRead);
+
+            if (!layout.ModelType && !IsBlockRecordEmpty(layout.BlockTableRecordId, tr))
+            {
+                tr.Commit();
+                return false;
+            }
+        }
 
         tr.Commit();
-        return isEmpty;
+        return true;
     }
 
     private static bool IsBlockRecordEmpty(ObjectId blockRecordId, Transaction tr)
@@ -190,6 +208,22 @@ public sealed class CombineCommands
             }
         }
 
+        return true;
+    }
+
+    private static bool ShouldCloseAfterSave(Document doc, MergeDocumentSelection target, Logger log)
+    {
+        if (target.CloseAfterSave)
+        {
+            return true;
+        }
+
+        if (doc.IsNamedDrawing)
+        {
+            return false;
+        }
+
+        log.Warning("MERGEDWG: сохранение не привязало текущий документ \"{DocumentName}\" к файлу, документ будет закрыт после сохранения.", doc.Name);
         return true;
     }
 
