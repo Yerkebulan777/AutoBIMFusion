@@ -47,6 +47,7 @@ public sealed class CombineCommands
                 if (dwgFiles.Length == 0)
                 {
                     log.Warning("DWG файлы не найдены.");
+
                     if (showDialogs)
                     {
                         UiDialogService.ShowMessage("DWG-файлов нет!", commandName);

@@ -1,4 +1,5 @@
 using AutoBIMFusion.Common.AcadSupport;
+using AutoBIMFusion.Common.Functions;
 using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Merge.Combine.Layouts;
 using Serilog.Core;
@@ -47,11 +48,17 @@ public sealed class BlockInserter(double gapPercent, Logger log)
                 StyleUnificationService.ApplyGostToAllStyles(sourceDb, srcTrx);
 
                 var ms = (BlockTableRecord)srcTrx.GetObject(sourceMsId, OpenMode.ForRead);
+                HashSet<string> processedBlocks = [];
 
                 foreach (ObjectId id in ms)
                 {
                     if (id.IsValidForOperation())
                     {
+                        if (srcTrx.GetObject(id, OpenMode.ForWrite) is BlockReference blockRef)
+                        {
+                            BlockScaleApplier.NormalizeBlockScale(sourceDb, srcTrx, blockRef, processedBlocks);
+                        }
+
                         _ = sourceIds.Add(id);
                     }
                 }

@@ -12,8 +12,8 @@ public static class AdvancedSelections
     {
         Database db = Generic.GetDatabase();
         Editor ed = Generic.GetEditor();
-        using Polyline? Boundary = ed.GetPolyline(out ObjectId EntObjectId,
-                   "\nSélectionnez une polyligne qui delimite / croise les objects à selectionner", false);
+
+        using Polyline? Boundary = ed.GetPolyline(out ObjectId EntObjectId, "\nSélectionnez une polyligne qui delimite / croise les objects à selectionner", false);
         if (Boundary is null)
         {
             return;
