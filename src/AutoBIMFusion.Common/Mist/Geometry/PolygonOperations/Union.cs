@@ -1,3 +1,4 @@
+using AutoBIMFusion.Common.Compatibility;
 using AutoBIMFusion.Common.Extensions;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -8,8 +9,7 @@ public static partial class PolygonOperation
 {
     public const double Margin = 0.01;
 
-    public static bool Union(List<PolyHole> PolyHoleList, out List<PolyHole> UnionResult,
-        bool RequestAllowMarginError = false)
+    public static bool Union(List<PolyHole> PolyHoleList, out List<PolyHole> UnionResult, bool RequestAllowMarginError = false)
     {
         //Don't run if we have no element to union
         if (PolyHoleList.Count == 0)

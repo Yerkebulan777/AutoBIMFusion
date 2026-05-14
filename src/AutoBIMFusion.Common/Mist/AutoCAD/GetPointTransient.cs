@@ -1,8 +1,11 @@
+using AutoBIMFusion.Common.Compatibility;
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Mist.Geometry;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.GraphicsInterface;
+
+using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace AutoBIMFusion.Common.Mist.AutoCAD;
 
@@ -55,7 +58,8 @@ public class TransientBase(DBObjectCollection Entities, Func<Points, Dictionary<
 
     public virtual void UpdateTransGraphics(Point3d curPt, Point3d moveToPt)
     {
-        Document doc = Application.DocumentManager.MdiActiveDocument;
+        Document doc = AcadApp.DocumentManager.MdiActiveDocument;
+
         Editor ed = doc.Editor;
         Database db = doc.Database;
 

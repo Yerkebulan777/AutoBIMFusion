@@ -2,6 +2,8 @@ using AutoBIMFusion.Common.Drawing;
 using AutoBIMFusion.Common.Mist;
 using Autodesk.AutoCAD.ApplicationServices;
 
+using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
+
 namespace AutoBIMFusion.Common.Extensions;
 
 internal static class BlockReferenceExtensions
@@ -175,7 +177,7 @@ internal static class BlockReferenceExtensions
 
     public static Point3d ProjectXrefPointToCurrentSpace(this Point3d pointInXref, ObjectId xrefId)
     {
-        Document doc = Application.DocumentManager.MdiActiveDocument;
+        Document doc = AcadApp.DocumentManager.MdiActiveDocument;
         Database db = doc.Database;
 
         using (Transaction transaction = db.TransactionManager.StartTransaction())
@@ -198,7 +200,7 @@ internal static class BlockReferenceExtensions
     public static bool IsThereABlockReference(this Point3d position, string blockName, string attributeValue,
         out BlockReference blockReference)
     {
-        Document doc = Application.DocumentManager.MdiActiveDocument;
+        Document doc = AcadApp.DocumentManager.MdiActiveDocument;
         Database db = doc.Database;
 
         using Transaction trx = db.TransactionManager.StartTransaction();

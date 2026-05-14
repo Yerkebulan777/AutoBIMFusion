@@ -1,3 +1,4 @@
+using AutoBIMFusion.Common.Compatibility;
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Mist.AutoCAD;
 using Autodesk.AutoCAD.Colors;
@@ -64,8 +65,10 @@ public static class Colors
 
     public static Color GetTransGraphicsColor(Entity _, bool IsPrimary)
     {
-        return Color.FromColorIndex(ColorMethod.ByColor,
-            !IsPrimary ? (short)Settings.TransientSecondaryColorIndex : (short)Settings.TransientPrimaryColorIndex);
+        int PrimaryColorIndex = Settings.TransientPrimaryColorIndex;
+        int SecondaryColorIndex = Settings.TransientSecondaryColorIndex;
+
+        return Color.FromColorIndex(ColorMethod.ByColor, !IsPrimary ? (short)SecondaryColorIndex : (short)PrimaryColorIndex);
     }
 
     public static (double hue, double saturation, double value) ColorToHSV(Color color)

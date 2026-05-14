@@ -1,6 +1,8 @@
 using AutoBIMFusion.Common.Extensions;
 using Autodesk.AutoCAD.ApplicationServices;
 
+using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
+
 namespace AutoBIMFusion.Common.Mist.Geometry;
 
 public static class PerpendicularPoint
@@ -17,8 +19,7 @@ public static class PerpendicularPoint
         return intersectionPoint;
     }
 
-    public static Vector3d GetPerpendicularLinePointProjectionVector(Point3d LineStartPointSCG, Point3d LineEndPointSCG,
-        Point3d PerpendicularPointCurrentSCU)
+    public static Vector3d GetPerpendicularLinePointProjectionVector(Point3d LineStartPointSCG, Point3d LineEndPointSCG, Point3d PerpendicularPointCurrentSCU)
     {
         Point3d PolyStart = new Points(LineStartPointSCG).SCG;
         Point3d PolyEnd = new Points(LineEndPointSCG).SCG;
@@ -33,10 +34,9 @@ public static class PerpendicularPoint
         return PerpendicularPointCurrentSCU - (PerpendicularPointCurrentSCU + perpVector);
     }
 
-    public static List<Line> GetListOfPerpendicularLinesFromPoint(Points BasePoint, Polyline TargetPolyline,
-        bool CheckForSegmentIntersections = true)
+    public static List<Line> GetListOfPerpendicularLinesFromPoint(Points BasePoint, Polyline TargetPolyline, bool CheckForSegmentIntersections = true)
     {
-        Document doc = Application.DocumentManager.MdiActiveDocument;
+        Document doc = AcadApp.DocumentManager.MdiActiveDocument;
         Database db = doc.Database;
         Editor ed = doc.Editor;
 

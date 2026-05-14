@@ -3,13 +3,15 @@ using AutoBIMFusion.Common.Extensions;
 using Autodesk.AutoCAD.ApplicationServices;
 using System.Diagnostics;
 
+using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
+
 namespace AutoBIMFusion.Common.Mist.Geometry;
 
 public static class DelaunayTriangulate
 {
     public static void TriangulateCommand()
     {
-        Document doc = Application.DocumentManager.MdiActiveDocument;
+        Document doc = AcadApp.DocumentManager.MdiActiveDocument;
         Database db = doc.Database;
         Editor ed = doc.Editor;
 
@@ -49,7 +51,7 @@ public static class DelaunayTriangulate
             trx.Commit();
         }
 
-        Application.UpdateScreen();
+        AcadApp.UpdateScreen();
     }
 
 

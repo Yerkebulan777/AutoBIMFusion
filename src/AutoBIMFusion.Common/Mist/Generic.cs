@@ -135,7 +135,7 @@ public static class Generic
         //AC1024 = AutoCAD 2010 
         //AC1027 = AutoCAD 2013 
         //AC1032 = AutoCAD 2018 
-        //var ucm = Application.UserConfigurationManager;
+        //var ucm = AcadApp.UserConfigurationManager;
         //var profile = ucm.OpenCurrentProfile();
         //var section = profile.OpenSubsection("General");
         //var format = section.ReadProperty("DefaultFormatForSave", 0);
@@ -143,7 +143,7 @@ public static class Generic
         Database db = GetDatabase();
         return db.OriginalFileSavedByVersion;
 
-        // return Application.DocumentManager.DefaultFormatForSave;
+        // return AcadApp.DocumentManager.DefaultFormatForSave;
     }
 
     public static DocumentLock GetLock()

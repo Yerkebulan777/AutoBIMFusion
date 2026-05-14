@@ -3,7 +3,8 @@ using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.Windows.Data;
 using System.Diagnostics;
-using AcAp = Autodesk.AutoCAD.ApplicationServices.Application;
+
+using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace AutoBIMFusion.Common.Mist.AutoCAD;
 
@@ -11,7 +12,7 @@ public static class Layers
 {
     public static string GetCurrentLayerName()
     {
-        return Application.GetSystemVariable("clayer").ToString();
+        return AcadApp.GetSystemVariable("clayer").ToString();
     }
 
     public static void SetCurrentLayerName(string LayerName)
@@ -25,7 +26,7 @@ public static class Layers
 
     public static DataItemCollection GetAllLayersInDrawing()
     {
-        return AcAp.UIBindings.Collections.Layers;
+        return AcadApp.UIBindings.Collections.Layers;
     }
 
     public static bool IsEntityOnLockedLayer(ObjectId entity)

@@ -3,6 +3,8 @@ using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Mist.AutoCAD;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Runtime;
+
+using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
 namespace AutoBIMFusion.Common.Mist.Geometry;
@@ -48,12 +50,12 @@ public class CotePoints
     private static void SaveSelectionPointsType(SelectionPointsType SelectionPointsType)
     {
         LegacyAppSettings.Default.SelectionPointsType = SelectionPointsType.ToString();
-        LegacyAppSettings.Default.Save();
+        LegacyAppSettings.Save();
     }
 
     public static bool NullPointExit(CotePoints cotePoints)
     {
-        Document doc = Application.DocumentManager.MdiActiveDocument;
+        Document doc = AcadApp.DocumentManager.MdiActiveDocument;
         Database db = doc.Database;
         if (cotePoints is null)
         {
@@ -150,7 +152,7 @@ public class CotePoints
 
     public static double? ExtractDoubleInStringFromPoint(string OriginalString)
     {
-        Document doc = Application.DocumentManager.MdiActiveDocument;
+        Document doc = AcadApp.DocumentManager.MdiActiveDocument;
         Editor ed = doc.Editor;
 
         if (OriginalString.Contains("%"))
