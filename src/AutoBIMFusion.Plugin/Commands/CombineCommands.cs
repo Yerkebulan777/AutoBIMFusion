@@ -28,6 +28,10 @@ public sealed class CombineCommands
     private async Task ExecuteMergeAsync(string? folderPath, bool showDialogs, string commandName)
     {
         Logger log = LoggerFactory.GetSharedLogger();
+        log.Information(
+            "{Command}: command invoked, log=\"{LogPath}\"",
+            commandName,
+            LoggerFactory.GetCurrentLogFilePath());
 
         if (await _mergeGate.WaitAsync(0))
         {
@@ -37,6 +41,7 @@ public sealed class CombineCommands
 
                 if (string.IsNullOrWhiteSpace(sourceFolder) && !UiDialogService.TrySelectFolder("Выберите папку с файлами DWG для объединения", out sourceFolder))
                 {
+                    log.Information("{Command}: cancelled before source folder selection", commandName);
                     return;
                 }
 

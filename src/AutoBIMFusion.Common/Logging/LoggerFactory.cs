@@ -2,6 +2,9 @@ using Serilog;
 using Serilog.Core;
 using Serilog.Events;
 using System.Diagnostics;
+using System.Reflection;
+using System.Security;
+using System.Text;
 using DiagnosticsTrace = System.Diagnostics.Trace;
 
 namespace AutoBIMFusion.Common.Logging;
@@ -12,6 +15,7 @@ public static class LoggerFactory
 
     private const long MaxFileSizeBytes = 10L * 1024 * 1024; // 10 MB
     private const string LogLevelEnvVar = "LOG_LEVEL";
+    private const string BootstrapFailureFileName = "logger-bootstrap-failure.log";
     private const int MaxRetainedFiles = 10;
     private const int AsyncBufferSize = 8192;
 
@@ -54,19 +58,29 @@ public static class LoggerFactory
 
     private static Logger CreateFileLogger()
     {
+        LogEventLevel minimumLevel = LogEventLevel.Information;
+        string? logFile = null;
+
         try
         {
-            LogEventLevel minimumLevel = ResolveMinimumLevel();
+            minimumLevel = ResolveMinimumLevel();
             string logsDir = GetLogsDirectory();
             _ = Directory.CreateDirectory(logsDir);
 
-            string logFile = Path.Combine(logsDir, BuildLogFileName());
+            logFile = Path.Combine(logsDir, BuildLogFileName());
             return CreateFileLoggerCore(logFile, minimumLevel);
+        }
+        catch (Exception ex) when (IsExpectedBootstrapException(ex))
+        {
+            TryWriteBootstrapFailure("CreateFileLogger", ex, logFile);
+            Debug.WriteLine($"[AutoBIMFusion] Failed to create file logger: {ex}");
+            return CreateSilentLogger(minimumLevel);
         }
         catch (Exception ex)
         {
+            TryWriteBootstrapFailure("CreateFileLogger unexpected", ex, logFile);
             Debug.WriteLine($"[AutoBIMFusion] Failed to create file logger: {ex}");
-            return CreateSilentLogger(LogEventLevel.Information);
+            return CreateSilentLogger(minimumLevel);
         }
     }
 
@@ -93,8 +107,15 @@ public static class LoggerFactory
                 .WriteTo.Sink(new DiagnosticSink(minimumLevel))
                 .CreateLogger();
         }
+        catch (Exception ex) when (IsExpectedBootstrapException(ex))
+        {
+            TryWriteBootstrapFailure("CreateFileLoggerCore", ex, logFile);
+            Debug.WriteLine($"[AutoBIMFusion] Failed to create logger for file '{logFile}': {ex}");
+            return CreateSilentLogger(minimumLevel);
+        }
         catch (Exception ex)
         {
+            TryWriteBootstrapFailure("CreateFileLoggerCore unexpected", ex, logFile);
             Debug.WriteLine($"[AutoBIMFusion] Failed to create logger for file '{logFile}': {ex}");
             return CreateSilentLogger(minimumLevel);
         }
@@ -107,7 +128,101 @@ public static class LoggerFactory
             .CreateLogger();
     }
 
+    private static bool IsExpectedBootstrapException(Exception ex)
+    {
+        return ex is IOException
+            or UnauthorizedAccessException
+            or SecurityException
+            or NotSupportedException
+            or ArgumentException
+            or TypeLoadException
+            or MissingMethodException
+            or FileLoadException
+            or ReflectionTypeLoadException;
+    }
 
+    private static void TryWriteBootstrapFailure(string context, Exception ex, string? logFile = null)
+    {
+        try
+        {
+            string logsDir = ResolveBootstrapLogsDirectory();
+            _ = Directory.CreateDirectory(logsDir);
+
+            string bootstrapFile = Path.Combine(logsDir, BootstrapFailureFileName);
+            string message = BuildBootstrapFailureMessage(context, ex, logFile);
+            File.AppendAllText(bootstrapFile, message, Encoding.UTF8);
+        }
+        catch (Exception writeEx) when (IsExpectedBootstrapException(writeEx))
+        {
+            Debug.WriteLine($"[AutoBIMFusion] Failed to write logger bootstrap diagnostics: {writeEx}");
+        }
+        catch (Exception writeEx)
+        {
+            Debug.WriteLine($"[AutoBIMFusion] Unexpected failure while writing logger bootstrap diagnostics: {writeEx}");
+        }
+    }
+
+    private static string ResolveBootstrapLogsDirectory()
+    {
+        try
+        {
+            return GetLogsDirectory();
+        }
+        catch (Exception ex) when (IsExpectedBootstrapException(ex))
+        {
+            Debug.WriteLine($"[AutoBIMFusion] Failed to resolve logger bootstrap directory: {ex}");
+            return Path.Combine(AppContext.BaseDirectory, "Logs");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[AutoBIMFusion] Unexpected failure while resolving logger bootstrap directory: {ex}");
+            return Path.Combine(AppContext.BaseDirectory, "Logs");
+        }
+    }
+
+    private static string BuildBootstrapFailureMessage(string context, Exception ex, string? logFile)
+    {
+        StringBuilder sb = new();
+        _ = sb.AppendLine("==== AutoBIMFusion logger bootstrap failure ====");
+        _ = sb.AppendLine($"Timestamp: {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss.fff zzz}");
+        _ = sb.AppendLine($"Context: {context}");
+        _ = sb.AppendLine($"ProcessId: {Environment.ProcessId}");
+        _ = sb.AppendLine($"ThreadId: {Environment.CurrentManagedThreadId}");
+        _ = sb.AppendLine($"TargetLogFile: {logFile ?? "<not resolved>"}");
+        _ = sb.AppendLine($"AppContext.BaseDirectory: {AppContext.BaseDirectory}");
+        _ = sb.AppendLine($"LoggerFactory.Assembly.Location: {GetAssemblyLocation(typeof(LoggerFactory).Assembly)}");
+        _ = sb.AppendLine("Loaded Serilog assemblies:");
+
+        foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies()
+                     .Where(a => a.GetName().Name?.StartsWith("Serilog", StringComparison.OrdinalIgnoreCase) == true)
+                     .OrderBy(a => a.GetName().Name, StringComparer.OrdinalIgnoreCase))
+        {
+            AssemblyName name = assembly.GetName();
+            _ = sb.AppendLine($"- {name.Name}, Version={name.Version}, Location={GetAssemblyLocation(assembly)}");
+        }
+
+        _ = sb.AppendLine("Exception:");
+        _ = sb.AppendLine(ex.ToString());
+        _ = sb.AppendLine();
+
+        return sb.ToString();
+    }
+
+    private static string GetAssemblyLocation(Assembly assembly)
+    {
+        try
+        {
+            return assembly.Location;
+        }
+        catch (Exception ex) when (IsExpectedBootstrapException(ex))
+        {
+            return $"<unavailable: {ex.GetType().Name}: {ex.Message}>";
+        }
+        catch (Exception ex)
+        {
+            return $"<unexpected failure: {ex.GetType().Name}: {ex.Message}>";
+        }
+    }
 
     private static LogEventLevel ResolveMinimumLevel()
     {
