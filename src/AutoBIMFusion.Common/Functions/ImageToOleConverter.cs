@@ -8,7 +8,9 @@ using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.Windows;
 using System.Diagnostics;
 using System.Drawing.Imaging;
+
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
+
 using Color = System.Drawing.Color;
 using DrawingImage = System.Drawing.Image;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
@@ -46,6 +48,7 @@ public static class ImageToOleConverter
         foreach (ObjectId RasterObjectId in ent.Value.GetObjectIds())
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
+
             if (RasterObjectId.GetDBObject() is RasterImage rasterImage)
             {
                 Color rasterImageColor = rasterImage.GetSystemDrawingColor();
@@ -72,8 +75,7 @@ public static class ImageToOleConverter
                         JoinedMessage += IsRotatedWarningMessage;
                     }
 
-                    JoinedMessage +=
-                        $"\nVoullez-vous utiliser un fond de la couleur de l'object raster ? ({rasterImageColor.R},{rasterImageColor.G},{rasterImageColor.B}). Un fond blanc sera appliqué dans le cas contraire";
+                    JoinedMessage += $"\nVoullez-vous utiliser un fond de la couleur de l'object raster ? ({rasterImageColor.R},{rasterImageColor.G},{rasterImageColor.B}). Un fond blanc sera appliqué dans le cas contraire";
 
                     PromptKeywordOptions askOptions = new($"\n{JoinedMessage} [Oui/Non/Annuler] <Annuler>: ");
                     askOptions.Keywords.Add("Oui");
@@ -98,6 +100,7 @@ public static class ImageToOleConverter
                 Debug.WriteLine("Bitmap Size :" + BitmapSize);
 
                 Type? clipboardType = Type.GetType("System.Windows.Forms.Clipboard, System.Windows.Forms", false);
+
                 if (clipboardType is null)
                 {
                     Generic.WriteMessage("Clipboard System.Windows.Forms indisponible.");
