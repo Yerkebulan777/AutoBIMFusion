@@ -159,20 +159,11 @@ internal static class LayoutProjectionProcessor
         }
 
         // Поиск рамки-штампа и фильтрация в той же транзакции
-        Extents3d? titleBlockBounds = FindTitleBlockBounds(trx, paperIdsList);
+        Extents3d? titleBlockBounds = BlockReferences.FindLargestByArea(trx, paperIdsList);
         ObjectIdCollection filteredIds = FilterEntitiesByBounds(trx, paperIdsList, titleBlockBounds);
 
         trx.Commit();
         return (btrId, filteredIds);
-    }
-
-    /// <summary>
-    ///     Находит рамку-штамп (BlockReference с максимальной площадью) в переданном наборе объектов.
-    ///     Делегирует к <see cref="BlockReferences.FindLargestByArea"/>.
-    /// </summary>
-    private static Extents3d? FindTitleBlockBounds(Transaction trx, List<ObjectId> paperIds)
-    {
-        return BlockReferences.FindLargestByArea(trx, paperIds);
     }
 
     /// <summary>
@@ -265,14 +256,9 @@ internal static class LayoutProjectionProcessor
         using ViewportTransformer.CloneTransformResult cloneResult =
             ViewportTransformer.DeepCloneAndTransform(db, filteredIds, paperBtrId, msId, matrix, log);
 
-        EraseBlockContents(db, paperBtrId);
+        BlockReferences.EraseBlockContents(db, paperBtrId);
 
         return ModelSpaceTrimmer.ComputeBounds(db, cloneResult.ClonedIds, log);
-    }
-
-    private static void EraseBlockContents(Database db, ObjectId btrId)
-    {
-        BlockReferences.EraseBlockContents(db, btrId);
     }
 
     internal sealed record LayoutProjectionResult(Extents3d? FrameBounds, double TargetVisualScale, double LinearScaleMultiplier);

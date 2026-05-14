@@ -10,25 +10,10 @@ public sealed class CombineStatistics
     public int Failed { get; private set; }
     public int Skipped { get; private set; }
 
-    public void AddTotal()
-    {
-        TotalFiles++;
-    }
-
-    public void AddSuccess()
-    {
-        Successful++;
-    }
-
-    public void AddFailed()
-    {
-        Failed++;
-    }
-
-    public void AddSkipped()
-    {
-        Skipped++;
-    }
+    public void AddTotal()   => TotalFiles++;
+    public void AddSuccess() => Successful++;
+    public void AddFailed()  => Failed++;
+    public void AddSkipped() => Skipped++;
 
     public override string ToString()
     {

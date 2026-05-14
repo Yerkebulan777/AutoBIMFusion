@@ -122,7 +122,6 @@ public static class DrawingPurger
                 AddToReport(nameof(PurgeMethods.DGN), PurgeMethods.DGN(db));
                 AddToReport(nameof(PurgeMethods.RasterImages), PurgeMethods.RasterImages(db));
                 AddToReport(nameof(PurgeMethods.MLeaderStyle), PurgeMethods.MLeaderStyle(db));
-                //AddToReport(nameof(PurgeMethods.ScaleList), PurgeMethods.ScaleList(db));
                 AddToReport(nameof(PurgeMethods.VisualStyle), PurgeMethods.VisualStyle(db));
                 AddToReport(nameof(PurgeMethods.Material), PurgeMethods.Material(db));
                 AddToReport(nameof(PurgeMethods.TextStyle), PurgeMethods.TextStyle(db));
@@ -300,157 +299,33 @@ public static class DrawingPurger
             return NumberDetachedXREF;
         }
 
-        /// <summary>
-        ///     Очищает неиспользуемые стили мультивыносок.
-        /// </summary>
-        public static int MLeaderStyle(Database db)
+        public static int MLeaderStyle(Database db) => PurgeDictionaryByRefCount(db, "ACAD_MLEADERSTYLE");
+
+        public static int DWF(Database db) => PurgeDictionaryByRefCount(db, "ACAD_DWFDEFINITIONS");
+
+        public static int PDF(Database db) => PurgeDictionaryByRefCount(db, "ACAD_PDFDEFINITIONS");
+
+        public static int DGN(Database db) => PurgeDictionaryByRefCount(db, "ACAD_DGNDEFINITIONS");
+
+        private static int PurgeDictionaryByRefCount(Database db, string dictKey)
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
-            ObjectIdCollection objectIdCollection = [];
-            DBDictionary dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
-            if (dbdictionary.Contains("ACAD_MLEADERSTYLE"))
+            ObjectIdCollection toErase = [];
+            DBDictionary rootDict = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
+            if (rootDict.Contains(dictKey))
             {
-                ObjectIdCollection MLeaderStyleObjectIdCollection = [];
-                foreach (DBDictionaryEntry MLeaderStyleEntry in (DBDictionary)dbdictionary.GetAt("ACAD_MLEADERSTYLE")
-                             .GetDBObject())
-                {
-                    _ = MLeaderStyleObjectIdCollection.Add(MLeaderStyleEntry.Value);
-                }
-
-                int count = MLeaderStyleObjectIdCollection.Count;
-                int[] array = new int[count];
-                db.CountHardReferences(MLeaderStyleObjectIdCollection, array);
-                for (int i = 0; i < count; i++)
-                {
-                    if (array[i] == 0)
-                    {
-                        _ = objectIdCollection.Add(MLeaderStyleObjectIdCollection[i]);
-                    }
-                }
-
-                db.Purge(objectIdCollection);
-                foreach (ObjectId objid in objectIdCollection)
-                {
-                    objid.GetDBObject(OpenMode.ForWrite).Erase();
-                }
+                ObjectIdCollection candidates = [];
+                foreach (DBDictionaryEntry entry in (DBDictionary)rootDict.GetAt(dictKey).GetDBObject())
+                    _ = candidates.Add(entry.Value);
+                int[] refs = new int[candidates.Count];
+                db.CountHardReferences(candidates, refs);
+                for (int i = 0; i < candidates.Count; i++)
+                    if (refs[i] == 0) _ = toErase.Add(candidates[i]);
+                db.Purge(toErase);
+                foreach (ObjectId id in toErase) id.GetDBObject(OpenMode.ForWrite).Erase();
             }
-
             trx.Commit();
-            return objectIdCollection.Count;
-        }
-
-        /// <summary>
-        ///     Очищает неиспользуемые определения DWF.
-        /// </summary>
-        public static int DWF(Database db)
-        {
-            using Transaction trx = db.TransactionManager.StartTransaction();
-            ObjectIdCollection objectIdCollection = [];
-            DBDictionary dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
-            if (dbdictionary.Contains("ACAD_DWFDEFINITIONS"))
-            {
-                ObjectIdCollection DwfDefinitionsObjectIdCollection = [];
-                foreach (DBDictionaryEntry DwfEntry in (DBDictionary)dbdictionary.GetAt("ACAD_DWFDEFINITIONS").GetDBObject())
-                {
-                    _ = DwfDefinitionsObjectIdCollection.Add(DwfEntry.Value);
-                }
-
-                int count = DwfDefinitionsObjectIdCollection.Count;
-                int[] array = new int[count];
-                db.CountHardReferences(DwfDefinitionsObjectIdCollection, array);
-                for (int i = 0; i < count; i++)
-                {
-                    if (array[i] == 0)
-                    {
-                        _ = objectIdCollection.Add(DwfDefinitionsObjectIdCollection[i]);
-                    }
-                }
-
-                db.Purge(objectIdCollection);
-                foreach (ObjectId objid in objectIdCollection)
-                {
-                    objid.GetDBObject(OpenMode.ForWrite).Erase();
-                }
-            }
-
-            trx.Commit();
-            return objectIdCollection.Count;
-        }
-
-        /// <summary>
-        ///     Очищает неиспользуемые определения PDF.
-        /// </summary>
-        public static int PDF(Database db)
-        {
-            using Transaction trx = db.TransactionManager.StartTransaction();
-            ObjectIdCollection objectIdCollection = [];
-            DBDictionary dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
-            if (dbdictionary.Contains("ACAD_PDFDEFINITIONS"))
-            {
-                ObjectIdCollection PdfDefinitionsObjectIdCollection = [];
-                foreach (DBDictionaryEntry PdfEntry in (DBDictionary)dbdictionary.GetAt("ACAD_PDFDEFINITIONS").GetDBObject())
-                {
-                    _ = PdfDefinitionsObjectIdCollection.Add(PdfEntry.Value);
-                }
-
-                int count = PdfDefinitionsObjectIdCollection.Count;
-                int[] array = new int[count];
-                db.CountHardReferences(PdfDefinitionsObjectIdCollection, array);
-                for (int i = 0; i < count; i++)
-                {
-                    if (array[i] == 0)
-                    {
-                        _ = objectIdCollection.Add(PdfDefinitionsObjectIdCollection[i]);
-                    }
-                }
-
-                db.Purge(objectIdCollection);
-                foreach (ObjectId objid in objectIdCollection)
-                {
-                    objid.GetDBObject(OpenMode.ForWrite).Erase();
-                }
-            }
-
-            trx.Commit();
-            return objectIdCollection.Count;
-        }
-
-        /// <summary>
-        ///     Очищает неиспользуемые определения DGN.
-        /// </summary>
-        public static int DGN(Database db)
-        {
-            ObjectIdCollection objectIdCollection = [];
-            using Transaction trx = db.TransactionManager.StartTransaction();
-            DBDictionary dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
-            if (dbdictionary.Contains("ACAD_DGNDEFINITIONS"))
-            {
-                ObjectIdCollection DgnDefinitionsObjectIdCollection = [];
-                foreach (DBDictionaryEntry DgnEntry in (DBDictionary)dbdictionary.GetAt("ACAD_DGNDEFINITIONS").GetDBObject())
-                {
-                    _ = DgnDefinitionsObjectIdCollection.Add(DgnEntry.Value);
-                }
-
-                int count = DgnDefinitionsObjectIdCollection.Count;
-                int[] array = new int[count];
-                db.CountHardReferences(DgnDefinitionsObjectIdCollection, array);
-                for (int i = 0; i < count; i++)
-                {
-                    if (array[i] == 0)
-                    {
-                        _ = objectIdCollection.Add(DgnDefinitionsObjectIdCollection[i]);
-                    }
-                }
-
-                db.Purge(objectIdCollection);
-                foreach (ObjectId objid in objectIdCollection)
-                {
-                    objid.GetDBObject(OpenMode.ForWrite).Erase();
-                }
-            }
-
-            trx.Commit();
-            return objectIdCollection.Count;
+            return toErase.Count;
         }
 
         /// <summary>
@@ -472,35 +347,6 @@ public static class DrawingPurger
                         {
                             _ = objectIdCollection.Add(ImageEntry.Value);
                         }
-                    }
-                }
-
-                db.Purge(objectIdCollection);
-                foreach (ObjectId objid in objectIdCollection)
-                {
-                    objid.GetDBObject(OpenMode.ForWrite).Erase();
-                }
-            }
-
-            trx.Commit();
-            return objectIdCollection.Count;
-        }
-
-        /// <summary>
-        ///     Очищает список масштабов чертежа.
-        /// </summary>
-        public static int ScaleList(Database db)
-        {
-            using Transaction trx = db.TransactionManager.StartTransaction();
-            ObjectIdCollection objectIdCollection = [];
-            DBDictionary dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
-            if (dbdictionary.Contains("ACAD_SCALELIST"))
-            {
-                foreach (DBDictionaryEntry ScaleEntry in (DBDictionary)dbdictionary.GetAt("ACAD_SCALELIST").GetDBObject())
-                {
-                    if (ScaleEntry.Key != "A0" && !trx.GetObject(ScaleEntry.Value, OpenMode.ForRead).IsAProxy)
-                    {
-                        _ = objectIdCollection.Add(ScaleEntry.Value);
                     }
                 }
 
