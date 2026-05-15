@@ -3,6 +3,7 @@ using System.Text;
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Helpers;
 using Serilog.Core;
+using Serilog.Events;
 using Exception = System.Exception;
 
 namespace AutoBIMFusion.Merge.Combine.Layouts;
@@ -66,17 +67,22 @@ public static class DimensionStyleDiagnosticUtils
     /// <param name="stage">Метка этапа (например: "after-merge").</param>
     public static void LogStyleSnapshot(Database db, Logger log, string stage)
     {
+        if (!log.IsEnabled(LogEventLevel.Debug))
+        {
+            return;
+        }
+
         var snapshot = BuildSnapshot(db, stage);
 
-        log.Information(FormatStyleSnapshotHeader(snapshot));
+        log.Debug(FormatStyleSnapshotHeader(snapshot));
 
         foreach (var style in
                  snapshot.DimensionStyles.Values.OrderBy(s => s.StyleName, StringComparer.OrdinalIgnoreCase))
-            log.Information(FormatStageLine("[DIM-STYLE-SUMMARY]", stage, FormatDimensionStyleSummary(style)));
+            log.Debug(FormatStageLine("[DIM-STYLE-SUMMARY]", stage, FormatDimensionStyleSummary(style)));
 
         foreach (var style in snapshot.DimensionStyles.Values.OrderBy(s => s.FullLogLine,
                      StringComparer.OrdinalIgnoreCase))
-            log.Information(FormatStageLine("[DIM-STYLE]", stage, style.FullLogLine));
+            log.Debug(FormatStageLine("[DIM-STYLE]", stage, style.FullLogLine));
 
         LogSnapshotDiff(snapshot, log);
         StoreSnapshot(snapshot);
@@ -305,7 +311,7 @@ public static class DimensionStyleDiagnosticUtils
 
         if (previousSnapshot is null)
         {
-            log.Information(FormatDiffStatus(previousStage, snapshot.Stage, "missing-baseline"));
+            log.Debug(FormatDiffStatus(previousStage, snapshot.Stage, "missing-baseline"));
             return;
         }
 
@@ -322,7 +328,7 @@ public static class DimensionStyleDiagnosticUtils
         {
             if (snapshot.DimensionStyles.ContainsKey(previousStyle.ComparisonKey)) continue;
 
-            log.Information(FormatRemovedDiff(previousSnapshot.Stage, snapshot.Stage, previousStyle));
+            log.Debug(FormatRemovedDiff(previousSnapshot.Stage, snapshot.Stage, previousStyle));
         }
     }
 
@@ -334,7 +340,7 @@ public static class DimensionStyleDiagnosticUtils
         {
             if (previousSnapshot.DimensionStyles.ContainsKey(currentStyle.ComparisonKey)) continue;
 
-            log.Information(FormatAddedDiff(previousSnapshot.Stage, snapshot.Stage, currentStyle));
+            log.Debug(FormatAddedDiff(previousSnapshot.Stage, snapshot.Stage, currentStyle));
         }
     }
 
@@ -352,7 +358,7 @@ public static class DimensionStyleDiagnosticUtils
 
             if (changedProperties.Length == 0 && !usageChanged) continue;
 
-            log.Information(FormatChangedDiff(previousSnapshot.Stage, snapshot.Stage, previousStyle, currentStyle,
+            log.Debug(FormatChangedDiff(previousSnapshot.Stage, snapshot.Stage, previousStyle, currentStyle,
                 changedProperties, usageChanged));
         }
     }

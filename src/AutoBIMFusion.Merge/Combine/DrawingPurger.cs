@@ -43,7 +43,7 @@ public static class DrawingPurger
     /// <summary>
     /// Выполняет глубокую программную очистку (Purge) базы данных DWG
     /// перед сохранением итогового файла.
-    /// Заменяет класс DwgOptimizer.
+    /// Основной путь оптимизации итогового DWG.
     /// </summary>
     public static void Optimize(Database db, Logger log)
     {
@@ -84,29 +84,10 @@ public static class DrawingPurger
                 }
             }
 
-            void AddToReport(string key, int count)
-            {
-                if (count == 0)
-                {
-                    return;
-                }
-
-                if (purgeReport.ContainsKey(key))
-                {
-                    purgeReport[key] += count;
-                }
-                else
-                {
-                    purgeReport[key] = count;
-                }
-
-                totalDeletedCount += count;
-            }
-
             // Базовая очистка.
-            AddToReport(nameof(PurgeMethods.CurvesZeroLength), PurgeMethods.CurvesZeroLength(db));
-            AddToReport(nameof(PurgeMethods.EmptyText), PurgeMethods.EmptyText(db));
-            AddToReport(nameof(PurgeMethods.XREF), PurgeMethods.XREF(db));
+            AddToReport(purgeReport, nameof(PurgeMethods.CurvesZeroLength), PurgeMethods.CurvesZeroLength(db), ref totalDeletedCount);
+            AddToReport(purgeReport, nameof(PurgeMethods.EmptyText), PurgeMethods.EmptyText(db), ref totalDeletedCount);
+            AddToReport(purgeReport, nameof(PurgeMethods.XREF), PurgeMethods.XREF(db), ref totalDeletedCount);
 
             // Повторяем очистку, пока появляются новые удаляемые элементы.
             int previousPassTotalDeletedCount = -1;
@@ -116,16 +97,16 @@ public static class DrawingPurger
                 passCount++;
                 previousPassTotalDeletedCount = totalDeletedCount;
 
-                AddToReport(nameof(PurgeMethods.Database), PurgeMethods.Database(db));
-                AddToReport(nameof(PurgeMethods.DWF), PurgeMethods.DWF(db));
-                AddToReport(nameof(PurgeMethods.PDF), PurgeMethods.PDF(db));
-                AddToReport(nameof(PurgeMethods.DGN), PurgeMethods.DGN(db));
-                AddToReport(nameof(PurgeMethods.RasterImages), PurgeMethods.RasterImages(db));
-                AddToReport(nameof(PurgeMethods.MLeaderStyle), PurgeMethods.MLeaderStyle(db));
-                AddToReport(nameof(PurgeMethods.VisualStyle), PurgeMethods.VisualStyle(db));
-                AddToReport(nameof(PurgeMethods.Material), PurgeMethods.Material(db));
-                AddToReport(nameof(PurgeMethods.TextStyle), PurgeMethods.TextStyle(db));
-                AddToReport(nameof(PurgeMethods.Groups), PurgeMethods.Groups(db));
+                AddToReport(purgeReport, nameof(PurgeMethods.Database), PurgeMethods.Database(db), ref totalDeletedCount);
+                AddToReport(purgeReport, nameof(PurgeMethods.DWF), PurgeMethods.DWF(db), ref totalDeletedCount);
+                AddToReport(purgeReport, nameof(PurgeMethods.PDF), PurgeMethods.PDF(db), ref totalDeletedCount);
+                AddToReport(purgeReport, nameof(PurgeMethods.DGN), PurgeMethods.DGN(db), ref totalDeletedCount);
+                AddToReport(purgeReport, nameof(PurgeMethods.RasterImages), PurgeMethods.RasterImages(db), ref totalDeletedCount);
+                AddToReport(purgeReport, nameof(PurgeMethods.MLeaderStyle), PurgeMethods.MLeaderStyle(db), ref totalDeletedCount);
+                AddToReport(purgeReport, nameof(PurgeMethods.VisualStyle), PurgeMethods.VisualStyle(db), ref totalDeletedCount);
+                AddToReport(purgeReport, nameof(PurgeMethods.Material), PurgeMethods.Material(db), ref totalDeletedCount);
+                AddToReport(purgeReport, nameof(PurgeMethods.TextStyle), PurgeMethods.TextStyle(db), ref totalDeletedCount);
+                AddToReport(purgeReport, nameof(PurgeMethods.Groups), PurgeMethods.Groups(db), ref totalDeletedCount);
             }
 
             // Возвращаем блокировку слоёв в исходное состояние.
@@ -140,15 +121,50 @@ public static class DrawingPurger
         return purgeReport;
     }
 
+    private static void AddToReport(Dictionary<string, int> purgeReport, string key, int count, ref int totalDeletedCount)
+    {
+        if (count == 0)
+        {
+            return;
+        }
+
+        if (!purgeReport.TryAdd(key, count))
+        {
+            purgeReport[key] += count;
+        }
+
+        totalDeletedCount += count;
+    }
+
     private static class PurgeMethods
     {
+        private static int PurgeAndErase(Database db, ObjectIdCollection objectIds)
+        {
+            if (objectIds.Count == 0)
+            {
+                return 0;
+            }
+
+            db.Purge(objectIds);
+
+            foreach (ObjectId objectId in objectIds)
+            {
+                if (objectId.IsValid && !objectId.IsErased)
+                {
+                    objectId.GetDBObject(OpenMode.ForWrite).Erase();
+                }
+            }
+
+            return objectIds.Count;
+        }
+
         /// <summary>
         ///     Удаляет неиспользуемые записи из таблиц и словарей базы данных.
         /// </summary>
         public static int Database(Database db)
         {
-            ObjectIdCollection tableIds = [];
-            ObjectIdCollection dictIds = [];
+            using ObjectIdCollection tableIds = [];
+            using ObjectIdCollection dictIds = [];
 
             _ = tableIds.Add(db.BlockTableId);
             _ = tableIds.Add(db.LayerTableId);
@@ -161,14 +177,17 @@ public static class DrawingPurger
             _ = dictIds.Add(db.TableStyleDictionaryId);
             _ = dictIds.Add(db.PlotStyleNameDictionaryId);
 
-            ObjectIdCollection objectIdCollection = [];
             using Transaction trx = db.TransactionManager.StartTransaction();
+            using ObjectIdCollection objectIdCollection = [];
+
             foreach (object? obj in tableIds)
             {
                 ObjectId objectId = (ObjectId)obj;
-                foreach (ObjectId objectId2 in (SymbolTable)objectId.GetDBObject())
+                var symbolTable = (SymbolTable)trx.GetObject(objectId, OpenMode.ForRead);
+                foreach (ObjectId objectId2 in symbolTable)
                 {
-                    if (!((SymbolTableRecord)objectId2.GetDBObject()).IsDependent)
+                    var record = (SymbolTableRecord)trx.GetObject(objectId2, OpenMode.ForRead);
+                    if (!record.IsDependent)
                     {
                         _ = objectIdCollection.Add(objectId2);
                     }
@@ -178,23 +197,25 @@ public static class DrawingPurger
             foreach (object? obj2 in dictIds)
             {
                 ObjectId objectId3 = (ObjectId)obj2;
-                foreach (DBDictionaryEntry dbdictionaryEntry in (DBDictionary)objectId3.GetDBObject())
+                var dictionary = (DBDictionary)trx.GetObject(objectId3, OpenMode.ForRead);
+                foreach (DBDictionaryEntry dbdictionaryEntry in dictionary)
                 {
-                    if (dbdictionaryEntry.Value.IsValid && !dbdictionaryEntry.Value.GetDBObject().IsAProxy)
+                    if (!dbdictionaryEntry.Value.IsValid)
+                    {
+                        continue;
+                    }
+
+                    var dbObject = trx.GetObject(dbdictionaryEntry.Value, OpenMode.ForRead);
+                    if (!dbObject.IsAProxy)
                     {
                         _ = objectIdCollection.Add(dbdictionaryEntry.Value);
                     }
                 }
             }
 
-            db.Purge(objectIdCollection);
-            foreach (ObjectId objid in objectIdCollection)
-            {
-                objid.GetDBObject(OpenMode.ForWrite).Erase();
-            }
-
+            int deletedCount = PurgeAndErase(db, objectIdCollection);
             trx.Commit();
-            return objectIdCollection.Count;
+            return deletedCount;
         }
 
         /// <summary>
@@ -217,14 +238,16 @@ public static class DrawingPurger
                             if (curve is not Xline && curve is not Ray &&
                                 curve.GetDistanceAtParameter(curve.EndParam) == 0.0)
                             {
-                                objectId3.GetDBObject(OpenMode.ForWrite).Erase();
+                                curve.UpgradeOpen();
+                                curve.Erase();
                                 NumberZeroLengthCurvesDeleted++;
                             }
                         }
                         else if (objectId3.ObjectClass.Name == "AcDbRegion" &&
-                                 ((Region)trx.GetObject(objectId3, OpenMode.ForRead)).Area == 0.0)
+                                 trx.GetObject(objectId3, OpenMode.ForRead) is Region { Area: 0.0 } region)
                         {
-                            objectId3.GetDBObject(OpenMode.ForWrite).Erase();
+                            region.UpgradeOpen();
+                            region.Erase();
                             NumberZeroLengthCurvesDeleted++;
                         }
                     }
@@ -253,17 +276,19 @@ public static class DrawingPurger
                         if (objectId3.ObjectClass == DBTextRXClass)
                         {
                             DBText dbtext = (DBText)trx.GetObject(objectId3, OpenMode.ForRead);
-                            if (dbtext.TextString.Trim()?.Length == 0)
+                            if (dbtext.TextString.Trim().Length == 0)
                             {
-                                objectId3.GetDBObject(OpenMode.ForWrite).Erase();
+                                dbtext.UpgradeOpen();
                                 dbtext.Erase();
                                 NumberEmptyTextDeleted++;
                             }
                         }
-                        else if (objectId3.ObjectClass == MTextRXClass &&
-                                 ((MText)trx.GetObject(objectId3, OpenMode.ForRead)).Text.Trim()?.Length == 0)
+                        else if (objectId3.ObjectClass == MTextRXClass
+                                 && trx.GetObject(objectId3, OpenMode.ForRead) is MText { Text: not null } mtext
+                                 && mtext.Text.Trim().Length == 0)
                         {
-                            objectId3.GetDBObject(OpenMode.ForWrite).Erase();
+                            mtext.UpgradeOpen();
+                            mtext.Erase();
                             NumberEmptyTextDeleted++;
                         }
                     }
@@ -310,22 +335,34 @@ public static class DrawingPurger
         private static int PurgeDictionaryByRefCount(Database db, string dictKey)
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
-            ObjectIdCollection toErase = [];
-            DBDictionary rootDict = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
+            using ObjectIdCollection toErase = [];
+            DBDictionary rootDict = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
+
             if (rootDict.Contains(dictKey))
             {
-                ObjectIdCollection candidates = [];
-                foreach (DBDictionaryEntry entry in (DBDictionary)rootDict.GetAt(dictKey).GetDBObject())
+                using ObjectIdCollection candidates = [];
+                var dictionary = (DBDictionary)trx.GetObject(rootDict.GetAt(dictKey), OpenMode.ForRead);
+
+                foreach (DBDictionaryEntry entry in dictionary)
+                {
                     _ = candidates.Add(entry.Value);
+                }
+
                 int[] refs = new int[candidates.Count];
                 db.CountHardReferences(candidates, refs);
+
                 for (int i = 0; i < candidates.Count; i++)
-                    if (refs[i] == 0) _ = toErase.Add(candidates[i]);
-                db.Purge(toErase);
-                foreach (ObjectId id in toErase) id.GetDBObject(OpenMode.ForWrite).Erase();
+                {
+                    if (refs[i] == 0)
+                    {
+                        _ = toErase.Add(candidates[i]);
+                    }
+                }
             }
+
+            int deletedCount = PurgeAndErase(db, toErase);
             trx.Commit();
-            return toErase.Count;
+            return deletedCount;
         }
 
         /// <summary>
@@ -334,11 +371,14 @@ public static class DrawingPurger
         public static int RasterImages(Database db)
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
-            ObjectIdCollection objectIdCollection = [];
-            DBDictionary dbdictionary = (DBDictionary)db.NamedObjectsDictionaryId.GetDBObject();
+            using ObjectIdCollection objectIdCollection = [];
+            DBDictionary dbdictionary = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
+
             if (dbdictionary.Contains("ACAD_IMAGE_DICT"))
             {
-                foreach (DBDictionaryEntry ImageEntry in (DBDictionary)dbdictionary.GetAt("ACAD_IMAGE_DICT").GetDBObject())
+                var imageDictionary = (DBDictionary)trx.GetObject(dbdictionary.GetAt("ACAD_IMAGE_DICT"), OpenMode.ForRead);
+
+                foreach (DBDictionaryEntry ImageEntry in imageDictionary)
                 {
                     if (ImageEntry.Value.IsValid)
                     {
@@ -349,16 +389,11 @@ public static class DrawingPurger
                         }
                     }
                 }
-
-                db.Purge(objectIdCollection);
-                foreach (ObjectId objid in objectIdCollection)
-                {
-                    objid.GetDBObject(OpenMode.ForWrite).Erase();
-                }
             }
 
+            int deletedCount = PurgeAndErase(db, objectIdCollection);
             trx.Commit();
-            return objectIdCollection.Count;
+            return deletedCount;
         }
 
         /// <summary>
@@ -367,25 +402,20 @@ public static class DrawingPurger
         public static int VisualStyle(Database db)
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
-            ObjectIdCollection objectIdCollection = [];
+            using ObjectIdCollection objectIdCollection = [];
             foreach (DBDictionaryEntry VisualStyleEntry in (DBDictionary)trx.GetObject(db.VisualStyleDictionaryId,
                          OpenMode.ForRead))
             {
-                if ((trx.GetObject(VisualStyleEntry.Value, OpenMode.ForRead) as DBVisualStyle)!.Type ==
-                    VisualStyleType.Custom && !trx.GetObject(VisualStyleEntry.Value, OpenMode.ForRead).IsAProxy)
+                var visualStyle = (DBVisualStyle)trx.GetObject(VisualStyleEntry.Value, OpenMode.ForRead);
+                if (visualStyle.Type == VisualStyleType.Custom && !visualStyle.IsAProxy)
                 {
                     _ = objectIdCollection.Add(VisualStyleEntry.Value);
                 }
             }
 
-            db.Purge(objectIdCollection);
-            foreach (ObjectId objid in objectIdCollection)
-            {
-                objid.GetDBObject(OpenMode.ForWrite).Erase();
-            }
-
+            int deletedCount = PurgeAndErase(db, objectIdCollection);
             trx.Commit();
-            return objectIdCollection.Count;
+            return deletedCount;
         }
 
         /// <summary>
@@ -394,26 +424,21 @@ public static class DrawingPurger
         public static int Material(Database db)
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
-            ObjectIdCollection objectIdCollection = [];
+            using ObjectIdCollection objectIdCollection = [];
             foreach (DBDictionaryEntry MaterialEntry in (DBDictionary)trx.GetObject(db.MaterialDictionaryId, OpenMode.ForRead,
                          false))
             {
                 string key = MaterialEntry.Key;
-                if (key != "ByBlock" && key != "ByLayer" && key != "Global" &&
-                    !trx.GetObject(MaterialEntry.Value, OpenMode.ForRead).IsAProxy)
+                DBObject material = trx.GetObject(MaterialEntry.Value, OpenMode.ForRead);
+                if (key != "ByBlock" && key != "ByLayer" && key != "Global" && !material.IsAProxy)
                 {
                     _ = objectIdCollection.Add(MaterialEntry.Value);
                 }
             }
 
-            db.Purge(objectIdCollection);
-            foreach (ObjectId objid in objectIdCollection)
-            {
-                objid.GetDBObject(OpenMode.ForWrite).Erase();
-            }
-
+            int deletedCount = PurgeAndErase(db, objectIdCollection);
             trx.Commit();
-            return objectIdCollection.Count;
+            return deletedCount;
         }
 
         /// <summary>
@@ -422,7 +447,7 @@ public static class DrawingPurger
         public static int TextStyle(Database db)
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
-            ObjectIdCollection objectIdCollection = [];
+            using ObjectIdCollection objectIdCollection = [];
             foreach (ObjectId TextStyleTableId in (TextStyleTable)trx.GetObject(db.TextStyleTableId, OpenMode.ForRead))
             {
                 TextStyleTableRecord textStyleTableRecord = (TextStyleTableRecord)trx.GetObject(TextStyleTableId, OpenMode.ForRead);
@@ -434,14 +459,9 @@ public static class DrawingPurger
                 }
             }
 
-            db.Purge(objectIdCollection);
-            foreach (ObjectId objid in objectIdCollection)
-            {
-                objid.GetDBObject(OpenMode.ForWrite).Erase();
-            }
-
+            int deletedCount = PurgeAndErase(db, objectIdCollection);
             trx.Commit();
-            return objectIdCollection.Count;
+            return deletedCount;
         }
 
         /// <summary>
@@ -456,7 +476,8 @@ public static class DrawingPurger
                 Group group = (Group)trx.GetObject(GroupEntry.Value, OpenMode.ForRead, false);
                 if (group.NumEntities < 2)
                 {
-                    group.ObjectId.GetDBObject(OpenMode.ForWrite).Erase();
+                    group.UpgradeOpen();
+                    group.Erase();
                     CountDeleted++;
                 }
             }

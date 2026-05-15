@@ -21,60 +21,7 @@ internal static class LayoutProjectionProcessor
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
-        List<Extents3d> allWindows = [mainOriginal.ModelWindow];
-
-        foreach (ViewportInfo aux in viewports)
-        {
-            if (aux.VpId != mainOriginal.VpId)
-            {
-                allWindows.Add(aux.ModelWindow);
-            }
-        }
-
-        if (viewports.Count > 1)
-        {
-            IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
-
-            HashSet<ObjectId> claimedSourceIds = [];
-
-            foreach (ViewportInfo aux in viewports)
-            {
-                if (aux.VpId == mainOriginal.VpId)
-                {
-                    continue;
-                }
-
-                Matrix3d matrix = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
-
-                using ObjectIdCollection candidates = ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, mainOriginal.ModelWindow, log);
-
-                using ObjectIdCollection toClone = [];
-                var duplicateSkipped = 0;
-                foreach (ObjectId id in candidates)
-                {
-                    if (claimedSourceIds.Add(id))
-                    {
-                        _ = toClone.Add(id);
-                    }
-                    else
-                    {
-                        duplicateSkipped++;
-                    }
-                }
-
-                if (toClone.Count == 0)
-                {
-                    log.Debug($"Aux#{aux.Number}: candidates={candidates.Count}, duplicateSkipped={duplicateSkipped}, nothing to clone");
-                    continue;
-                }
-
-                log.Debug($"Aux#{aux.Number}: candidates={candidates.Count}, toClone={toClone.Count}, duplicateSkipped={duplicateSkipped}");
-
-                using ViewportTransformer.CloneTransformResult cloneResult = ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log);
-
-                ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow);
-            }
-        }
+        ProjectAuxViewports(db, msId, mainOriginal, viewports, log);
 
         NormalizeModelSpaceScale(db, scale.GeometryScale, mainOriginal.ViewCenter, log);
 
@@ -88,6 +35,87 @@ internal static class LayoutProjectionProcessor
 
             return new LayoutProjectionResult(frameBounds, scale.TargetVisualScale, scale.LinearScaleMultiplier);
         }
+    }
+
+    private static void ProjectAuxViewports(
+        Database db,
+        ObjectId msId,
+        ViewportInfo mainOriginal,
+        IReadOnlyList<ViewportInfo> viewports,
+        Logger log)
+    {
+        if (viewports.Count <= 1)
+        {
+            return;
+        }
+
+        IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities =
+            ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
+
+        HashSet<ObjectId> claimedSourceIds = [];
+
+        foreach (ViewportInfo aux in viewports)
+        {
+            if (aux.VpId == mainOriginal.VpId)
+            {
+                continue;
+            }
+
+            ProjectAuxViewport(db, msId, mainOriginal, aux, modelEntities, claimedSourceIds, log);
+        }
+    }
+
+    private static void ProjectAuxViewport(
+        Database db,
+        ObjectId msId,
+        ViewportInfo mainOriginal,
+        ViewportInfo aux,
+        IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities,
+        HashSet<ObjectId> claimedSourceIds,
+        Logger log)
+    {
+        Matrix3d matrix = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
+
+        using ObjectIdCollection candidates =
+            ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, mainOriginal.ModelWindow, log);
+
+        using ObjectIdCollection toClone = CollectUnclaimedObjectIds(candidates, claimedSourceIds, out int duplicateSkipped);
+
+        if (toClone.Count == 0)
+        {
+            log.Debug($"Aux#{aux.Number}: candidates={candidates.Count}, duplicateSkipped={duplicateSkipped}, nothing to clone");
+            return;
+        }
+
+        log.Debug($"Aux#{aux.Number}: candidates={candidates.Count}, toClone={toClone.Count}, duplicateSkipped={duplicateSkipped}");
+
+        using ViewportTransformer.CloneTransformResult cloneResult =
+            ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log);
+
+        ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow);
+    }
+
+    private static ObjectIdCollection CollectUnclaimedObjectIds(
+        ObjectIdCollection candidates,
+        HashSet<ObjectId> claimedSourceIds,
+        out int duplicateSkipped)
+    {
+        ObjectIdCollection result = [];
+        duplicateSkipped = 0;
+
+        foreach (ObjectId id in candidates)
+        {
+            if (claimedSourceIds.Add(id))
+            {
+                _ = result.Add(id);
+            }
+            else
+            {
+                duplicateSkipped++;
+            }
+        }
+
+        return result;
     }
 
     private static LayoutProjectionResult ProjectNoViewport(Database db, string layoutName, Logger log)
@@ -144,8 +172,24 @@ internal static class LayoutProjectionProcessor
 
         RXClass viewportClass = RXObject.GetClass(typeof(Viewport));
 
-        // Clip-границы служебные, их нельзя переносить как обычную графику.
+        HashSet<ObjectId> clipEntityIds = CollectViewportClipEntityIds(trx, btr, viewportClass);
+        List<ObjectId> paperIdsList = CollectPaperEntityIds(btr, viewportClass, clipEntityIds);
+
+        // Поиск рамки-штампа и фильтрация в той же транзакции
+        Extents3d? titleBlockBounds = BlockReferences.FindLargestByArea(trx, paperIdsList);
+        ObjectIdCollection filteredIds = FilterEntitiesByBounds(trx, paperIdsList, titleBlockBounds);
+
+        trx.Commit();
+        return (btrId, filteredIds);
+    }
+
+    private static HashSet<ObjectId> CollectViewportClipEntityIds(
+        Transaction trx,
+        BlockTableRecord btr,
+        RXClass viewportClass)
+    {
         HashSet<ObjectId> clipEntityIds = [];
+
         foreach (ObjectId id in btr)
         {
             if (!id.ObjectClass.IsDerivedFrom(viewportClass))
@@ -160,22 +204,25 @@ internal static class LayoutProjectionProcessor
             }
         }
 
-        // Собрать объекты листа без viewport'ов и clip-границ.
-        List<ObjectId> paperIdsList = [];
+        return clipEntityIds;
+    }
+
+    private static List<ObjectId> CollectPaperEntityIds(
+        BlockTableRecord btr,
+        RXClass viewportClass,
+        IReadOnlySet<ObjectId> clipEntityIds)
+    {
+        List<ObjectId> paperIds = [];
+
         foreach (ObjectId id in btr)
         {
             if (!id.ObjectClass.IsDerivedFrom(viewportClass) && !clipEntityIds.Contains(id))
             {
-                paperIdsList.Add(id);
+                paperIds.Add(id);
             }
         }
 
-        // Поиск рамки-штампа и фильтрация в той же транзакции
-        Extents3d? titleBlockBounds = BlockReferences.FindLargestByArea(trx, paperIdsList);
-        ObjectIdCollection filteredIds = FilterEntitiesByBounds(trx, paperIdsList, titleBlockBounds);
-
-        trx.Commit();
-        return (btrId, filteredIds);
+        return paperIds;
     }
 
     /// <summary>

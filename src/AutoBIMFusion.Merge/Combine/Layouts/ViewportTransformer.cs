@@ -193,14 +193,7 @@ internal static class ViewportTransformer
     {
         IReadOnlyList<ObjectId> sourceOrder = DrawOrderPreserver.Capture(db, sourceOwnerId, sourceIds, log);
 
-        using ObjectIdCollection validIds = [];
-        foreach (ObjectId id in sourceIds)
-        {
-            if (id.IsValidForOperation())
-            {
-                _ = validIds.Add(id);
-            }
-        }
+        using ObjectIdCollection validIds = CollectValidIds(sourceIds);
 
         if (validIds.Count == 0)
         {
@@ -213,31 +206,59 @@ internal static class ViewportTransformer
         using (Transaction trx = db.TransactionManager.StartTransaction())
         {
             db.DeepCloneObjects(validIds, ownerId, map, false);
-
-            foreach (IdPair pair in map)
-            {
-                if (pair.IsCloned && pair.IsPrimary)
-                {
-                    if (trx.GetObject(pair.Value, OpenMode.ForWrite) is Entity e)
-                    {
-                        try
-                        {
-                            _ = EntityTransformUtils.TransformEntity(e, matrix, trx);
-                            _ = result.ClonedIds.Add(pair.Value);
-                        }
-                        catch (Exception ex)
-                        {
-                            log.Warning($"[ОШИБКА КЛОНА] {e.GetType().Name} {e.Handle}: {ex.Message}");
-                        }
-                    }
-                }
-            }
+            TransformClonedEntities(trx, map, matrix, result, log);
 
             trx.Commit();
         }
 
         DrawOrderPreserver.Restore(db, ownerId, sourceOrder, map, log);
         return result;
+    }
+
+    private static ObjectIdCollection CollectValidIds(ObjectIdCollection sourceIds)
+    {
+        ObjectIdCollection validIds = [];
+
+        foreach (ObjectId id in sourceIds)
+        {
+            if (id.IsValidForOperation())
+            {
+                _ = validIds.Add(id);
+            }
+        }
+
+        return validIds;
+    }
+
+    private static void TransformClonedEntities(
+        Transaction trx,
+        IdMapping map,
+        Matrix3d matrix,
+        CloneTransformResult result,
+        Logger log)
+    {
+        foreach (IdPair pair in map)
+        {
+            if (!pair.IsCloned || !pair.IsPrimary)
+            {
+                continue;
+            }
+
+            if (trx.GetObject(pair.Value, OpenMode.ForWrite) is not Entity entity)
+            {
+                continue;
+            }
+
+            try
+            {
+                _ = EntityTransformUtils.TransformEntity(entity, matrix, trx);
+                _ = result.ClonedIds.Add(pair.Value);
+            }
+            catch (Exception ex)
+            {
+                log.Warning($"[ОШИБКА КЛОНА] {entity.GetType().Name} {entity.Handle}: {ex.Message}");
+            }
+        }
     }
 
     /// <param name="mainWindow">

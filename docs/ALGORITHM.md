@@ -46,7 +46,7 @@
 *Выполняется внутри `ViewportLayoutExporter.PrepareDatabaseForMerge`.*
 
 1. Если рассчитана рамка листа (`projection.FrameBounds.HasValue`), `ModelSpaceTrimmer.TrimOutside` удаляет объекты вне рамки.
-2. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `source-after-normalize-before-clone`.
+2. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `source-after-normalize-before-clone` только при `LOG_LEVEL=DEBUG`.
 3. После вставки в target `DimensionStyleNormalizer` удаляет DSTYLE overrides из XData/ExtensionDictionary и пересчитывает скопированные размеры.
 
 ## 5. Вставка в целевой чертеж
@@ -60,13 +60,13 @@
 5. К каждому клонированному объекту применяется displacement.
 6. Скопированные размеры приводятся к чистому GOST-стилю, DSTYLE overrides удаляются, dimension blocks пересчитываются.
 7. Следующий лист размещается справа от предыдущего; зазор равен `Max(1.0, Round(Max(width, height) * gapPercent, 0))`.
-8. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `target-after-clone`.
+8. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `target-after-clone` только при `LOG_LEVEL=DEBUG`.
 
 ## 6. Финализация
 
 1. `RasterImagePathFixer.CopyImagesToTargetFolder` копирует растры рядом с итоговым DWG и обновляет пути.
-2. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `target-after-merge`.
-3. `DwgOptimizer.Optimize` выполняет до 5 проходов `Purge`.
+2. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `target-after-merge` только при `LOG_LEVEL=DEBUG`.
+3. `DrawingPurger.Optimize` выполняет до 10 проходов `Purge`.
 4. Итоговый файл сохраняется через `SaveAs(savePath, DwgVersion.AC1032)`.
 5. AutoCAD получает команды `REGENALL` и `ZOOM EXTENTS`.
 

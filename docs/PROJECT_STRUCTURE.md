@@ -70,7 +70,7 @@ Keep only cross-project entry points public:
 - `AutoBIMFusion.Merge.CombineStatistics`
 - `AutoBIMFusion.Merge.CombineResult`
 - `AutoBIMFusion.Merge.RasterImagePathFixer`
-- `AutoBIMFusion.Merge.DwgOptimizer`
+- `AutoBIMFusion.Merge.DrawingPurger`
 - `AutoBIMFusion.Infrastructure.Logging.LoggerFactory`
 - required helpers under `AutoBIMFusion.Common`
 

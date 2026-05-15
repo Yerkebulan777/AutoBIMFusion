@@ -90,10 +90,10 @@ AutoBIMFusion.Tests
 | `LayoutProjectionProcessor` | `AutoBIMFusion.Merge` | Перенос Paper Space в Model Space, main/aux vpt projection, scale clamp |
 | `ViewportTransformer` | `AutoBIMFusion.Merge` | Матрицы трансформации, clone/transform, erase outside main VP, draw order |
 | `DimensionStyleNormalizer` | `AutoBIMFusion.Merge` | Очистка DSTYLE overrides и назначение чистого AutoBIM-стиля скопированным размерам |
-| `DimensionStyleDiagnosticUtils` | `AutoBIMFusion.Merge` | Диагностические снимки размерных стилей |
+| `DimensionStyleDiagnosticUtils` | `AutoBIMFusion.Merge` | Диагностические снимки размерных стилей, включаются при `LOG_LEVEL=DEBUG` |
 | `BlockInserter` | `AutoBIMFusion.Merge` | `WblockCloneObjects` + расстановка по оси X |
 | `RasterImagePathFixer` | `AutoBIMFusion.Merge` | Копирование растров и перевод путей в относительные |
-| `DwgOptimizer` | `AutoBIMFusion.Merge` | Многопроходный `Database.Purge` |
+| `DrawingPurger` | `AutoBIMFusion.Merge` | Многопроходный `Database.Purge` |
 | `FileUtil` | `AutoBIMFusion.Common` | DWG enumeration, natural sort, file validation |
 | `LayoutUtil` | `AutoBIMFusion.Common` | Поиск Paper Space layouts и layout helpers |
 | `LoggerFactory` | `AutoBIMFusion.Infrastructure` | Общий Serilog logger для plugin runtime |
@@ -110,7 +110,7 @@ CombineCommands
   -> BlockInserter
   -> DimensionStyleNormalizer
   -> RasterImagePathFixer
-  -> DwgOptimizer
+  -> DrawingPurger.Optimize
   -> SaveAs(DwgVersion.AC1032)
 ```
 
@@ -146,4 +146,4 @@ CombineCommands
 - Основной логгер: `LoggerFactory.GetSharedLogger()`.
 - Активная команда пишет в `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle\Contents\Logs\merge-YYYY-MM-DD.log`.
 - `DiagnosticSink` дублирует сообщения в `Debug.WriteLine` или `Trace.WriteLine`.
-- Размерные стили диагностируются стадиями `source-after-normalize-before-clone`, `target-after-clone` и `target-after-merge`.
+- Размерные стили диагностируются стадиями `source-after-normalize-before-clone`, `target-after-clone` и `target-after-merge` только при `LOG_LEVEL=DEBUG`.

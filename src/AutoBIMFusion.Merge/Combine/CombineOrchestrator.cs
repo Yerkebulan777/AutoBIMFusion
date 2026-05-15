@@ -14,7 +14,12 @@ namespace AutoBIMFusion.Merge.Combine;
 [SupportedOSPlatform("windows")]
 public static class CombineOrchestrator
 {
-    public static async Task<CombineResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc, Logger log)
+    public static Task<CombineResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc, Logger log)
+    {
+        return Task.FromResult(MergeSingleFileCore(filePath, inserter, targetDoc, log));
+    }
+
+    private static CombineResult MergeSingleFileCore(string filePath, BlockInserter inserter, Document targetDoc, Logger log)
     {
         string fileName = Path.GetFileName(filePath);
 
