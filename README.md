@@ -119,7 +119,24 @@ D:\DWG-Batch\
     Object-01.dwg
 ```
 
-Если обычная сборка не может обновить `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle` из-за открытого AutoCAD или прав доступа, закройте AutoCAD и повторите запуск. Если плагин уже deployed, можно временно использовать `-SkipBuild`.
+Если обычная сборка не может обновить `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle` из-за открытого AutoCAD или прав доступа:
+
+1. Закройте все процессы AutoCAD.
+2. Повторите запуск скрипта.
+3. Если ошибка сохраняется, удалите старый bundle и запустите скрипт снова:
+
+```powershell
+Remove-Item "$env:APPDATA\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle" -Recurse -Force
+powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoBIMFusion\tools\Start-MergeDwgBatch.ps1"
+```
+
+Если актуальная версия плагина уже deployed, можно временно запустить без сборки:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoBIMFusion\tools\Start-MergeDwgBatch.ps1" -SkipBuild
+```
+
+`-SkipBuild` используйте только после успешной сборки/deploy текущей версии, иначе AutoCAD может не найти внутреннюю команду `MERGEDWG_BATCH`.
 
 ## Процесс слияния
 

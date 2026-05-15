@@ -79,10 +79,40 @@ function New-AutoCadScript {
     Set-Content -LiteralPath $ScriptPath -Value $lines -Encoding Default
 }
 
+function Clear-DeployedBundleAttributes {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$BundlePath
+    )
+
+    if (-not (Test-Path -LiteralPath $BundlePath)) {
+        return
+    }
+
+    try {
+        Get-ChildItem -LiteralPath $BundlePath -Recurse -Force -ErrorAction Stop |
+            ForEach-Object {
+                if ($_.IsReadOnly) {
+                    $_.IsReadOnly = $false
+                }
+            }
+
+        $bundle = Get-Item -LiteralPath $BundlePath -Force -ErrorAction Stop
+        if ($bundle.IsReadOnly) {
+            $bundle.IsReadOnly = $false
+        }
+    }
+    catch {
+        Write-Host "Cannot prepare deployed bundle for update: $BundlePath"
+        Write-Host "Close AutoCAD and check permissions if build fails."
+    }
+}
+
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent $scriptRoot
 $workRoot = (Get-Location).ProviderPath
 $acadExe = Join-Path $AutoCADRoot "acad.exe"
+$deployedBundleRoot = Join-Path $env:APPDATA "Autodesk\ApplicationPlugins\AutoBIMFusion.bundle"
 $outputSuffix = -join ([int[]](45, 1089, 1073, 1086, 1088, 1082, 1072) | ForEach-Object { [char]$_ })
 $successMessage = -join ([int[]](1042, 1089, 1077, 32, 1087, 1072, 1087, 1082, 1080, 32, 1091, 1089, 1087, 1077, 1096, 1085, 1086, 32, 1086, 1073, 1088, 1072, 1073, 1086, 1090, 1072, 1085, 1099, 46) | ForEach-Object { [char]$_ })
 
@@ -159,10 +189,11 @@ if ($WhatIf) {
 if (-not $SkipBuild) {
     Push-Location $repoRoot
     try {
+        Clear-DeployedBundleAttributes -BundlePath $deployedBundleRoot
         & dotnet build "AutoBIMFusion.slnx" -c $Configuration
 
         if ($LASTEXITCODE -ne 0) {
-            throw "Build failed with exit code $LASTEXITCODE."
+            throw "Build failed with exit code $LASTEXITCODE. Close AutoCAD, check access to $deployedBundleRoot, or rerun with -SkipBuild if the current plugin is already deployed."
         }
     }
     finally {
