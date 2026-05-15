@@ -25,10 +25,8 @@ function Test-ContainsDwg {
 
 function Complete-FinishedProcesses {
     param(
-        [Parameter(Mandatory = $true)]
         [System.Collections.ArrayList]$ActiveProcesses,
 
-        [Parameter(Mandatory = $true)]
         [System.Collections.ArrayList]$CompletedProcesses,
 
         [Parameter(Mandatory = $true)]
