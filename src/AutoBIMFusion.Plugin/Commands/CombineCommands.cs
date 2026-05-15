@@ -76,7 +76,7 @@ public sealed class CombineCommands
                 Document mergeDoc = target.Document;
 
                 BlockInserter inserter = new(gapPercent, log);
-                await MergeFiles(dwgFiles, inserter, mergeDoc, stats, log);
+                await MergeFiles(dwgFiles, inserter, mergeDoc, stats, savePath, log);
 
                 using (mergeDoc.LockDocument())
                 {
@@ -202,7 +202,7 @@ public sealed class CombineCommands
         return true;
     }
 
-    private static async Task MergeFiles(string[] files, BlockInserter inserter, Document doc, CombineStatistics stats, Logger log)
+    private static async Task MergeFiles(string[] files, BlockInserter inserter, Document doc, CombineStatistics stats, string savePath, Logger log)
     {
         using ProgressMeter pm = new();
         pm.Start("Объединение файлов DWG...");
@@ -214,7 +214,7 @@ public sealed class CombineCommands
             {
                 stats.AddTotal();
 
-                CombineResult result = await CombineOrchestrator.MergeSingleFile(files[idx], inserter, doc, log);
+                CombineResult result = await CombineOrchestrator.MergeSingleFile(files[idx], inserter, doc, log, savePath);
 
                 if (result.Success)
                 {
