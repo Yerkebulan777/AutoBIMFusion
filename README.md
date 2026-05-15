@@ -66,10 +66,19 @@ D:\DWG-Batch\
   Object-03-сборка\   # пропускается как итоговая папка
 ```
 
-Перейдите в родительскую папку и запустите скрипт:
+`D:\DWG-Batch` ниже — только пример. Если PowerShell уже открыт в нужной родительской папке, переходить в другой каталог не нужно.
+
+Перейдите в свою родительскую папку и запустите скрипт:
 
 ```powershell
+# Пример. Замените путь на свою родительскую папку с папками DWG.
 cd D:\DWG-Batch
+powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoBIMFusion\tools\Start-MergeDwgBatch.ps1"
+```
+
+Если вы уже находитесь в нужной папке, запускайте только вторую строку:
+
+```powershell
 powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoBIMFusion\tools\Start-MergeDwgBatch.ps1"
 ```
 
