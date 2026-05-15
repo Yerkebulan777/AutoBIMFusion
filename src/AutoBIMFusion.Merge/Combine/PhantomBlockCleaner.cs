@@ -29,7 +29,9 @@ public static class PhantomBlockCleaner
         HashSet<ObjectId> phantomBtrs = FindPhantomBlocks(db, threshold, log);
 
         if (phantomBtrs.Count == 0)
+        {
             return;
+        }
 
         int erasedCount = EraseModelSpaceReferences(db, phantomBtrs);
 
@@ -55,13 +57,17 @@ public static class PhantomBlockCleaner
             Layout layout = (Layout)trx.GetObject(entry.Value, OpenMode.ForRead);
 
             if (layout.ModelType)
+            {
                 continue;
+            }
 
-            var paperSize = layout.PlotPaperSize;
-            double diagonal = Sqrt(paperSize.X * paperSize.X + paperSize.Y * paperSize.Y);
+            Point2d paperSize = layout.PlotPaperSize;
+            double diagonal = Sqrt((paperSize.X * paperSize.X) + (paperSize.Y * paperSize.Y));
 
             if (diagonal > maxDiagonal)
+            {
                 maxDiagonal = diagonal;
+            }
         }
 
         trx.Commit();
@@ -86,12 +92,16 @@ public static class PhantomBlockCleaner
         foreach (ObjectId btrId in bt)
         {
             if (!btrId.IsValid || btrId.IsErased)
+            {
                 continue;
+            }
 
             BlockTableRecord btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
 
             if (btr.IsLayout || btr.IsFromExternalReference || btr.Name.StartsWith("*"))
+            {
                 continue;
+            }
 
             // Pass 1: быстрый счёт и проверка типов через DxfName — объекты не открываем
             int count = 0;
@@ -100,7 +110,9 @@ public static class PhantomBlockCleaner
             foreach (ObjectId entId in btr)
             {
                 if (entId.IsErased)
+                {
                     continue;
+                }
 
                 count++;
 
@@ -111,7 +123,7 @@ public static class PhantomBlockCleaner
                 }
 
                 string dxfName = entId.ObjectClass.DxfName;
-                if (dxfName != "LWPOLYLINE" && dxfName != "LINE" && dxfName != "ARC")
+                if (dxfName is not "LWPOLYLINE" and not "LINE" and not "ARC")
                 {
                     allValidTypes = false;
                     break;
@@ -119,7 +131,9 @@ public static class PhantomBlockCleaner
             }
 
             if (count < 1 || !allValidTypes)
+            {
                 continue;
+            }
 
             // Pass 2: открываем объекты — проверка длины полилиний и накопление габаритов
             Extents3d? combined = null;
@@ -128,7 +142,9 @@ public static class PhantomBlockCleaner
             foreach (ObjectId entId in btr)
             {
                 if (entId.IsErased)
+                {
                     continue;
+                }
 
                 Entity ent = (Entity)trx.GetObject(entId, OpenMode.ForRead);
 
@@ -140,13 +156,17 @@ public static class PhantomBlockCleaner
 
                 Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
                 if (ext is null)
+                {
                     continue;
+                }
 
                 combined = combined is null ? ext.Value : ExtentsUtils.Union(combined.Value, ext.Value);
             }
 
             if (!lengthOk || combined is null)
+            {
                 continue;
+            }
 
             // Pass 3: проверка расстояния от центра геометрии до начала координат
             Point3d center = new(
@@ -158,7 +178,7 @@ public static class PhantomBlockCleaner
 
             if (displacement > threshold)
             {
-                result.Add(btrId);
+                _ = result.Add(btrId);
                 log.Debug(
                     "PhantomBlockCleaner: фантомный блок «{Name}», смещение {Displacement:F0} ед.",
                     btr.Name, displacement);
@@ -185,15 +205,21 @@ public static class PhantomBlockCleaner
         foreach (ObjectId entId in ms)
         {
             if (entId.IsErased)
+            {
                 continue;
+            }
 
             if (entId.ObjectClass.DxfName != "INSERT")
+            {
                 continue;
+            }
 
             BlockReference br = (BlockReference)trx.GetObject(entId, OpenMode.ForRead);
 
             if (!phantomBtrs.Contains(br.BlockTableRecord))
+            {
                 continue;
+            }
 
             br.UpgradeOpen();
             br.Erase();
