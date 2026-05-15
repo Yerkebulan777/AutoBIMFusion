@@ -14,12 +14,12 @@ namespace AutoBIMFusion.Merge.Combine;
 [SupportedOSPlatform("windows")]
 public static class CombineOrchestrator
 {
-    public static Task<CombineResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc, Logger log, string? targetSavePath = null)
+    public static Task<CombineResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc, Logger log, string targetSavePath)
     {
         return Task.FromResult(MergeSingleFileCore(filePath, inserter, targetDoc, log, targetSavePath));
     }
 
-    private static CombineResult MergeSingleFileCore(string filePath, BlockInserter inserter, Document targetDoc, Logger log, string? targetSavePath)
+    private static CombineResult MergeSingleFileCore(string filePath, BlockInserter inserter, Document targetDoc, Logger log, string targetSavePath)
     {
         string fileName = Path.GetFileName(filePath);
 
@@ -56,10 +56,7 @@ public static class CombineOrchestrator
 
             log.Debug($"{fileName}: source bounds before insert {ExtentsUtils.FormatExtents(bounds.Value)}");
 
-            if (!string.IsNullOrEmpty(targetSavePath))
-                RasterImagePathFixer.CopyImagesToTargetFolder(prepared.Db, targetSavePath, log);
-            else
-                RasterImagePathFixer.ResolveRelativePaths(prepared.Db, filePath, log);
+            RasterImagePathFixer.CopyImagesToTargetFolder(prepared.Db, targetSavePath, log);
 
             Extents3d? worldBounds;
 
