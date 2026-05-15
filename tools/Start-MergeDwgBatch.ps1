@@ -1,8 +1,8 @@
 param(
     [string]$AutoCADRoot = "C:\Program Files\Autodesk\AutoCAD 2026",
     [string]$Configuration = "DebugA26",
-    [int]$MaxParallel = 2,
-    [int]$StartDelaySeconds = 10,
+    [int]$MaxParallel = 1,
+    [int]$StartDelaySeconds = 5,
     [int]$TimeoutMinutes = 240,
     [switch]$SkipBuild,
     [switch]$WhatIf

@@ -90,8 +90,8 @@ powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoB
 - ищет только непосредственные дочерние папки текущей директории;
 - обрабатывает только папки, где есть `.dwg`;
 - пропускает папки, имя которых заканчивается на `-сборка`;
-- запускает не больше 2 процессов AutoCAD одновременно;
-- делает задержку 10 секунд между стартами процессов;
+- запускает 1 процесс AutoCAD за раз для более стабильной фоновой обработки;
+- делает задержку 5 секунд между стартами процессов;
 - создает временные `.scr` и JSON-файлы статуса в `%TEMP%\AutoBIMFusion-MERGEDWG-*`;
 - печатает `Все папки успешно обработаны.` только если все папки завершились успешно.
 
@@ -105,7 +105,7 @@ powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoB
 powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoBIMFusion\tools\Start-MergeDwgBatch.ps1" -SkipBuild
 
 # Изменить лимит параллельных процессов и задержку старта
-powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoBIMFusion\tools\Start-MergeDwgBatch.ps1" -MaxParallel 1 -StartDelaySeconds 20
+powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoBIMFusion\tools\Start-MergeDwgBatch.ps1" -MaxParallel 2 -StartDelaySeconds 10
 
 # Указать другой путь к AutoCAD 2026
 powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoBIMFusion\tools\Start-MergeDwgBatch.ps1" -AutoCADRoot "C:\Program Files\Autodesk\AutoCAD 2026"
