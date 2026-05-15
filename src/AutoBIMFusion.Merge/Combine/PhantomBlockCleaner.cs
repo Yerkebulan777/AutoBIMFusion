@@ -58,7 +58,7 @@ public static class PhantomBlockCleaner
                 continue;
 
             var paperSize = layout.PlotPaperSize;
-            double diagonal = Sqrt(paperSize.Width * (double)paperSize.Width + paperSize.Height * (double)paperSize.Height);
+            double diagonal = Sqrt(paperSize.X * paperSize.X + paperSize.Y * paperSize.Y);
 
             if (diagonal > maxDiagonal)
                 maxDiagonal = diagonal;
