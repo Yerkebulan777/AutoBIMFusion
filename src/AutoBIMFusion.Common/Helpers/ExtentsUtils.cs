@@ -28,6 +28,110 @@ public static class ExtentsUtils
     }
 
     /// <summary>
+    ///     Вычисляет габариты сущности по живой геометрии, не доверяя кэшу <see cref="Entity.GeometricExtents" />
+    ///     у <see cref="BlockReference" />.
+    /// </summary>
+    public static Extents3d? TryGetLiveExtents(Entity ent, Transaction trx)
+    {
+        ArgumentNullException.ThrowIfNull(ent);
+        ArgumentNullException.ThrowIfNull(trx);
+
+        return TryGetLiveExtents(ent, trx, []);
+    }
+
+    private static Extents3d? TryGetLiveExtents(
+        Entity ent,
+        Transaction trx,
+        HashSet<ObjectId> activeBlockDefinitions)
+    {
+        if (ent.IsErased)
+        {
+            return null;
+        }
+
+        return ent is BlockReference blockRef
+            ? TryGetBlockReferenceLiveExtents(blockRef, trx, activeBlockDefinitions)
+            : TryGetExtents(ent);
+    }
+
+    private static Extents3d? TryGetBlockReferenceLiveExtents(
+        BlockReference blockRef,
+        Transaction trx,
+        HashSet<ObjectId> activeBlockDefinitions)
+    {
+        ObjectId blockDefId = blockRef.BlockTableRecord;
+        if (blockDefId.IsNull || !blockDefId.IsValid || blockDefId.IsErased)
+        {
+            return null;
+        }
+
+        // Защита от циклических/повреждённых ссылок блоков.
+        if (!activeBlockDefinitions.Add(blockDefId))
+        {
+            return null;
+        }
+
+        try
+        {
+            if (trx.GetObject(blockDefId, OpenMode.ForRead) is not BlockTableRecord blockDef)
+            {
+                return null;
+            }
+
+            Extents3d? result = null;
+
+            foreach (ObjectId childId in blockDef)
+            {
+                if (!childId.IsValid || childId.IsErased)
+                {
+                    continue;
+                }
+
+                if (trx.GetObject(childId, OpenMode.ForRead) is not Entity child || child.IsErased)
+                {
+                    continue;
+                }
+
+                Extents3d? childExtents = TryGetLiveExtents(child, trx, activeBlockDefinitions);
+                if (!childExtents.HasValue)
+                {
+                    continue;
+                }
+
+                Extents3d transformed = Transform(childExtents.Value, blockRef.BlockTransform);
+                result = result.HasValue ? Union(result.Value, transformed) : transformed;
+            }
+
+            foreach (ObjectId attributeId in blockRef.AttributeCollection)
+            {
+                if (!attributeId.IsValid || attributeId.IsErased)
+                {
+                    continue;
+                }
+
+                if (trx.GetObject(attributeId, OpenMode.ForRead) is not AttributeReference attribute)
+                {
+                    continue;
+                }
+
+                Extents3d? attributeExtents = TryGetExtents(attribute);
+                if (!attributeExtents.HasValue)
+                {
+                    continue;
+                }
+
+                result = result.HasValue ? Union(result.Value, attributeExtents.Value) : attributeExtents.Value;
+            }
+
+            return result;
+        }
+        finally
+        {
+            _ = activeBlockDefinitions.Remove(blockDefId);
+        }
+    }
+
+    /// <summary>
     ///     Пытается вычислить отношение диагоналей габаритов после трансформации к габаритам до неё.
     /// </summary>
     /// <returns>
@@ -269,7 +373,7 @@ public static class ExtentsUtils
             if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent)
                 continue;
 
-            Extents3d? ext = TryGetExtents(ent);
+            Extents3d? ext = TryGetLiveExtents(ent, trx);
             if (ext is null)
                 continue;
 

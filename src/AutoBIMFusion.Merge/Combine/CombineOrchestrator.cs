@@ -54,6 +54,8 @@ public static class CombineOrchestrator
                 return CombineResult.Warn(fileName, "Пустой файл");
             }
 
+            log.Debug($"{fileName}: source bounds before insert {ExtentsUtils.FormatExtents(bounds.Value)}");
+
             Extents3d? worldBounds;
 
             using (targetDoc.LockDocument())

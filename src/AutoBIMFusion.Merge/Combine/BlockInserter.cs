@@ -95,7 +95,7 @@ public sealed class BlockInserter(double gapPercent, Logger log)
                     ent.TransformBy(displacement);
                     clonedCount++;
 
-                    Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
+                    Extents3d? ext = ExtentsUtils.TryGetLiveExtents(ent, targetTr);
                     if (ext.HasValue)
                     {
                         worldBounds = worldBounds.HasValue
