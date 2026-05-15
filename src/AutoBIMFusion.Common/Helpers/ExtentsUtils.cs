@@ -385,6 +385,44 @@ public static class ExtentsUtils
     }
 
     /// <summary>
+    ///     Вычисляет габариты указанного набора объектов по живой геометрии.
+    /// </summary>
+    public static Extents3d? ComputeLiveBounds(Database db, ObjectIdCollection entityIds)
+    {
+        if (entityIds.Count == 0)
+        {
+            return null;
+        }
+
+        Extents3d? acc = null;
+        using Transaction trx = db.TransactionManager.StartTransaction();
+
+        foreach (ObjectId id in entityIds)
+        {
+            if (!id.IsValid || id.IsErased)
+            {
+                continue;
+            }
+
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent)
+            {
+                continue;
+            }
+
+            Extents3d? ext = TryGetLiveExtents(ent, trx);
+            if (!ext.HasValue)
+            {
+                continue;
+            }
+
+            acc = acc.HasValue ? Union(acc.Value, ext.Value) : ext.Value;
+        }
+
+        trx.Commit();
+        return acc;
+    }
+
+    /// <summary>
     ///     Вычисляет объединённый AABB коллекции ObjectId.
     ///     Возвращает null, если ни один объект не имеет валидных габаритов.
     /// </summary>

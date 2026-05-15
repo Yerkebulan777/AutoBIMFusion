@@ -30,9 +30,6 @@ public sealed class BlockInserter(double gapPercent, Logger log)
         double targetVisualScale,
         double linearScaleMultiplier)
     {
-        Point3d insertPt = CalcInsertionPoint(sourceBounds);
-        var displacement = Matrix3d.Displacement(new Vector3d(insertPt.X, insertPt.Y, insertPt.Z));
-
         try
         {
             ExtentsUtils.SyncUnits(targetDb);
@@ -71,6 +68,12 @@ public sealed class BlockInserter(double gapPercent, Logger log)
             {
                 return null;
             }
+
+            Extents3d placementBounds = ExtentsUtils.ComputeLiveBounds(sourceDb, sourceIds) ?? sourceBounds;
+            log.Debug($"{sourceName}: placement bounds {ExtentsUtils.FormatExtents(placementBounds)}");
+
+            Point3d insertPt = CalcInsertionPoint(placementBounds);
+            var displacement = Matrix3d.Displacement(new Vector3d(insertPt.X, insertPt.Y, insertPt.Z));
 
             Extents3d? worldBounds = null;
             var clonedCount = 0;
@@ -115,7 +118,7 @@ public sealed class BlockInserter(double gapPercent, Logger log)
                 return null;
             }
 
-            worldBounds ??= ExtentsUtils.Transform(sourceBounds, displacement);
+            worldBounds ??= ExtentsUtils.Transform(placementBounds, displacement);
 
             _rightMax = worldBounds.Value.MaxPoint.X;
             _hasPlacedObjects = true;
