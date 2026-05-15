@@ -39,11 +39,14 @@ public static class CombineOrchestrator
                 return CombineResult.Warn(fileName, "Листы не найдены");
             }
 
-            BlockBasePointEditor.NormalizeAllBlocksBasePoints(prepared.Db);
+            // ВАЖНО: PhantomBlockCleaner должен выполняться ДО NormalizeAllBlocksBasePoints.
+            // Иначе: GetBlockDefinitionExtents включает TryGetExtents вложенных phantom-ссылок
+            // внутри нормальных блоков → offset нормализации становится огромным →
+            // INSERT POINTS нормальных блоков смещаются на миллионы единиц → неверные bounds.
             PhantomBlockCleaner.Clean(prepared.Db, log);
+            BlockBasePointEditor.NormalizeAllBlocksBasePoints(prepared.Db);
 
-            // ComputeModelSpaceBounds: прямой scan сущностей, не зависит от кэша db.Extmin/Extmax,
-            // который может быть устаревшим после удаления phantom-блоков на headless-базе.
+            // ComputeModelSpaceBounds: прямой scan сущностей, не зависит от кэша db.Extmin/Extmax.
             var bounds = ExtentsUtils.ComputeModelSpaceBounds(prepared.Db);
 
             if (!bounds.HasValue)
