@@ -8,6 +8,7 @@ using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
 using System.Diagnostics;
 using System.Runtime.Versioning;
+using System.Text.Json;
 
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 using Exception = System.Exception;
@@ -22,94 +23,205 @@ public sealed class CombineCommands
     [CommandMethod("MERGEDWG", CommandFlags.Modal | CommandFlags.Session)]
     public async void MergeDwgFolderCommand()
     {
-        await ExecuteMergeAsync(null, true, "MERGEDWG");
+        _ = await ExecuteMergeAsync(null, true, "MERGEDWG");
     }
 
-    private async Task ExecuteMergeAsync(string? folderPath, bool showDialogs, string commandName)
+    [CommandMethod("MERGEDWG_BATCH", CommandFlags.Modal | CommandFlags.Session)]
+    public void MergeDwgBatchCommand()
+    {
+        DateTimeOffset startedAt = DateTimeOffset.Now;
+        string? sourceFolder = null;
+        string? statusPath = null;
+        MergeExecutionResult result = MergeExecutionResult.Fail(null, "Пакетная команда не была выполнена.");
+        Logger log = LoggerFactory.GetSharedLogger();
+
+        try
+        {
+            Editor? editor = AcadApp.DocumentManager.MdiActiveDocument?.Editor;
+            sourceFolder = PromptRequiredString(editor, "Папка DWG");
+            statusPath = PromptRequiredString(editor, "Файл статуса");
+
+            if (string.IsNullOrWhiteSpace(sourceFolder) || string.IsNullOrWhiteSpace(statusPath))
+            {
+                result = MergeExecutionResult.Fail(null, "Не переданы обязательные параметры пакетной команды.");
+                return;
+            }
+
+            result = ExecuteMergeAsync(sourceFolder, false, "MERGEDWG_BATCH").GetAwaiter().GetResult();
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception ex)
+        {
+            log.Error(ex, "Ошибка MERGEDWG_BATCH");
+            result = MergeExecutionResult.Fail(null, ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            log.Error(ex, "Ошибка MERGEDWG_BATCH");
+            result = MergeExecutionResult.Fail(null, ex.Message);
+        }
+        catch (IOException ex)
+        {
+            log.Error(ex, "Ошибка MERGEDWG_BATCH");
+            result = MergeExecutionResult.Fail(null, ex.Message);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            log.Error(ex, "Ошибка MERGEDWG_BATCH");
+            result = MergeExecutionResult.Fail(null, ex.Message);
+        }
+        finally
+        {
+            if (!string.IsNullOrWhiteSpace(statusPath))
+            {
+                WriteBatchStatus(statusPath, sourceFolder ?? string.Empty, result, startedAt, DateTimeOffset.Now);
+            }
+        }
+    }
+
+    private async Task<MergeExecutionResult> ExecuteMergeAsync(string? folderPath, bool showDialogs, string commandName)
     {
         Logger log = LoggerFactory.GetSharedLogger();
 
         log.Information("{Command}: command invoked, log=\"{LogPath}\"", commandName, LoggerFactory.GetCurrentLogFilePath());
 
-        if (await _mergeGate.WaitAsync(0))
+        if (!await _mergeGate.WaitAsync(0))
         {
-            try
+            const string busyMessage = "Операция объединения уже выполняется.";
+            log.Warning("{Command}: {Message}", commandName, busyMessage);
+            return MergeExecutionResult.Fail(null, busyMessage);
+        }
+
+        try
+        {
+            string? sourceFolder = folderPath;
+
+            if (string.IsNullOrWhiteSpace(sourceFolder) && !UiDialogService.TrySelectFolder("Выберите папку с файлами DWG для объединения", out sourceFolder))
             {
-                string? sourceFolder = folderPath;
+                const string cancelMessage = "Выбор папки отменён.";
+                log.Information("{Command}: cancelled before source folder selection", commandName);
+                return MergeExecutionResult.Fail(null, cancelMessage);
+            }
 
-                if (string.IsNullOrWhiteSpace(sourceFolder) && !UiDialogService.TrySelectFolder("Выберите папку с файлами DWG для объединения", out sourceFolder))
-                {
-                    log.Information("{Command}: cancelled before source folder selection", commandName);
-                    return;
-                }
+            string savePath = BuildSavePath(sourceFolder!);
 
-                string savePath = BuildSavePath(sourceFolder!);
+            string[] dwgFiles = FileUtil.GetFiles(sourceFolder!, log: log);
 
-                string[] dwgFiles = FileUtil.GetFiles(sourceFolder!, log: log);
-
-                if (dwgFiles.Length == 0)
-                {
-                    log.Warning("DWG файлы не найдены.");
-
-                    if (showDialogs)
-                    {
-                        UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
-                    }
-
-                    return;
-                }
-
-                log.Information(
-                    "{Command}: старт, files={FileCount}, source=\"{SourceFolder}\", save=\"{SavePath}\", log=\"{LogPath}\"",
-                    commandName,
-                    dwgFiles.Length,
-                    sourceFolder,
-                    savePath,
-                    LoggerFactory.GetCurrentLogFilePath());
-
-                const double gapPercent = 0.1;
-                CombineStatistics stats = new();
-                Stopwatch sw = Stopwatch.StartNew();
-
-                var docMgr = AcadApp.DocumentManager;
-                MergeDocumentSelection target = SelectMergeDocument(docMgr, log);
-                Document mergeDoc = target.Document;
-
-                BlockInserter inserter = new(gapPercent, log);
-                await MergeFiles(dwgFiles, inserter, mergeDoc, stats, savePath, log);
-
-                using (mergeDoc.LockDocument())
-                {
-                    RasterImagePathFixer.CopyImagesToTargetFolder(mergeDoc.Database, savePath, log);
-
-                    DimensionStyleDiagnosticUtils.LogStyleSnapshot(mergeDoc.Database, log, "target-after-merge");
-
-                    DrawingPurger.Optimize(mergeDoc.Database, log);
-
-                    SaveMerged(mergeDoc.Database, savePath, log);
-                }
-
-                log.Information($"Завершено: {stats}");
-
-                mergeDoc.SendStringToExecute("._REGENALL ", true, false, false);
-                mergeDoc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
-
-                sw.Stop();
+            if (dwgFiles.Length == 0)
+            {
+                const string emptyFolderMessage = "DWG файлы не найдены.";
+                log.Warning(emptyFolderMessage);
 
                 if (showDialogs)
                 {
-                    ShowSummary(stats, sw.Elapsed, savePath, commandName);
+                    UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
                 }
+
+                return MergeExecutionResult.Fail(savePath, emptyFolderMessage);
             }
-            catch (Exception ex)
+
+            log.Information(
+                "{Command}: старт, files={FileCount}, source=\"{SourceFolder}\", save=\"{SavePath}\", log=\"{LogPath}\"",
+                commandName,
+                dwgFiles.Length,
+                sourceFolder,
+                savePath,
+                LoggerFactory.GetCurrentLogFilePath());
+
+            const double gapPercent = 0.1;
+            CombineStatistics stats = new();
+            Stopwatch sw = Stopwatch.StartNew();
+
+            var docMgr = AcadApp.DocumentManager;
+            MergeDocumentSelection target = SelectMergeDocument(docMgr, log);
+            Document mergeDoc = target.Document;
+
+            BlockInserter inserter = new(gapPercent, log);
+            await MergeFiles(dwgFiles, inserter, mergeDoc, stats, savePath, log);
+
+            using (mergeDoc.LockDocument())
             {
-                log.Error(ex, $"Ошибка {commandName}");
+                RasterImagePathFixer.CopyImagesToTargetFolder(mergeDoc.Database, savePath, log);
+
+                DimensionStyleDiagnosticUtils.LogStyleSnapshot(mergeDoc.Database, log, "target-after-merge");
+
+                DrawingPurger.Optimize(mergeDoc.Database, log);
+
+                SaveMerged(mergeDoc.Database, savePath, log);
             }
-            finally
+
+            log.Information($"Завершено: {stats}");
+
+            mergeDoc.SendStringToExecute("._REGENALL ", true, false, false);
+            mergeDoc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
+
+            sw.Stop();
+
+            if (showDialogs)
             {
-                _ = _mergeGate.Release();
+                ShowSummary(stats, sw.Elapsed, savePath, commandName);
             }
+
+            string message = stats.Failed == 0
+                ? "Завершено успешно."
+                : $"Завершено с ошибками. Успешно: {stats.Successful}, пропущено: {stats.Skipped}, ошибок: {stats.Failed}.";
+
+            return new MergeExecutionResult(stats.Failed == 0, savePath, message);
         }
+        catch (Exception ex)
+        {
+            log.Error(ex, $"Ошибка {commandName}");
+            return MergeExecutionResult.Fail(null, ex.Message);
+        }
+        finally
+        {
+            _ = _mergeGate.Release();
+        }
+    }
+
+    private static string? PromptRequiredString(Editor? editor, string promptName)
+    {
+        if (editor is null)
+        {
+            return null;
+        }
+
+        PromptStringOptions options = new($"\n{promptName}: ")
+        {
+            AllowSpaces = true
+        };
+
+        PromptResult result = editor.GetString(options);
+        return result.Status == PromptStatus.OK
+            ? result.StringResult.Trim().Trim('"')
+            : null;
+    }
+
+    private static void WriteBatchStatus(string statusPath, string folderPath, MergeExecutionResult result, DateTimeOffset startedAt, DateTimeOffset finishedAt)
+    {
+        string? dir = Path.GetDirectoryName(statusPath);
+
+        if (!string.IsNullOrWhiteSpace(dir) && !Directory.Exists(dir))
+        {
+            _ = Directory.CreateDirectory(dir);
+        }
+
+        var payload = new
+        {
+            folderPath,
+            success = result.Success,
+            savePath = result.SavePath,
+            message = result.Message,
+            logPath = LoggerFactory.GetCurrentLogFilePath(),
+            startedAt,
+            finishedAt
+        };
+
+        JsonSerializerOptions options = new()
+        {
+            WriteIndented = true
+        };
+
+        File.WriteAllText(statusPath, JsonSerializer.Serialize(payload, options));
     }
 
     private static MergeDocumentSelection SelectMergeDocument(DocumentCollection docMgr, Logger log)
@@ -293,6 +405,14 @@ public sealed class CombineCommands
     }
 
     private readonly record struct MergeDocumentSelection(Document Document, bool CloseAfterSave);
+
+    private readonly record struct MergeExecutionResult(bool Success, string? SavePath, string Message)
+    {
+        public static MergeExecutionResult Fail(string? savePath, string message)
+        {
+            return new MergeExecutionResult(false, savePath, message);
+        }
+    }
 
 
 }
