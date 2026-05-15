@@ -17,7 +17,10 @@
       "mcp__Claude_in_Chrome__browser_batch",
       "Bash(gh pr *)",
       "PowerShell(Get-ChildItem \"C:\\\\Users\\\\y.zhumabayev\\\\.nuget\\\\packages\\\\autocad.net\" | Where-Object {$_.PSIsContainer} | Select-Object -ExpandProperty Name)",
-      "PowerShell(Get-ChildItem \"$env:USERPROFILE\\\\.nuget\\\\packages\" -Recurse -Filter \"acdbmgd.dll\" | Select-Object FullName | Select-Object -First 5)"
+      "PowerShell(Get-ChildItem \"$env:USERPROFILE\\\\.nuget\\\\packages\" -Recurse -Filter \"acdbmgd.dll\" | Select-Object FullName | Select-Object -First 5)",
+      "Read(//c/Users/y.zhumabayev/.claude/plugins/cache/caveman/caveman/84cc3c14fa1e/skills/compress/**)",
+      "Bash(python3 -m scripts \"C:\\\\Users\\\\y.zhumabayev\\\\.claude\\\\projects\\\\C--Users-y-zhumabayev-Repository-AutoBIMFusion\\\\memory\\\\MEMORY.md\")",
+      "Bash(python -m scripts \"C:\\\\Users\\\\y.zhumabayev\\\\.claude\\\\projects\\\\C--Users-y-zhumabayev-Repository-AutoBIMFusion\\\\memory\\\\MEMORY.md\")"
     ]
   }
 }
