@@ -84,4 +84,44 @@ public static class RasterImagePathFixer
 
         trx.Commit();
     }
+
+    /// <summary>
+    ///     Разрешает относительные пути RasterImageDef в абсолютные, используя директорию исходного DWG-файла.
+    ///     Должен вызываться до WblockCloneObjects, пока исходная база данных (prepared.Db) ещё доступна
+    ///     и путь к исходному файлу известен.
+    /// </summary>
+    public static void ResolveRelativePaths(Database db, string sourceFilePath, Logger log)
+    {
+        string? sourceDir = Path.GetDirectoryName(sourceFilePath);
+        if (string.IsNullOrEmpty(sourceDir)) return;
+
+        var dictId = RasterImageDef.GetImageDictionary(db);
+        if (dictId.IsNull) return;
+
+        using var trx = db.TransactionManager.StartTransaction();
+        var dict = (DBDictionary)trx.GetObject(dictId, OpenMode.ForRead);
+
+        foreach (var entry in dict)
+            try
+            {
+                if (trx.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def) continue;
+
+                var path = def.SourceFileName;
+                if (string.IsNullOrWhiteSpace(path)) continue;
+                if (Path.IsPathRooted(path) && File.Exists(path)) continue;
+
+                var candidate = Path.GetFullPath(Path.Combine(sourceDir, path));
+                if (File.Exists(candidate))
+                {
+                    def.SourceFileName = candidate;
+                    log.Debug($"RasterImageDef '{entry.Key}': путь разрешён → '{candidate}'");
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Warning(ex, $"RasterImageDef '{entry.Key}': не удалось разрешить путь изображения");
+            }
+
+        trx.Commit();
+    }
 }

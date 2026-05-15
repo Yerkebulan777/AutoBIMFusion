@@ -56,6 +56,8 @@ public static class CombineOrchestrator
 
             log.Debug($"{fileName}: source bounds before insert {ExtentsUtils.FormatExtents(bounds.Value)}");
 
+            RasterImagePathFixer.ResolveRelativePaths(prepared.Db, filePath, log);
+
             Extents3d? worldBounds;
 
             using (targetDoc.LockDocument())
