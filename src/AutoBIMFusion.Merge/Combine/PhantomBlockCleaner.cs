@@ -12,10 +12,10 @@ namespace AutoBIMFusion.Merge.Combine;
 [SupportedOSPlatform("windows")]
 public static class PhantomBlockCleaner
 {
-    private const int MaxEntities = 10;
-    private const double MaxPolylineLength = 10.0;
+    private const int MaxEntities = 15;
+    private const double MaxPolylineLength = 15.0;
+    private const double ThresholdMultiplier = 1.5;
     private const double DefaultThresholdBase = 1000.0;
-    private const double ThresholdMultiplier = 3.0;
 
     /// <summary>
     ///     Сканирует базу данных, удаляет все вхождения фантомных блоков во всех пространствах
