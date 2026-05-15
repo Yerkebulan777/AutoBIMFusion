@@ -202,22 +202,6 @@ public sealed class CombineCommands
         return true;
     }
 
-    private static bool ShouldCloseAfterSave(Document doc, MergeDocumentSelection target, Logger log)
-    {
-        if (target.CloseAfterSave)
-        {
-            return true;
-        }
-
-        if (doc.IsNamedDrawing)
-        {
-            return false;
-        }
-
-        log.Warning("MERGEDWG: сохранение не привязало текущий документ \"{DocumentName}\" к файлу, документ будет закрыт после сохранения.", doc.Name);
-        return true;
-    }
-
     private static async Task MergeFiles(string[] files, BlockInserter inserter, Document doc, CombineStatistics stats, Logger log)
     {
         using ProgressMeter pm = new();
