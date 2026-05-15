@@ -40,6 +40,7 @@ public static class CombineOrchestrator
             }
 
             BlockBasePointEditor.NormalizeAllBlocksBasePoints(prepared.Db);
+            PhantomBlockCleaner.Clean(prepared.Db, log);
 
             var bounds = ExtentsUtils.GetDatabaseExtents(prepared.Db);
 
