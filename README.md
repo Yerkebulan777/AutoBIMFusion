@@ -155,6 +155,20 @@ dotnet clean AutoBIMFusion.slnx -c DebugA26
 
 Только `src/AutoBIMFusion.Plugin` создает и разворачивает `.bundle` в `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`. Остальные проекты являются class library и не деплоят AutoCAD bundle.
 
+Если AutoCAD запускается вручную и вкладка/команда AutoBIMFusion не появляется, проверьте наличие bundle:
+
+```powershell
+Test-Path "$env:APPDATA\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle"
+```
+
+Если результат `False`, установите bundle из текущей сборки:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoBIMFusion\tools\Install-AutoBIMFusionBundle.ps1"
+```
+
+После этого перезапустите AutoCAD и выполните команду `MERGEDWG`. Batch-скрипт `Start-MergeDwgBatch.ps1` не требует autoload bundle, потому что загружает DLL через `NETLOAD`, но ручной запуск AutoCAD использует именно `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`.
+
 Headless/core-console сборка:
 
 ```powershell
