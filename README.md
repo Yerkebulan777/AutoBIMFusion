@@ -57,7 +57,8 @@ AutoBIMFusion.Tests
 4. `ViewportLayoutExporter` / `LayoutProjectionProcessor`: открывают исходный DWG через `Database(false, true)`, переводят базу в millimeters/metric и переносят первый Paper Space Layout в Model Space.
 5. `DimensionStyleNormalizer`: назначает скопированным размерам чистый AutoBIM-стиль, очищает DSTYLE overrides и сохраняет визуальный масштаб размеров.
 6. `BlockInserter`: клонирует объекты через `WblockCloneObjects` и раскладывает листы по оси X с зазором 10%.
-7. Финализация: копирование растров, снимок размерных стилей, `DwgOptimizer`, `SaveAs(DwgVersion.AC1032)`, `REGENALL`, `ZOOM EXTENTS`.
+7. Финализация: копирование растров, `DrawingPurger.Optimize`, `SaveAs(DwgVersion.AC1032)`, `REGENALL`, `ZOOM EXTENTS`.
+   Подробные снимки размерных стилей включаются только при `LOG_LEVEL=DEBUG`.
 
 Лог пишется в `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle\Contents\Logs\merge-YYYY-MM-DD.log`.
 

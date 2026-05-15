@@ -137,7 +137,7 @@ Keep public surface area narrow. Intended cross-project entry points are:
 - `AutoBIMFusion.Merge.CombineStatistics`
 - `AutoBIMFusion.Merge.CombineResult`
 - `AutoBIMFusion.Merge.RasterImagePathFixer`
-- `AutoBIMFusion.Merge.DwgOptimizer`
+- `AutoBIMFusion.Merge.DrawingPurger`
 - `AutoBIMFusion.Infrastructure.Logging.LoggerFactory`
 - required helpers in `AutoBIMFusion.Common`
 

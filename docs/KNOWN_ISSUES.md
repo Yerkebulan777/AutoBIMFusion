@@ -35,7 +35,7 @@
 | Максимальный размер файла | 15 МБ | `FileUtil.GetFiles` |
 | Глубина рекурсии в папках | 3 | `FileUtil.GetFiles` |
 | Рабочая нормализация масштаба VP | 1:100 | `LayoutProjectionProcessor` |
-| Purge passes | 5 | `DwgOptimizer` |
+| Purge passes | 10 | `DrawingPurger.Optimize` |
 | Зазор между вставленными листами | 10%, минимум 1.0 | `BlockInserter` |
 
 Значения консервативны и не настраиваются пользователем.
@@ -75,7 +75,7 @@
 | Проблема | Исправление |
 |---|---|
 | Скрытое масштабирование при `WblockCloneObjects` (метрика ↔ имперская) | `DatabaseUnitSyncScope` временно выравнивает source с target; `DimensionStyleNormalizer` дополнительно удаляет DSTYLE overrides у скопированных размеров. |
-| Мёртвые методы диагностики размеров | Удалены из `DimensionStyleDiagnosticUtils`. |
+| Тяжёлая диагностика размерных стилей | `DimensionStyleDiagnosticUtils` выполняет снимки только при `LOG_LEVEL=DEBUG`. |
 | Класс-обёртка `FolderSelector` | Удалён; `CombineCommands` вызывает `UiDialogService` напрямую. |
 | Дублирование scope-логики системных переменных | Общая логика вынесена в `ManagedSystemVariable` / scope helpers. |
 | Двойные транзакции при поиске Paper Space entities | Логика сосредоточена в `LayoutUtil`. |
