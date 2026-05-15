@@ -18,8 +18,10 @@ public static class PhantomBlockCleaner
     private const double ThresholdMultiplier = 3.0;
 
     /// <summary>
-    ///     Сканирует базу данных, удаляет вхождения фантомных блоков из Model Space.
-    ///     Определения блоков не удаляются здесь — они очистятся позже через <see cref="DrawingPurger"/>.
+    ///     Сканирует базу данных, удаляет все вхождения фантомных блоков во всех пространствах
+    ///     и полностью очищает их определения из базы через <see cref="Database.Purge"/>.
+    ///     Гарантирует, что phantom-геометрия не влияет на вычисление границ и не клонируется
+    ///     при слиянии через <see cref="Database.WblockCloneObjects"/>.
     /// </summary>
     /// <param name="db">База данных исходного DWG-файла.</param>
     /// <param name="log">Экземпляр логгера Serilog.</param>
@@ -33,10 +35,11 @@ public static class PhantomBlockCleaner
             return;
         }
 
-        int erasedCount = EraseModelSpaceReferences(db, phantomBtrs);
+        int erasedCount = EraseAllReferences(db, phantomBtrs);
+        PurgeDefinitions(db, phantomBtrs);
 
         log.Information(
-            "PhantomBlockCleaner: удалено {ErasedCount} вхождений {DefinitionCount} фантомных блоков",
+            "PhantomBlockCleaner: удалено {ErasedCount} вхождений, очищено {DefinitionCount} определений фантомных блоков",
             erasedCount, phantomBtrs.Count);
     }
 
@@ -190,43 +193,75 @@ public static class PhantomBlockCleaner
     }
 
     /// <summary>
-    ///     Стирает все вхождения (<see cref="BlockReference"/>) фантомных блоков из Model Space.
+    ///     Стирает все вхождения (<see cref="BlockReference"/>) фантомных блоков во ВСЕХ пространствах
+    ///     базы данных — Model Space, Paper Space и внутри других блоков.
+    ///     Использует <see cref="BlockTableRecord.GetBlockReferenceIds"/> для поиска по всей базе.
     /// </summary>
     /// <returns>Количество удалённых вхождений.</returns>
-    private static int EraseModelSpaceReferences(Database db, HashSet<ObjectId> phantomBtrs)
+    private static int EraseAllReferences(Database db, HashSet<ObjectId> phantomBtrs)
     {
         int count = 0;
 
         using Transaction trx = db.TransactionManager.StartTransaction();
 
-        ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
-        BlockTableRecord ms = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
-
-        foreach (ObjectId entId in ms)
+        foreach (ObjectId btrId in phantomBtrs)
         {
-            if (entId.IsErased)
+            BlockTableRecord btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
+
+            // directOnly=true: только в текущей базе (без внешних xref)
+            // forceOwnerXref=true: включая вхождения внутри других определений блоков
+            ObjectIdCollection refs = btr.GetBlockReferenceIds(true, true);
+
+            foreach (ObjectId refId in refs)
             {
-                continue;
+                if (!refId.IsValid || refId.IsErased)
+                {
+                    continue;
+                }
+
+                BlockReference br = (BlockReference)trx.GetObject(refId, OpenMode.ForWrite);
+                br.Erase();
+                count++;
             }
-
-            if (entId.ObjectClass.DxfName != "INSERT")
-            {
-                continue;
-            }
-
-            BlockReference br = (BlockReference)trx.GetObject(entId, OpenMode.ForRead);
-
-            if (!phantomBtrs.Contains(br.BlockTableRecord))
-            {
-                continue;
-            }
-
-            br.UpgradeOpen();
-            br.Erase();
-            count++;
         }
 
         trx.Commit();
         return count;
+    }
+
+    /// <summary>
+    ///     Удаляет определения фантомных блоков (<see cref="BlockTableRecord"/>) из базы данных.
+    ///     Вызывать только после <see cref="EraseAllReferences"/> — иначе <see cref="Database.Purge"/>
+    ///     не пометит BTR как удаляемые и они останутся в базе.
+    /// </summary>
+    private static void PurgeDefinitions(Database db, HashSet<ObjectId> phantomBtrs)
+    {
+        using ObjectIdCollection ids = [];
+
+        foreach (ObjectId id in phantomBtrs)
+        {
+            _ = ids.Add(id);
+        }
+
+        // Purge модифицирует коллекцию: оставляет только те ID, которые реально можно удалить.
+        // Если все вхождения стёрты — все BTR останутся в коллекции.
+        db.Purge(ids);
+
+        if (ids.Count == 0)
+        {
+            return;
+        }
+
+        using Transaction trx = db.TransactionManager.StartTransaction();
+
+        foreach (ObjectId id in ids)
+        {
+            if (!id.IsErased)
+            {
+                ((DBObject)trx.GetObject(id, OpenMode.ForWrite)).Erase();
+            }
+        }
+
+        trx.Commit();
     }
 }

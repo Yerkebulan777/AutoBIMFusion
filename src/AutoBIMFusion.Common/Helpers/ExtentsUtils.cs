@@ -245,6 +245,42 @@ public static class ExtentsUtils
     }
 
     /// <summary>
+    ///     Вычисляет габариты Model Space прямым сканированием сущностей, минуя кэшированные
+    ///     значения <see cref="Database.Extmin"/>/<see cref="Database.Extmax"/>.
+    ///     Надёжен на headless-базах после операций удаления, когда <see cref="Database.UpdateExt"/>
+    ///     может возвращать устаревший результат.
+    /// </summary>
+    /// <param name="db">База данных AutoCAD.</param>
+    /// <returns>Объединённые габариты всех видимых сущностей Model Space, или null если пространство пусто.</returns>
+    public static Extents3d? ComputeModelSpaceBounds(Database db)
+    {
+        Extents3d? result = null;
+
+        using Transaction trx = db.TransactionManager.StartTransaction();
+
+        ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
+        var ms = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
+
+        foreach (ObjectId id in ms)
+        {
+            if (!id.IsValid || id.IsErased)
+                continue;
+
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent)
+                continue;
+
+            Extents3d? ext = TryGetExtents(ent);
+            if (ext is null)
+                continue;
+
+            result = result is null ? ext.Value : Union(result.Value, ext.Value);
+        }
+
+        trx.Commit();
+        return result;
+    }
+
+    /// <summary>
     ///     Вычисляет объединённый AABB коллекции ObjectId.
     ///     Возвращает null, если ни один объект не имеет валидных габаритов.
     /// </summary>

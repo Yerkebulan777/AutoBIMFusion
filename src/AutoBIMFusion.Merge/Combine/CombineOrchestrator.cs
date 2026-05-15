@@ -42,7 +42,9 @@ public static class CombineOrchestrator
             BlockBasePointEditor.NormalizeAllBlocksBasePoints(prepared.Db);
             PhantomBlockCleaner.Clean(prepared.Db, log);
 
-            var bounds = ExtentsUtils.GetDatabaseExtents(prepared.Db);
+            // ComputeModelSpaceBounds: прямой scan сущностей, не зависит от кэша db.Extmin/Extmax,
+            // который может быть устаревшим после удаления phantom-блоков на headless-базе.
+            var bounds = ExtentsUtils.ComputeModelSpaceBounds(prepared.Db);
 
             if (!bounds.HasValue)
             {
