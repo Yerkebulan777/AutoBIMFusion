@@ -85,7 +85,8 @@ powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoB
 По умолчанию скрипт:
 
 - использует AutoCAD 2026 из `C:\Program Files\Autodesk\AutoCAD 2026\acad.exe`;
-- перед запуском процессов собирает и деплоит плагин командой `dotnet build AutoBIMFusion.slnx -c DebugA26`;
+- перед запуском процессов собирает плагин командой `dotnet build AutoBIMFusion.slnx -c DebugA26`;
+- не требует deploy в `%AppData%\Autodesk\ApplicationPlugins`: каждый `.scr` загружает `AutoBIMFusion.dll` через `NETLOAD`;
 - ищет только непосредственные дочерние папки текущей директории;
 - обрабатывает только папки, где есть `.dwg`;
 - пропускает папки, имя которых заканчивается на `-сборка`;
@@ -119,24 +120,13 @@ D:\DWG-Batch\
     Object-01.dwg
 ```
 
-Если обычная сборка не может обновить `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle` из-за открытого AutoCAD или прав доступа:
-
-1. Закройте все процессы AutoCAD.
-2. Повторите запуск скрипта.
-3. Если ошибка сохраняется, удалите старый bundle и запустите скрипт снова:
-
-```powershell
-Remove-Item "$env:APPDATA\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle" -Recurse -Force
-powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoBIMFusion\tools\Start-MergeDwgBatch.ps1"
-```
-
 Если актуальная версия плагина уже deployed, можно временно запустить без сборки:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoBIMFusion\tools\Start-MergeDwgBatch.ps1" -SkipBuild
 ```
 
-`-SkipBuild` используйте только после успешной сборки/deploy текущей версии, иначе AutoCAD может не найти внутреннюю команду `MERGEDWG_BATCH`.
+`-SkipBuild` используйте только после успешной сборки текущей версии, иначе скрипт может не найти `AutoBIMFusion.dll` или AutoCAD может не найти внутреннюю команду `MERGEDWG_BATCH`.
 
 ## Процесс слияния
 

@@ -58,6 +58,9 @@ function New-AutoCadScript {
         [string]$ScriptPath,
 
         [Parameter(Mandatory = $true)]
+        [string]$PluginPath,
+
+        [Parameter(Mandatory = $true)]
         [string]$FolderPath,
 
         [Parameter(Mandatory = $true)]
@@ -69,6 +72,10 @@ function New-AutoCadScript {
         "0",
         "CMDDIA",
         "0",
+        "SECURELOAD",
+        "0",
+        "NETLOAD",
+        $PluginPath,
         "MERGEDWG_BATCH",
         $FolderPath,
         $StatusPath,
@@ -79,40 +86,10 @@ function New-AutoCadScript {
     Set-Content -LiteralPath $ScriptPath -Value $lines -Encoding Default
 }
 
-function Clear-DeployedBundleAttributes {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$BundlePath
-    )
-
-    if (-not (Test-Path -LiteralPath $BundlePath)) {
-        return
-    }
-
-    try {
-        Get-ChildItem -LiteralPath $BundlePath -Recurse -Force -ErrorAction Stop |
-            ForEach-Object {
-                if ($_.IsReadOnly) {
-                    $_.IsReadOnly = $false
-                }
-            }
-
-        $bundle = Get-Item -LiteralPath $BundlePath -Force -ErrorAction Stop
-        if ($bundle.IsReadOnly) {
-            $bundle.IsReadOnly = $false
-        }
-    }
-    catch {
-        Write-Host "Cannot prepare deployed bundle for update: $BundlePath"
-        Write-Host "Close AutoCAD and check permissions if build fails."
-    }
-}
-
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent $scriptRoot
 $workRoot = (Get-Location).ProviderPath
 $acadExe = Join-Path $AutoCADRoot "acad.exe"
-$deployedBundleRoot = Join-Path $env:APPDATA "Autodesk\ApplicationPlugins\AutoBIMFusion.bundle"
 $outputSuffix = -join ([int[]](45, 1089, 1073, 1086, 1088, 1082, 1072) | ForEach-Object { [char]$_ })
 $successMessage = -join ([int[]](1042, 1089, 1077, 32, 1087, 1072, 1087, 1082, 1080, 32, 1091, 1089, 1087, 1077, 1096, 1085, 1086, 32, 1086, 1073, 1088, 1072, 1073, 1086, 1090, 1072, 1085, 1099, 46) | ForEach-Object { [char]$_ })
 
@@ -146,8 +123,11 @@ $runStamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $runRoot = Join-Path ([System.IO.Path]::GetTempPath()) "AutoBIMFusion-MERGEDWG-$runStamp"
 $statusRoot = Join-Path $runRoot "status"
 $scriptTempRoot = Join-Path $runRoot "scripts"
+$tempApplicationPluginsRoot = Join-Path $runRoot "ApplicationPlugins"
+$targetFramework = if ($Configuration.EndsWith("A27", [System.StringComparison]::OrdinalIgnoreCase)) { "net10.0-windows" } else { "net8.0-windows" }
+$pluginPath = Join-Path $repoRoot "src\AutoBIMFusion.Plugin\bin\x64\$Configuration\$targetFramework\AutoBIMFusion.dll"
 
-New-Item -ItemType Directory -Path $statusRoot, $scriptTempRoot -Force | Out-Null
+New-Item -ItemType Directory -Path $statusRoot, $scriptTempRoot, $tempApplicationPluginsRoot -Force | Out-Null
 
 $items = New-Object System.Collections.ArrayList
 $index = 0
@@ -159,7 +139,7 @@ foreach ($folder in $folders) {
     $statusPath = Join-Path $statusRoot "$baseName.json"
     $scriptPath = Join-Path $scriptTempRoot "$baseName.scr"
 
-    New-AutoCadScript -ScriptPath $scriptPath -FolderPath $folder.FullName -StatusPath $statusPath
+    New-AutoCadScript -ScriptPath $scriptPath -PluginPath $pluginPath -FolderPath $folder.FullName -StatusPath $statusPath
 
     [void]$items.Add([pscustomobject]@{
         FolderPath = $folder.FullName
@@ -189,16 +169,19 @@ if ($WhatIf) {
 if (-not $SkipBuild) {
     Push-Location $repoRoot
     try {
-        Clear-DeployedBundleAttributes -BundlePath $deployedBundleRoot
-        & dotnet build "AutoBIMFusion.slnx" -c $Configuration
+        & dotnet build "AutoBIMFusion.slnx" -c $Configuration "-p:AutoCADUserPluginsDir=$tempApplicationPluginsRoot\"
 
         if ($LASTEXITCODE -ne 0) {
-            throw "Build failed with exit code $LASTEXITCODE. Close AutoCAD, check access to $deployedBundleRoot, or rerun with -SkipBuild if the current plugin is already deployed."
+            throw "Build failed with exit code $LASTEXITCODE."
         }
     }
     finally {
         Pop-Location
     }
+}
+
+if (-not (Test-Path -LiteralPath $pluginPath -PathType Leaf)) {
+    throw "Plugin DLL was not found: $pluginPath"
 }
 
 $active = New-Object System.Collections.ArrayList
