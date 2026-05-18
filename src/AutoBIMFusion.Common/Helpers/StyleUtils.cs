@@ -54,25 +54,36 @@ public static class StyleUtils
             tt.UpgradeOpen();
         }
 
-        TextStyleTableRecord ts = new()
+        // Side-database guard: new DBObject internally binds to WorkingDatabase.
+        // Without this, tt.Add throws eWrongDatabase when db != active document.
+        Database prevWorking = HostApplicationServices.WorkingDatabase;
+        HostApplicationServices.WorkingDatabase = db;
+        try
         {
-            Name = fontName,
-            TextSize = 0.0,
-            XScale = xScale
-        };
+            TextStyleTableRecord ts = new()
+            {
+                Name = fontName,
+                TextSize = 0.0,
+                XScale = xScale
+            };
 
-        if (isItalic)
-        {
-            ts.Font = new FontDescriptor(fontName, false, true, 0, 34);
-        }
-        else
-        {
-            ts.FileName = fontName + ".shx";
-        }
+            if (isItalic)
+            {
+                ts.Font = new FontDescriptor(fontName, false, true, 0, 34);
+            }
+            else
+            {
+                ts.FileName = fontName + ".shx";
+            }
 
-        ObjectId id = tt.Add(ts);
-        trx.AddNewlyCreatedDBObject(ts, true);
-        return id;
+            ObjectId id = tt.Add(ts);
+            trx.AddNewlyCreatedDBObject(ts, true);
+            return id;
+        }
+        finally
+        {
+            HostApplicationServices.WorkingDatabase = prevWorking;
+        }
     }
 
     /// <summary>
