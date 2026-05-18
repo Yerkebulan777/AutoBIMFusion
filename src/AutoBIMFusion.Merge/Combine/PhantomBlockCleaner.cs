@@ -237,12 +237,7 @@ public static class PhantomBlockCleaner
     /// </summary>
     private static void PurgeDefinitions(Database db, HashSet<ObjectId> phantomBtrs)
     {
-        using ObjectIdCollection ids = [];
-
-        foreach (ObjectId id in phantomBtrs)
-        {
-            _ = ids.Add(id);
-        }
+        using ObjectIdCollection ids = new(phantomBtrs.ToArray());
 
         // Purge модифицирует коллекцию: оставляет только те ID, которые реально можно удалить.
         // Если все вхождения стёрты — все BTR останутся в коллекции.
