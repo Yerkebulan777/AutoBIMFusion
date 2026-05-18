@@ -1,6 +1,6 @@
 # Известные проблемы и решения
 
-**Последнее обновление:** 2026-05-10
+**Последнее обновление:** 2026-05-15
 
 Файл содержит актуальные риски и спорные архитектурные решения. Активная AutoCAD-команда: `MERGEDWG`. Команды `SMART_MERGE_TEXT`, `MERGE_TEXT_STYLES`, `JOIN_LINES` и `CREATE_ETRANSMIT_ZIP` находятся в `src/AutoBIMFusion.Plugin/Commands/Archive` и исключены из сборки.
 
@@ -70,6 +70,30 @@
 
 ---
 
+### KI-6. PhantomBlockCleaner false positives
+
+**Серьёзность:** Средняя
+
+**Где:** `PhantomBlockCleaner.FindPhantomBlocks`
+
+Алгоритм удаляет блоки с ≤15 entities, ≤15 units polyline length и смещением центра geometry выше threshold. Легитимные микро-блоки (детали, символы) с большим смещением могут быть ошибочно классифицированы как фантомные.
+
+**Решение:** Добавить whitelist или configurable thresholds если потребуется для конкретных проектов.
+
+---
+
+### KI-7. BlockBasePointEditor пропускает dynamic/anonymous blocks
+
+**Серьёзность:** Низкая
+
+**Где:** `BlockBasePointEditor.ShouldSkipBlockDefinition`
+
+Dynamic blocks, anonymous blocks и xref блоки пропускаются нормализацией базовых точек. Если такие блоки имеют смещённые base points, они могут вызвать misalignment при слиянии.
+
+**Решение:** Добавить поддержку dynamic blocks если потребуется.
+
+---
+
 ## Исправлено
 
 | Проблема | Исправление |
@@ -84,6 +108,9 @@
 | Авто-масштаб на имперских DWG | Синхронизация units/measurement выполняется после `CloseInput(true)`, а размеры получают Viewport-специфичные стили до clone. |
 | Остатки оригиналов aux vpt | Добавлено удаление объектов вне main window. |
 | `ProgressMeter` не закрывался при ошибке | `pm.Stop()` вызывается в `finally`. |
+| Phantom block corruption extents | `PhantomBlockCleaner` (3-pass detection) |
+| Block base point offset | `BlockBasePointEditor` (bottom-left normalization) |
+| Non-uniform block scale distortion | `BlockScaleApplier` (definition + reference scaling) |
 
 ---
 

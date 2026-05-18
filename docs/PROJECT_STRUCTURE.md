@@ -1,6 +1,6 @@
 # Структура проекта AutoBIMFusion
 
-**Последнее обновление:** 2026-05-10
+**Последнее обновление:** 2026-05-15
 
 ## Цель структуры
 
@@ -13,11 +13,61 @@ A25/A26 конфигурации используют `net8.0`; A27 исполь
 ```text
 src/
   AutoBIMFusion.Plugin/
+    AutoBIMFusionExtension.cs
+    Commands/
+      CombineCommands.cs
+      Archive/
+    Ribbon/
+    Resources/
   AutoBIMFusion.Merge/
+    Combine/
+      ├── BlockInserter.cs
+      ├── CombineOrchestrator.cs
+      ├── CombineResult.cs
+      ├── CombineStatistics.cs
+      ├── PhantomBlockCleaner.cs
+      ├── BlockBasePointEditor.cs
+      ├── BlockScaleApplier.cs
+      ├── DrawingPurger.cs
+      ├── RasterImagePathFixer.cs
+      └── Layouts/
+          ├── ViewportLayoutExporter.cs
+          ├── LayoutProjectionProcessor.cs
+          ├── ViewportCollector.cs
+          ├── ViewportInfo.cs
+          ├── ViewportTransformer.cs
+          ├── ViewportScaleNormalizer.cs
+          ├── ModelSpaceTrimmer.cs
+          ├── DrawOrderPreserver.cs
+          ├── DimensionStyleNormalizer.cs
+          ├── StyleUnificationService.cs
+          └── DimensionStyleDiagnosticUtils.cs
   AutoBIMFusion.Common/
+    ├── AcadSupport/
+    │   ├── AcadWarningSuppressScope.cs
+    │   └── DatabaseUnitSyncScope.cs
+    ├── Extensions/          (30 файлов extension methods)
+    ├── Drawing/
+    │   ├── BlockReferences.cs
+    │   └── Entities.cs
+    ├── Mist/
+    │   ├── Generic.cs
+    │   ├── AutoCAD/
+    │   └── Geometry/
+    ├── Helpers/
+    │   ├── ExtentsUtils.cs
+    │   ├── FileUtil.cs
+    │   ├── EntityTransformUtils.cs
+    │   └── LayoutUtil.cs
+    ├── UiDialogService.cs
+    ├── WindowsNaturalComparer.cs
+    └── Logging/
+        └── LoggerFactory.cs
   AutoBIMFusion.Infrastructure/
+    Logging/
 tests/
   AutoBIMFusion.Tests/
+docs/
 ```
 
 | Проект | Output | Роль |
@@ -71,6 +121,9 @@ Keep only cross-project entry points public:
 - `AutoBIMFusion.Merge.CombineResult`
 - `AutoBIMFusion.Merge.RasterImagePathFixer`
 - `AutoBIMFusion.Merge.DrawingPurger`
+- `AutoBIMFusion.Merge.PhantomBlockCleaner`
+- `AutoBIMFusion.Merge.BlockBasePointEditor`
+- `AutoBIMFusion.Merge.BlockScaleApplier`
 - `AutoBIMFusion.Infrastructure.Logging.LoggerFactory`
 - required helpers under `AutoBIMFusion.Common`
 
