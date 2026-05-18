@@ -6,16 +6,16 @@ namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
 ///     Удаляет малые сущности модели, чей центр габаритов находится за рамкой листа.
-///     Критерии «малая»: диагональ bbox ≤ <see cref="MaxBoundingBoxDiagonal"/>
+///     Критерии «малая»: диагональ bbox ≤ <see cref="MaxBlockDiagonal"/>
 ///     и количество прямых дочерних объектов ≤ <see cref="MaxEntityCount"/>.
 ///     Крупные блоки (много элементов или большой bbox) не удаляются.
 /// </summary>
 [SupportedOSPlatform("windows")]
 internal static class OutOfFrameEntityCleaner
 {
-    private const double MaxBoundingBoxDiagonal = 100.0;
     private const int MaxEntityCount = 100;
-
+    private const int MaxBlockDiagonal = 100;
+    
     /// <summary>
     /// Сканирует Model Space и удаляет малые сущности за рамкой листа.
     /// </summary>
@@ -24,11 +24,7 @@ internal static class OutOfFrameEntityCleaner
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(log);
 
-        log.Information(
-            "Запуск очистки малых объектов за рамкой листа: frameBounds={FrameBounds}, maxDiagonal={MaxDiagonal:F2}, maxEntityCount={MaxEntityCount}",
-            ExtentsUtils.FormatExtents(frameBounds),
-            MaxBoundingBoxDiagonal,
-            MaxEntityCount);
+        log.Information("Запуск очистки объектов за рамкой листа: maxDiagonal={MaxBlockDiagonal:F2}, maxEntityCount={MaxEntityCount}", MaxBlockDiagonal, MaxEntityCount);
 
         CleanResult result = EraseEntitiesOutsideFrame(db, frameBounds, log);
 
@@ -37,22 +33,17 @@ internal static class OutOfFrameEntityCleaner
             PurgeUnusedBlockDefinitions(db, result.BlockDefinitionIds);
         }
 
-        log.Information(
-            "Очистка объектов за рамкой завершена: удалено {ErasedCount}, проверено блоков на purge {DefinitionCount}",
-            result.ErasedCount,
-            result.BlockDefinitionIds.Count);
+        log.Information("Очистка объектов за рамкой завершена");
     }
 
-    private static CleanResult EraseEntitiesOutsideFrame(
-        Database db,
-        Extents3d frameBounds,
-        Logger log)
+    private static CleanResult EraseEntitiesOutsideFrame(Database db, Extents3d frameBounds, Logger log)
     {
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
         HashSet<ObjectId> erasedBlockDefinitions = [];
         int erasedCount = 0;
 
         using Transaction trx = db.TransactionManager.StartTransaction();
+
         BlockTableRecord modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
 
         List<EntityCandidate> candidates = FindEntitiesOutsideFrame(trx, modelSpace, frameBounds, log);
@@ -72,14 +63,11 @@ internal static class OutOfFrameEntityCleaner
         }
 
         trx.Commit();
+
         return new CleanResult(erasedCount, erasedBlockDefinitions);
     }
 
-    private static List<EntityCandidate> FindEntitiesOutsideFrame(
-        Transaction trx,
-        BlockTableRecord modelSpace,
-        Extents3d frameBounds,
-        Logger log)
+    private static List<EntityCandidate> FindEntitiesOutsideFrame(Transaction trx, BlockTableRecord modelSpace, Extents3d frameBounds, Logger log)
     {
         List<EntityCandidate> result = [];
 
@@ -90,64 +78,43 @@ internal static class OutOfFrameEntityCleaner
                 continue;
             }
 
-            if (trx.GetObject(id, OpenMode.ForRead) is not Entity entity || entity.IsErased)
+            if (trx.GetObject(id, OpenMode.ForRead) is Entity entity && !entity.IsErased)
             {
-                continue;
-            }
+                Extents3d? extents = ExtentsUtils.TryGetLiveExtents(entity, trx);
 
-            Extents3d? extents = ExtentsUtils.TryGetLiveExtents(entity, trx);
-            if (!extents.HasValue)
-            {
-                log.Debug(
-                    "OutOfFrameEntityCleaner: для Entity {EntityType} не удалось вычислить BoundingBox",
-                    entity.GetType().Name);
-                continue;
-            }
-
-            Extents3d bounds = extents.Value;
-            double diagonal = bounds.MaxPoint.DistanceTo(bounds.MinPoint);
-            Point3d center = GetCenter(bounds);
-            bool small = diagonal <= MaxBoundingBoxDiagonal;
-            bool centerOutsideFrame = !IsPointInFrameXY(frameBounds, center);
-
-            if (!centerOutsideFrame || !small)
-            {
-                log.Debug(
-                    "OutOfFrameEntityCleaner: пропуск entity={EntityType}, diagonal={Diagonal:F2}, centerOutsideFrame={CenterOutsideFrame}",
-                    entity.GetType().Name,
-                    diagonal,
-                    centerOutsideFrame);
-                continue;
-            }
-
-            if (entity is BlockReference br)
-            {
-                int entityCount = CountDirectChildren(trx, br.BlockTableRecord);
-
-                log.Debug(
-                    "OutOfFrameEntityCleaner: BlockReference, bounds={Bounds}, diagonal={Diagonal:F2}, center={Center}, entityCount={EntityCount}",
-                    ExtentsUtils.FormatExtents(bounds),
-                    diagonal,
-                    ExtentsUtils.FormatPoint(center),
-                    entityCount);
-
-                if (entityCount > MaxEntityCount)
+                if (extents.HasValue)
                 {
-                    continue;
+                    Extents3d bounds = extents.Value;
+                    Point3d center = GetCenter(bounds);
+
+                    if (IsPointInFrameXY(frameBounds, center))
+                    {
+                        continue;
+                    }
+
+                    if (entity is BlockReference br)
+                    {
+                        // Дополнительно проверяем количество прямых дочерних объектов
+                        int entityCount = CountDirectChildren(trx, br.BlockTableRecord);
+
+                        // И диагональ габаритов, чтобы не удалять крупные блоки
+                        double diagonal = bounds.MaxPoint.DistanceTo(bounds.MinPoint);
+
+                        if (entityCount < MaxEntityCount && diagonal < MaxBlockDiagonal)
+                        {
+                            result.Add(new EntityCandidate(id, br.BlockTableRecord));
+                        }
+                    }
+                    else if (entity != null)
+                    {
+                        // Для обычных сущностей достаточно что они за рамкой
+                        result.Add(new EntityCandidate(id, null));
+                    }
                 }
-
-                result.Add(new EntityCandidate(id, br.BlockTableRecord));
-            }
-            else
-            {
-                log.Debug(
-                    "OutOfFrameEntityCleaner: entity={EntityType}, bounds={Bounds}, diagonal={Diagonal:F2}, center={Center}",
-                    entity.GetType().Name,
-                    ExtentsUtils.FormatExtents(bounds),
-                    diagonal,
-                    ExtentsUtils.FormatPoint(center));
-
-                result.Add(new EntityCandidate(id, null));
+                else
+                {
+                    log.Debug("Для Entity {EntityType} не удалось вычислить BoundingBox", entity.GetType().Name);
+                }
             }
         }
 
