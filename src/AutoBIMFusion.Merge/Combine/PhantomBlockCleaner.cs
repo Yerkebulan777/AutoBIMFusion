@@ -140,8 +140,8 @@ public static class PhantomBlockCleaner
             }
 
             // Pass 2: открываем объекты — проверка длины полилиний и накопление габаритов
-            Extents3d? combined = null;
             bool lengthOk = true;
+            Extents3d? combined = null;
 
             foreach (ObjectId entId in btr)
             {
@@ -243,21 +243,19 @@ public static class PhantomBlockCleaner
         // Если все вхождения стёрты — все BTR останутся в коллекции.
         db.Purge(ids);
 
-        if (ids.Count == 0)
+        if (ids.Count > 0)
         {
-            return;
-        }
+            using Transaction trx = db.TransactionManager.StartTransaction();
 
-        using Transaction trx = db.TransactionManager.StartTransaction();
-
-        foreach (ObjectId id in ids)
-        {
-            if (!id.IsErased)
+            foreach (ObjectId id in ids)
             {
-                trx.GetObject(id, OpenMode.ForWrite).Erase();
+                if (!id.IsErased)
+                {
+                    trx.GetObject(id, OpenMode.ForWrite).Erase();
+                }
             }
-        }
 
-        trx.Commit();
+            trx.Commit();
+        }
     }
 }
