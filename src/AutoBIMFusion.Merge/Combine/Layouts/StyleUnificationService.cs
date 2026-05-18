@@ -65,7 +65,7 @@ internal static class StyleUnificationService
     ///     в ИСХОДНОЙ базе данных. Это заставляет AutoCAD автоматически пересчитать
     ///     свойство TextPosition (DXF 11) у всех размеров до того, как они будут клонированы.
     /// </summary>
-    internal static void ApplyGostToAllStyles(Database sourceDb, Transaction trx, string fontName = "ISOCPEUR")
+    internal static void ApplyGostToAllStyles(Database sourceDb, Transaction trx, string fontName = "Gost Common")
     {
         DimStyleTable dst = (DimStyleTable)trx.GetObject(sourceDb.DimStyleTableId, OpenMode.ForRead);
         ObjectId textStyleId = StyleUtils.GetOrCreateTextStyle(sourceDb, trx, fontName);
@@ -92,8 +92,7 @@ internal static class StyleUnificationService
     ///     Создаёт (или возвращает существующий) эталонный размерный стиль AutoBIM в целевой БД.
     ///     TextSize связанного текстового стиля строго = 0.0 — иначе AutoCAD игнорирует Dimtxt.
     /// </summary>
-    internal static ObjectId GetOrCreateStandardDimensionStyle(Database targetDb, Transaction trx,
-        string fontName = "ISOCPEUR")
+    internal static ObjectId GetOrCreateStandardDimensionStyle(Database targetDb, Transaction trx, string fontName = "Gost Common")
     {
         string dimStyleName = $"AutoBIM-{fontName}";
 
