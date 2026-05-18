@@ -5,15 +5,14 @@ using System.Runtime.Versioning;
 namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
-///     Обнаруживает и удаляет "фантомные" блоки — определения с микроскопической геометрией,
-///     базовая точка которых смещена на миллионы единиц от начала координат.
+///     Обнаруживает и удаляет "фантомные" блоки — определения с маленьким BoundingBox,
+///     геометрия которых аномально смещена от начала координат.
 ///     Такие блоки искажают <see cref="ExtentsUtils.GetDatabaseExtents"/> и ломают пайплайн слияния.
 /// </summary>
 [SupportedOSPlatform("windows")]
 public static class PhantomBlockCleaner
 {
-    private const int MaxEntities = 15;
-    private const double MaxPolylineLength = 15.0;
+    private const double MaxBoundingBoxDiagonal = 15.0;
     private const double ThresholdMultiplier = 1.5;
     private const double DefaultThresholdBase = 1000.0;
 
@@ -25,9 +24,13 @@ public static class PhantomBlockCleaner
     /// </summary>
     public static void Clean(Database db, Logger log)
     {
+        log.Information("Запуск очистки фантомных блоков");
+
         double threshold = ComputeOffsetThreshold(db);
+        log.Information("Порог смещения фантомных блоков: {Threshold:F2} ед.", threshold);
 
         HashSet<ObjectId> phantomBtrs = FindPhantomBlocks(db, threshold, log);
+        log.Information("Найдено {DefinitionCount} определений фантомных блоков", phantomBtrs.Count);
 
         if (phantomBtrs.Count  > 0)
         {
@@ -77,8 +80,7 @@ public static class PhantomBlockCleaner
 
     /// <summary>
     ///     Проходит по всем пользовательским определениям блоков и возвращает идентификаторы фантомных.
-    ///     Использует двухпроходной алгоритм: сначала дешёвая проверка типов через DxfName (без открытия
-    ///     объектов), затем более дорогая проверка длины полилиний и геометрического смещения.
+    ///     Фантомом считается блок с маленькой диагональю BoundingBox и аномальным удалением от начала координат.
     /// </summary>
     private static HashSet<ObjectId> FindPhantomBlocks(Database db, double threshold, Logger log)
     {
@@ -100,91 +102,124 @@ public static class PhantomBlockCleaner
             // Пропускаем системные и внешние блоки
             if (btr.IsLayout || btr.IsFromExternalReference || btr.Name.StartsWith('*'))
             {
+                log.Debug(
+                    "PhantomBlockCleaner: пропущен блок «{Name}» (layout={IsLayout}, xref={IsXref}, anonymous={IsAnonymous})",
+                    btr.Name,
+                    btr.IsLayout,
+                    btr.IsFromExternalReference,
+                    btr.Name.StartsWith('*'));
                 continue;
             }
 
-            // Pass 1: быстрый счёт и проверка типов через DxfName — объекты не открываем
-            int count = 0;
-            bool allValidTypes = true;
-
-            foreach (ObjectId entId in btr)
-            {
-                if (entId.IsErased)
-                {
-                    continue;
-                }
-
-                count++;
-
-                if (count > MaxEntities)
-                {
-                    allValidTypes = false;
-                    break;
-                }
-
-                string dxfName = entId.ObjectClass.DxfName;
-                if (dxfName is not "LWPOLYLINE" and not "LINE" and not "ARC")
-                {
-                    allValidTypes = false;
-                    break;
-                }
-            }
-
-            if (count < 1 || !allValidTypes)
-            {
-                continue;
-            }
-
-            // Pass 2: открываем объекты — проверка длины полилиний и накопление габаритов
-            bool lengthOk = true;
             Extents3d? combined = null;
+            int entityCount = 0;
+            int extentsCount = 0;
 
             foreach (ObjectId entId in btr)
             {
-                if (entId.IsErased)
+                if (!entId.IsValid || entId.IsErased)
                 {
                     continue;
                 }
 
-                Entity ent = (Entity)trx.GetObject(entId, OpenMode.ForRead);
+                entityCount++;
 
-                if (ent is Polyline pl && pl.Length > MaxPolylineLength)
+                if (trx.GetObject(entId, OpenMode.ForRead) is not Entity ent || ent.IsErased)
                 {
-                    lengthOk = false;
-                    break;
+                    log.Debug("PhantomBlockCleaner: блок «{Name}» содержит объект без Entity-геометрии", btr.Name);
+                    continue;
                 }
 
                 Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
 
                 if (ext is null)
                 {
+                    log.Debug(
+                        "PhantomBlockCleaner: для Entity {EntityType} в блоке «{Name}» не удалось вычислить BoundingBox",
+                        ent.GetType().Name,
+                        btr.Name);
                     continue;
                 }
 
+                extentsCount++;
                 combined = combined is null ? ext.Value : ExtentsUtils.Union(combined.Value, ext.Value);
             }
 
-            if (!lengthOk || combined is null)
+            if (entityCount == 0)
             {
+                log.Debug("PhantomBlockCleaner: блок «{Name}» пропущен, нет нестёртых entities", btr.Name);
                 continue;
             }
 
-            // Pass 3: проверка distances
-            Point3d minPt = combined.Value.MinPoint;
-            Point3d maxPt = combined.Value.MaxPoint;
+            if (combined is null)
+            {
+                log.Debug(
+                    "PhantomBlockCleaner: блок «{Name}» пропущен, BoundingBox не вычислен для {EntityCount} entities",
+                    btr.Name,
+                    entityCount);
+                continue;
+            }
 
-            double minDistance = minPt.DistanceTo(Point3d.Origin);
-            double maxDistance = maxPt.DistanceTo(Point3d.Origin);
+            Extents3d bounds = combined.Value;
+            double diagonal = bounds.MaxPoint.DistanceTo(bounds.MinPoint);
+            double maxDistance = GetMaxDistanceFromOrigin(bounds);
 
-            // Если расстояние до самой удалённой точки больше порога — блок фантомный
-            if (maxDistance > threshold)
+            log.Debug(
+                "PhantomBlockCleaner: блок «{Name}», entities={EntityCount}, extents={ExtentsCount}, bounds={Bounds}, diagonal={Diagonal:F2}, maxDistance={MaxDistance:F2}, threshold={Threshold:F2}",
+                btr.Name,
+                entityCount,
+                extentsCount,
+                ExtentsUtils.FormatExtents(bounds),
+                diagonal,
+                maxDistance,
+                threshold);
+
+            if (diagonal <= MaxBoundingBoxDiagonal && maxDistance > threshold)
             {
                 _ = result.Add(btrId);
-                log.Debug("Фантомный блок «{Name}», maxDistance {MaxDistance:F0} ед.", btr.Name, maxDistance);
+                log.Debug(
+                    "PhantomBlockCleaner: блок «{Name}» принят как фантом, diagonal={Diagonal:F2}, maxDistance={MaxDistance:F2}",
+                    btr.Name,
+                    diagonal,
+                    maxDistance);
+                continue;
             }
+
+            log.Debug(
+                "PhantomBlockCleaner: блок «{Name}» не фантом, smallBounds={SmallBounds}, farFromOrigin={FarFromOrigin}",
+                btr.Name,
+                diagonal <= MaxBoundingBoxDiagonal,
+                maxDistance > threshold);
         }
 
         trx.Commit();
+        return result;
+    }
+
+    private static double GetMaxDistanceFromOrigin(Extents3d bounds)
+    {
+        Point3d min = bounds.MinPoint;
+        Point3d max = bounds.MaxPoint;
+
+        Point3d[] corners =
+        [
+            new(min.X, min.Y, min.Z),
+            new(min.X, min.Y, max.Z),
+            new(min.X, max.Y, min.Z),
+            new(min.X, max.Y, max.Z),
+            new(max.X, min.Y, min.Z),
+            new(max.X, min.Y, max.Z),
+            new(max.X, max.Y, min.Z),
+            new(max.X, max.Y, max.Z)
+        ];
+
+        double result = 0.0;
+
+        foreach (Point3d corner in corners)
+        {
+            result = Max(result, corner.DistanceTo(Point3d.Origin));
+        }
+
         return result;
     }
 

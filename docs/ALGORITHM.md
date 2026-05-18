@@ -21,7 +21,7 @@
 5. Layout выбирается через `LayoutUtil.TryFindFirstLayout`: минимальный `TabOrder` среди Paper Space layouts (записи с `ModelType = true` пропускаются).
 6. `ViewportCollector.Collect` собирает viewports выбранного листа.
 7. `ExtentsUtils.GetDatabaseExtents` вычисляет границы подготовленной базы в `CombineOrchestrator` перед вставкой.
-8. `PhantomBlockCleaner.Clean()` — обнаружение фантомных блоков через 3-pass алгоритм (entity count/type check → polyline length/extents check → center distance threshold). Критично выполнять ДО нормализации базовых точек, т.к. phantom geometry искажает extents calculations.
+8. `PhantomBlockCleaner.Clean()` — обнаружение фантомных блоков по BoundingBox block definition: диагональ габаритов должна быть ≤15 единиц, а максимальное расстояние углов BoundingBox от начала координат должно превышать adaptive offset threshold. Критично выполнять ДО нормализации базовых точек, т.к. phantom geometry искажает extents calculations.
 9. `BlockBasePointEditor.NormalizeAllBlocksBasePoints()` — вычисление extents блока (игнорируя entities с diagonal < 25), расчёт offset от origin до bottom-left corner, сдвиг definition geometry на `-offset` и всех block references на `+offset` (компенсированный через rotation/scale matrix). Пропускает layouts, anonymous, dynamic, xref блоки.
 10. `BlockScaleApplier.NormalizeBlockScale()` — масштабирование всех entities в block definition на refScale, обратное масштабирование всех block reference ScaleFactors, обновление anonymous blocks для dynamic blocks, сохранение пропорций при разных масштабах вставок.
 
