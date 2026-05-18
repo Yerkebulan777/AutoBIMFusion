@@ -5,13 +5,19 @@ using System.Runtime.Versioning;
 namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
-///     Удаляет сущности модели, чей центр габаритов находится за рамкой листа.
+///     Удаляет малые сущности модели, чей центр габаритов находится за рамкой листа.
+///     Критерии «малая»: диагональ bbox ≤ <see cref="MaxBoundingBoxDiagonal"/>
+///     и количество прямых дочерних объектов ≤ <see cref="MaxEntityCount"/>.
+///     Крупные блоки (много элементов или большой bbox) не удаляются.
 /// </summary>
 [SupportedOSPlatform("windows")]
 internal static class OutOfFrameEntityCleaner
 {
+    private const double MaxBoundingBoxDiagonal = 100.0;
+    private const int MaxEntityCount = 100;
+
     /// <summary>
-    /// Сканирует Model Space и удаляет сущности за рамкой листа.
+    /// Сканирует Model Space и удаляет малые сущности за рамкой листа.
     /// </summary>
     internal static void Clean(Database db, Extents3d frameBounds, Logger log)
     {
@@ -19,8 +25,10 @@ internal static class OutOfFrameEntityCleaner
         ArgumentNullException.ThrowIfNull(log);
 
         log.Information(
-            "Запуск очистки объектов за рамкой листа: frameBounds={FrameBounds}",
-            ExtentsUtils.FormatExtents(frameBounds));
+            "Запуск очистки малых объектов за рамкой листа: frameBounds={FrameBounds}, maxDiagonal={MaxDiagonal:F2}, maxEntityCount={MaxEntityCount}",
+            ExtentsUtils.FormatExtents(frameBounds),
+            MaxBoundingBoxDiagonal,
+            MaxEntityCount);
 
         CleanResult result = EraseEntitiesOutsideFrame(db, frameBounds, log);
 
@@ -97,26 +105,68 @@ internal static class OutOfFrameEntityCleaner
             }
 
             Extents3d bounds = extents.Value;
+            double diagonal = bounds.MaxPoint.DistanceTo(bounds.MinPoint);
             Point3d center = GetCenter(bounds);
+            bool small = diagonal <= MaxBoundingBoxDiagonal;
             bool centerOutsideFrame = !IsPointInFrameXY(frameBounds, center);
 
+            if (!centerOutsideFrame || !small)
+            {
+                log.Debug(
+                    "OutOfFrameEntityCleaner: пропуск entity={EntityType}, diagonal={Diagonal:F2}, centerOutsideFrame={CenterOutsideFrame}",
+                    entity.GetType().Name,
+                    diagonal,
+                    centerOutsideFrame);
+                continue;
+            }
+
+            ObjectId? blockDefinitionId = entity is BlockReference br ? br.BlockTableRecord : null;
+            int entityCount = CountDirectChildren(trx, blockDefinitionId);
+            bool fewEntities = entityCount <= MaxEntityCount;
+
             log.Debug(
-                "OutOfFrameEntityCleaner: entity={EntityType}, bounds={Bounds}, center={Center}, centerOutsideFrame={CenterOutsideFrame}",
+                "OutOfFrameEntityCleaner: entity={EntityType}, bounds={Bounds}, diagonal={Diagonal:F2}, center={Center}, entityCount={EntityCount}, fewEntities={FewEntities}",
                 entity.GetType().Name,
                 ExtentsUtils.FormatExtents(bounds),
+                diagonal,
                 ExtentsUtils.FormatPoint(center),
-                centerOutsideFrame);
+                entityCount,
+                fewEntities);
 
-            if (!centerOutsideFrame)
+            if (!fewEntities)
             {
                 continue;
             }
 
-            ObjectId? blockDefinitionId = entity is BlockReference blockReference ? blockReference.BlockTableRecord : null;
             result.Add(new EntityCandidate(id, blockDefinitionId));
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Возвращает количество прямых дочерних объектов блока.
+    /// Для не-блочных сущностей возвращает 1.
+    /// </summary>
+    private static int CountDirectChildren(Transaction trx, ObjectId? blockDefinitionId)
+    {
+        if (!blockDefinitionId.HasValue || blockDefinitionId.Value.IsNull || blockDefinitionId.Value.IsErased)
+        {
+            return 1;
+        }
+
+        if (trx.GetObject(blockDefinitionId.Value, OpenMode.ForRead) is not BlockTableRecord btr)
+        {
+            return 1;
+        }
+
+        int count = 0;
+        foreach (ObjectId _ in btr)
+        {
+            count++;
+        }
+
+        return count;
     }
 
     private static Point3d GetCenter(Extents3d bounds)
