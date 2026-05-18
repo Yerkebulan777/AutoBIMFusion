@@ -120,44 +120,50 @@ internal static class OutOfFrameEntityCleaner
                 continue;
             }
 
-            ObjectId? blockDefinitionId = entity is BlockReference br ? br.BlockTableRecord : null;
-            int entityCount = CountDirectChildren(trx, blockDefinitionId);
-            bool fewEntities = entityCount <= MaxEntityCount;
-
-            log.Debug(
-                "OutOfFrameEntityCleaner: entity={EntityType}, bounds={Bounds}, diagonal={Diagonal:F2}, center={Center}, entityCount={EntityCount}, fewEntities={FewEntities}",
-                entity.GetType().Name,
-                ExtentsUtils.FormatExtents(bounds),
-                diagonal,
-                ExtentsUtils.FormatPoint(center),
-                entityCount,
-                fewEntities);
-
-            if (!fewEntities)
+            if (entity is BlockReference br)
             {
-                continue;
-            }
+                int entityCount = CountDirectChildren(trx, br.BlockTableRecord);
 
-            result.Add(new EntityCandidate(id, blockDefinitionId));
+                log.Debug(
+                    "OutOfFrameEntityCleaner: BlockReference, bounds={Bounds}, diagonal={Diagonal:F2}, center={Center}, entityCount={EntityCount}",
+                    ExtentsUtils.FormatExtents(bounds),
+                    diagonal,
+                    ExtentsUtils.FormatPoint(center),
+                    entityCount);
+
+                if (entityCount > MaxEntityCount)
+                {
+                    continue;
+                }
+
+                result.Add(new EntityCandidate(id, br.BlockTableRecord));
+            }
+            else
+            {
+                log.Debug(
+                    "OutOfFrameEntityCleaner: entity={EntityType}, bounds={Bounds}, diagonal={Diagonal:F2}, center={Center}",
+                    entity.GetType().Name,
+                    ExtentsUtils.FormatExtents(bounds),
+                    diagonal,
+                    ExtentsUtils.FormatPoint(center));
+
+                result.Add(new EntityCandidate(id, null));
+            }
         }
 
         return result;
     }
 
-    /// <summary>
-    /// Возвращает количество прямых дочерних объектов блока.
-    /// Для не-блочных сущностей возвращает 1.
-    /// </summary>
-    private static int CountDirectChildren(Transaction trx, ObjectId? blockDefinitionId)
+    private static int CountDirectChildren(Transaction trx, ObjectId blockDefinitionId)
     {
-        if (!blockDefinitionId.HasValue || blockDefinitionId.Value.IsNull || blockDefinitionId.Value.IsErased)
+        if (blockDefinitionId.IsNull || blockDefinitionId.IsErased)
         {
-            return 1;
+            return 0;
         }
 
-        if (trx.GetObject(blockDefinitionId.Value, OpenMode.ForRead) is not BlockTableRecord btr)
+        if (trx.GetObject(blockDefinitionId, OpenMode.ForRead) is not BlockTableRecord btr)
         {
-            return 1;
+            return 0;
         }
 
         int count = 0;
