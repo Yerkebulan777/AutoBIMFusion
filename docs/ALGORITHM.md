@@ -1,6 +1,6 @@
 # Алгоритм работы AutoBIMFusion
 
-**Последнее обновление:** 2026-05-10
+**Последнее обновление:** 2026-05-15
 
 ## 1. Запуск и выбор файлов
 
@@ -21,6 +21,9 @@
 5. Layout выбирается через `LayoutUtil.TryFindFirstLayout`: минимальный `TabOrder` среди Paper Space layouts (записи с `ModelType = true` пропускаются).
 6. `ViewportCollector.Collect` собирает viewports выбранного листа.
 7. `ExtentsUtils.GetDatabaseExtents` вычисляет границы подготовленной базы в `CombineOrchestrator` перед вставкой.
+8. `PhantomBlockCleaner.Clean()` — обнаружение фантомных блоков через 3-pass алгоритм (entity count/type check → polyline length/extents check → center distance threshold). Критично выполнять ДО нормализации базовых точек, т.к. phantom geometry искажает extents calculations.
+9. `BlockBasePointEditor.NormalizeAllBlocksBasePoints()` — вычисление extents блока (игнорируя entities с diagonal < 25), расчёт offset от origin до bottom-left corner, сдвиг definition geometry на `-offset` и всех block references на `+offset` (компенсированный через rotation/scale matrix). Пропускает layouts, anonymous, dynamic, xref блоки.
+10. `BlockScaleApplier.NormalizeBlockScale()` — масштабирование всех entities в block definition на refScale, обратное масштабирование всех block reference ScaleFactors, обновление anonymous blocks для dynamic blocks, сохранение пропорций при разных масштабах вставок.
 
 ## 3. Проекция Layout в Model Space
 
@@ -37,7 +40,7 @@
 1. Главный vpt выбирается через `ViewportInfo.PickMainViewport`.
 2. Рабочий масштаб main vpt нормализуется до `1:100` для всех масштабов; `geometryScale = originalScale / (1/100)`, а `Dimlfac = 1 / geometryScale` сохраняет числовые значения размеров.
 3. `ViewportTransformer.CollectModelEntitiesWithExtents` снимает снимок объектов Model Space.
-4. Для каждого aux viewport: строится матрица `BuildMatrix(main, aux)`, отбираются объекты внутри его модельного окна, выполняется `DeepCloneAndTransform`, удаляются исходные объекты за пределами main window (`EraseEntitiesOutsideMainWindow`).
+4. Для каждого aux viewport: строится матрица `BuildMatrix(main, aux)`, отбираются объекты внутри его модельного окна, выполняется `DeepCloneAndTransform` (с capture/restore draw order через `DrawOrderPreserver`), удаляются исходные объекты за пределами main window (`EraseEntitiesOutsideMainWindow`).
 5. Если `geometryScale != 1`: `ScaleModelSpaceObjects` масштабирует Model Space вокруг `ViewCenter` main vpt к рабочему масштабу `1:100`.
 6. Paper Space переносится в Model Space через матрицу `BuildPaperToMainMatrix(mainNormalized)`.
 
@@ -55,6 +58,8 @@
 
 1. `CombineOrchestrator` берёт `DocumentLock` на целевой документ.
 2. `ExtentsUtils.SyncUnits` приводит target к мм/метрика.
+2.5 `StyleUnificationService.NormalizeTextStyleNames()` — переименование text styles по схеме `{font}-{height}-{modifiers}` для предотвращения коллизий имён при WblockCloneObjects.
+2.6 `StyleUnificationService.ApplyGostToAllStyles()` — применение GOST параметров (ISOCPEUR, 2.5mm text, 1.25mm arrows) ко всем dimension styles в source database.
 3. `WblockCloneObjects` оборачивается в `DatabaseUnitSyncScope`: единицы и `Dimalt` source временно выравниваются с target, чтобы AutoCAD не применял скрытое масштабирование (метрика ↔ имперская).
 4. Model Space entities подготовленной source DB клонируются через `WblockCloneObjects` с `DuplicateRecordCloning.Ignore`.
 5. К каждому клонированному объекту применяется displacement.

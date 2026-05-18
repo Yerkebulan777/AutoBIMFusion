@@ -1,6 +1,6 @@
 # Техническая документация AutoBIMFusion
 
-**Последнее обновление:** 2026-05-10
+**Последнее обновление:** 2026-05-15
 
 ## 1. Обзор
 
@@ -92,6 +92,12 @@ AutoBIMFusion.Tests
 | `DimensionStyleNormalizer` | `AutoBIMFusion.Merge` | Очистка DSTYLE overrides и назначение чистого AutoBIM-стиля скопированным размерам |
 | `DimensionStyleDiagnosticUtils` | `AutoBIMFusion.Merge` | Диагностические снимки размерных стилей, включаются при `LOG_LEVEL=DEBUG` |
 | `BlockInserter` | `AutoBIMFusion.Merge` | `WblockCloneObjects` + расстановка по оси X |
+| `PhantomBlockCleaner` | `AutoBIMFusion.Merge` | 3-pass detection и удаление фантомных блоков (micro-geometry с аномальным смещением) |
+| `BlockBasePointEditor` | `AutoBIMFusion.Merge` | Нормализация базовых точек блоков в левый нижний угол (offset compensation) |
+| `BlockScaleApplier` | `AutoBIMFusion.Merge` | Нормализация non-uniform block scale к 1.0 (definition + inverse reference scaling) |
+| `StyleUnificationService` | `AutoBIMFusion.Merge` | Переименование text styles + применение GOST параметров ко всем dimension styles |
+| `DrawOrderPreserver` | `AutoBIMFusion.Merge` | Capture/restore SortentsTable draw order при клонировании между BTR |
+| `EntityTransformUtils` | `AutoBIMFusion.Common` | Post-transform processing: associative hatch skip, hatch evaluate, dimension text reset, attribute alignment |
 | `RasterImagePathFixer` | `AutoBIMFusion.Merge` | Копирование растров и перевод путей в относительные |
 | `DrawingPurger` | `AutoBIMFusion.Merge` | Многопроходный `Database.Purge` |
 | `FileUtil` | `AutoBIMFusion.Common` | DWG enumeration, natural sort, file validation |
@@ -107,7 +113,12 @@ CombineCommands
   -> FileUtil
   -> CombineOrchestrator
   -> ViewportLayoutExporter / LayoutProjectionProcessor
+  -> PhantomBlockCleaner
+  -> BlockBasePointEditor
+  -> BlockScaleApplier
   -> BlockInserter
+     -> StyleUnificationService (before WblockCloneObjects)
+     -> WblockCloneObjects
   -> DimensionStyleNormalizer
   -> RasterImagePathFixer
   -> DrawingPurger.Optimize
@@ -147,3 +158,35 @@ CombineCommands
 - Активная команда пишет в `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle\Contents\Logs\merge-YYYY-MM-DD.log`.
 - `DiagnosticSink` дублирует сообщения в `Debug.WriteLine` или `Trace.WriteLine`.
 - Размерные стили диагностируются стадиями `source-after-normalize-before-clone`, `target-after-clone` и `target-after-merge` только при `LOG_LEVEL=DEBUG`.
+
+## 10. Extensions
+
+`AutoBIMFusion.Common/Extensions/` содержит ~30 файлов extension methods для упрощения работы с AutoCAD API:
+
+| Extension | Назначение |
+|---|---|
+| `ObjectIdExtensions` | `IsValidForOperation`, `EraseObject`, `GetDBObject` — безопасная работа с ObjectId |
+| `EntityExtensions` | `IsEntityOnLockedLayer`, `TransformBySafe` — проверка слоёв и безопасная трансформация |
+| `DatabaseExtensions` | `GetDocument`, `GetEditor` — получение Document/Editor из Database |
+| `ViewportsExtensions` | `ResolveCustomScale`, `ComputeModelWindow`, `GetViewCenterWcs` — расчёт масштабов и окон viewport |
+| `BlockReferenceExtensions` | `GetBlockReferenceName` — извлечение имени блока с поддержкой dynamic blocks |
+| `DBObjectExtensions` | Общие методы для DBObject (erase, open, property access) |
+| `PolylinesExtensions` | Утилиты для работы с Polyline/Polyline2d |
+| `CurvesExtensions` | Методы для Curve-наследников (parameter, point at distance) |
+| `HatchsExtensions` | Методы для Hatch (evaluate, loop management) |
+| `CollectionsExtensions` | `Join`, `ToHashSet` и другие collection helpers |
+
+Extensions централизуют повторяющуюся логику и обеспечивают единообразную обработку ошибок across the codebase.
+
+## 11. Drawing & Mist helpers
+
+### Drawing
+
+- `BlockReferences.cs` (694 строки) — comprehensive block utilities: создание, копирование, трансформация block references; работа с dynamic block properties; поиск и фильтрация блоков по имени/слою.
+- `Entities.cs` — утилиты для создания и модификации AutoCAD entities (lines, polylines, circles, text, dimensions).
+
+### Mist
+
+- `Generic.cs` (281 строка) — central utility class: tolerances (`LowTolerance`, `HighTolerance`), system variable management, type conversion helpers, math utilities.
+- `AutoCAD/` — AutoCAD-specific helpers (system variables, unit conversion, command invocation).
+- `Geometry/` — geometric utilities (point/line/plane calculations, intersection tests, bounding box operations).

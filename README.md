@@ -134,9 +134,12 @@ powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoB
 2. `FileUtil`: собирает `.dwg` до 3 уровней вложенности, пропускает файлы с префиксом `#` и файлы больше 15 МБ, сортирует естественным порядком.
 3. `CombineOrchestrator`: проверяет DWG, готовит фоновую базу и вставляет результат в целевой чертеж.
 4. `ViewportLayoutExporter` / `LayoutProjectionProcessor`: открывают исходный DWG через `Database(false, true)`, переводят базу в millimeters/metric и переносят первый Paper Space Layout в Model Space.
-5. `DimensionStyleNormalizer`: назначает скопированным размерам чистый AutoBIM-стиль, очищает DSTYLE overrides и сохраняет визуальный масштаб размеров.
-6. `BlockInserter`: клонирует объекты через `WblockCloneObjects` и раскладывает листы по оси X с зазором 10%.
-7. Финализация: копирование растров, `DrawingPurger.Optimize`, `SaveAs(DwgVersion.AC1032)`, `REGENALL`, `ZOOM EXTENTS`.
+5. `PhantomBlockCleaner`: удаление "фантомных" блоков с микроскопической геометрией и смещёнными базовыми точками (критичный порядок: ДО нормализации).
+6. `BlockBasePointEditor`: перенос базовых точек блоков в левый нижний угол без изменения вида вставок.
+7. `BlockScaleApplier`: нормализация non-uniform масштаба блоков к 1.0 (definition + inverse reference scaling).
+8. `DimensionStyleNormalizer`: назначает скопированным размерам чистый AutoBIM-стиль, очищает DSTYLE overrides и сохраняет визуальный масштаб размеров.
+9. `BlockInserter`: клонирует объекты через `WblockCloneObjects` и раскладывает листы по оси X с зазором 10%.
+10. Финализация: копирование растров, `DrawingPurger.Optimize`, `SaveAs(DwgVersion.AC1032)`, `REGENALL`, `ZOOM EXTENTS`.
    Подробные снимки размерных стилей включаются только при `LOG_LEVEL=DEBUG`.
 
 Лог пишется в `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle\Contents\Logs\merge-YYYY-MM-DD.log`.
@@ -208,3 +211,4 @@ AutoCAD host DLLs не копируются в output и bundle: AutoCAD NuGet r
 - [Техническое описание](docs/TECHNICAL_DOCUMENTATION.md)
 - [Алгоритм слияния](docs/ALGORITHM.md)
 - [Известные проблемы](docs/KNOWN_ISSUES.md)
+- [Legacy unit workarounds](docs/LEGACY_UNIT_WORKAROUNDS.md)
