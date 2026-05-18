@@ -96,7 +96,9 @@ public sealed class CombineCommands
         {
             string? sourceFolder = folderPath;
 
-            if (string.IsNullOrWhiteSpace(sourceFolder) && !UiDialogService.TrySelectFolder("Выберите папку с файлами DWG для объединения", out sourceFolder))
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(sourceFolder, nameof(folderPath));
+
+            if (!UiDialogService.TrySelectFolder("Выберите папку с файлами DWG для объединения", out sourceFolder))
             {
                 const string cancelMessage = "Выбор папки отменён.";
                 return MergeExecutionResult.Fail(null, cancelMessage);
@@ -108,15 +110,12 @@ public sealed class CombineCommands
 
             if (dwgFiles.Length == 0)
             {
-                const string emptyFolderMessage = "DWG файлы не найдены.";
-                log.Warning(emptyFolderMessage);
-
                 if (showDialogs)
                 {
                     UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
                 }
 
-                return MergeExecutionResult.Fail(savePath, emptyFolderMessage);
+                return MergeExecutionResult.Fail(savePath, "DWG файлы не найдены.");
             }
 
             const double gapPercent = 0.1;
@@ -145,6 +144,7 @@ public sealed class CombineCommands
             mergeDoc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
 
             sw.Stop();
+
             log.Information(
                 "{Command}: завершено, {Stats}, save=\"{SavePath}\", elapsed={Elapsed}",
                 commandName,
