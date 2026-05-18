@@ -97,7 +97,8 @@ public static class PhantomBlockCleaner
 
             BlockTableRecord btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
 
-            if (btr.IsLayout || btr.IsFromExternalReference || btr.Name.StartsWith("*"))
+            // Пропускаем системные и внешние блоки
+            if (btr.IsLayout || btr.IsFromExternalReference || btr.Name.StartsWith('*'))
             {
                 continue;
             }
@@ -154,6 +155,7 @@ public static class PhantomBlockCleaner
                 }
 
                 Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
+
                 if (ext is null)
                 {
                     continue;
@@ -167,18 +169,18 @@ public static class PhantomBlockCleaner
                 continue;
             }
 
-            // Pass 3: проверка расстояния от центра геометрии до начала координат
-            Point3d center = new(
-                (combined.Value.MinPoint.X + combined.Value.MaxPoint.X) / 2.0,
-                (combined.Value.MinPoint.Y + combined.Value.MaxPoint.Y) / 2.0,
-                (combined.Value.MinPoint.Z + combined.Value.MaxPoint.Z) / 2.0);
+            // Pass 3: проверка distances
+            Point3d minPt = combined.Value.MinPoint;
+            Point3d maxPt = combined.Value.MaxPoint;
 
-            double displacement = center.DistanceTo(Point3d.Origin);
+            double minDistance = minPt.DistanceTo(Point3d.Origin);
+            double maxDistance = maxPt.DistanceTo(Point3d.Origin);
 
-            if (displacement > threshold)
+            // Если расстояние до самой удалённой точки больше порога — блок фантомный
+            if (maxDistance > threshold)
             {
                 _ = result.Add(btrId);
-                log.Debug("Фантомный блок «{Name}», смещение {Displacement:F0} ед.", btr.Name, displacement);
+                log.Debug("Фантомный блок «{Name}», maxDistance {MaxDistance:F0} ед.", btr.Name, maxDistance);
             }
         }
 
