@@ -1,13 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework Condition="'$(Configuration)' != 'DebugA27' And '$(Configuration)' != 'ReleaseA27'">net8.0-windows</TargetFramework>
-        <TargetFramework Condition="'$(Configuration)' == 'DebugA27' Or '$(Configuration)' == 'ReleaseA27'">net10.0-windows</TargetFramework>
+        <TargetFramework Condition="'$(Configuration)' != 'DebugA27' And '$(Configuration)' != 'ReleaseA27' And '$(CoreConsoleDiagnostics)' == 'true'">net8.0</TargetFramework>
+        <TargetFramework Condition="'$(Configuration)' != 'DebugA27' And '$(Configuration)' != 'ReleaseA27' And '$(CoreConsoleDiagnostics)' != 'true'">net8.0-windows</TargetFramework>
+        <TargetFramework Condition="('$(Configuration)' == 'DebugA27' Or '$(Configuration)' == 'ReleaseA27') And '$(CoreConsoleDiagnostics)' == 'true'">net10.0</TargetFramework>
+        <TargetFramework Condition="('$(Configuration)' == 'DebugA27' Or '$(Configuration)' == 'ReleaseA27') And '$(CoreConsoleDiagnostics)' != 'true'">net10.0-windows</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <PlatformTarget>x64</PlatformTarget>
         <Platforms>x64</Platforms>
-        <UseWPF>true</UseWPF>
+        <UseWPF Condition="'$(CoreConsoleDiagnostics)' != 'true'">true</UseWPF>
         <NoWarn>CS8600;CS8601;CS8602;CS8603;CS8604;CS8625</NoWarn>
     </PropertyGroup>
 

@@ -39,11 +39,7 @@ public static class CombineOrchestrator
                 return CombineResult.Warn(fileName, "Листы не найдены");
             }
 
-            // ВАЖНО: PhantomBlockCleaner должен выполняться ДО NormalizeAllBlocksBasePoints.
-            // Иначе: GetBlockDefinitionExtents включает TryGetExtents вложенных phantom-ссылок
-            // внутри нормальных блоков → offset нормализации становится огромным →
-            // INSERT POINTS нормальных блоков смещаются на миллионы единиц → неверные bounds.
-            PhantomBlockCleaner.Clean(prepared.Db, log);
+            // Очистка мелких объектов за рамкой выполняется внутри PrepareDatabaseForMerge до нормализации базовых точек.
             BlockBasePointEditor.NormalizeAllBlocksBasePoints(prepared.Db);
 
             // ComputeModelSpaceBounds: прямой scan сущностей, не зависит от кэша db.Extmin/Extmax.

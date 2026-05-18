@@ -92,7 +92,7 @@ AutoBIMFusion.Tests
 | `DimensionStyleNormalizer` | `AutoBIMFusion.Merge` | Очистка DSTYLE overrides и назначение чистого AutoBIM-стиля скопированным размерам |
 | `DimensionStyleDiagnosticUtils` | `AutoBIMFusion.Merge` | Диагностические снимки размерных стилей, включаются при `LOG_LEVEL=DEBUG` |
 | `BlockInserter` | `AutoBIMFusion.Merge` | `WblockCloneObjects` + расстановка по оси X |
-| `PhantomBlockCleaner` | `AutoBIMFusion.Merge` | 3-pass detection и удаление фантомных блоков (micro-geometry с аномальным смещением) |
+| `SmallOutOfFrameEntityCleaner` | `AutoBIMFusion.Merge` | Удаление малых объектов, центр bbox которых находится за рамкой листа |
 | `BlockBasePointEditor` | `AutoBIMFusion.Merge` | Нормализация базовых точек блоков в левый нижний угол (offset compensation) |
 | `BlockScaleApplier` | `AutoBIMFusion.Merge` | Нормализация non-uniform block scale к 1.0 (definition + inverse reference scaling) |
 | `StyleUnificationService` | `AutoBIMFusion.Merge` | Переименование text styles + применение GOST параметров ко всем dimension styles |
@@ -113,7 +113,7 @@ CombineCommands
   -> FileUtil
   -> CombineOrchestrator
   -> ViewportLayoutExporter / LayoutProjectionProcessor
-  -> PhantomBlockCleaner
+  -> SmallOutOfFrameEntityCleaner
   -> BlockBasePointEditor
   -> BlockScaleApplier
   -> BlockInserter

@@ -25,7 +25,7 @@ src/
       ├── CombineOrchestrator.cs
       ├── CombineResult.cs
       ├── CombineStatistics.cs
-      ├── PhantomBlockCleaner.cs
+      ├── SmallOutOfFrameEntityCleaner.cs
       ├── BlockBasePointEditor.cs
       ├── BlockScaleApplier.cs
       ├── DrawingPurger.cs
@@ -37,7 +37,6 @@ src/
           ├── ViewportInfo.cs
           ├── ViewportTransformer.cs
           ├── ViewportScaleNormalizer.cs
-          ├── ModelSpaceTrimmer.cs
           ├── DrawOrderPreserver.cs
           ├── DimensionStyleNormalizer.cs
           ├── StyleUnificationService.cs
@@ -121,7 +120,6 @@ Keep only cross-project entry points public:
 - `AutoBIMFusion.Merge.CombineResult`
 - `AutoBIMFusion.Merge.RasterImagePathFixer`
 - `AutoBIMFusion.Merge.DrawingPurger`
-- `AutoBIMFusion.Merge.PhantomBlockCleaner`
 - `AutoBIMFusion.Merge.BlockBasePointEditor`
 - `AutoBIMFusion.Merge.BlockScaleApplier`
 - `AutoBIMFusion.Infrastructure.Logging.LoggerFactory`
