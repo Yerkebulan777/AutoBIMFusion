@@ -183,9 +183,7 @@ public static class PhantomBlockCleaner
             if (displacement > threshold)
             {
                 _ = result.Add(btrId);
-                log.Debug(
-                    "PhantomBlockCleaner: фантомный блок «{Name}», смещение {Displacement:F0} ед.",
-                    btr.Name, displacement);
+                log.Debug("Фантомный блок «{Name}», смещение {Displacement:F0} ед.", btr.Name, displacement);
             }
         }
 
