@@ -10,10 +10,10 @@ namespace AutoBIMFusion.Merge.Combine;
 [SupportedOSPlatform("windows")]
 internal static class SmallOutOfFrameEntityCleaner
 {
-    private const double MaxBoundingBoxDiagonal = 15.0;
+    private const double MaxBoundingBoxDiagonal = 100.0;
 
     /// <summary>
-    ///     Сканирует Model Space и удаляет маленькие сущности за рамкой листа.
+    /// Сканирует Model Space и удаляет маленькие сущности за рамкой листа.
     /// </summary>
     internal static void Clean(Database db, Extents3d frameBounds, Logger log)
     {
