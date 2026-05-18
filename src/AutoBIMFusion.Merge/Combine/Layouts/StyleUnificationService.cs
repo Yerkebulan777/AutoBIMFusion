@@ -70,7 +70,7 @@ internal static class StyleUnificationService
         DimStyleTable dst = (DimStyleTable)trx.GetObject(sourceDb.DimStyleTableId, OpenMode.ForRead);
 
         // Gost Common: XScale = 0.85, Italic = true
-        ObjectId textStyleId = StyleUtils.GetOrCreateTextStyle(sourceDb, trx, fontName, 0.85, 0.0, true);
+        ObjectId textStyleId = StyleUtils.GetOrCreateTextStyle(sourceDb, trx, fontName, 0.85, true);
         ObjectId arrowBlockId = StyleUtils.GetArrowBlockId(sourceDb, trx);
 
         foreach (ObjectId dsId in dst)
@@ -101,7 +101,7 @@ internal static class StyleUnificationService
         DimStyleTable dst = (DimStyleTable)trx.GetObject(targetDb.DimStyleTableId, OpenMode.ForRead);
 
         // Gost Common: XScale = 0.85, Italic = true
-        ObjectId textStyleId = StyleUtils.GetOrCreateTextStyle(targetDb, trx, fontName, 0.85, 0.0, true);
+        ObjectId textStyleId = StyleUtils.GetOrCreateTextStyle(targetDb, trx, fontName, 0.85, true);
 
         ObjectId arrowBlockId = StyleUtils.GetArrowBlockId(targetDb, trx);
 

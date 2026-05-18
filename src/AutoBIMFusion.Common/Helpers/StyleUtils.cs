@@ -12,7 +12,7 @@ public static class StyleUtils
     /// <summary>
     ///  Создаёт (или возвращает существующий) текстовый стиль с заданным шрифтом и высотой 0.
     /// </summary>
-    public static ObjectId GetOrCreateTextStyle(Database db, Transaction trx, string fontName, double xScale = 1.0, double obliqueAngle = 0.0, bool isItalic = false)
+    public static ObjectId GetOrCreateTextStyle(Database db, Transaction trx, string fontName, double xScale = 1.0, bool isItalic = false)
     {
         TextStyleTable tt = (TextStyleTable)trx.GetObject(db.TextStyleTableId, OpenMode.ForRead);
 
@@ -27,19 +27,21 @@ public static class StyleUtils
 
             if (Math.Abs(existing.XScale - xScale) > 1e-6)
             {
-                if (!existing.IsWriteEnabled) existing.UpgradeOpen();
-                existing.XScale = xScale;
-            }
+                if (!existing.IsWriteEnabled)
+                {
+                    existing.UpgradeOpen();
+                }
 
-            if (Math.Abs(existing.ObliquingAngle - obliqueAngle) > 1e-6)
-            {
-                if (!existing.IsWriteEnabled) existing.UpgradeOpen();
-                existing.ObliquingAngle = obliqueAngle;
+                existing.XScale = xScale;
             }
 
             if (existing.Font.Italic != isItalic)
             {
-                if (!existing.IsWriteEnabled) existing.UpgradeOpen();
+                if (!existing.IsWriteEnabled)
+                {
+                    existing.UpgradeOpen();
+                }
+
                 FontDescriptor oldFont = existing.Font;
                 existing.Font = new FontDescriptor(oldFont.TypeFace, oldFont.Bold, isItalic, oldFont.CharacterSet, oldFont.PitchAndFamily);
             }
@@ -56,8 +58,7 @@ public static class StyleUtils
         {
             Name = fontName,
             TextSize = 0.0,
-            XScale = xScale,
-            ObliquingAngle = obliqueAngle
+            XScale = xScale
         };
 
         if (isItalic)
