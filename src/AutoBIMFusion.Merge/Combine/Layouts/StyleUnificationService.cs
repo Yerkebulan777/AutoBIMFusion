@@ -68,7 +68,9 @@ internal static class StyleUnificationService
     internal static void ApplyGostToAllStyles(Database sourceDb, Transaction trx, string fontName = "Gost Common")
     {
         DimStyleTable dst = (DimStyleTable)trx.GetObject(sourceDb.DimStyleTableId, OpenMode.ForRead);
-        ObjectId textStyleId = StyleUtils.GetOrCreateTextStyle(sourceDb, trx, fontName);
+
+        // Gost Common: XScale = 0.85, Italic = true
+        ObjectId textStyleId = StyleUtils.GetOrCreateTextStyle(sourceDb, trx, fontName, 0.85, 0.0, true);
         ObjectId arrowBlockId = StyleUtils.GetArrowBlockId(sourceDb, trx);
 
         foreach (ObjectId dsId in dst)
@@ -97,7 +99,9 @@ internal static class StyleUnificationService
         string dimStyleName = $"AutoBIM-{fontName}";
 
         DimStyleTable dst = (DimStyleTable)trx.GetObject(targetDb.DimStyleTableId, OpenMode.ForRead);
-        ObjectId textStyleId = StyleUtils.GetOrCreateTextStyle(targetDb, trx, fontName);
+
+        // Gost Common: XScale = 0.85, Italic = true
+        ObjectId textStyleId = StyleUtils.GetOrCreateTextStyle(targetDb, trx, fontName, 0.85, 0.0, true);
 
         ObjectId arrowBlockId = StyleUtils.GetArrowBlockId(targetDb, trx);
 
