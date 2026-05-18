@@ -51,15 +51,10 @@ public static class DrawingPurger
 
         if (totalDeletedCount == 0)
         {
-            log.Information("Чертеж уже очищен, удалять нечего.");
             return;
         }
 
-        foreach (KeyValuePair<string, int> entry in purgeReport)
-        {
-            log.Information("Purge: {ObjectType} - {Count} удалено", entry.Key, entry.Value);
-        }
-        log.Information("Purge: Всего удалено {TotalCount} элементов", totalDeletedCount);
+        log.Information("Purge: удалено объектов: {TotalCount}", totalDeletedCount);
     }
 
     private static Dictionary<string, int> CorePurge(Database db)

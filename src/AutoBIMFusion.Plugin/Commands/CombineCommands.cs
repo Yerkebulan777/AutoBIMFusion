@@ -85,8 +85,6 @@ public sealed class CombineCommands
     {
         Logger log = LoggerFactory.GetSharedLogger();
 
-        log.Information("{Command}: command invoked, log=\"{LogPath}\"", commandName, LoggerFactory.GetCurrentLogFilePath());
-
         if (!await _mergeGate.WaitAsync(0))
         {
             const string busyMessage = "Операция объединения уже выполняется.";
@@ -101,7 +99,6 @@ public sealed class CombineCommands
             if (string.IsNullOrWhiteSpace(sourceFolder) && !UiDialogService.TrySelectFolder("Выберите папку с файлами DWG для объединения", out sourceFolder))
             {
                 const string cancelMessage = "Выбор папки отменён.";
-                log.Information("{Command}: cancelled before source folder selection", commandName);
                 return MergeExecutionResult.Fail(null, cancelMessage);
             }
 
@@ -121,14 +118,6 @@ public sealed class CombineCommands
 
                 return MergeExecutionResult.Fail(savePath, emptyFolderMessage);
             }
-
-            log.Information(
-                "{Command}: старт, files={FileCount}, source=\"{SourceFolder}\", save=\"{SavePath}\", log=\"{LogPath}\"",
-                commandName,
-                dwgFiles.Length,
-                sourceFolder,
-                savePath,
-                LoggerFactory.GetCurrentLogFilePath());
 
             const double gapPercent = 0.1;
             CombineStatistics stats = new();
@@ -152,12 +141,16 @@ public sealed class CombineCommands
                 SaveMerged(mergeDoc.Database, savePath, log);
             }
 
-            log.Information($"Завершено: {stats}");
-
             mergeDoc.SendStringToExecute("._REGENALL ", true, false, false);
             mergeDoc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
 
             sw.Stop();
+            log.Information(
+                "{Command}: завершено, {Stats}, save=\"{SavePath}\", elapsed={Elapsed}",
+                commandName,
+                stats,
+                savePath,
+                sw.Elapsed);
 
             if (showDialogs)
             {
@@ -233,13 +226,11 @@ public sealed class CombineCommands
 
         if (activeDoc is not null && CanUseActiveDocument(activeDoc, log))
         {
-            log.Information("MERGEDWG: используется текущий пустой документ \"{DocumentName}\".", activeDoc.Name);
             return new MergeDocumentSelection(activeDoc, false);
         }
 
         Document mergeDoc = docMgr.Add(string.Empty);
         docMgr.MdiActiveDocument = mergeDoc;
-        log.Information("MERGEDWG: создан временный итоговый документ \"{DocumentName}\".", mergeDoc.Name);
         return new MergeDocumentSelection(mergeDoc, true);
     }
 
@@ -247,7 +238,6 @@ public sealed class CombineCommands
     {
         if (doc.IsNamedDrawing)
         {
-            log.Information("MERGEDWG: текущий документ \"{DocumentName}\" уже сохранён, результат будет собран во временном документе.", doc.Name);
             return false;
         }
 
@@ -259,10 +249,10 @@ public sealed class CombineCommands
 
                 if (!isEmpty)
                 {
-                    log.Information("MERGEDWG: текущий документ \"{DocumentName}\" не пустой, результат будет собран во временном документе.", doc.Name);
+                    return false;
                 }
 
-                return isEmpty;
+                return true;
             }
         }
         catch (Autodesk.AutoCAD.Runtime.Exception ex)
@@ -388,8 +378,6 @@ public sealed class CombineCommands
                 DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "target-before-save");
                 db.SaveAs(savePath, DwgVersion.AC1032);
             }
-
-            log.Information($"Сохранено: {savePath}");
         }
         catch (Exception ex)
         {

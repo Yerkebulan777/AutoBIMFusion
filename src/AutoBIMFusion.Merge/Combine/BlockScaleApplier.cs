@@ -55,7 +55,6 @@ public static class BlockScaleApplier
 
         if (Abs(refScale - 1.0) < Generic.LowTolerance.EqualVector && btr.Units == db.Insunits)
         {
-            log.Information($"BlockScaleApplier: блок \"{blockName}\" уже имеет масштаб 1.");
             return;
         }
 
@@ -81,7 +80,6 @@ public static class BlockScaleApplier
             }
         }
 
-        bool differentScalesFound = false;
         double scaleFactor = 1.0 / refScale;
 
         foreach (ObjectId blockRefId in GetBlockReferenceIds(trx, btr))
@@ -93,11 +91,6 @@ public static class BlockScaleApplier
 
             Scale3d oldScale = otherBlockRef.ScaleFactors;
 
-            if (Abs(Abs(oldScale.X) - refScale) > Generic.LowTolerance.EqualVector)
-            {
-                differentScalesFound = true;
-            }
-
             otherBlockRef.ScaleFactors = new Scale3d(
                 oldScale.X * scaleFactor,
                 oldScale.Y * scaleFactor,
@@ -107,14 +100,6 @@ public static class BlockScaleApplier
         }
 
         btr.UpdateAnonymousBlocks();
-
-        if (differentScalesFound)
-        {
-            log.Information(
-                $"BlockScaleApplier: некоторые вставки блока \"{blockName}\" имели другой масштаб. Пропорции сохранены.");
-        }
-
-        log.Information($"BlockScaleApplier: блок \"{blockName}\" нормализован к масштабу 1.");
     }
 
     /// <summary>

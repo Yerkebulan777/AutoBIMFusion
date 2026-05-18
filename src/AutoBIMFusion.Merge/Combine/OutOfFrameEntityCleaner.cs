@@ -24,16 +24,12 @@ internal static class OutOfFrameEntityCleaner
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(log);
 
-        log.Information("Запуск очистки объектов за рамкой листа: maxDiagonal={MaxBlockDiagonal:F2}, maxEntityCount={MaxEntityCount}", MaxBlockDiagonal, MaxEntityCount);
-
         CleanResult result = EraseEntitiesOutsideFrame(db, frameBounds, log);
 
         if (result.BlockDefinitionIds.Count > 0)
         {
             PurgeUnusedBlockDefinitions(db, result.BlockDefinitionIds);
         }
-
-        log.Information("Очистка объектов за рамкой завершена");
     }
 
     private static CleanResult EraseEntitiesOutsideFrame(Database db, Extents3d frameBounds, Logger log)
