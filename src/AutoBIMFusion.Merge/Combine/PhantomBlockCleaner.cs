@@ -23,25 +23,20 @@ public static class PhantomBlockCleaner
     ///     Гарантирует, что phantom-геометрия не влияет на вычисление границ и не клонируется
     ///     при слиянии через <see cref="Database.WblockCloneObjects"/>.
     /// </summary>
-    /// <param name="db">База данных исходного DWG-файла.</param>
-    /// <param name="log">Экземпляр логгера Serilog.</param>
     public static void Clean(Database db, Logger log)
     {
         double threshold = ComputeOffsetThreshold(db);
+
         HashSet<ObjectId> phantomBtrs = FindPhantomBlocks(db, threshold, log);
 
-        if (phantomBtrs.Count == 0)
+        if (phantomBtrs.Count  > 0)
         {
-            return;
+            int erasedCount = EraseAllReferences(db, phantomBtrs);
+
+            PurgeDefinitions(db, phantomBtrs);
+
+            log.Information("Удалено {ErasedCount} вхождений, очищено {DefinitionCount} определений фантомных блоков", erasedCount, phantomBtrs.Count);
         }
-
-        int erasedCount = EraseAllReferences(db, phantomBtrs);
-
-        PurgeDefinitions(db, phantomBtrs);
-
-        log.Information(
-            "PhantomBlockCleaner: удалено {ErasedCount} вхождений, очищено {DefinitionCount} определений фантомных блоков",
-            erasedCount, phantomBtrs.Count);
     }
 
     /// <summary>
