@@ -1,4 +1,5 @@
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
+using System.Diagnostics;
 
 namespace AutoBIMFusion.Common.AcadSupport;
 
@@ -9,54 +10,49 @@ namespace AutoBIMFusion.Common.AcadSupport;
 /// </summary>
 public sealed class AcadWarningSuppressScope : IDisposable
 {
-    private readonly List<(string Name, object? OldValue, bool IsSet)> _vars = [];
+    private static readonly (string Name, object SuppressedValue, object DefaultValue)[] Variables =
+    [
+        ("FILEDIA", 0, 1),
+        ("CMDDIA", 0, 1),
+        ("EXPERT", 5, 0),
+        ("PROXYNOTICE", 0, 1),
+        ("LAYEREVAL", 0, 0),
+        ("LAYERNOTIFY", 0, 0),
+        ("LAYOUTREGENCTL", 0, 2),
+        ("VTENABLE", 0, 3)
+    ];
 
     public AcadWarningSuppressScope()
     {
-        Set("FILEDIA", 0);
-        Set("CMDDIA", 0);
-        Set("EXPERT", 5);
-        Set("PROXYNOTICE", 0);
-        Set("LAYEREVAL", 0);
-        Set("LAYERNOTIFY", 0);
-        Set("LAYOUTREGENCTL", 0);
-        Set("VTENABLE", 0);
+        foreach ((string name, object suppressedValue, _) in Variables)
+        {
+            Set(name, suppressedValue);
+        }
     }
 
     public void Dispose()
     {
-        // Восстанавливаем в обратном порядке для корректного стека зависимостей.
-        for (int i = _vars.Count - 1; i >= 0; i--)
-        {
-            (string? name, object? oldValue, bool isSet) = _vars[i];
-            if (!isSet)
-            {
-                continue;
-            }
+        ResetToDefaultValues();
+    }
 
-            try
-            {
-                AcadApp.SetSystemVariable(name, oldValue!);
-            }
-            catch
-            {
-                /* Игнорируем: другие переменные должны быть восстановлены. */
-            }
+    public static void ResetToDefaultValues()
+    {
+        foreach ((string name, _, object defaultValue) in Variables)
+        {
+            Set(name, defaultValue);
         }
     }
 
-    private void Set(string name, object value)
+    private static void Set(string name, object value)
     {
         try
         {
-            object oldValue = AcadApp.GetSystemVariable(name);
+            _ = AcadApp.GetSystemVariable(name);
             AcadApp.SetSystemVariable(name, value);
-            _vars.Add((name, oldValue, true));
         }
-        catch
+        catch (Autodesk.AutoCAD.Runtime.Exception ex)
         {
-            // Переменная недоступна или только для чтения — пропускаем.
-            _vars.Add((name, null, false));
+            Debug.WriteLine($"Не удалось установить системную переменную {name}: {ex.Message}");
         }
     }
 }

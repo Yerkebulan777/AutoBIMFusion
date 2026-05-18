@@ -168,6 +168,7 @@ public sealed class CombineCommands
         }
         finally
         {
+            AcadWarningSuppressScope.ResetToDefaultValues();
             _ = _mergeGate.Release();
         }
     }
