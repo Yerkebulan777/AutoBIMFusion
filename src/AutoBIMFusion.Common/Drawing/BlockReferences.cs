@@ -221,10 +221,7 @@ public static class BlockReferences
 
         if (EraseOld)
         {
-            foreach (ObjectId oldent in SelectedIds)
-            {
-                oldent.EraseObject();
-            }
+            SelectedIds.EraseObjects(trx);
         }
 
         trx.Commit();

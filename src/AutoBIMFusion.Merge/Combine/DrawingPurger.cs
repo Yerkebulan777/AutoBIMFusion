@@ -224,37 +224,37 @@ public static class DrawingPurger
         {
             RXClass CurveRXClass = RXObject.GetClass(typeof(Curve));
             using Transaction trx = db.TransactionManager.StartTransaction();
-            int NumberZeroLengthCurvesDeleted = 0;
+            using ObjectIdCollection candidates = [];
+
             foreach (ObjectId objectId2 in (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead))
             {
-                if (!objectId2.IsErased)
+                if (objectId2.IsErased)
                 {
-                    foreach (ObjectId objectId3 in (BlockTableRecord)trx.GetObject(objectId2, OpenMode.ForRead))
+                    continue;
+                }
+
+                foreach (ObjectId objectId3 in (BlockTableRecord)trx.GetObject(objectId2, OpenMode.ForRead))
+                {
+                    if (objectId3.ObjectClass.IsDerivedFrom(CurveRXClass))
                     {
-                        if (objectId3.ObjectClass.IsDerivedFrom(CurveRXClass))
+                        Curve curve = (Curve)trx.GetObject(objectId3, OpenMode.ForRead);
+                        if (curve is not Xline && curve is not Ray &&
+                            curve.GetDistanceAtParameter(curve.EndParam) == 0.0)
                         {
-                            Curve curve = (Curve)trx.GetObject(objectId3, OpenMode.ForRead);
-                            if (curve is not Xline && curve is not Ray &&
-                                curve.GetDistanceAtParameter(curve.EndParam) == 0.0)
-                            {
-                                curve.UpgradeOpen();
-                                curve.Erase();
-                                NumberZeroLengthCurvesDeleted++;
-                            }
+                            _ = candidates.Add(objectId3);
                         }
-                        else if (objectId3.ObjectClass.Name == "AcDbRegion" &&
-                                 trx.GetObject(objectId3, OpenMode.ForRead) is Region { Area: 0.0 } region)
-                        {
-                            region.UpgradeOpen();
-                            region.Erase();
-                            NumberZeroLengthCurvesDeleted++;
-                        }
+                    }
+                    else if (objectId3.ObjectClass.Name == "AcDbRegion" &&
+                             trx.GetObject(objectId3, OpenMode.ForRead) is Region { Area: 0.0 })
+                    {
+                        _ = candidates.Add(objectId3);
                     }
                 }
             }
 
+            candidates.EraseObjects(trx);
             trx.Commit();
-            return NumberZeroLengthCurvesDeleted;
+            return candidates.Count;
         }
 
         /// <summary>
@@ -265,37 +265,37 @@ public static class DrawingPurger
             RXClass DBTextRXClass = RXObject.GetClass(typeof(DBText));
             RXClass MTextRXClass = RXObject.GetClass(typeof(MText));
             using Transaction trx = db.TransactionManager.StartTransaction();
-            int NumberEmptyTextDeleted = 0;
+            using ObjectIdCollection candidates = [];
+
             foreach (ObjectId objectId2 in (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead))
             {
-                if (!objectId2.IsErased)
+                if (objectId2.IsErased)
                 {
-                    foreach (ObjectId objectId3 in (BlockTableRecord)trx.GetObject(objectId2, OpenMode.ForRead))
+                    continue;
+                }
+
+                foreach (ObjectId objectId3 in (BlockTableRecord)trx.GetObject(objectId2, OpenMode.ForRead))
+                {
+                    if (objectId3.ObjectClass == DBTextRXClass)
                     {
-                        if (objectId3.ObjectClass == DBTextRXClass)
+                        DBText dbtext = (DBText)trx.GetObject(objectId3, OpenMode.ForRead);
+                        if (dbtext.TextString.Trim().Length == 0)
                         {
-                            DBText dbtext = (DBText)trx.GetObject(objectId3, OpenMode.ForRead);
-                            if (dbtext.TextString.Trim().Length == 0)
-                            {
-                                dbtext.UpgradeOpen();
-                                dbtext.Erase();
-                                NumberEmptyTextDeleted++;
-                            }
+                            _ = candidates.Add(objectId3);
                         }
-                        else if (objectId3.ObjectClass == MTextRXClass
-                                 && trx.GetObject(objectId3, OpenMode.ForRead) is MText { Text: not null } mtext
-                                 && mtext.Text.Trim().Length == 0)
-                        {
-                            mtext.UpgradeOpen();
-                            mtext.Erase();
-                            NumberEmptyTextDeleted++;
-                        }
+                    }
+                    else if (objectId3.ObjectClass == MTextRXClass
+                             && trx.GetObject(objectId3, OpenMode.ForRead) is MText { Text: not null } mtext
+                             && mtext.Text.Trim().Length == 0)
+                    {
+                        _ = candidates.Add(objectId3);
                     }
                 }
             }
 
+            candidates.EraseObjects(trx);
             trx.Commit();
-            return NumberEmptyTextDeleted;
+            return candidates.Count;
         }
 
         /// <summary>
@@ -481,20 +481,20 @@ public static class DrawingPurger
         public static int Groups(Database db)
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
-            int CountDeleted = 0;
+            using ObjectIdCollection candidates = [];
+
             foreach (DBDictionaryEntry GroupEntry in (DBDictionary)trx.GetObject(db.GroupDictionaryId, OpenMode.ForRead, false))
             {
                 Group group = (Group)trx.GetObject(GroupEntry.Value, OpenMode.ForRead, false);
                 if (group.NumEntities < 2)
                 {
-                    group.UpgradeOpen();
-                    group.Erase();
-                    CountDeleted++;
+                    _ = candidates.Add(GroupEntry.Value);
                 }
             }
 
+            int deletedCount = PurgeAndErase(db, candidates);
             trx.Commit();
-            return CountDeleted;
+            return deletedCount;
         }
     }
 }

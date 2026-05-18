@@ -155,6 +155,22 @@ public static class ObjectIdExtensions
         }
     }
 
+    public static void EraseObjects(this ObjectIdCollection ids, Transaction trx)
+    {
+        foreach (ObjectId id in ids)
+        {
+            if (!id.IsValid || id.IsErased)
+            {
+                continue;
+            }
+
+            if (trx.GetObject(id, OpenMode.ForWrite) is DBObject obj && !obj.IsErased)
+            {
+                obj.Erase();
+            }
+        }
+    }
+
     public static void Join(this ObjectIdCollection A, ObjectIdCollection B)
     {
         foreach (ObjectId ent in B)

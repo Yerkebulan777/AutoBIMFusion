@@ -41,3 +41,46 @@ This project is indexed by GitNexus as **AutoBIMFusion** (2710 symbols, 5599 rel
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
+
+## ObjectIdCollection Convention
+
+All AutoCAD object batch operations MUST use `ObjectIdCollection`. Follow the two-pass pattern: collect first, then act.
+
+### Deletion
+
+**NEVER delete objects one-by-one in a loop:**
+```csharp
+// WRONG — N separate transactions
+foreach (ObjectId id in ids)
+    id.EraseObject();
+```
+
+**ALWAYS collect into ObjectIdCollection first, then batch erase in one transaction:**
+```csharp
+// CORRECT — single transaction, batch erase
+using ObjectIdCollection candidates = [];
+foreach (...)
+{
+    if (shouldErase)
+        _ = candidates.Add(id);
+}
+candidates.EraseObjects(trx); // extension in ObjectIdExtensions
+```
+
+### Purge vs Erase
+
+| Scenario | Method |
+|----------|--------|
+| Symbol table records (blocks, layers, styles) / dictionary entries | `PurgeAndErase(db, ids)` — calls `db.Purge()` first |
+| Model space entities (curves, text, block refs) | `ids.EraseObjects(trx)` — direct erase, NO `db.Purge()` |
+
+> `db.Purge()` only removes from the collection items that **can** be purged (symbol table records with no references). Calling it on model entities silently empties the collection — use `EraseObjects` instead.
+
+### Other Batch Operations
+
+`ObjectIdCollection` is also required by AutoCAD API for:
+- `db.WblockCloneObjects(ids, ...)` — cloning objects between databases
+- `db.DeepCloneObjects(ids, ...)` — deep clone within same database
+- `DrawOrderTable.MoveBelow(ids, ...)` — draw order manipulation
+- `db.CountHardReferences(ids, refs)` — reference counting
+- `Hatch.AppendLoop(type, ids)` — hatch boundary association
