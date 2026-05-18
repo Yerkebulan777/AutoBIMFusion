@@ -35,6 +35,7 @@ public sealed class CombineCommands
         DateTimeOffset startedAt = DateTimeOffset.Now;
 
         MergeExecutionResult result = MergeExecutionResult.Fail(null, "Пакетная команда не была выполнена.");
+
         Logger log = LoggerFactory.GetSharedLogger();
 
         try
