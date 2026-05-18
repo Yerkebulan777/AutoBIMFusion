@@ -646,10 +646,10 @@ public static class BlockReferences
     // --- Утилиты для работы с блоками (перенесены из Merge) ---
 
     /// <summary>
-    ///     Находит BlockReference с максимальной площадью среди переданных ObjectId.
+    ///     Находит границы BlockReference с максимальной площадью среди переданных ObjectId.
     ///     Возвращает габариты найденного блока или null, если ни одного блока нет.
     /// </summary>
-    public static Extents3d? FindLargestByArea(Transaction trx, IEnumerable<ObjectId> ids)
+    public static Extents3d? FindLargestBlockReferenceBoundsByArea(Transaction trx, IEnumerable<ObjectId> ids)
     {
         Extents3d? bestExtents = null;
         double bestArea = 0.0;

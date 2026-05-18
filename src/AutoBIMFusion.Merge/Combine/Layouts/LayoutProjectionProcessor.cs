@@ -26,12 +26,13 @@ internal static class LayoutProjectionProcessor
         NormalizeModelSpaceScale(db, scale.GeometryScale, mainOriginal.ViewCenter, log);
 
         // Одна транзакция: сбор paper-сущностей + поиск рамки + фильтрация
-        (ObjectId paperBtrId, ObjectIdCollection? filteredIds) = CollectAndFilterLayoutData(db, layoutName);
+        LayoutData layoutData = CollectAndFilterLayoutData(db, layoutName);
 
-        using (filteredIds)
+        using (layoutData.FilteredPaperIds)
         {
             Matrix3d matrix = ViewportTransformer.BuildPaperToMainMatrix(mainNormalized, log);
-            Extents3d? frameBounds = MovePaperToModelSpace(db, paperBtrId, filteredIds, matrix, log);
+            Extents3d? frameBounds = TransformFrameBounds(layoutData.FrameBounds, matrix);
+            MovePaperToModelSpace(db, layoutData.BtrId, layoutData.FilteredPaperIds, matrix, log);
 
             return new LayoutProjectionResult(frameBounds, scale.TargetVisualScale, scale.LinearScaleMultiplier);
         }
@@ -121,16 +122,16 @@ internal static class LayoutProjectionProcessor
     private static LayoutProjectionResult ProjectNoViewport(Database db, string layoutName, Logger log)
     {
         // Одна транзакция: сбор paper-сущностей + поиск рамки + фильтрация
-        (ObjectId btrId, ObjectIdCollection? filteredIds) = CollectAndFilterLayoutData(db, layoutName);
+        LayoutData layoutData = CollectAndFilterLayoutData(db, layoutName);
 
-        using (filteredIds)
+        using (layoutData.FilteredPaperIds)
         {
-            if (filteredIds.Count == 0 || btrId.IsNull)
+            if (layoutData.FilteredPaperIds.Count == 0 || layoutData.BtrId.IsNull)
             {
                 return new LayoutProjectionResult(null, ViewportScaleNormalizer.WorkingScaleMultiplier, 1.0);
             }
 
-            Extents3d? paperBounds = ModelSpaceTrimmer.ComputeBounds(db, filteredIds, log);
+            Extents3d? paperBounds = ComputeBounds(db, layoutData.FilteredPaperIds, log);
 
             if (!paperBounds.HasValue)
             {
@@ -141,7 +142,8 @@ internal static class LayoutProjectionProcessor
 
             Matrix3d matrix = Matrix3d.Scaling(ViewportScaleNormalizer.WorkingScaleMultiplier, Point3d.Origin) * Matrix3d.Displacement(Point3d.Origin - minPt);
 
-            Extents3d? frameBounds = MovePaperToModelSpace(db, btrId, filteredIds, matrix, log);
+            Extents3d? frameBounds = TransformFrameBounds(layoutData.FrameBounds, matrix);
+            MovePaperToModelSpace(db, layoutData.BtrId, layoutData.FilteredPaperIds, matrix, log);
 
             return new LayoutProjectionResult(frameBounds, ViewportScaleNormalizer.WorkingScaleMultiplier, 1.0);
         }
@@ -152,8 +154,7 @@ internal static class LayoutProjectionProcessor
     ///     в рамках единственной транзакции, заменяя цепочку из 5–8 отдельных транзакций.
     /// </summary>
     /// <returns>BTR-идентификатор листа и отфильтрованная коллекция объектов.</returns>
-    private static (ObjectId BtrId, ObjectIdCollection FilteredPaperIds) CollectAndFilterLayoutData(Database db,
-        string layoutName)
+    private static LayoutData CollectAndFilterLayoutData(Database db, string layoutName)
     {
         using Transaction trx = db.TransactionManager.StartTransaction();
 
@@ -162,7 +163,7 @@ internal static class LayoutProjectionProcessor
         if (!layoutDict.Contains(layoutName))
         {
             trx.Commit();
-            return (ObjectId.Null, []);
+            return new LayoutData(ObjectId.Null, [], null);
         }
 
         ObjectId layoutId = layoutDict.GetAt(layoutName);
@@ -176,11 +177,11 @@ internal static class LayoutProjectionProcessor
         List<ObjectId> paperIdsList = CollectPaperEntityIds(btr, viewportClass, clipEntityIds);
 
         // Поиск рамки-штампа и фильтрация в той же транзакции
-        Extents3d? titleBlockBounds = BlockReferences.FindLargestByArea(trx, paperIdsList);
+        Extents3d? titleBlockBounds = BlockReferences.FindLargestBlockReferenceBoundsByArea(trx, paperIdsList);
         ObjectIdCollection filteredIds = FilterEntitiesByBounds(trx, paperIdsList, titleBlockBounds);
 
         trx.Commit();
-        return (btrId, filteredIds);
+        return new LayoutData(btrId, filteredIds, titleBlockBounds);
     }
 
     private static HashSet<ObjectId> CollectViewportClipEntityIds(
@@ -299,7 +300,7 @@ internal static class LayoutProjectionProcessor
     ///     Принимает заранее вычисленные данные — не открывает дополнительных транзакций для
     ///     получения списка сущностей.
     /// </summary>
-    private static Extents3d? MovePaperToModelSpace(
+    private static void MovePaperToModelSpace(
         Database db,
         ObjectId paperBtrId,
         ObjectIdCollection filteredIds,
@@ -308,7 +309,7 @@ internal static class LayoutProjectionProcessor
     {
         if (filteredIds.Count == 0 || paperBtrId.IsNull)
         {
-            return null;
+            return;
         }
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
@@ -317,8 +318,27 @@ internal static class LayoutProjectionProcessor
 
         BlockReferences.EraseBlockContents(db, paperBtrId);
 
-        return ModelSpaceTrimmer.ComputeBounds(db, cloneResult.ClonedIds, log);
+        _ = ComputeBounds(db, cloneResult.ClonedIds, log);
     }
+
+    private static Extents3d? TransformFrameBounds(Extents3d? frameBounds, Matrix3d matrix)
+    {
+        return frameBounds.HasValue ? ExtentsUtils.Transform(frameBounds.Value, matrix) : null;
+    }
+
+    private static Extents3d? ComputeBounds(Database db, ObjectIdCollection entityIds, Logger log)
+    {
+        Extents3d? result = ExtentsUtils.ComputeBounds(db, entityIds);
+
+        if (result.HasValue)
+        {
+            log.Debug($"ComputeBounds: entities={entityIds.Count}, bounds={ExtentsUtils.FormatExtents(result.Value)}");
+        }
+
+        return result;
+    }
+
+    private sealed record LayoutData(ObjectId BtrId, ObjectIdCollection FilteredPaperIds, Extents3d? FrameBounds);
 
     internal sealed record LayoutProjectionResult(Extents3d? FrameBounds, double TargetVisualScale, double LinearScaleMultiplier);
 }

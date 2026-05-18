@@ -1,4 +1,5 @@
 using AutoBIMFusion.Common.Helpers;
+using AutoBIMFusion.Merge.Combine;
 using Serilog.Core;
 using System.Runtime.Versioning;
 using Exception = System.Exception;
@@ -69,7 +70,7 @@ internal static class ViewportLayoutExporter
 
             if (projection.FrameBounds.HasValue)
             {
-                ModelSpaceTrimmer.TrimOutside(db, projection.FrameBounds.Value);
+                SmallOutOfFrameEntityCleaner.Clean(db, projection.FrameBounds.Value, log);
             }
 
             DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "source-after-normalize-before-clone");

@@ -311,8 +311,8 @@ internal static class ViewportTransformer
     ///     главного VP. Вызывается после DeepCloneAndTransform для каждого aux VP.
     ///     Логика: если объект виден в главном VP — оставляем (нужен для его плоского представления).
     ///     Если объект только в aux VP — удаляем, так как его клон уже создан на правильной позиции.
-    ///     Без этого шага объекты aux VP, чьи модельные координаты попадают в пределы листа
-    ///     (frameBounds), не удаляются TrimOutside и остаются как «мусор» в результирующем файле.
+    ///     Без этого шага объекты aux VP, чьи модельные координаты попадают в пределы листа,
+    ///     не удаляются очисткой малых объектов за рамкой и остаются как «мусор» в результирующем файле.
     /// </summary>
     internal static void EraseEntitiesOutsideMainWindow(Database db, ObjectIdCollection auxEntities, IReadOnlyList<ModelEntitySnapshot> modelSnapshots, Extents3d mainWindow)
     {

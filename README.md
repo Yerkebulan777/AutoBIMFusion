@@ -134,7 +134,7 @@ powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoB
 2. `FileUtil`: собирает `.dwg` до 3 уровней вложенности, пропускает файлы с префиксом `#` и файлы больше 15 МБ, сортирует естественным порядком.
 3. `CombineOrchestrator`: проверяет DWG, готовит фоновую базу и вставляет результат в целевой чертеж.
 4. `ViewportLayoutExporter` / `LayoutProjectionProcessor`: открывают исходный DWG через `Database(false, true)`, переводят базу в millimeters/metric и переносят первый Paper Space Layout в Model Space.
-5. `PhantomBlockCleaner`: удаление "фантомных" блоков с маленьким BoundingBox и аномальным смещением от начала координат (критичный порядок: ДО нормализации).
+5. `SmallOutOfFrameEntityCleaner`: удаление малых объектов (`diagonal <= 15.0`), центр bbox которых находится за рамкой листа (критичный порядок: ДО нормализации).
 6. `BlockBasePointEditor`: перенос базовых точек блоков в левый нижний угол без изменения вида вставок.
 7. `BlockScaleApplier`: нормализация non-uniform масштаба блоков к 1.0 (definition + inverse reference scaling).
 8. `DimensionStyleNormalizer`: назначает скопированным размерам чистый AutoBIM-стиль, очищает DSTYLE overrides и сохраняет визуальный масштаб размеров.
