@@ -36,6 +36,7 @@ public static class PhantomBlockCleaner
         }
 
         int erasedCount = EraseAllReferences(db, phantomBtrs);
+
         PurgeDefinitions(db, phantomBtrs);
 
         log.Information(
