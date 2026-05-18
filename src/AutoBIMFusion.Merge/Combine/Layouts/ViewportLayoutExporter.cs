@@ -70,7 +70,7 @@ internal static class ViewportLayoutExporter
 
             if (projection.FrameBounds.HasValue)
             {
-                SmallOutOfFrameEntityCleaner.Clean(db, projection.FrameBounds.Value, log);
+                OutOfFrameEntityCleaner.Clean(db, projection.FrameBounds.Value, log);
             }
 
             DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "source-after-normalize-before-clone");

@@ -5,15 +5,13 @@ using System.Runtime.Versioning;
 namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
-///     Удаляет маленькие сущности модели, чей центр габаритов находится за рамкой листа.
+///     Удаляет сущности модели, чей центр габаритов находится за рамкой листа.
 /// </summary>
 [SupportedOSPlatform("windows")]
-internal static class SmallOutOfFrameEntityCleaner
+internal static class OutOfFrameEntityCleaner
 {
-    private const double MaxBoundingBoxDiagonal = 100.0;
-
     /// <summary>
-    /// Сканирует Model Space и удаляет маленькие сущности за рамкой листа.
+    /// Сканирует Model Space и удаляет сущности за рамкой листа.
     /// </summary>
     internal static void Clean(Database db, Extents3d frameBounds, Logger log)
     {
@@ -21,11 +19,10 @@ internal static class SmallOutOfFrameEntityCleaner
         ArgumentNullException.ThrowIfNull(log);
 
         log.Information(
-            "Запуск очистки малых объектов за рамкой листа: frameBounds={FrameBounds}, maxDiagonal={MaxDiagonal:F2}",
-            ExtentsUtils.FormatExtents(frameBounds),
-            MaxBoundingBoxDiagonal);
+            "Запуск очистки объектов за рамкой листа: frameBounds={FrameBounds}",
+            ExtentsUtils.FormatExtents(frameBounds));
 
-        CleanResult result = EraseSmallEntitiesOutsideFrame(db, frameBounds, log);
+        CleanResult result = EraseEntitiesOutsideFrame(db, frameBounds, log);
 
         if (result.BlockDefinitionIds.Count > 0)
         {
@@ -33,12 +30,12 @@ internal static class SmallOutOfFrameEntityCleaner
         }
 
         log.Information(
-            "Очистка малых объектов за рамкой завершена: удалено {ErasedCount}, проверено блоков на purge {DefinitionCount}",
+            "Очистка объектов за рамкой завершена: удалено {ErasedCount}, проверено блоков на purge {DefinitionCount}",
             result.ErasedCount,
             result.BlockDefinitionIds.Count);
     }
 
-    private static CleanResult EraseSmallEntitiesOutsideFrame(
+    private static CleanResult EraseEntitiesOutsideFrame(
         Database db,
         Extents3d frameBounds,
         Logger log)
@@ -50,9 +47,9 @@ internal static class SmallOutOfFrameEntityCleaner
         using Transaction trx = db.TransactionManager.StartTransaction();
         BlockTableRecord modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
 
-        List<SmallEntityCandidate> candidates = FindSmallEntitiesOutsideFrame(trx, modelSpace, frameBounds, log);
+        List<EntityCandidate> candidates = FindEntitiesOutsideFrame(trx, modelSpace, frameBounds, log);
 
-        foreach (SmallEntityCandidate candidate in candidates)
+        foreach (EntityCandidate candidate in candidates)
         {
             if (candidate.BlockDefinitionId.HasValue)
             {
@@ -70,13 +67,13 @@ internal static class SmallOutOfFrameEntityCleaner
         return new CleanResult(erasedCount, erasedBlockDefinitions);
     }
 
-    private static List<SmallEntityCandidate> FindSmallEntitiesOutsideFrame(
+    private static List<EntityCandidate> FindEntitiesOutsideFrame(
         Transaction trx,
         BlockTableRecord modelSpace,
         Extents3d frameBounds,
         Logger log)
     {
-        List<SmallEntityCandidate> result = [];
+        List<EntityCandidate> result = [];
 
         foreach (ObjectId id in modelSpace)
         {
@@ -94,33 +91,29 @@ internal static class SmallOutOfFrameEntityCleaner
             if (!extents.HasValue)
             {
                 log.Debug(
-                    "SmallOutOfFrameEntityCleaner: для Entity {EntityType} не удалось вычислить BoundingBox",
+                    "OutOfFrameEntityCleaner: для Entity {EntityType} не удалось вычислить BoundingBox",
                     entity.GetType().Name);
                 continue;
             }
 
             Extents3d bounds = extents.Value;
-            double diagonal = bounds.MaxPoint.DistanceTo(bounds.MinPoint);
             Point3d center = GetCenter(bounds);
-            bool small = diagonal <= MaxBoundingBoxDiagonal;
             bool centerOutsideFrame = !IsPointInFrameXY(frameBounds, center);
 
             log.Debug(
-                "SmallOutOfFrameEntityCleaner: entity={EntityType}, bounds={Bounds}, diagonal={Diagonal:F2}, center={Center}, small={Small}, centerOutsideFrame={CenterOutsideFrame}",
+                "OutOfFrameEntityCleaner: entity={EntityType}, bounds={Bounds}, center={Center}, centerOutsideFrame={CenterOutsideFrame}",
                 entity.GetType().Name,
                 ExtentsUtils.FormatExtents(bounds),
-                diagonal,
                 ExtentsUtils.FormatPoint(center),
-                small,
                 centerOutsideFrame);
 
-            if (!small || !centerOutsideFrame)
+            if (!centerOutsideFrame)
             {
                 continue;
             }
 
             ObjectId? blockDefinitionId = entity is BlockReference blockReference ? blockReference.BlockTableRecord : null;
-            result.Add(new SmallEntityCandidate(id, blockDefinitionId));
+            result.Add(new EntityCandidate(id, blockDefinitionId));
         }
 
         return result;
@@ -173,7 +166,7 @@ internal static class SmallOutOfFrameEntityCleaner
         trx.Commit();
     }
 
-    private sealed record SmallEntityCandidate(ObjectId EntityId, ObjectId? BlockDefinitionId);
+    private sealed record EntityCandidate(ObjectId EntityId, ObjectId? BlockDefinitionId);
 
     private sealed record CleanResult(int ErasedCount, HashSet<ObjectId> BlockDefinitionIds);
 }
