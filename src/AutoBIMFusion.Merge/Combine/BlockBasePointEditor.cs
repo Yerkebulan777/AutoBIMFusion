@@ -11,7 +11,8 @@ public static class BlockBasePointEditor
     private const double BasePointTolerance = 0.001;
 
     /// <summary>
-    ///     Переносит базовые точки пользовательских блоков в левый нижний угол без изменения вида вставок.
+    ///     Переносит базовые точки блоков в левый нижний угол без изменения вида вставок.
+    ///     Обрабатывает обычные, анонимные и динамические блоки.
     ///     Игнорирует мелкую геометрию и не трогает слишком маленькие блоки.
     /// </summary>
     public static void NormalizeAllBlocksBasePoints(Database db, double minEntityDiagonal = 25, double minBlockDiagonal = 50)
@@ -66,11 +67,8 @@ public static class BlockBasePointEditor
     private static bool ShouldSkipBlockDefinition(BlockTableRecord blockDef)
     {
         return blockDef.IsLayout
-            || blockDef.IsAnonymous
-            || blockDef.IsDynamicBlock
             || blockDef.IsFromExternalReference
-            || blockDef.IsFromOverlayReference
-            || blockDef.Name.StartsWith('*');
+            || blockDef.IsFromOverlayReference;
     }
 
     private static Extents3d? GetBlockDefinitionExtents(BlockTableRecord blockDef, Transaction trx, double minEntityDiagonal)
