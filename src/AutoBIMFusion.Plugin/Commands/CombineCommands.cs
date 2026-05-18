@@ -96,72 +96,70 @@ public sealed class CombineCommands
         {
             string? sourceFolder = folderPath;
 
-            ArgumentNullException.ThrowIfNullOrWhiteSpace(sourceFolder, nameof(folderPath));
-
-            if (!UiDialogService.TrySelectFolder("Выберите папку с файлами DWG для объединения", out sourceFolder))
+            if (UiDialogService.TrySelectFolder("Выберите папку с файлами DWG для объединения", out sourceFolder))
             {
-                const string cancelMessage = "Выбор папки отменён.";
-                return MergeExecutionResult.Fail(null, cancelMessage);
-            }
+                string savePath = BuildSavePath(sourceFolder!);
 
-            string savePath = BuildSavePath(sourceFolder!);
+                string[] dwgFiles = FileUtil.GetFiles(sourceFolder!, log: log);
 
-            string[] dwgFiles = FileUtil.GetFiles(sourceFolder!, log: log);
-
-            if (dwgFiles.Length == 0)
-            {
-                if (showDialogs)
+                if (dwgFiles.Length == 0)
                 {
-                    UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
+                    if (showDialogs)
+                    {
+                        UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
+                    }
+
+                    return MergeExecutionResult.Fail(savePath, "DWG файлы не найдены.");
                 }
 
-                return MergeExecutionResult.Fail(savePath, "DWG файлы не найдены.");
+                const double gapPercent = 0.1;
+                CombineStatistics stats = new();
+                Stopwatch sw = Stopwatch.StartNew();
+
+                DocumentCollection docMgr = AcadApp.DocumentManager;
+                MergeDocumentSelection target = SelectMergeDocument(docMgr, log);
+                Document mergeDoc = target.Document;
+
+                BlockInserter inserter = new(gapPercent, log);
+                await MergeFiles(dwgFiles, inserter, mergeDoc, stats, savePath, log);
+
+                using (mergeDoc.LockDocument())
+                {
+                    RasterImagePathFixer.CopyImagesToTargetFolder(mergeDoc.Database, savePath, log);
+
+                    DimensionStyleDiagnosticUtils.LogStyleSnapshot(mergeDoc.Database, log, "target-after-merge");
+
+                    DrawingPurger.Optimize(mergeDoc.Database, log);
+
+                    SaveMerged(mergeDoc.Database, savePath, log);
+                }
+
+                mergeDoc.SendStringToExecute("._REGENALL ", true, false, false);
+                mergeDoc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
+
+                sw.Stop();
+
+                log.Information(
+                    "{Command}: завершено, {Stats}, save=\"{SavePath}\", elapsed={Elapsed}",
+                    commandName,
+                    stats,
+                    savePath,
+                    sw.Elapsed);
+
+                if (showDialogs)
+                {
+                    ShowSummary(stats, sw.Elapsed, savePath, commandName);
+                }
+
+                string message = stats.Failed == 0
+                    ? "Завершено успешно."
+                    : $"Завершено с ошибками. Успешно: {stats.Successful}, пропущено: {stats.Skipped}, ошибок: {stats.Failed}.";
+
+                return new MergeExecutionResult(stats.Failed == 0, savePath, message);
             }
 
-            const double gapPercent = 0.1;
-            CombineStatistics stats = new();
-            Stopwatch sw = Stopwatch.StartNew();
-
-            DocumentCollection docMgr = AcadApp.DocumentManager;
-            MergeDocumentSelection target = SelectMergeDocument(docMgr, log);
-            Document mergeDoc = target.Document;
-
-            BlockInserter inserter = new(gapPercent, log);
-            await MergeFiles(dwgFiles, inserter, mergeDoc, stats, savePath, log);
-
-            using (mergeDoc.LockDocument())
-            {
-                RasterImagePathFixer.CopyImagesToTargetFolder(mergeDoc.Database, savePath, log);
-
-                DimensionStyleDiagnosticUtils.LogStyleSnapshot(mergeDoc.Database, log, "target-after-merge");
-
-                DrawingPurger.Optimize(mergeDoc.Database, log);
-
-                SaveMerged(mergeDoc.Database, savePath, log);
-            }
-
-            mergeDoc.SendStringToExecute("._REGENALL ", true, false, false);
-            mergeDoc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
-
-            sw.Stop();
-
-            log.Information(
-                "{Command}: завершено, {Stats}, save=\"{SavePath}\", elapsed={Elapsed}",
-                commandName,
-                stats,
-                savePath,
-                sw.Elapsed);
-
-            if (showDialogs)
-            {
-                ShowSummary(stats, sw.Elapsed, savePath, commandName);
-            }
-
-            string message = stats.Failed == 0
-                ? "Завершено успешно."
-                : $"Завершено с ошибками. Успешно: {stats.Successful}, пропущено: {stats.Skipped}, ошибок: {stats.Failed}.";
-
-            return new MergeExecutionResult(stats.Failed == 0, savePath, message);
+            const string cancelMessage = "Выбор папки отменён.";
+            return MergeExecutionResult.Fail(null, cancelMessage);
         }
         catch (Exception ex)
         {
