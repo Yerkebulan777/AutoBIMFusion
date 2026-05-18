@@ -15,7 +15,7 @@ internal static class OutOfFrameEntityCleaner
 {
     private const int MaxEntityCount = 100;
     private const int MaxBlockDiagonal = 100;
-    
+
     /// <summary>
     /// Сканирует Model Space и удаляет малые сущности за рамкой листа.
     /// </summary>
@@ -94,11 +94,11 @@ internal static class OutOfFrameEntityCleaner
 
                     if (entity is BlockReference br)
                     {
+                        // Проверяем диагональ габаритов, чтобы не удалять крупные блоки
+                        double diagonal = bounds.MaxPoint.DistanceTo(bounds.MinPoint);
+
                         // Дополнительно проверяем количество прямых дочерних объектов
                         int entityCount = CountDirectChildren(trx, br.BlockTableRecord);
-
-                        // И диагональ габаритов, чтобы не удалять крупные блоки
-                        double diagonal = bounds.MaxPoint.DistanceTo(bounds.MinPoint);
 
                         if (entityCount < MaxEntityCount && diagonal < MaxBlockDiagonal)
                         {
