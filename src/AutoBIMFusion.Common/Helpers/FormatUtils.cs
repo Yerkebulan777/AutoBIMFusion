@@ -1,7 +1,7 @@
+using Autodesk.AutoCAD.Colors;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
-using Autodesk.AutoCAD.Colors;
 using Exception = System.Exception;
 
 namespace AutoBIMFusion.Common.Helpers;
@@ -25,7 +25,10 @@ public static class FormatUtils
     /// </summary>
     public static string FormatObjectId(ObjectId id)
     {
-        if (id.IsNull) return "Null";
+        if (id.IsNull)
+        {
+            return "Null";
+        }
 
         try
         {
@@ -64,9 +67,9 @@ public static class FormatUtils
     /// </summary>
     public static void AppendProperties(StringBuilder builder, IReadOnlyDictionary<string, string> properties)
     {
-        foreach (var kvp in properties)
+        foreach (KeyValuePair<string, string> kvp in properties)
         {
-            builder.AppendLine($"  {kvp.Key}={kvp.Value}");
+            _ = builder.AppendLine($"  {kvp.Key}={kvp.Value}");
         }
     }
 
@@ -75,10 +78,10 @@ public static class FormatUtils
     /// </summary>
     public static void AppendDimStyleProperties(StringBuilder builder, DimStyleTableRecord style)
     {
-        var properties = typeof(DimStyleTableRecord).GetProperties(BindingFlags.Instance | BindingFlags.Public);
-        foreach (var property in properties)
+        PropertyInfo[] properties = typeof(DimStyleTableRecord).GetProperties(BindingFlags.Instance | BindingFlags.Public);
+        foreach (PropertyInfo property in properties)
         {
-            builder.AppendLine($"  {property.Name}={ReflectionHelper.FormatPropertyValue(style, property)}");
+            _ = builder.AppendLine($"  {property.Name}={ReflectionHelper.FormatPropertyValue(style, property)}");
         }
     }
 }

@@ -29,9 +29,11 @@ public sealed class CombineCommands
     [CommandMethod("MERGEDWG_BATCH", CommandFlags.Modal | CommandFlags.Session)]
     public void MergeDwgBatchCommand()
     {
-        DateTimeOffset startedAt = DateTimeOffset.Now;
-        string? sourceFolder = null;
         string? statusPath = null;
+        string? sourceFolder = null;
+
+        DateTimeOffset startedAt = DateTimeOffset.Now;
+
         MergeExecutionResult result = MergeExecutionResult.Fail(null, "Пакетная команда не была выполнена.");
         Logger log = LoggerFactory.GetSharedLogger();
 
@@ -131,7 +133,7 @@ public sealed class CombineCommands
             CombineStatistics stats = new();
             Stopwatch sw = Stopwatch.StartNew();
 
-            var docMgr = AcadApp.DocumentManager;
+            DocumentCollection docMgr = AcadApp.DocumentManager;
             MergeDocumentSelection target = SelectMergeDocument(docMgr, log);
             Document mergeDoc = target.Document;
 
@@ -272,7 +274,7 @@ public sealed class CombineCommands
     private static bool IsDrawingContentEmpty(Database db)
     {
         using Transaction tr = db.TransactionManager.StartOpenCloseTransaction();
-        var blockTable = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+        BlockTable blockTable = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
 
         if (!IsBlockRecordEmpty(blockTable[BlockTableRecord.ModelSpace], tr))
         {
@@ -280,11 +282,11 @@ public sealed class CombineCommands
             return false;
         }
 
-        var layoutDictionary = (DBDictionary)tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        DBDictionary layoutDictionary = (DBDictionary)tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         foreach (DBDictionaryEntry entry in layoutDictionary)
         {
-            var layout = (Layout)tr.GetObject(entry.Value, OpenMode.ForRead);
+            Layout layout = (Layout)tr.GetObject(entry.Value, OpenMode.ForRead);
 
             if (!layout.ModelType && !IsBlockRecordEmpty(layout.BlockTableRecordId, tr))
             {
@@ -299,11 +301,11 @@ public sealed class CombineCommands
 
     private static bool IsBlockRecordEmpty(ObjectId blockRecordId, Transaction tr)
     {
-        var blockRecord = (BlockTableRecord)tr.GetObject(blockRecordId, OpenMode.ForRead);
+        BlockTableRecord blockRecord = (BlockTableRecord)tr.GetObject(blockRecordId, OpenMode.ForRead);
 
         foreach (ObjectId entityId in blockRecord)
         {
-            var entity = (Entity)tr.GetObject(entityId, OpenMode.ForRead);
+            Entity entity = (Entity)tr.GetObject(entityId, OpenMode.ForRead);
 
             if (entity is not Viewport)
             {

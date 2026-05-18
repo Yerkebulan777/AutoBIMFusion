@@ -23,15 +23,15 @@ internal static class ViewportTransformer
         Point3d origin = Point3d.Origin;
 
         // PaperFromAuxModel: tAux -> rAux -> sAux
-        var tAux = Matrix3d.Displacement(origin - aux.ViewCenter);
-        var rAux = Matrix3d.Rotation(-aux.ViewTwist, z, origin);
-        var sAux = Matrix3d.Scaling(aux.CustomScale, origin);
+        Matrix3d tAux = Matrix3d.Displacement(origin - aux.ViewCenter);
+        Matrix3d rAux = Matrix3d.Rotation(-aux.ViewTwist, z, origin);
+        Matrix3d sAux = Matrix3d.Scaling(aux.CustomScale, origin);
 
         // MainModelFromPaper: tPaper -> sMain -> rMain -> tMain
-        var tPaper = Matrix3d.Displacement(aux.CenterPaper - main.CenterPaper);
-        var sMain = Matrix3d.Scaling(1.0 / main.CustomScale, origin);
-        var rMain = Matrix3d.Rotation(main.ViewTwist, z, origin);
-        var tMain = Matrix3d.Displacement(main.ViewCenter - origin);
+        Matrix3d tPaper = Matrix3d.Displacement(aux.CenterPaper - main.CenterPaper);
+        Matrix3d sMain = Matrix3d.Scaling(1.0 / main.CustomScale, origin);
+        Matrix3d rMain = Matrix3d.Rotation(main.ViewTwist, z, origin);
+        Matrix3d tMain = Matrix3d.Displacement(main.ViewCenter - origin);
 
         Matrix3d result = tMain * rMain * sMain * tPaper * sAux * rAux * tAux;
 
@@ -54,10 +54,10 @@ internal static class ViewportTransformer
         Point3d origin = Point3d.Origin;
 
         // PaperToMain: tPaper -> sMain -> rMain -> tMain
-        var tPaper = Matrix3d.Displacement(origin - main.CenterPaper);
-        var sMain = Matrix3d.Scaling(1.0 / main.CustomScale, origin);
-        var rMain = Matrix3d.Rotation(main.ViewTwist, z, origin);
-        var tMain = Matrix3d.Displacement(main.ViewCenter - origin);
+        Matrix3d tPaper = Matrix3d.Displacement(origin - main.CenterPaper);
+        Matrix3d sMain = Matrix3d.Scaling(1.0 / main.CustomScale, origin);
+        Matrix3d rMain = Matrix3d.Rotation(main.ViewTwist, z, origin);
+        Matrix3d tMain = Matrix3d.Displacement(main.ViewCenter - origin);
 
         Matrix3d result = tMain * rMain * sMain * tPaper;
 
@@ -81,7 +81,7 @@ internal static class ViewportTransformer
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
         using Transaction trx = db.TransactionManager.StartTransaction();
-        var modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
+        BlockTableRecord modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
 
         foreach (ObjectId id in modelSpace)
         {
@@ -92,8 +92,8 @@ internal static class ViewportTransformer
                     continue;
                 }
 
-                var entType = ent.GetType().Name;
-                var handle = ent.Handle.ToString();
+                string entType = ent.GetType().Name;
+                string handle = ent.Handle.ToString();
 
                 try
                 {
@@ -108,8 +108,8 @@ internal static class ViewportTransformer
 
                     Extents3d? newExt = ExtentsUtils.TryGetExtents(ent);
 
-                    if (ExtentsUtils.TryGetScaleRatio(oldExt, newExt, out var oldDig, out var newDig,
-                            out var digRatio) && digRatio > ratio * 5.0)
+                    if (ExtentsUtils.TryGetScaleRatio(oldExt, newExt, out double oldDig, out double newDig,
+                            out double digRatio) && digRatio > ratio * 5.0)
                     {
                         log.Warning(
                             $"[АНОМАЛИЯ МАСШТАБА] Тип: {entType}, Handle: {handle}. Диагональ ДО: {oldDig:F2}, ПОСЛЕ: {newDig:F2}");
@@ -119,7 +119,7 @@ internal static class ViewportTransformer
                 {
                     log.Error(ex, $"[ОШИБКА ТРАНСФОРМАЦИИ] Тип: {entType}, Handle: {handle}. Сообщение: {ex.Message}");
 
-                    if (!errorTypes.TryGetValue(entType, out var value))
+                    if (!errorTypes.TryGetValue(entType, out int value))
                     {
                         value = 0;
                         errorTypes[entType] = value;
@@ -134,7 +134,7 @@ internal static class ViewportTransformer
 
         if (errorTypes.Count > 0)
         {
-            var errorStr = string.Join(", ", errorTypes.Select(kv => $"{kv.Key}({kv.Value})"));
+            string errorStr = string.Join(", ", errorTypes.Select(kv => $"{kv.Key}({kv.Value})"));
             log.Warning($"Ошибочные типы (Scale): {errorStr}");
         }
     }
@@ -142,12 +142,12 @@ internal static class ViewportTransformer
     internal static IReadOnlyList<ModelEntitySnapshot> CollectModelEntitiesWithExtents(Database db, ObjectId msId,
         Logger log)
     {
-        var total = 0;
+        int total = 0;
 
         List<ModelEntitySnapshot> result = [];
 
         using Transaction trx = db.TransactionManager.StartTransaction();
-        var modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
+        BlockTableRecord modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
 
         foreach (ObjectId id in modelSpace)
         {
@@ -271,8 +271,8 @@ internal static class ViewportTransformer
     {
         const double HugeEntityDiagonalRatio = 3.0;
 
-        var outsideWindow = 0;
-        var skippedHugeObjects = 0;
+        int outsideWindow = 0;
+        int skippedHugeObjects = 0;
         ObjectIdCollection result = [];
 
         double windowDiagonal = window.MinPoint.DistanceTo(window.MaxPoint);

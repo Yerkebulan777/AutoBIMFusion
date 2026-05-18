@@ -2,7 +2,6 @@ using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Mist;
 using AutoBIMFusion.Common.Mist.AutoCAD;
 using Autodesk.AutoCAD.GraphicsInterface;
-using Autodesk.AutoCAD.Runtime;
 using Serilog.Core;
 
 namespace AutoBIMFusion.Merge.Combine;
@@ -183,10 +182,10 @@ public static class DrawingPurger
             foreach (object? obj in tableIds)
             {
                 ObjectId objectId = (ObjectId)obj;
-                var symbolTable = (SymbolTable)trx.GetObject(objectId, OpenMode.ForRead);
+                SymbolTable symbolTable = (SymbolTable)trx.GetObject(objectId, OpenMode.ForRead);
                 foreach (ObjectId objectId2 in symbolTable)
                 {
-                    var record = (SymbolTableRecord)trx.GetObject(objectId2, OpenMode.ForRead);
+                    SymbolTableRecord record = (SymbolTableRecord)trx.GetObject(objectId2, OpenMode.ForRead);
                     if (!record.IsDependent)
                     {
                         _ = objectIdCollection.Add(objectId2);
@@ -197,7 +196,7 @@ public static class DrawingPurger
             foreach (object? obj2 in dictIds)
             {
                 ObjectId objectId3 = (ObjectId)obj2;
-                var dictionary = (DBDictionary)trx.GetObject(objectId3, OpenMode.ForRead);
+                DBDictionary dictionary = (DBDictionary)trx.GetObject(objectId3, OpenMode.ForRead);
                 foreach (DBDictionaryEntry dbdictionaryEntry in dictionary)
                 {
                     if (!dbdictionaryEntry.Value.IsValid)
@@ -205,7 +204,7 @@ public static class DrawingPurger
                         continue;
                     }
 
-                    var dbObject = trx.GetObject(dbdictionaryEntry.Value, OpenMode.ForRead);
+                    DBObject dbObject = trx.GetObject(dbdictionaryEntry.Value, OpenMode.ForRead);
                     if (!dbObject.IsAProxy)
                     {
                         _ = objectIdCollection.Add(dbdictionaryEntry.Value);
@@ -324,13 +323,25 @@ public static class DrawingPurger
             return NumberDetachedXREF;
         }
 
-        public static int MLeaderStyle(Database db) => PurgeDictionaryByRefCount(db, "ACAD_MLEADERSTYLE");
+        public static int MLeaderStyle(Database db)
+        {
+            return PurgeDictionaryByRefCount(db, "ACAD_MLEADERSTYLE");
+        }
 
-        public static int DWF(Database db) => PurgeDictionaryByRefCount(db, "ACAD_DWFDEFINITIONS");
+        public static int DWF(Database db)
+        {
+            return PurgeDictionaryByRefCount(db, "ACAD_DWFDEFINITIONS");
+        }
 
-        public static int PDF(Database db) => PurgeDictionaryByRefCount(db, "ACAD_PDFDEFINITIONS");
+        public static int PDF(Database db)
+        {
+            return PurgeDictionaryByRefCount(db, "ACAD_PDFDEFINITIONS");
+        }
 
-        public static int DGN(Database db) => PurgeDictionaryByRefCount(db, "ACAD_DGNDEFINITIONS");
+        public static int DGN(Database db)
+        {
+            return PurgeDictionaryByRefCount(db, "ACAD_DGNDEFINITIONS");
+        }
 
         private static int PurgeDictionaryByRefCount(Database db, string dictKey)
         {
@@ -341,7 +352,7 @@ public static class DrawingPurger
             if (rootDict.Contains(dictKey))
             {
                 using ObjectIdCollection candidates = [];
-                var dictionary = (DBDictionary)trx.GetObject(rootDict.GetAt(dictKey), OpenMode.ForRead);
+                DBDictionary dictionary = (DBDictionary)trx.GetObject(rootDict.GetAt(dictKey), OpenMode.ForRead);
 
                 foreach (DBDictionaryEntry entry in dictionary)
                 {
@@ -376,7 +387,7 @@ public static class DrawingPurger
 
             if (dbdictionary.Contains("ACAD_IMAGE_DICT"))
             {
-                var imageDictionary = (DBDictionary)trx.GetObject(dbdictionary.GetAt("ACAD_IMAGE_DICT"), OpenMode.ForRead);
+                DBDictionary imageDictionary = (DBDictionary)trx.GetObject(dbdictionary.GetAt("ACAD_IMAGE_DICT"), OpenMode.ForRead);
 
                 foreach (DBDictionaryEntry ImageEntry in imageDictionary)
                 {
@@ -406,7 +417,7 @@ public static class DrawingPurger
             foreach (DBDictionaryEntry VisualStyleEntry in (DBDictionary)trx.GetObject(db.VisualStyleDictionaryId,
                          OpenMode.ForRead))
             {
-                var visualStyle = (DBVisualStyle)trx.GetObject(VisualStyleEntry.Value, OpenMode.ForRead);
+                DBVisualStyle visualStyle = (DBVisualStyle)trx.GetObject(VisualStyleEntry.Value, OpenMode.ForRead);
                 if (visualStyle.Type == VisualStyleType.Custom && !visualStyle.IsAProxy)
                 {
                     _ = objectIdCollection.Add(VisualStyleEntry.Value);

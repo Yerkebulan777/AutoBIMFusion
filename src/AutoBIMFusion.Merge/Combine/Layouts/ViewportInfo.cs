@@ -27,14 +27,17 @@ internal sealed record ViewportInfo(
     {
         ArgumentNullException.ThrowIfNull(vps);
 
-        if (vps.Count == 0) throw new ArgumentException("Список vpt'ов пуст.", nameof(vps));
-
-        var best = vps[0];
-        var bestScore = best.CoverageScore;
-
-        for (var i = 1; i < vps.Count; i++)
+        if (vps.Count == 0)
         {
-            var score = vps[i].CoverageScore;
+            throw new ArgumentException("Список vpt'ов пуст.", nameof(vps));
+        }
+
+        ViewportInfo best = vps[0];
+        double bestScore = best.CoverageScore;
+
+        for (int i = 1; i < vps.Count; i++)
+        {
+            double score = vps[i].CoverageScore;
 
             if (score > bestScore)
             {

@@ -1,5 +1,5 @@
-using System.Runtime.Versioning;
 using Autodesk.Windows;
+using System.Runtime.Versioning;
 
 namespace AutoBIMFusion.Plugin.Ribbon;
 
@@ -11,8 +11,11 @@ internal static class RibbonBuilder
 {
     public static void CreateTab()
     {
-        var ribbon = ComponentManager.Ribbon;
-        if (ribbon is null || ribbon.Tabs.Any(t => t.Id == "AutoBIMFusion.RibbonTab")) return;
+        RibbonControl? ribbon = ComponentManager.Ribbon;
+        if (ribbon is null || ribbon.Tabs.Any(t => t.Id == "AutoBIMFusion.RibbonTab"))
+        {
+            return;
+        }
 
         RibbonPanelSource panelSource = new()
         {

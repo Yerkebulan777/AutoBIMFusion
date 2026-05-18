@@ -203,7 +203,7 @@ public static class ViewportsExtensions
     /// </summary>
     public static Point3d GetViewCenterWcs(this Viewport vp)
     {
-        var mat = vp.GetDcsToWcsMatrix();
+        Matrix3d mat = vp.GetDcsToWcsMatrix();
         return new Point3d(vp.ViewCenter.X, vp.ViewCenter.Y, 0).TransformBy(mat);
     }
 
@@ -221,15 +221,15 @@ public static class ViewportsExtensions
     /// </summary>
     public static Extents3d ComputeModelWindow(this Viewport vp)
     {
-        var aspectRatio = vp.Width / Max(vp.Height, 1e-9);
-        var widthModel = vp.ViewHeight * aspectRatio;
-        var heightModel = vp.ViewHeight;
+        double aspectRatio = vp.Width / Max(vp.Height, 1e-9);
+        double widthModel = vp.ViewHeight * aspectRatio;
+        double heightModel = vp.ViewHeight;
 
-        var halfW = widthModel / 2.0;
-        var halfH = heightModel / 2.0;
+        double halfW = widthModel / 2.0;
+        double halfH = heightModel / 2.0;
 
-        var dcsToWcs = vp.GetDcsToWcsMatrix();
-        var vc = vp.ViewCenter;
+        Matrix3d dcsToWcs = vp.GetDcsToWcsMatrix();
+        Point2d vc = vp.ViewCenter;
 
         Point3d[] corners =
         [
@@ -243,7 +243,7 @@ public static class ViewportsExtensions
         double minY = double.PositiveInfinity, maxY = double.NegativeInfinity;
         double minZ = double.PositiveInfinity, maxZ = double.NegativeInfinity;
 
-        foreach (var p in corners)
+        foreach (Point3d p in corners)
         {
             minX = Min(minX, p.X);
             maxX = Max(maxX, p.X);

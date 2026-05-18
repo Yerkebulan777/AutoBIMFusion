@@ -44,12 +44,9 @@ public static class ExtentsUtils
         Transaction trx,
         HashSet<ObjectId> activeBlockDefinitions)
     {
-        if (ent.IsErased)
-        {
-            return null;
-        }
-
-        return ent is BlockReference blockRef
+        return ent.IsErased
+            ? null
+            : ent is BlockReference blockRef
             ? TryGetBlockReferenceLiveExtents(blockRef, trx, activeBlockDefinitions)
             : TryGetExtents(ent);
     }
@@ -363,19 +360,25 @@ public static class ExtentsUtils
         using Transaction trx = db.TransactionManager.StartTransaction();
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
-        var ms = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
+        BlockTableRecord ms = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
 
         foreach (ObjectId id in ms)
         {
             if (!id.IsValid || id.IsErased)
+            {
                 continue;
+            }
 
             if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent)
+            {
                 continue;
+            }
 
             Extents3d? ext = TryGetLiveExtents(ent, trx);
             if (ext is null)
+            {
                 continue;
+            }
 
             result = result is null ? ext.Value : Union(result.Value, ext.Value);
         }
@@ -428,17 +431,26 @@ public static class ExtentsUtils
     /// </summary>
     public static Extents3d? ComputeBounds(Database db, ObjectIdCollection entityIds)
     {
-        if (entityIds.Count == 0) return null;
+        if (entityIds.Count == 0)
+        {
+            return null;
+        }
 
         Extents3d? acc = null;
-        using var trx = db.TransactionManager.StartTransaction();
+        using Transaction trx = db.TransactionManager.StartTransaction();
 
         foreach (ObjectId id in entityIds)
         {
-            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent)
+            {
+                continue;
+            }
 
-            var ext = TryGetExtents(ent);
-            if (ext is null) continue;
+            Extents3d? ext = TryGetExtents(ent);
+            if (ext is null)
+            {
+                continue;
+            }
 
             acc = acc is null ? ext.Value : Union(acc.Value, ext.Value);
         }

@@ -258,7 +258,7 @@ public static class PhantomBlockCleaner
         {
             if (!id.IsErased)
             {
-                ((DBObject)trx.GetObject(id, OpenMode.ForWrite)).Erase();
+                trx.GetObject(id, OpenMode.ForWrite).Erase();
             }
         }
 

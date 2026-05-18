@@ -249,12 +249,7 @@ public static class CurvesExtensions
 
     public static bool HasEndPointOrStartPointInCommun(this Curve A, Curve B)
     {
-        if (A == null || B == null)
-        {
-            return false;
-        }
-
-        return A.EndPoint.IsEqualTo(B.EndPoint, Generic.LowTolerance) || A.EndPoint.IsEqualTo(B.StartPoint, Generic.LowTolerance) || A.StartPoint.IsEqualTo(B.EndPoint, Generic.LowTolerance) || A.StartPoint.IsEqualTo(B.StartPoint, Generic.LowTolerance);
+        return A != null && B != null && (A.EndPoint.IsEqualTo(B.EndPoint, Generic.LowTolerance) || A.EndPoint.IsEqualTo(B.StartPoint, Generic.LowTolerance) || A.StartPoint.IsEqualTo(B.EndPoint, Generic.LowTolerance) || A.StartPoint.IsEqualTo(B.StartPoint, Generic.LowTolerance));
     }
 
     public static Polyline ToPolyline(this Curve curve)
@@ -303,17 +298,11 @@ public static class CurvesExtensions
                 return Converted as Polyline;
             }
 
-            if (curv is Spline ProjectionTargetSpline)
-            {
-                return ProjectionTargetSpline.ToPolyline(true, true);
-            }
-
-            if (curv is Line ProjectionTargetLine)
-            {
-                return ProjectionTargetLine.ToPolyline();
-            }
-
-            return curv is Circle ProjectionTargetCircle
+            return curv is Spline ProjectionTargetSpline
+                ? ProjectionTargetSpline.ToPolyline(true, true)
+                : curv is Line ProjectionTargetLine
+                ? ProjectionTargetLine.ToPolyline()
+                : curv is Circle ProjectionTargetCircle
                 ? ProjectionTargetCircle.ToPolyline()
                 : curv is Arc ProjectionTargetArc
                 ? ProjectionTargetArc.ToPolyline()

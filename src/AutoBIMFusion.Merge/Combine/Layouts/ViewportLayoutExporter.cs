@@ -39,11 +39,11 @@ internal static class ViewportLayoutExporter
 
             using (Transaction trx = db.TransactionManager.StartTransaction())
             {
-                var bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
+                BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
 
                 foreach (ObjectId btrId in bt)
                 {
-                    var btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForWrite);
+                    BlockTableRecord btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForWrite);
 
                     if (!btr.IsFromExternalReference)
                     {
@@ -54,7 +54,7 @@ internal static class ViewportLayoutExporter
                 trx.Commit();
             }
 
-            if (!LayoutUtil.TryFindFirstLayout(db, out var layoutName))
+            if (!LayoutUtil.TryFindFirstLayout(db, out string? layoutName))
             {
                 log.Warning($"{fileName}: листы не найдены");
                 db.Dispose();

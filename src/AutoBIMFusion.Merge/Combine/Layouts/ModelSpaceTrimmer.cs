@@ -41,7 +41,7 @@ internal static class ModelSpaceTrimmer
 
         using Transaction trx = db.TransactionManager.StartTransaction();
 
-        var ms = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
+        BlockTableRecord ms = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
 
         foreach (ObjectId id in ms)
         {

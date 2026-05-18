@@ -11,36 +11,48 @@ internal static class StyleUnificationService
     /// </summary>
     internal static void NormalizeTextStyleNames(Database sourceDb, Transaction trx)
     {
-        var tt = (TextStyleTable)trx.GetObject(sourceDb.TextStyleTableId, OpenMode.ForRead);
+        TextStyleTable tt = (TextStyleTable)trx.GetObject(sourceDb.TextStyleTableId, OpenMode.ForRead);
 
         HashSet<string> allNames = new(StringComparer.OrdinalIgnoreCase);
 
         List<ObjectId> toRename = [];
 
-        foreach (var tsId in tt)
+        foreach (ObjectId tsId in tt)
         {
-            var ts = (TextStyleTableRecord)trx.GetObject(tsId, OpenMode.ForRead);
+            TextStyleTableRecord ts = (TextStyleTableRecord)trx.GetObject(tsId, OpenMode.ForRead);
 
-            if (ts.IsErased || ts.IsDependent) continue;
+            if (ts.IsErased || ts.IsDependent)
+            {
+                continue;
+            }
 
             _ = allNames.Add(ts.Name);
 
-            if (ts.Name == "Standard" || ts.Name.StartsWith('*')) continue;
+            if (ts.Name == "Standard" || ts.Name.StartsWith('*'))
+            {
+                continue;
+            }
 
             toRename.Add(tsId);
         }
 
-        foreach (var tsId in toRename)
+        foreach (ObjectId tsId in toRename)
         {
-            var ts = (TextStyleTableRecord)trx.GetObject(tsId, OpenMode.ForRead);
+            TextStyleTableRecord ts = (TextStyleTableRecord)trx.GetObject(tsId, OpenMode.ForRead);
 
-            var newName = StyleUtils.BuildStyleName(ts);
+            string newName = StyleUtils.BuildStyleName(ts);
 
             newName = StyleUtils.MakeUnique(newName, allNames, ts.Name);
 
-            if (StringComparer.OrdinalIgnoreCase.Equals(newName, ts.Name)) continue;
+            if (StringComparer.OrdinalIgnoreCase.Equals(newName, ts.Name))
+            {
+                continue;
+            }
 
-            if (!ts.IsWriteEnabled) ts.UpgradeOpen();
+            if (!ts.IsWriteEnabled)
+            {
+                ts.UpgradeOpen();
+            }
 
             _ = allNames.Remove(ts.Name);
             ts.Name = newName;
@@ -55,16 +67,22 @@ internal static class StyleUnificationService
     /// </summary>
     internal static void ApplyGostToAllStyles(Database sourceDb, Transaction trx, string fontName = "ISOCPEUR")
     {
-        var dst = (DimStyleTable)trx.GetObject(sourceDb.DimStyleTableId, OpenMode.ForRead);
-        var textStyleId = StyleUtils.GetOrCreateTextStyle(sourceDb, trx, fontName);
-        var arrowBlockId = StyleUtils.GetArrowBlockId(sourceDb, trx);
+        DimStyleTable dst = (DimStyleTable)trx.GetObject(sourceDb.DimStyleTableId, OpenMode.ForRead);
+        ObjectId textStyleId = StyleUtils.GetOrCreateTextStyle(sourceDb, trx, fontName);
+        ObjectId arrowBlockId = StyleUtils.GetArrowBlockId(sourceDb, trx);
 
-        foreach (var dsId in dst)
+        foreach (ObjectId dsId in dst)
         {
-            var ds = (DimStyleTableRecord)trx.GetObject(dsId, OpenMode.ForRead);
-            if (ds.IsErased || ds.IsDependent) continue;
+            DimStyleTableRecord ds = (DimStyleTableRecord)trx.GetObject(dsId, OpenMode.ForRead);
+            if (ds.IsErased || ds.IsDependent)
+            {
+                continue;
+            }
 
-            if (!ds.IsWriteEnabled) ds.UpgradeOpen();
+            if (!ds.IsWriteEnabled)
+            {
+                ds.UpgradeOpen();
+            }
 
             ApplyGostDimensionStyle(ds, textStyleId, arrowBlockId);
         }
@@ -77,21 +95,24 @@ internal static class StyleUnificationService
     internal static ObjectId GetOrCreateStandardDimensionStyle(Database targetDb, Transaction trx,
         string fontName = "ISOCPEUR")
     {
-        var dimStyleName = $"AutoBIM-{fontName}";
+        string dimStyleName = $"AutoBIM-{fontName}";
 
-        var dst = (DimStyleTable)trx.GetObject(targetDb.DimStyleTableId, OpenMode.ForRead);
-        var textStyleId = StyleUtils.GetOrCreateTextStyle(targetDb, trx, fontName);
+        DimStyleTable dst = (DimStyleTable)trx.GetObject(targetDb.DimStyleTableId, OpenMode.ForRead);
+        ObjectId textStyleId = StyleUtils.GetOrCreateTextStyle(targetDb, trx, fontName);
 
-        var arrowBlockId = StyleUtils.GetArrowBlockId(targetDb, trx);
+        ObjectId arrowBlockId = StyleUtils.GetArrowBlockId(targetDb, trx);
 
         if (dst.Has(dimStyleName))
         {
-            var existing = (DimStyleTableRecord)trx.GetObject(dst[dimStyleName], OpenMode.ForWrite);
+            DimStyleTableRecord existing = (DimStyleTableRecord)trx.GetObject(dst[dimStyleName], OpenMode.ForWrite);
             ApplyGostDimensionStyle(existing, textStyleId, arrowBlockId);
             return existing.ObjectId;
         }
 
-        if (!dst.IsWriteEnabled) dst.UpgradeOpen();
+        if (!dst.IsWriteEnabled)
+        {
+            dst.UpgradeOpen();
+        }
 
         DimStyleTableRecord dsr = new()
         {
@@ -100,7 +121,7 @@ internal static class StyleUnificationService
 
         ApplyGostDimensionStyle(dsr, textStyleId, arrowBlockId);
 
-        var id = dst.Add(dsr);
+        ObjectId id = dst.Add(dsr);
         trx.AddNewlyCreatedDBObject(dsr, true);
         return id;
     }

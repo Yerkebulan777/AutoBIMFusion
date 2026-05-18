@@ -1,5 +1,4 @@
 using AutoBIMFusion.Common.Extensions;
-using AutoBIMFusion.Common.Helpers;
 
 namespace AutoBIMFusion.Merge.Combine.Layouts;
 
@@ -17,9 +16,11 @@ internal static class DimensionStyleNormalizer
         foreach (IdPair pair in idMap)
         {
             if (!pair.IsCloned || !pair.Value.IsValidForOperation())
+            {
                 continue;
+            }
 
-            var obj = trx.GetObject(pair.Value, OpenMode.ForWrite, false);
+            DBObject obj = trx.GetObject(pair.Value, OpenMode.ForWrite, false);
 
             switch (obj)
             {
@@ -32,7 +33,7 @@ internal static class DimensionStyleNormalizer
                 case DimStyleTableRecord ds:
                     ds.Dimscale = targetVisualScale;
                     ds.Dimlfac = linearScaleMultiplier;
-                    clonedStyleIds.Add(pair.Value);
+                    _ = clonedStyleIds.Add(pair.Value);
                     break;
             }
         }
@@ -45,15 +46,21 @@ internal static class DimensionStyleNormalizer
         foreach (IdPair pair in idMap)
         {
             if (!pair.IsCloned || !pair.IsPrimary || !pair.Value.IsValidForOperation())
+            {
                 continue;
+            }
 
             if (!processedDims.Add(pair.Value))
+            {
                 continue;
+            }
 
             if (trx.GetObject(pair.Value, OpenMode.ForWrite, false) is not Dimension dim)
+            {
                 continue;
+            }
 
-            var needsRecompute = false;
+            bool needsRecompute = false;
 
             // 1. Force text rotation to 0 to remove any overrides
             if (dim.TextRotation != 0.0)
@@ -71,7 +78,10 @@ internal static class DimensionStyleNormalizer
             }
 
             // 3. Recompute if any changes were made
-            if (needsRecompute) dim.RecomputeDimensionBlock(true);
+            if (needsRecompute)
+            {
+                dim.RecomputeDimensionBlock(true);
+            }
         }
     }
 }

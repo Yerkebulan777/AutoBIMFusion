@@ -1,5 +1,4 @@
 using AutoBIMFusion.Common.Extensions;
-using AutoBIMFusion.Common.Helpers;
 
 namespace AutoBIMFusion.Merge.Combine.Layouts;
 
@@ -14,8 +13,8 @@ internal static class ViewportCollector
     {
         List<ViewportInfo> result = [];
 
-        using var trx = db.TransactionManager.StartTransaction();
-        var layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        using Transaction trx = db.TransactionManager.StartTransaction();
+        DBDictionary layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         if (!layoutDict.Contains(layoutName))
         {
@@ -23,26 +22,35 @@ internal static class ViewportCollector
             return result;
         }
 
-        var layoutId = layoutDict.GetAt(layoutName);
-        var layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
-        var btr = (BlockTableRecord)trx.GetObject(layout.BlockTableRecordId, OpenMode.ForRead);
+        ObjectId layoutId = layoutDict.GetAt(layoutName);
+        Layout layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
+        BlockTableRecord btr = (BlockTableRecord)trx.GetObject(layout.BlockTableRecordId, OpenMode.ForRead);
 
-        var viewportClass = RXObject.GetClass(typeof(Viewport));
+        RXClass viewportClass = RXObject.GetClass(typeof(Viewport));
 
-        foreach (var id in btr)
+        foreach (ObjectId id in btr)
         {
-            if (!id.ObjectClass.IsDerivedFrom(viewportClass)) continue;
+            if (!id.ObjectClass.IsDerivedFrom(viewportClass))
+            {
+                continue;
+            }
 
-            var vp = (Viewport)trx.GetObject(id, OpenMode.ForRead);
+            Viewport vp = (Viewport)trx.GetObject(id, OpenMode.ForRead);
 
-            if (vp.Number == 1 || !vp.On) continue;
+            if (vp.Number == 1 || !vp.On)
+            {
+                continue;
+            }
 
-            var scale = vp.ResolveCustomScale();
+            double scale = vp.ResolveCustomScale();
 
-            if (scale <= 0) continue;
+            if (scale <= 0)
+            {
+                continue;
+            }
 
-            var window = vp.ComputeModelWindow();
-            var viewCenterWcs = vp.GetViewCenterWcs();
+            Extents3d window = vp.ComputeModelWindow();
+            Point3d viewCenterWcs = vp.GetViewCenterWcs();
 
             ViewportInfo info = new(
                 id,

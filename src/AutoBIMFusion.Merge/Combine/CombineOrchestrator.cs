@@ -32,7 +32,7 @@ public static class CombineOrchestrator
 
         try
         {
-            using var prepared = ViewportLayoutExporter.PrepareDatabaseForMerge(filePath, fileName, log);
+            using PreparedSourceDatabase? prepared = ViewportLayoutExporter.PrepareDatabaseForMerge(filePath, fileName, log);
 
             if (prepared == null)
             {
@@ -47,7 +47,7 @@ public static class CombineOrchestrator
             BlockBasePointEditor.NormalizeAllBlocksBasePoints(prepared.Db);
 
             // ComputeModelSpaceBounds: прямой scan сущностей, не зависит от кэша db.Extmin/Extmax.
-            var bounds = ExtentsUtils.ComputeModelSpaceBounds(prepared.Db);
+            Extents3d? bounds = ExtentsUtils.ComputeModelSpaceBounds(prepared.Db);
 
             if (!bounds.HasValue)
             {

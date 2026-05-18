@@ -44,7 +44,7 @@ public sealed class BlockInserter(double gapPercent, Logger log)
                 StyleUnificationService.NormalizeTextStyleNames(sourceDb, srcTrx);
                 StyleUnificationService.ApplyGostToAllStyles(sourceDb, srcTrx);
 
-                var ms = (BlockTableRecord)srcTrx.GetObject(sourceMsId, OpenMode.ForRead);
+                BlockTableRecord ms = (BlockTableRecord)srcTrx.GetObject(sourceMsId, OpenMode.ForRead);
 
                 HashSet<string> processedBlocks = [];
 
@@ -73,10 +73,10 @@ public sealed class BlockInserter(double gapPercent, Logger log)
             log.Debug($"{sourceName}: placement bounds {ExtentsUtils.FormatExtents(placementBounds)}");
 
             Point3d insertPt = CalcInsertionPoint(placementBounds);
-            var displacement = Matrix3d.Displacement(new Vector3d(insertPt.X, insertPt.Y, insertPt.Z));
+            Matrix3d displacement = Matrix3d.Displacement(new Vector3d(insertPt.X, insertPt.Y, insertPt.Z));
 
             Extents3d? worldBounds = null;
-            var clonedCount = 0;
+            int clonedCount = 0;
 
             using Transaction targetTr = targetDb.TransactionManager.StartTransaction();
 
@@ -134,11 +134,11 @@ public sealed class BlockInserter(double gapPercent, Logger log)
 
     private Point3d CalcInsertionPoint(Extents3d bounds)
     {
-        var width = Max(0, bounds.MaxPoint.X - bounds.MinPoint.X);
-        var height = Max(0, bounds.MaxPoint.Y - bounds.MinPoint.Y);
-        var gap = Max(1.0, Round(Max(width, height) * gapPercent, 0));
+        double width = Max(0, bounds.MaxPoint.X - bounds.MinPoint.X);
+        double height = Max(0, bounds.MaxPoint.Y - bounds.MinPoint.Y);
+        double gap = Max(1.0, Round(Max(width, height) * gapPercent, 0));
 
-        var insertX = _hasPlacedObjects
+        double insertX = _hasPlacedObjects
             ? _rightMax + gap - bounds.MinPoint.X
             : -bounds.MinPoint.X;
 

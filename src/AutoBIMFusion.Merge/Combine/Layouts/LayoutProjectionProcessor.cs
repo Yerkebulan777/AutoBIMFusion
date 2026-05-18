@@ -197,7 +197,7 @@ internal static class LayoutProjectionProcessor
                 continue;
             }
 
-            var viewport = (Viewport)trx.GetObject(id, OpenMode.ForRead);
+            Viewport viewport = (Viewport)trx.GetObject(id, OpenMode.ForRead);
             if (!viewport.NonRectClipEntityId.IsNull)
             {
                 _ = clipEntityIds.Add(viewport.NonRectClipEntityId);

@@ -14,14 +14,15 @@ internal static class DrawOrderPreserver
     {
         ArgumentNullException.ThrowIfNull(filterIds);
 
-        if (sourceBtrId.IsNull || filterIds.Count == 0) return [];
+        if (sourceBtrId.IsNull || filterIds.Count == 0)
+        {
+            return [];
+        }
 
-        HashSet<ObjectId> filter = new(filterIds.Count);
-        foreach (ObjectId id in filterIds)
-            filter.Add(id);
+        HashSet<ObjectId> filter = [.. filterIds.Cast<ObjectId>()];
 
-        using var trx = db.TransactionManager.StartTransaction();
-        var btr = (BlockTableRecord)trx.GetObject(sourceBtrId, OpenMode.ForRead);
+        using Transaction trx = db.TransactionManager.StartTransaction();
+        BlockTableRecord btr = (BlockTableRecord)trx.GetObject(sourceBtrId, OpenMode.ForRead);
 
         if (btr.DrawOrderTableId.IsNull)
         {
@@ -30,13 +31,17 @@ internal static class DrawOrderPreserver
             return [];
         }
 
-        var sortents = (DrawOrderTable)trx.GetObject(btr.DrawOrderTableId, OpenMode.ForRead);
-        var fullOrder = sortents.GetFullDrawOrder(0);
+        DrawOrderTable sortents = (DrawOrderTable)trx.GetObject(btr.DrawOrderTableId, OpenMode.ForRead);
+        ObjectIdCollection fullOrder = sortents.GetFullDrawOrder(0);
 
         List<ObjectId> filtered = new(filter.Count);
         foreach (ObjectId id in fullOrder)
+        {
             if (filter.Contains(id))
+            {
                 filtered.Add(id);
+            }
+        }
 
         trx.Commit();
         log.Debug($"DrawOrderPreserver.Capture: fullOrder={fullOrder.Count}, filtered={filtered.Count}");
@@ -49,20 +54,33 @@ internal static class DrawOrderPreserver
         ArgumentNullException.ThrowIfNull(sourceOrder);
         ArgumentNullException.ThrowIfNull(map);
 
-        if (targetBtrId.IsNull || sourceOrder.Count == 0) return;
+        if (targetBtrId.IsNull || sourceOrder.Count == 0)
+        {
+            return;
+        }
 
         Dictionary<ObjectId, ObjectId> sourceToTarget = [];
         foreach (IdPair pair in map)
+        {
             if (pair.IsCloned && pair.IsPrimary)
+            {
                 sourceToTarget[pair.Key] = pair.Value;
+            }
+        }
 
         ObjectIdCollection orderedTargets = [];
-        var missingMapping = 0;
-        foreach (var sourceId in sourceOrder)
-            if (sourceToTarget.TryGetValue(sourceId, out var targetId))
+        int missingMapping = 0;
+        foreach (ObjectId sourceId in sourceOrder)
+        {
+            if (sourceToTarget.TryGetValue(sourceId, out ObjectId targetId))
+            {
                 _ = orderedTargets.Add(targetId);
+            }
             else
+            {
                 missingMapping++;
+            }
+        }
 
         if (orderedTargets.Count <= 1)
         {
@@ -70,8 +88,8 @@ internal static class DrawOrderPreserver
             return;
         }
 
-        using var trx = db.TransactionManager.StartTransaction();
-        var btr = (BlockTableRecord)trx.GetObject(targetBtrId, OpenMode.ForRead);
+        using Transaction trx = db.TransactionManager.StartTransaction();
+        BlockTableRecord btr = (BlockTableRecord)trx.GetObject(targetBtrId, OpenMode.ForRead);
 
         if (btr.DrawOrderTableId.IsNull)
         {
@@ -80,7 +98,7 @@ internal static class DrawOrderPreserver
             return;
         }
 
-        var sortents = (DrawOrderTable)trx.GetObject(btr.DrawOrderTableId, OpenMode.ForWrite);
+        DrawOrderTable sortents = (DrawOrderTable)trx.GetObject(btr.DrawOrderTableId, OpenMode.ForWrite);
         sortents.SetRelativeDrawOrder(orderedTargets);
 
         trx.Commit();

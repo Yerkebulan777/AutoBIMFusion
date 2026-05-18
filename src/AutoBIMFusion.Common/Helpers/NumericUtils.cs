@@ -1,7 +1,5 @@
 using System.Globalization;
 
-using static System.Math;
-
 namespace AutoBIMFusion.Common.Helpers;
 
 /// <summary>

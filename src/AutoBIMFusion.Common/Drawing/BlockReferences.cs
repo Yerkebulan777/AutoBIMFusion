@@ -652,18 +652,24 @@ public static class BlockReferences
     public static Extents3d? FindLargestByArea(Transaction trx, IEnumerable<ObjectId> ids)
     {
         Extents3d? bestExtents = null;
-        var bestArea = 0.0;
+        double bestArea = 0.0;
 
-        foreach (var id in ids)
+        foreach (ObjectId id in ids)
         {
-            if (trx.GetObject(id, OpenMode.ForRead) is not BlockReference br) continue;
+            if (trx.GetObject(id, OpenMode.ForRead) is not BlockReference br)
+            {
+                continue;
+            }
 
-            var ext = AutoBIMFusion.Common.Helpers.ExtentsUtils.TryGetExtents(br);
-            if (!ext.HasValue) continue;
+            Extents3d? ext = AutoBIMFusion.Common.Helpers.ExtentsUtils.TryGetExtents(br);
+            if (!ext.HasValue)
+            {
+                continue;
+            }
 
-            var width = ext.Value.MaxPoint.X - ext.Value.MinPoint.X;
-            var height = ext.Value.MaxPoint.Y - ext.Value.MinPoint.Y;
-            var area = width * height;
+            double width = ext.Value.MaxPoint.X - ext.Value.MinPoint.X;
+            double height = ext.Value.MaxPoint.Y - ext.Value.MinPoint.Y;
+            double area = width * height;
 
             if (area > bestArea)
             {
@@ -680,14 +686,21 @@ public static class BlockReferences
     /// </summary>
     public static void EraseBlockContents(Database db, ObjectId btrId)
     {
-        if (btrId.IsNull) return;
+        if (btrId.IsNull)
+        {
+            return;
+        }
 
-        using var trx = db.TransactionManager.StartTransaction();
-        var btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
+        using Transaction trx = db.TransactionManager.StartTransaction();
+        BlockTableRecord btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
 
-        foreach (var id in btr)
+        foreach (ObjectId id in btr)
+        {
             if (trx.GetObject(id, OpenMode.ForWrite) is Entity entity && !entity.IsErased)
+            {
                 entity.Erase();
+            }
+        }
 
         trx.Commit();
     }

@@ -2,8 +2,6 @@ using AutoBIMFusion.Common.Compatibility;
 using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Common.Mist.AutoCAD;
 using Autodesk.AutoCAD.Colors;
-using System.Drawing;
-using static System.Math;
 
 namespace AutoBIMFusion.Common.Extensions;
 
