@@ -10,7 +10,7 @@ namespace AutoBIMFusion.Common.Helpers;
 public static class StyleUtils
 {
     /// <summary>
-    ///     Создаёт (или возвращает существующий) текстовый стиль с заданным шрифтом и высотой 0.
+    ///  Создаёт (или возвращает существующий) текстовый стиль с заданным шрифтом и высотой 0.
     /// </summary>
     public static ObjectId GetOrCreateTextStyle(Database db, Transaction trx, string fontName)
     {
