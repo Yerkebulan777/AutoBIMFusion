@@ -22,7 +22,7 @@ public sealed class CombineCommands
     [CommandMethod("MERGEDWG", CommandFlags.Modal | CommandFlags.Session)]
     public void MergeDwgFolderCommand()
     {
-        ExecuteMerge(null, true, "MERGEDWG");
+        _ = ExecuteMerge(null, true, "MERGEDWG");
     }
 
     [CommandMethod("MERGEDWG_BATCH", CommandFlags.Modal | CommandFlags.Session)]
@@ -33,7 +33,7 @@ public sealed class CombineCommands
 
         DateTimeOffset startedAt = DateTimeOffset.Now;
 
-        var result = MergeExecutionResult.Fail(null, "Пакетная команда не была выполнена.");
+        MergeExecutionResult result = MergeExecutionResult.Fail(null, "Пакетная команда не была выполнена.");
 
         Logger log = LoggerFactory.GetSharedLogger();
 
@@ -113,62 +113,62 @@ public sealed class CombineCommands
 
             var dwgFiles = FileUtil.GetFiles(sourceFolder!);
 
-                if (dwgFiles.Length == 0)
-                {
-                    if (showDialogs)
-                    {
-                        UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
-                    }
-
-                    return MergeExecutionResult.Fail(savePath, "DWG файлы не найдены.");
-                }
-
-                const double gapPercent = 0.1;
-                CombineStatistics stats = new();
-                var sw = Stopwatch.StartNew();
-
-                DocumentCollection docMgr = AcadApp.DocumentManager;
-                MergeDocumentSelection target = SelectMergeDocument(docMgr, log);
-
-                Document mergeDoc = target.Document;
-
-                BlockInserter inserter = new(gapPercent, log);
-
-                MergeFiles(dwgFiles, inserter, mergeDoc, stats, savePath, log);
-
-                using (mergeDoc.LockDocument())
-                {
-                    RasterImagePathFixer.CopyImagesToTargetFolder(mergeDoc.Database, savePath, log);
-
-                    DimensionStyleDiagnosticUtils.LogStyleSnapshot(mergeDoc.Database, log, "target-after-merge");
-
-                    DrawingPurger.Optimize(mergeDoc.Database, log);
-
-                    SaveMerged(mergeDoc.Database, savePath, log);
-
-                    mergeDoc.Editor.Command("._REGENALL");
-                    mergeDoc.Editor.Command("._ZOOM", "_EXTENTS");
-                }
-
-                sw.Stop();
-
-                log.Information(
-                    "{Command}: завершено, {Stats}, save=\"{SavePath}\", elapsed={Elapsed}",
-                    commandName,
-                    stats,
-                    savePath,
-                    sw.Elapsed);
-
+            if (dwgFiles.Length == 0)
+            {
                 if (showDialogs)
                 {
-                    ShowSummary(stats, sw.Elapsed, savePath, commandName);
+                    UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
                 }
 
-                var message = stats.Failed == 0
-                    ? "Завершено успешно."
-                    : $"Завершено с ошибками. Успешно: {stats.Successful}, пропущено: {stats.Skipped}, ошибок: {stats.Failed}.";
+                return MergeExecutionResult.Fail(savePath, "DWG файлы не найдены.");
+            }
 
-                return new MergeExecutionResult(stats.Failed == 0, savePath, message);
+            const double gapPercent = 0.1;
+            CombineStatistics stats = new();
+            Stopwatch sw = Stopwatch.StartNew();
+
+            DocumentCollection docMgr = AcadApp.DocumentManager;
+            MergeDocumentSelection target = SelectMergeDocument(docMgr, log);
+
+            Document mergeDoc = target.Document;
+
+            BlockInserter inserter = new(gapPercent, log);
+
+            MergeFiles(dwgFiles, inserter, mergeDoc, stats, savePath, log);
+
+            using (mergeDoc.LockDocument())
+            {
+                RasterImagePathFixer.CopyImagesToTargetFolder(mergeDoc.Database, savePath, log);
+
+                DimensionStyleDiagnosticUtils.LogStyleSnapshot(mergeDoc.Database, log, "target-after-merge");
+
+                DrawingPurger.Optimize(mergeDoc.Database, log);
+
+                SaveMerged(mergeDoc.Database, savePath, log);
+
+                mergeDoc.Editor.Command("._REGENALL");
+                mergeDoc.Editor.Command("._ZOOM", "_EXTENTS");
+            }
+
+            sw.Stop();
+
+            log.Information(
+                "{Command}: завершено, {Stats}, save=\"{SavePath}\", elapsed={Elapsed}",
+                commandName,
+                stats,
+                savePath,
+                sw.Elapsed);
+
+            if (showDialogs)
+            {
+                ShowSummary(stats, sw.Elapsed, savePath, commandName);
+            }
+
+            var message = stats.Failed == 0
+                ? "Завершено успешно."
+                : $"Завершено с ошибками. Успешно: {stats.Successful}, пропущено: {stats.Skipped}, ошибок: {stats.Failed}.";
+
+            return new MergeExecutionResult(stats.Failed == 0, savePath, message);
         }
         catch (Exception ex)
         {
@@ -271,7 +271,7 @@ public sealed class CombineCommands
     {
         using Transaction tr = db.TransactionManager.StartOpenCloseTransaction();
 
-        var blockTable = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+        BlockTable blockTable = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
 
         if (!IsBlockRecordEmpty(blockTable[BlockTableRecord.ModelSpace], tr))
         {
@@ -279,11 +279,11 @@ public sealed class CombineCommands
             return false;
         }
 
-        var layoutDictionary = (DBDictionary)tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        DBDictionary layoutDictionary = (DBDictionary)tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         foreach (DBDictionaryEntry entry in layoutDictionary)
         {
-            var layout = (Layout)tr.GetObject(entry.Value, OpenMode.ForRead);
+            Layout layout = (Layout)tr.GetObject(entry.Value, OpenMode.ForRead);
 
             if (!layout.ModelType && !IsBlockRecordEmpty(layout.BlockTableRecordId, tr))
             {
@@ -298,11 +298,11 @@ public sealed class CombineCommands
 
     private static bool IsBlockRecordEmpty(ObjectId blockRecordId, Transaction tr)
     {
-        var blockRecord = (BlockTableRecord)tr.GetObject(blockRecordId, OpenMode.ForRead);
+        BlockTableRecord blockRecord = (BlockTableRecord)tr.GetObject(blockRecordId, OpenMode.ForRead);
 
         foreach (ObjectId entityId in blockRecord)
         {
-            var entity = (Entity)tr.GetObject(entityId, OpenMode.ForRead);
+            Entity entity = (Entity)tr.GetObject(entityId, OpenMode.ForRead);
 
             if (entity is not Viewport)
             {
