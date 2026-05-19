@@ -6,11 +6,11 @@ namespace AutoBIMFusion.Common.Extensions;
 public static class CurvesExtensions
 {
     /// <summary>
-    ///     Gets the parameter at a specified point on curve.
+    ///     Получает параметр в указанной точке на кривой.
     /// </summary>
-    /// <param name="cv">The curve.</param>
-    /// <param name="point">The point.</param>
-    /// <returns>The parameter.</returns>
+    /// <param name="cv">Кривая.</param>
+    /// <param name="point">Точка.</param>
+    /// <returns>Параметр.</returns>
     public static double GetParamAtPointX(this Curve cv, Point3d point)
     {
         if (point.DistanceTo(cv.StartPoint) < Generic.MediumTolerance.EqualPoint)
@@ -34,11 +34,11 @@ public static class CurvesExtensions
     }
 
     /// <summary>
-    ///     Gets the point at a specified parameter on curve.
+    ///     Получает точку по указанному параметру на кривой.
     /// </summary>
-    /// <param name="cv">The curve.</param>
-    /// <param name="param">The parameter.</param>
-    /// <returns>The point.</returns>
+    /// <param name="cv">Кривая.</param>
+    /// <param name="param">Параметр.</param>
+    /// <returns>Точка.</returns>
     public static Point3d GetPointAtParam(this Curve cv, double param)
     {
         if (param < 0)
@@ -54,14 +54,14 @@ public static class CurvesExtensions
     }
 
     /// <summary>
-    ///     Gets all points on curve whose parameters are an arithmetic sequence starting from 0.
+    ///     Получает все точки на кривой, параметры которых образуют арифметическую последовательность, начиная с 0.
     /// </summary>
-    /// <param name="cv">The curve.</param>
+    /// <param name="cv">Кривая.</param>
     /// <param name="paramDelta">
-    ///     The parameter increment. Th default is 1, in which case the method returns all points on curve
-    ///     whose parameters are integres.
+    ///     Приращение параметра. По умолчанию 1, в этом случае метод возвращает все точки на кривой,
+    ///     параметры которых являются целыми числами.
     /// </param>
-    /// <returns>The points.</returns>
+    /// <returns>Точки.</returns>
     public static IEnumerable<Point3d> GetPoints(this Curve cv, double paramDelta = 1)
     {
         for (double param = 0d; param <= cv.EndParam; param += paramDelta)
@@ -71,10 +71,10 @@ public static class CurvesExtensions
     }
 
     /// <summary>
-    ///     Order the collection by contiguous curves ([n].EndPoint equals to [n+1].StartPoint)
+    ///     Упорядочивает коллекцию по смежным кривым ([n].EndPoint равно [n+1].StartPoint)
     /// </summary>
-    /// <param name="source">Collection this method applies to.</param>
-    /// <returns>Ordered array of Curve3d.</returns>
+    /// <param name="source">Коллекция, к которой применяется метод.</param>
+    /// <returns>Упорядоченный массив Curve3d.</returns>
     public static Curve3d[] ToOrderedArray(this IEnumerable<Curve3d> source)
     {
         List<Curve3d> list = source.ToList();
@@ -97,7 +97,7 @@ public static class CurvesExtensions
             }
             else
             {
-                Debug.WriteLine("Not contiguous curves.");
+                Debug.WriteLine("Кривые не являются смежными.");
                 return Array.Empty<Curve3d>();
             }
 
@@ -168,8 +168,8 @@ public static class CurvesExtensions
 
                 foreach (Point3d point in points)
                 {
-                    // Make a check to skip the start/end points
-                    // since they are connected vertices
+            // Делаем проверку для пропуска начальных/конечных точек
+            // так как это соединённые вершины
                     if (point == curve1.StartPoint || point == curve1.EndPoint)
                     {
                         if (point == curve2.StartPoint || point == curve2.EndPoint)
@@ -178,7 +178,7 @@ public static class CurvesExtensions
                         }
                     }
 
-                    // If two consecutive segments, then skip
+                    // Если два последовательных сегмента, пропускаем
                     if (j == i + 1)
                     {
                         continue;
@@ -192,8 +192,8 @@ public static class CurvesExtensions
                 }
             }
 
-            // Need to be disposed explicitely
-            // since entities are not DB resident
+            // Нужно явно dispose
+            // так как сущности не находятся в базе данных
             entities[i].Dispose();
         }
 
@@ -214,7 +214,7 @@ public static class CurvesExtensions
 
         if (A.IsCurveCanClose(B))
         {
-            //Check if the polyline is already joined
+            // Проверяем, уже ли соединена полилиния
             var PAPoint = A.GetPoints();
             List<Point3d> PAPointList = PAPoint.ToList();
             if (A.StartPoint.DistanceTo(A.EndPoint) > Generic.MediumTolerance.EqualPoint)
@@ -282,7 +282,7 @@ public static class CurvesExtensions
 
         static Entity TryGetPolyligne(Entity curv)
         {
-            //Convert all curves to regular Polyline
+            // Преобразуем все кривые в обычную полилинию
             if (curv is Polyline ProjectionTargetPolyLine)
             {
                 return ProjectionTargetPolyLine.Clone() as Polyline;
@@ -394,7 +394,7 @@ public static class CurvesExtensions
         List<Curve> entities = Curves.ToList();
         if (entities.Count <= 1)
         {
-            //No geometry to merge
+            // Нет геометрии для объединения
             return entities.Clone();
         }
 
@@ -411,8 +411,8 @@ public static class CurvesExtensions
             {
                 try
                 {
-                    // check if start/endpoints are the same
-                    // if they are join them and reset the loops and start again
+                    // проверяем, совпадают ли начальные/конечные точки
+                    // если да, соединяем их и сбрасываем циклы, начиная заново
                     var srcCurve = entities[i];
                     var addCurve = entities[j];
 
@@ -431,7 +431,7 @@ public static class CurvesExtensions
                             addCurve.Dispose();
                         }
 
-                        // reset i to the start (as it has changed)
+                        // сбрасываем i в начало (так как оно изменилось)
                         i = entities.Count;
                         j = 0;
                     }

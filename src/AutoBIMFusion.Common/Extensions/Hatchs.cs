@@ -65,7 +65,7 @@ public static class HatchsExtensions
         if (objectIdCollection.Count >= 1)
         {
             Boundary = objectIdCollection[0].GetNoTransactionDBObject(OpenMode.ForWrite) as Curve;
-            //If boundary is on a locked layer, we cannot give it back
+            // Если граница на заблокированном слое, не можем её вернуть
             if (Boundary.IsEntityOnLockedLayer())
             {
                 return 0;
@@ -137,14 +137,14 @@ public static class HatchsExtensions
 
     public static Hatch HatchRegion(this Region region, Transaction trx, bool Associative = true)
     {
-        // Create a hatch and set its properties
+        // Создаём штриховку и задаём её свойства
         Hatch hatch = new();
         _ = Generic.GetCurrentSpaceBlockTableRecord(trx).AppendEntity(hatch);
         trx.AddNewlyCreatedDBObject(hatch, true);
 
         hatch.Associative = Associative;
 
-        // Add the hatch loops and complete the hatch
+        // Добавляем контуры штриховки и завершаем её
         foreach ((HatchLoopTypes loopType, Curve2dCollection edgePtrs, IntegerCollection edgeTypes) item in
                  region.GetLoops())
         {

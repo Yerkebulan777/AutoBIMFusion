@@ -50,14 +50,14 @@ internal static class DimensionStyleNormalizer
 
             var needsRecompute = false;
 
-            // 1. Force text rotation to 0 to remove any overrides
+            // 1. Принудительно сбрасываем поворот текста в 0 для удаления переопределений
             if (dim.TextRotation != 0.0)
             {
                 dim.TextRotation = 0.0;
                 needsRecompute = true;
             }
 
-            // 2. Apply scale overrides if the style was NOT cloned
+            // 2. Применяем переопределения масштаба, если стиль НЕ был клонирован
             if (!clonedStyleIds.Contains(dim.DimensionStyle))
             {
                 dim.Dimscale = targetVisualScale;
@@ -65,7 +65,7 @@ internal static class DimensionStyleNormalizer
                 needsRecompute = true;
             }
 
-            // 3. Recompute if any changes were made
+            // 3. Пересчитываем, если были внесены изменения
             if (needsRecompute) dim.RecomputeDimensionBlock(true);
         }
     }

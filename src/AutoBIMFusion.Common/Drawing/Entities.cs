@@ -40,7 +40,7 @@ public static class Entities
         using Transaction acTrans = db.TransactionManager.StartTransaction();
         BlockTableRecord acBlkTblRec = Generic.GetCurrentSpaceBlockTableRecord(acTrans);
 
-        // Check if the entity is already in the database
+        // Проверяем, находится ли сущность уже в базе данных
         if (entity?.IsErased != false)
         {
             acTrans.Abort();

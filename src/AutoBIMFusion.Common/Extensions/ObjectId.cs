@@ -55,11 +55,11 @@ public static class ObjectIdExtensions
     {
         DBObjectCollection objs = [];
 
-        // Loop through the selected objects
+        // Проходим по выбранным объектам
         foreach (ObjectId ObjectToExplode in ObjectsToExplode)
         {
             Entity ent = ObjectToExplode.GetEntity();
-            // Explode the object into our collection
+            // Взрываем объект в нашу коллекцию
             ent.Explode(objs);
             if (EraseOriginal)
             {

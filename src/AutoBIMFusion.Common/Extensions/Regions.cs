@@ -6,16 +6,16 @@ public static class RegionsExtensions
 {
     public static DBObjectCollection GetPolylines(this Region reg)
     {
-        // We will return a collection of entities
-        // (should include closed Polylines and other
-        // closed curves, such as Circles)
+        // Вернём коллекцию сущностей
+        // (должна включать замкнутые полилинии и другие
+        // замкнутые кривые, такие как окружности)
         DBObjectCollection res = [];
-        // Explode Region -> collection of Curves / Regions
+        // Взрыв области → коллекция кривых / областей
         DBObjectCollection cvs = [];
         reg.Explode(cvs);
 
-        // Create a plane to convert 3D coords
-        // into Region coord system
+        // Создаём плоскость для преобразования 3D-координат
+        // в систему координат области
         Plane pl = new(new Point3d(0, 0, 0), reg.Normal);
 
         using (pl)
@@ -23,8 +23,8 @@ public static class RegionsExtensions
             bool finished = false;
             while (!finished && cvs.Count > 0)
             {
-                // Count the Curves and the non-Curves, and find
-                // the index of the first Curve in the collection
+            // Считаем количество кривых и не-кривых, находим
+            // индекс первой кривой в коллекции
                 int cvCnt = 0, nonCvCnt = 0, fstCvIdx = -1;
                 for (int i = 0; i < cvs.Count; i++)
                 {
@@ -35,14 +35,14 @@ public static class RegionsExtensions
                     }
                     else
                     {
-                        // Closed curves can go straight into
-                        // results collection, and aren't added
-                        // to the Curve count
+                        // Замкнутые кривые можно сразу добавить
+                        // в коллекцию результатов, не добавляя
+                        // их в счётчик кривых
                         if (tmpCv.Closed)
                         {
                             _ = res.Add(tmpCv);
                             cvs.Remove(tmpCv);
-                            // Decrement, so we don't miss an item
+                            // Декремент, чтобы не пропустить элемент
                             i--;
                         }
                         else
@@ -58,29 +58,29 @@ public static class RegionsExtensions
 
                 if (fstCvIdx >= 0)
                 {
-                    // For the initial segment take the first
-                    // Curve in the collection
+            // Для начального сегмента берём первую
+            // кривую из коллекции
 
                     Curve fstCv = (Curve)cvs[fstCvIdx];
-                    // The resulting Polyline
+                    // Результирующая полилиния
                     Polyline p = new();
-                    // Set common entity properties from the Region
+                    // Задаём общие свойства сущности из области
                     p.SetPropertiesFrom(reg);
-                    // Add the first two vertices, but only set the bulge on the first (the second will be set retroactively from the second segment)
-                    // We also assume the first segment is counter-clockwise (the default for arcs), as we're not swapping the order of the vertices to make them fit the Polyline's order
+            // Добавляем первые две вершины, но устанавливаем выпуклость только на первой (вторая будет установлена ретроспективно из второго сегмента)
+            // Также предполагаем, что первый сегмент идёт против часовой стрелки (по умолчанию для дуг), так как не меняем порядок вершин для соответствия порядку полилинии
 
                     p.AddVertexAt(p.NumberOfVertices, fstCv.StartPoint.Convert2d(pl), BulgeFromCurve(fstCv, false), 0,
                         0);
 
                     p.AddVertexAt(p.NumberOfVertices, fstCv.EndPoint.Convert2d(pl), 0, 0, 0);
                     cvs.Remove(fstCv);
-                    // The next point to look for
+                    // Следующая точка для поиска
                     var nextPt = fstCv.EndPoint;
-                    // Find the line that is connected to the next point
-                    // If for some reason the lines returned were not connected, we could loop endlessly.
-                    // So we store the previous curve count and assume that if this count has not been decreased by looping completely through the segments once, then we should not continue to loop.
-                    // Hopefully this will never happen, as the curves should form a closed loop, but anyway...
-                    // Set the previous count as artificially high,  so that we loop once, at least.
+            // Находим линию, соединённую со следующей точкой
+            // Если по какой-то причине возвращённые линии не соединены, можем зациклиться.
+            // Поэтому сохраняем предыдущее количество кривых и предполагаем, что если оно не уменьшилось после полного прохода по сегментам, то не следует продолжать.
+            // Надеемся, что этого никогда не произойдёт, так как кривые должны образовывать замкнутый контур, но всё же...
+            // Устанавливаем предыдущее количество искусственно высоким, чтобы хотя бы один проход состоялся.
                     int prevCnt = cvs.Count + 1;
                     while (cvs.Count > nonCvCnt && cvs.Count < prevCnt)
                     {
@@ -90,17 +90,17 @@ public static class RegionsExtensions
                             Curve? cv = obj as Curve;
                             if (cv != null)
                             {
-                                // If one end of the curve connects with the point we're looking for...
+                                // Если один конец кривой соединяется с искомой точкой...
                                 if (cv.StartPoint == nextPt || cv.EndPoint == nextPt)
                                 {
-                                    // Calculate the bulge for the curve and set it on the previous vertex
+                                    // Вычисляем выпуклость для кривой и устанавливаем её на предыдущей вершине
                                     double bulge = BulgeFromCurve(cv, cv.EndPoint == nextPt);
                                     if (bulge != 0.0)
                                     {
                                         p.SetBulgeAt(p.NumberOfVertices - 1, bulge);
                                     }
 
-                                    // Reverse the points, if needed
+                                    // Разворачиваем точки, если нужно
                                     if (cv.StartPoint == nextPt)
                                     {
                                         nextPt = cv.EndPoint;
@@ -111,9 +111,9 @@ public static class RegionsExtensions
                                         nextPt = cv.StartPoint;
                                     }
 
-                                    // Add out new vertex (bulge will be set next time through, as needed)
+                                    // Добавляем новую вершину (выпуклость будет установлена в следующий раз, если нужно)
                                     p.AddVertexAt(p.NumberOfVertices, nextPt.Convert2d(pl), 0, 0, 0);
-                                    // Remove our curve from the list, which decrements the count, of course
+                                    // Удаляем кривую из списка, что, конечно, уменьшает счётчик
                                     cvs.Remove(cv);
                                     break;
                                 }
@@ -121,7 +121,7 @@ public static class RegionsExtensions
                         }
                     }
 
-                    // Once we have added all the Polyline's vertices, transform it to the original region's plane
+                    // После добавления всех вершин полилинии преобразуем её в исходную плоскость области
                     p.TransformBy(Matrix3d.PlaneToWorld(pl));
                     _ = res.Add(p);
                     if (cvs.Count == nonCvCnt)
@@ -130,7 +130,7 @@ public static class RegionsExtensions
                     }
                 }
 
-                // If there are any Regions in the collection, recurse to explode and add their geometry
+                // Если в коллекции есть области, рекурсивно взрываем и добавляем их геометрию
                 if (nonCvCnt > 0 && cvs.Count > 0)
                 {
                     foreach (DBObject obj in cvs)
@@ -167,14 +167,14 @@ public static class RegionsExtensions
         if (a != null)
         {
             double newStart = a.StartAngle > a.EndAngle ? a.StartAngle - (8 * Atan(1)) : a.StartAngle;
-            // The start angle is usually greater than the end, as arcs are all counter-clockwise.
-            // (If it isn't it's because the arc crosses the  0-degree line, and we can subtract 2PI from the start angle.)
+            // Угол начала обычно больше угла конца, так как дуги идут против часовой стрелки.
+            // (Если это не так, значит дуга пересекает линию 0 градусов, и мы можем вычесть 2π из угла начала.)
 
 
-            // Bulge is defined as the tan of
-            // one fourth of the included angle
+        // Выпуклость определяется как тангенс
+        // одной четверти входящего угла
             bulge = Tan((a.EndAngle - newStart) / 4);
-            // If the curve is clockwise, we negate the bulge
+            // Если кривая идёт по часовой стрелке, инвертируем выпуклость
             if (clockwise)
             {
                 bulge = -bulge;
@@ -187,7 +187,7 @@ public static class RegionsExtensions
     public static IEnumerable<(HatchLoopTypes, Curve2dCollection, IntegerCollection)> GetLoops(this Region region)
     {
         Plane plane = new(Point3d.Origin, region.Normal);
-        // Get the region boundary representation
+        // Получаем представление границы области
         using Brep brep = new(region);
         foreach (var complex in brep.Complexes)
         {

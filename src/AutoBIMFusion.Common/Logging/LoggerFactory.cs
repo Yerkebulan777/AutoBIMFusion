@@ -28,8 +28,8 @@ public static class LoggerFactory
     }
 
     /// <summary>
-    ///     Returns the logs directory path. Falls back to the current directory
-    ///     if the assembly location cannot be determined (e.g. memory-loaded assembly).
+    ///     Возвращает путь к директории логов. Использует текущую директорию,
+    ///     если расположение сборки не может быть определено (например, сборка загружена из памяти).
     /// </summary>
     private static string GetLogsDirectory()
     {
@@ -45,7 +45,7 @@ public static class LoggerFactory
             }
         }
 
-        // Fallback: use the app context base directory (e.g., C:\Program Files\Autodesk\...)
+        // Резервный вариант: используем базовую директорию приложения (например, C:\Program Files\Autodesk\...)
         return Path.Combine(AppContext.BaseDirectory, "Logs");
     }
 

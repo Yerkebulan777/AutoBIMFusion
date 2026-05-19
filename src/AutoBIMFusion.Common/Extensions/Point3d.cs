@@ -237,11 +237,11 @@ public static class Point3dExtensions
     }
 
     /// <summary>
-    ///     Determines whether a point is inside a polyline
+    ///     Определяет, находится ли точка внутри полилинии
     /// </summary>
-    /// <param name="p">The point to check</param>
-    /// <param name="verts">The vertices of the polyline</param>
-    /// <returns>True if the point is within the polyline, otherwise false</returns>
+    /// <param name="p">Точка для проверки</param>
+    /// <param name="verts">Вершины полилинии</param>
+    /// <returns>True, если точка внутри полилинии, иначе false</returns>
     public static bool IsPointInsidePolygon(this Point2d p, Point3dCollection verts)
     {
         int counter = 0;
@@ -275,7 +275,7 @@ public static class Point3dExtensions
         double tx = p.X;
         double ty = p.Y;
 
-        //get initial test bit for above/below X axis
+        // Получаем начальный тестовый бит для выше/ниже оси X
         Point3d vtx0 = verts[0];
         bool yflag0 = vtx0[1] >= ty;
 
@@ -285,16 +285,16 @@ public static class Point3dExtensions
             Point3d vtx1 = verts[i];
 
             bool yflag1 = vtx1[1] >= ty;
-            // check if endpoints straddle (are on opposite sides) of X axis
-            // (i.e. the Y's differ); if so, +X ray could intersect this edge.
+            // проверяем, находятся ли конечные точки по разные стороны оси X
+            // (т.е. Y различаются); если так, луч +X может пересечь это ребро.
             if (yflag0 != yflag1)
             {
                 bool xflag0 = vtx0[0] >= tx;
-                // check if endpoints are on same side of the Y axis (i.e. X's
-                // are the same); if so, it's easy to test if edge hits or misses.
+                // проверяем, находятся ли конечные точки по одну сторону оси Y (т.е. X
+                // одинаковы); если так, легко проверить, пересекает ли ребро или проходит мимо.
                 if (xflag0 == (vtx1[0] >= tx))
                 {
-                    //if edge's X values both right of the point, must hit
+                    // если X значения ребра оба правее точки, значит пересекает
                     if (xflag0)
                     {
                         inside_flag = !inside_flag;
@@ -302,8 +302,8 @@ public static class Point3dExtensions
                 }
                 else
                 {
-                    // compute intersection of pgon segment with +X ray, note
-                    //if >= point's X; if so, the ray hits it.
+                    // вычисляем пересечение сегмента полигона с лучом +X, отмечаем
+                    // если >= X точки; если так, луч пересекает его.
                     if (vtx1[0] - ((vtx1[1] - ty) * (vtx0[0] - vtx1[0]) / (vtx0[1] - vtx1[1])) >= tx)
                     {
                         inside_flag = !inside_flag;
@@ -311,7 +311,7 @@ public static class Point3dExtensions
                 }
             }
 
-            // move to next pair of vertices, retaining info as possible
+            // переходим к следующей паре вершин, сохраняя информацию по возможности
             yflag0 = yflag1;
             vtx0 = vtx1;
         }

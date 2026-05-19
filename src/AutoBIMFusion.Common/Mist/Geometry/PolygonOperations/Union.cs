@@ -94,7 +94,7 @@ public static partial class PolygonOperation
         if (AllowMarginError)
         {
             //PossibleBoundary.AddToDrawing(4, true);
-            /// This block allow to try deleting last and first segment
+            /// Этот блок позволяет попытаться удалить последний и первый сегмент
             /// if overlapping with previous on (usefull when JoinMerge has merged wrong Margin segments
             List<Polyline> clonedBoundaries = PossibleBoundary.ConvertAll(pe => (Polyline)pe.Clone());
             clonedBoundaries.ForEach(CleanPolylineSegments);

@@ -8,7 +8,7 @@ namespace AutoBIMFusion.Common.Extensions;
 
 public static class ColorsEntensions
 {
-    // --- Original Extensions/Colors.cs methods ---
+    // --- Оригинальные методы Extensions/Colors.cs ---
 
     public static Color GetSystemDrawingColor(this Entity ent)
     {
@@ -27,7 +27,7 @@ public static class ColorsEntensions
         return Autodesk.AutoCAD.Colors.Color.FromRgb(Gray, Gray, Gray);
     }
 
-    // --- Merged from Mist/Helpers/Colors.cs ---
+    // --- Объединено из Mist/Helpers/Colors.cs ---
 
     public static Autodesk.AutoCAD.Colors.Color GetRealColor(this Entity ent)
     {
@@ -60,7 +60,7 @@ public static class ColorsEntensions
 
     public static (double R, double G, double B) SetBrightness(double BrightnessFactor, double R, double G, double B)
     {
-        //BrightnessFactor need to be between -1 and 1
+        // BrightnessFactor должен быть от -1 до 1
         double SetBrignessChannel(double Channel)
         {
             double ScaledValue = Channel * (1 + BrightnessFactor);
@@ -72,7 +72,7 @@ public static class ColorsEntensions
 
     public static (double R, double G, double B) SetContrast(double ContrastFactor, double R, double G, double B)
     {
-        //BrightnessFactor need to be between -1 and 1
+        // ContrastFactor должен быть от -1 до 1
         double ContrastLevel = Pow((1.0 + ContrastFactor) / 1.0, 2);
 
         double SetContrastChannel(double Channel)
@@ -102,14 +102,14 @@ public static class ColorsEntensions
         int max = Max(color.Red, Max(color.Green, color.Blue));
         int min = Min(color.Red, Min(color.Green, color.Blue));
 
-        // Calcul de la Saturation et de la Valeur (Luminosité)
+        // Вычисление насыщенности и яркости
         saturation = max == 0 ? 0 : 1d - (1d * min / max);
         value = max / 255d;
 
-        // Calcul de la Teinte (Hue)
+        // Вычисление оттенка (Hue)
         if (max == min)
         {
-            // Nuance de gris : pas de teinte spécifique, on met 0 par défaut
+            // Оттенок серого: нет специфического оттенка, по умолчанию 0
             hue = 0d;
         }
         else

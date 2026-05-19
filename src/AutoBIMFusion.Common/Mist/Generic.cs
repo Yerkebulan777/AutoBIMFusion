@@ -17,7 +17,7 @@ public static class Generic
 
     public static void ReadWriteToFileResource(string name, string ToFilePath)
     {
-        // Determine path
+        // Определяем путь
         byte[]? ressource_bytes = Resources.ResourceManager.GetObject(name) as byte[];
         if (!FileUtil.IsFileLockedOrReadOnly(ToFilePath))
         {
@@ -131,16 +131,16 @@ public static class Generic
 
     public static DwgVersion GetSaveVersion()
     {
-        //AC1015 = AutoCAD 2000
-        //AC1018 = AutoCAD 2004
-        //AC1021 = AutoCAD 2007
-        //AC1024 = AutoCAD 2010
-        //AC1027 = AutoCAD 2013
-        //AC1032 = AutoCAD 2018
-        //var ucm = AcadApp.UserConfigurationManager;
-        //var profile = ucm.OpenCurrentProfile();
-        //var section = profile.OpenSubsection("General");
-        //var format = section.ReadProperty("DefaultFormatForSave", 0);
+        // AC1015 = AutoCAD 2000
+        // AC1018 = AutoCAD 2004
+        // AC1021 = AutoCAD 2007
+        // AC1024 = AutoCAD 2010
+        // AC1027 = AutoCAD 2013
+        // AC1032 = AutoCAD 2018
+        // var ucm = AcadApp.UserConfigurationManager;
+        // var profile = ucm.OpenCurrentProfile();
+        // var section = profile.OpenSubsection("General");
+        // var format = section.ReadProperty("DefaultFormatForSave", 0);
 
         Database db = GetDatabase();
         return db.OriginalFileSavedByVersion;

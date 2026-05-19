@@ -5,20 +5,19 @@ public static class DBTextExtensions
     //From https://www.keanw.com/2011/02/gathering-points-defining-2d-autocad-geometry-using-net.html
     public static void ExtractBounds(this DBText txt, Point3dCollection pts)
     {
-        // We have a special approach for DBText and
-        // AttributeReference objects, as we want to get
-        // all four corners of the bounding box, even
-        // when the text or the containing block reference
-        // is rotated
+        // Используем специальный подход для объектов DBText и
+        // AttributeReference, так как хотим получить все четыре угла
+        // ограничивающей рамки, даже когда текст или содержащий его
+        // блок повёрнут
 
         if (txt.Bounds.HasValue && txt.Visible)
         {
-            // Create a straight version of the text object
-            // and copy across all the relevant properties
-            // (stopped copying AlignmentPoint, as it would
-            // sometimes cause an eNotApplicable error)
-            // We'll create the text at the WCS origin
-            // with no rotation, so it's easier to use its extents
+            // Создаём прямую версию текстового объекта
+            // и копируем все соответствующие свойства
+            // (перестали копировать AlignmentPoint, так как это
+            // иногда вызывало ошибку eNotApplicable)
+            // Создадим текст в начале WCS-координат
+            // без поворота, чтобы проще использовать его габариты
             DBText txt2 = new()
             {
                 Normal = Vector3d.ZAxis,
@@ -36,23 +35,23 @@ public static class DBTextExtensions
                 Oblique = txt.Oblique
             };
 
-            // Get its bounds if it has them defined
-            // (which it should, as the original did)
+            // Получаем его габариты, если они определены
+            // (должны быть, раз у оригинала они есть)
             if (txt2.Bounds.HasValue)
             {
                 Point3d maxPt = txt2.Bounds.Value.MaxPoint;
-                // Place all four corners of the bounding box
-                // in an array
+            // Размещаем все четыре угла ограничивающей рамки
+            // в массиве
                 Point2d[] bounds = new[]
                 {
                     Point2d.Origin, new Point2d(0.0, maxPt.Y), new Point2d(maxPt.X, maxPt.Y), new Point2d(maxPt.X, 0.0)
                 };
 
-                // We're going to get each point's WCS coordinates
-                // using the plane the text is on
+            // Будем получать WCS-координаты каждой точки
+            // используя плоскость, на которой находится текст
                 Plane pl = new(txt.Position, txt.Normal);
 
-                // Rotate each point and add its WCS location to the collection
+                // Поворачиваем каждую точку и добавляем её WCS-расположение в коллекцию
 
                 foreach (Point2d pt in bounds)
                 {

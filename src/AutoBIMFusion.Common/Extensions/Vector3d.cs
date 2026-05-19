@@ -21,11 +21,11 @@ public static class Vector3dExtensions
 
     public static bool IsVectorOnRightSide(this Vector3d vectorToCheckSide, Vector3d referenceVector)
     {
-        // Normaliser les vecteurs
+        // Нормализуем векторы
         vectorToCheckSide = vectorToCheckSide.GetNormal();
         referenceVector = referenceVector.GetNormal();
         Vector3d crossProduct = vectorToCheckSide.CrossProduct(referenceVector);
-        // Vérifier la composante Z du produit vectoriel pour déterminer l'orientation
+        // Проверяем Z-компоненту векторного произведения для определения ориентации
         return crossProduct.Z >= 0;
     }
 
@@ -61,22 +61,22 @@ public static class Vector3dExtensions
     }
 
     /// <summary>
-    ///     Gets the dot produc of two Vector2ds.
+    ///     Получает скалярное произведение двух Vector2d.
     /// </summary>
-    /// <param name="v1">The vector 1.</param>
-    /// <param name="v2">The vector 2.</param>
-    /// <returns>The dot product.</returns>
+    /// <param name="v1">Вектор 1.</param>
+    /// <param name="v2">Вектор 2.</param>
+    /// <returns>Скалярное произведение.</returns>
     public static double DotProduct(this Vector2d v1, Vector2d v2)
     {
         return (v1.X * v2.X) + (v1.Y * v2.Y);
     }
 
     /// <summary>
-    ///     Gets the cross produc of two Vector2ds.
+    ///     Получает векторное произведение двух Vector2d.
     /// </summary>
-    /// <param name="v1">The vector 1.</param>
-    /// <param name="v2">The vector 2.</param>
-    /// <returns>The cross product.</returns>
+    /// <param name="v1">Вектор 1.</param>
+    /// <param name="v2">Вектор 2.</param>
+    /// <returns>Векторное произведение.</returns>
     public static double CrossProduct(this Vector2d v1, Vector2d v2)
     {
         return (v1.X * v2.Y) - (v1.Y * v2.X);

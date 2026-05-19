@@ -160,7 +160,7 @@ internal static class ViewportTransformer
     ///     Глубоко клонирует набор объектов и применяет матрицу трансформации к каждому клону.
     /// </summary>
     /// <remarks>
-    ///     Type-specific transform compensation is delegated to <see cref="EntityTransformUtils" />.
+    ///     Компенсация трансформации для конкретных типов делегируется <see cref="EntityTransformUtils" />.
     /// </remarks>
     internal static CloneTransformResult DeepCloneAndTransform(
         Database db,

@@ -51,23 +51,23 @@ public static class PolylinesExtensions
             Vector2d polylineVector = new(endPoint.X - startPoint.X, endPoint.Y - startPoint.Y);
             Vector2d pointVector = new(TargetPoint.X - startPoint.X, TargetPoint.Y - startPoint.Y);
 
-            //cross product
+            // векторное произведение
             double crossProduct = (polylineVector.X * pointVector.Y) - (polylineVector.Y * pointVector.X);
 
             if (crossProduct < 0)
             {
-                //left
+                // влево
                 return PolylineSide.Left;
             }
 
             if (crossProduct > 0)
             {
-                // Right
+                // вправо
                 return PolylineSide.Right;
             }
         }
 
-        //collinear
+        // коллинеарно
         return PolylineSide.Collinear;
     }
 
@@ -83,7 +83,7 @@ public static class PolylinesExtensions
 
     public static bool FixNormals(this Polyline polyline)
     {
-        //Fix normals : should be 0,0,1 and its 0,0,-1. This happen when the polyline was drawn with the bottom up
+        // Исправление нормалей: должны быть 0,0,1, а сейчас 0,0,-1. Это происходит, когда полилиния нарисована снизу вверх
         if (polyline.Normal == Vector3d.ZAxis.MultiplyBy(-1))
         {
             Debug.WriteLine("Correction de la normal d'une polyline");
@@ -425,12 +425,12 @@ public static class PolylinesExtensions
     }
 
     /// <summary>
-    ///     Gets the bulge between two parameters within the same arc segment of a polyline.
+    ///     Получает выпуклость между двумя параметрами в пределах одного дугового сегмента полилинии.
     /// </summary>
-    /// <param name="poly">The polyline.</param>
-    /// <param name="startParam">The start parameter.</param>
-    /// <param name="endParam">The end parameter.</param>
-    /// <returns>The bulge.</returns>
+    /// <param name="poly">Полилиния.</param>
+    /// <param name="startParam">Начальный параметр.</param>
+    /// <param name="endParam">Конечный параметр.</param>
+    /// <returns>Выпуклость.</returns>
     public static double GetBulgeBetween(this Polyline poly, double startParam, double endParam)
     {
         double total = poly.GetBulgeAt((int)Floor(startParam));
@@ -488,10 +488,10 @@ public static class PolylinesExtensions
     }
 
     /// <summary>
-    ///     Connects polylines.
+    ///     Соединяет полилинии.
     /// </summary>
-    /// <param name="poly">The base polyline.</param>
-    /// <param name="poly1">The other polyline.</param>
+    /// <param name="poly">Базовая полилиния.</param>
+    /// <param name="poly1">Другая полилиния.</param>
     public static void JoinPolyline(this Polyline poly, Polyline poly1)
     {
         int index = poly.GetPolyPoints().Count();
@@ -564,7 +564,7 @@ public static class PolylinesExtensions
 
         poly.Closed = true;
 
-        //Forcing close can result in weird point, we need to cleanup these before executing a offset
+        // Принудительное закрытие может привести к странным точкам, нужно очистить их перед выполнением смещения
         poly.Cleanup();
 
         IEnumerable<Polyline> OffsetResult = InternalSmartOffset(poly);
@@ -578,12 +578,12 @@ public static class PolylinesExtensions
 
         IEnumerable<Polyline> InternalSmartOffset(Polyline InternalPoly)
         {
-            // UseOffsetGapTypeCurrentValue need to be 0 to avoid rouded corners
+                // UseOffsetGapTypeCurrentValue должен быть 0, чтобы избежать скруглённых углов
             var OffsetPolylineResult = InternalPoly.OffsetPolyline(ShrinkDistance, false).Cast<Polyline>().ToList();
 
             if (OffsetPolylineResult.Count == 0)
             {
-                //If OffsetPolyline result in no geometry, we need to fix the polyline first : custom cleanup
+                // Если OffsetPolyline не даёт геометрии, нужно сначала исправить полилинию: специальная очистка
                 bool HasVertexRemoved = true;
                 while (HasVertexRemoved)
                 {
@@ -602,7 +602,7 @@ public static class PolylinesExtensions
                         double DistanceBetween = CurrentPoint.GetDistanceTo(NextPoint);
                         if (InternalPoly.GetSegmentType(index) == SegmentType.Line)
                         {
-                            //Small line that we cant offset;
+                            // Маленькая линия, которую нельзя сместить
                             if (DistanceBetween <= Abs(ShrinkDistance))
                             {
                                 InternalPoly.RemoveVertexAt(index);
@@ -611,9 +611,9 @@ public static class PolylinesExtensions
                         }
                         else if (InternalPoly.GetSegmentType(index) == SegmentType.Arc)
                         {
-                            //If there is 0.2 with gap, that mean previous offset generated Arc, we need to remove those.
+                            // Если есть зазор 0.2, это значит, что предыдущее смещение создало дуги, нужно их удалить.
                             CircularArc3d Segment = InternalPoly.GetArcSegmentAt(index);
-                            //Multiply by 2 + 5% of error margin
+                            // Умножаем на 2 + 5% погрешности
                             if (DistanceBetween <= Abs(ShrinkDistance) * 2.05)
                             {
                                 using Curve Arc = Segment.ToCircleOrArc();
@@ -633,9 +633,9 @@ public static class PolylinesExtensions
                     }
                 }
 
-                //Cleanup the line (NEEDED ! if not in futur please explain why)
+                // Очистка линии (ОБЯЗАТЕЛЬНО! если не нужно в будущем, объясните почему)
                 InternalPoly.Cleanup();
-                // UseOffsetGapTypeCurrentValue need to be 0 to avoid rouded corners
+            // UseOffsetGapTypeCurrentValue должен быть 0, чтобы избежать скруглённых углов
                 OffsetPolylineResult = InternalPoly.OffsetPolyline(ShrinkDistance, false).Cast<Polyline>().ToList();
             }
 

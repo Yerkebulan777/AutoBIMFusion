@@ -56,8 +56,8 @@ public static class StyleUtils
             tt.UpgradeOpen();
         }
 
-        // Side-database guard: new DBObject internally binds to WorkingDatabase.
-        // Without this, tt.Add throws eWrongDatabase when db != active document.
+        // Защита side-database: новый DBObject internally привязывается к WorkingDatabase.
+        // Без этого tt.Add выбрасывает eWrongDatabase, когда db != active document.
         Database prevWorking = HostApplicationServices.WorkingDatabase;
         HostApplicationServices.WorkingDatabase = db;
         try

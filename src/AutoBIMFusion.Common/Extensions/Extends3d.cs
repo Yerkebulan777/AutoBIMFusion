@@ -78,7 +78,7 @@ public static class Extends3dExtensions
 
     public static Extents3d GetExtents(this Entity entity)
     {
-        //GetExtents is not thread safe
+        // GetExtents не потокобезопасен
         lock (_GetExtentsLock)
         {
             return entity != null && entity?.Bounds.HasValue == true ? entity.GeometricExtents : new Extents3d();
@@ -159,16 +159,16 @@ public static class Extends3dExtensions
 
     private static Point3dCollection CollectPoints(Transaction trx, Entity ent)
     {
-        // The collection of points to populate and return
+        // Коллекция точек для заполнения и возврата
         Point3dCollection pts = [];
 
-        // We'll start by checking a block reference for
-        // attributes, getting their bounds and adding
-        // them to the point list. We'll still explode
-        // the BlockReference later, to gather points
-        // from other geometry, it's just that approach
-        // doesn't work for attributes (we only get the
-        // AttributeDefinitions, which don't have bounds)
+        // Начнём с проверки блок-вставки на наличие
+        // атрибутов, получения их границ и добавления
+        // их в список точек. Всё равно взорвём
+        // BlockReference позже, чтобы собрать точки
+        // из другой геометрии, просто этот подход
+        // не работает для атрибутов (получаем только
+        // AttributeDefinitions, у которых нет границ)
 
         var br = ent as BlockReference;
         if (br != null)
@@ -182,16 +182,16 @@ public static class Extends3dExtensions
                 }
             }
         }
-        // If we have a curve - other than a polyline, which
-        // we will want to explode - we'll get points along
-        // its length
+        // Если у нас кривая — кроме полилинии, которую
+        // нужно будет взорвать — получим точки вдоль
+        // её длины
 
         var cur = ent as Curve;
 
         if (cur is not null and not (Polyline or Polyline2d or Polyline3d))
         {
-            // Two points are enough for a line, we'll go with
-            // a higher number for other curves
+            // Двух точек достаточно для линии, для других
+            // кривых возьмём большее число
             int segs = ent is Line ? 2 : 20;
             double param = cur.EndParam - cur.StartParam;
 
@@ -243,8 +243,8 @@ public static class Extends3dExtensions
         }
         else
         {
-            // Here's where we attempt to explode other types
-            // of object
+            // Здесь пытаемся взорвать другие типы
+            // объектов
             DBObjectCollection oc = [];
             try
             {
@@ -306,8 +306,8 @@ public static class Extends3dExtensions
         }
         else
         {
-            // Here's where we attempt to explode other types
-            // of object
+            // Здесь пытаемся взорвать другие типы
+            // объектов
             DBObjectCollection oc = [];
             try
             {
@@ -428,43 +428,43 @@ public static class Extends3dExtensions
             extents3D.BottomRight());
     }
 
-    // Lifted from
+    // Взято из
     // http://docs.autodesk.com/ACD/2010/ENU/AutoCAD%20.NET%20Developer%27s%20Guide/files/WS1a9193826455f5ff2566ffd511ff6f8c7ca-4363.htm
     public static void ZoomExtents(this Extents3d extents)
     {
         Editor ed = Generic.GetEditor();
-        // Get the current view
+        // Получаем текущий вид
         using ViewTableRecord acView = ed.GetCurrentView();
-        // Translate WCS coordinates to DCS
+        // Преобразуем WCS-координаты в DCS
         Matrix3d matWCS2DCS = Matrix3d.Rotation(-acView.ViewTwist, acView.ViewDirection, acView.Target) *
                          Matrix3d.Displacement(acView.Target - Point3d.Origin) *
                          Matrix3d.PlaneToWorld(acView.ViewDirection);
 
-        // Calculate the ratio between the width and height of the current view
+        // Вычисляем соотношение между шириной и высотой текущего вида
         double dViewRatio = acView.Width / acView.Height;
 
-        // Tranform the extents of the view
+        // Преобразуем габариты вида
         extents.TransformBy(matWCS2DCS.Inverse());
 
-        // Calculate the new width and height of the current view
+        // Вычисляем новую ширину и высоту текущего вида
         double dWidth = extents.MaxPoint.X - extents.MinPoint.X;
         double dHeight = extents.MaxPoint.Y - extents.MinPoint.Y;
 
-        // Check to see if the new width fits in current window
+        // Проверяем, помещается ли новая ширина в текущее окно
         if (dWidth > dHeight * dViewRatio)
         {
             dHeight = dWidth / dViewRatio;
         }
 
-        // Get the center of the view
+        // Получаем центр вида
         Point2d pNewCentPt = new((extents.MaxPoint.X + extents.MinPoint.X) * 0.5,
             (extents.MaxPoint.Y + extents.MinPoint.Y) * 0.5);
 
-        // Resize the view
+        // Изменяем размер вида
         acView.Height = dHeight;
         acView.Width = dWidth;
 
-        // Set the center of the view
+        // Устанавливаем центр вида
         acView.CenterPoint = pNewCentPt;
 
         // Set the current view

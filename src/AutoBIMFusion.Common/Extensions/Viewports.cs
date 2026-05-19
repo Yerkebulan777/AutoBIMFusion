@@ -12,8 +12,8 @@ public static class ViewportsExtensions
         //https://www.keanw.com/2011/03/drawing-transient-graphics-appropriately-in-autocad-within-multiple-paperspace-viewports-using-net.html
         Database db = Generic.GetDatabase();
         Editor ed = Generic.GetEditor();
-        // Are we in model space outside floating viewports?
-        // Then we'll initalize an empty IntegerCollection
+        // Находимся в пространстве модели вне плавающих видовых экранов?
+        // Тогда инициализируем пустую IntegerCollection
 
         if (db.TileMode)
         {
@@ -27,17 +27,16 @@ public static class ViewportsExtensions
         {
             Viewport? vp = trx.GetObject(ed.ActiveViewportId, OpenMode.ForRead) as Viewport;
 
-            // Are we in paper space and not inside a floating
-            // viewport? Then only the paper space viewport itself
-            // is of interest
+            // Находимся в пространстве листа и не внутри плавающего
+            // видового экрана? Тогда интересует только сам видовой экран листа
             if (vp?.Number == 1)
             {
                 vps.Add(1);
             }
             else
             {
-                // Now we're inside a floating viewport and
-                // will display transients in active viewports
+                // Теперь мы внутри плавающего видового экрана и
+                // будем отображать временную графику в активных видовых экранах
                 foreach (ObjectId vpId in db.GetViewports(false))
                 {
                     vp = (Viewport)trx.GetObject(vpId, OpenMode.ForRead);
@@ -153,13 +152,13 @@ public static class ViewportsExtensions
 
             if (viewport.NonRectClipEntityId != ObjectId.Null)
             {
-                // Get the non-rectangular clipping boundary
+                // Получаем нестандартную границу обрезки
                 Entity clipEntity = viewport.NonRectClipEntityId.GetEntity();
                 return clipEntity is Curve clipEntCurve ? clipEntCurve.ToPolyline() : null;
             }
             else
             {
-                // Get the standard rectangular boundary
+                // Получаем стандартную прямоугольную границу
                 Point3d center = viewport.CenterPoint;
                 var width = viewport.Width;
                 var height = viewport.Height;

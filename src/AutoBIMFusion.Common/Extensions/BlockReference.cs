@@ -76,7 +76,7 @@ internal static class BlockReferenceExtensions
     {
         if (blockRef?.IsDynamicBlock == true)
         {
-            // If it's a dynamic block, get the true name from the DynamicBlockTableRecord
+            // Если это динамический блок, получаем настоящее имя из DynamicBlockTableRecord
             using BlockTableRecord? btr = blockRef.DynamicBlockTableRecord.GetDBObject() as BlockTableRecord;
             return btr.Name;
         }
@@ -128,22 +128,22 @@ internal static class BlockReferenceExtensions
     }
 
     /// <summary>
-    ///     Gets all the attribute values by tag.
+    ///     Получает все значения атрибутов по тегу.
     /// </summary>
-    /// <param name="source">Instance to which the method applies.</param>
-    /// <returns>Collection of pairs Tag/Value.</returns>
+    /// <param name="source">Экземпляр, к которому применяется метод.</param>
+    /// <returns>Коллекция пар Тег/Значение.</returns>
     public static Dictionary<string, string> GetAttributesValues(this BlockReference source)
     {
         return source.GetAttributesByTag().ToDictionary(p => p.Key, p => p.Value.TextString);
     }
 
     /// <summary>
-    ///     Sets the value to the attribute.
+    ///     Устанавливает значение атрибута.
     /// </summary>
-    /// <param name="target">Instance to which the method applies.</param>
-    /// <param name="tag">Attribute tag.</param>
-    /// <param name="value">New value.</param>
-    /// <returns>The value if attribute was found, null otherwise.</returns>
+    /// <param name="target">Экземпляр, к которому применяется метод.</param>
+    /// <param name="tag">Тег атрибута.</param>
+    /// <param name="value">Новое значение.</param>
+    /// <returns>Значение, если атрибут найден, иначе null.</returns>
     public static string SetAttributeValue(this BlockReference target, string tag, string value)
     {
         foreach (AttributeReference attRef in target.AttributeCollection.GetObjects())
@@ -159,10 +159,10 @@ internal static class BlockReferenceExtensions
     }
 
     /// <summary>
-    ///     Sets the values to the attributes.
+    ///     Устанавливает значения атрибутов.
     /// </summary>
-    /// <param name="target">Instance to which the method applies.</param>
-    /// <param name="attribs">Collection of pairs Tag/Value.</param>
+    /// <param name="target">Экземпляр, к которому применяется метод.</param>
+    /// <param name="attribs">Коллекция пар Тег/Значение.</param>
     public static void SetAttributeValues(this BlockReference target, Dictionary<string, string> attribs)
     {
         Transaction trx = Generic.GetDatabase().TransactionManager.TopTransaction;
@@ -217,7 +217,7 @@ internal static class BlockReferenceExtensions
                 if (blockReference != null && blockReference.Name == blockName &&
                     blockReference.Position.IsEqualTo(position, Tolerance.Global))
                 {
-                    // Check attribute values
+                    // Проверка значений атрибутов
                     foreach (ObjectId attId in blockReference.AttributeCollection)
                     {
                         DBObject obj = trx.GetObject(attId, OpenMode.ForRead);
@@ -225,7 +225,7 @@ internal static class BlockReferenceExtensions
                         {
                             if (attributeReference.TextString == attributeValue)
                             {
-                                // The block with the same position and attribute values exists
+                                // Блок с такой же позицией и значениями атрибутов существует
                                 trx.Commit();
                                 return true;
                             }
@@ -235,7 +235,7 @@ internal static class BlockReferenceExtensions
             }
         }
 
-        // The block does not exist at the same position with the same attribute values
+        // Блок не существует в той же позиции с теми же значениями атрибутов
         trx.Commit();
         blockReference = null;
         return false;

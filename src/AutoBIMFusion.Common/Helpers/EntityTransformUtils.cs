@@ -21,7 +21,7 @@ public static class EntityTransformUtils
         }
         else if (entity is Dimension dim)
         {
-            // Reset any explicit text rotation applied by the matrix transformation
+            // Сбрасываем явный поворот текста, применённый матрицей трансформации
             dim.TextRotation = 0.0;
         }
         else if (entity is BlockReference blockRef && trx != null)
@@ -58,7 +58,7 @@ public static class EntityTransformUtils
         }
         catch
         {
-            // AutoCAD can reject evaluation for damaged or very complex hatch geometry.
+            // AutoCAD может отказать в оценке повреждённой или очень сложной геометрии штриховки.
         }
     }
 

@@ -151,7 +151,7 @@ public static class Layers
             var layerName = OldName;
             var newLayerName = NewName;
 
-            // Renommer le calque
+            // Переименовать слой
             LayerTable lt = (LayerTable)trans.GetObject(db.LayerTableId, OpenMode.ForWrite);
             if (lt.Has(layerName))
             {
@@ -173,7 +173,7 @@ public static class Layers
         Database db = Generic.GetDatabase();
 
         using Transaction trans = db.TransactionManager.StartTransaction();
-        // Renommer le calque
+        // Переименовать слой
         LayerTable lt = (LayerTable)trans.GetObject(db.LayerTableId, OpenMode.ForWrite);
         if (lt.Has(LayerName))
         {
@@ -196,7 +196,7 @@ public static class Layers
         {
             if (lt.Has(sourceLayerName) && lt.Has(targetLayerName))
             {
-                // Iterate through all entities in the drawing
+                // Перебор всех сущностей в чертеже
                 foreach (ObjectId objId in btr)
                 {
                     Entity ent = objId.GetEntity();
@@ -243,7 +243,7 @@ public static class Layers
 
         var sourceLayerName = sourceLayer.Name;
 
-        // Move every entities
+        // Перемещаем все сущности
         foreach (ObjectId blockId in trx.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable)
         {
             foreach (ObjectId entId in trx.GetObject(blockId, OpenMode.ForWrite) as BlockTableRecord)

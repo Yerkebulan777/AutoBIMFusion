@@ -32,7 +32,7 @@ public static class ArcsExtensions
         Point2d start = new(arc.StartPoint.X, arc.StartPoint.Y);
         Point2d end = new(arc.EndPoint.X, arc.EndPoint.Y);
 
-        // Clockwise : invert
+        // По часовой стрелке: инвертируем
         bool isClockwise = arc.Normal.Z < 0;
 
         double deltaAngle = isClockwise ? arc.StartAngle - arc.EndAngle : arc.EndAngle - arc.StartAngle;
@@ -45,7 +45,7 @@ public static class ArcsExtensions
             ? arc.StartAngle - (deltaAngle / 2)
             : arc.StartAngle + (deltaAngle / 2);
 
-        // Convert to [0, 2π] 
+        // Преобразуем в [0, 2π]
         midAngle = (midAngle + (2 * PI)) % (2 * PI);
 
         // Arc median point

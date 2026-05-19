@@ -58,7 +58,7 @@ public static class EntityExtensions
             return;
         }
 
-        //Default for each Entities
+        // По умолчанию для каждой сущности
         if (Origin.EntityColor.IsNone)
         {
             Target.Color = Color.FromColorIndex(ColorMethod.ByLayer, 0);
@@ -319,7 +319,7 @@ public static class EntityExtensions
         }
         else if (entity is Leader)
         {
-            //not implemented
+            // не реализовано
         }
         else if (entity is Line line)
         {
@@ -501,7 +501,7 @@ public static class EntityExtensions
         */
         else if (entity is MLeader mLeader)
         {
-            //IN PROGRESS DOES NOT WORK ???
+            // В РАЗРАБОТКЕ, НЕ РАБОТАЕТ ???
             mLeader.TextLocation = mLeader.TextLocation.Flatten();
             for (var LeaderLineCount = 0; LeaderLineCount < mLeader.LeaderLineCount; LeaderLineCount++)
             {
@@ -534,11 +534,11 @@ public static class EntityExtensions
         }
         else if (entity is Solid)
         {
-            //Not supported yet
+            // Пока не поддерживается
         }
         else if (entity is Solid3d)
         {
-            //Not supported yet
+            // Пока не поддерживается
         }
         else
         {

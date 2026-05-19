@@ -19,12 +19,12 @@ public static class BlockReferences
         BlockTable? bt = trx.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
         ObjectIdCollection objectIdCollection = [];
 
-        // On parcourt tous les BlockTableRecord (ModelSpace, PaperSpace, blocs, etc.)
+        // Проходим по всем BlockTableRecord (ModelSpace, PaperSpace, блоки и т.д.)
         foreach (ObjectId btrId in bt)
         {
             BlockTableRecord? btr = trx.GetObject(btrId, OpenMode.ForWrite) as BlockTableRecord;
 
-            // Ne pas traiter les blocs anonymes (ex: ceux créés par les hachures ou dynamiques internes)
+            // Не обрабатывать анонимные блоки (например, созданные штриховками или внутренними динамическими блоками)
             if (btr.IsAnonymous || (!btr.IsLayout && !btr.IsFromExternalReference))
             {
                 continue;
@@ -106,7 +106,7 @@ public static class BlockReferences
         BlockTable? bt = db.BlockTableId.GetDBObject(OpenMode.ForWrite) as BlockTable;
         var BlockName = Name;
 
-        if (BlockName != "*U") //creating an anonymous block
+        if (BlockName != "*U") // создание анонимного блока
         {
             BlockName = SymbolUtilityServices.RepairSymbolName(Name, false);
         }
@@ -128,7 +128,7 @@ public static class BlockReferences
         {
             btr.Origin = Origin.SCG;
         }
-        // Add the new block to the block table
+        // Добавляем новый блок в таблицу блоков
         ObjectId btrId = bt.Add(btr);
         trx.AddNewlyCreatedDBObject(btr, true);
 
@@ -144,7 +144,7 @@ public static class BlockReferences
 
     public static ObjectId CreateFromExistingEnts(string Name, string Description, ObjectIdCollection SelectedIds, Points Origin, bool IsExplodable = true, BlockScaling BlockScaling = BlockScaling.Any, bool EraseOld = false)
     {
-        // This method offer the avantage to keep associative hatch
+        // Этот метод даёт преимущество сохранения ассоциативных штриховок
         Editor ed = Generic.GetEditor();
         Database db = Generic.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
@@ -156,7 +156,7 @@ public static class BlockReferences
             BlockName = "*U";
         }
 
-        if (BlockName != "*U") //if we dont create an anonymous block
+        if (BlockName != "*U") // если создаём не анонимный блок
         {
             BlockName = SymbolUtilityServices.RepairSymbolName(Name, false);
         }
@@ -437,7 +437,7 @@ public static class BlockReferences
             return;
         }
 
-        //Settings legacy block attributes
+        // Настройка унаследованных атрибутов блока
         foreach (ObjectId id in btr)
         {
             DBObject obj = id.GetObject(OpenMode.ForRead);
@@ -459,7 +459,7 @@ public static class BlockReferences
             }
         }
 
-        //Settings Dynamic block attributes
+        // Настройка атрибутов динамического блока
         DynamicBlockReferencePropertyCollection BlocPropertyCollection = blockRef.DynamicBlockReferencePropertyCollection;
         Dictionary<string, DynamicBlockReferenceProperty> BlocPropertyCollectionDictionnary = [];
         foreach (DynamicBlockReferenceProperty BlocProperty in BlocPropertyCollection.OfType<DynamicBlockReferenceProperty>())
@@ -539,7 +539,7 @@ public static class BlockReferences
         DBObjectCollection ents = [];
         using (Transaction trx = db.TransactionManager.StartTransaction())
         {
-            //The first block is added for initialising the process and then deleted. Be sure to add a value.
+            // Первый блок добавляется для инициализации процесса, а затем удаляется. Обязательно добавьте значение.
             ObjectId blockRef = InsertFromNameImportIfNotExist(BlocName, Points.Empty, ed.GetUSCRotation(AngleUnit.Radians),
                 InitAttributesValues);
             DBObject dBObject = blockRef.GetDBObject();
@@ -568,11 +568,11 @@ public static class BlockReferences
             var TempFolderFilePath = Path.Combine(TempFolderPath, $"{BlocName}.dwg");
             Generic.ReadWriteToFileResource(BlocName, TempFolderFilePath);
 
-            Database sourceDb = new(false, true); //Temporary database to hold data for block we want to import
+            Database sourceDb = new(false, true); // Временная база данных для хранения данных импортируемого блока
             try
             {
                 sourceDb.ReadDwgFile(TempFolderFilePath, FileShare.Read, true,
-                    ""); //Read the DWG into a side database
+                    ""); // Чтение DWG во вспомогательную базу данных
                 _ = db.Insert(TempFolderFilePath, sourceDb, false);
             }
             catch (Autodesk.AutoCAD.Runtime.Exception ex)

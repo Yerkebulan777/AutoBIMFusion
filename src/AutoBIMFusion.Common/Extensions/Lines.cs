@@ -3,13 +3,13 @@ namespace AutoBIMFusion.Common.Extensions;
 public static class LinesExtentions
 {
     /// <summary>
-    ///     Determines if two line segments intersect.
+    ///     Определяет, пересекаются ли два отрезка.
     /// </summary>
-    /// <param name="a1">Line a point 1.</param>
-    /// <param name="a2">Line a point 2.</param>
-    /// <param name="b1">Line b point 1.</param>
-    /// <param name="b2">Line b point 2.</param>
-    /// <returns>The result.</returns>
+    /// <param name="a1">Точка 1 линии a.</param>
+    /// <param name="a2">Точка 2 линии a.</param>
+    /// <param name="b1">Точка 1 линии b.</param>
+    /// <param name="b2">Точка 2 линии b.</param>
+    /// <returns>Результат.</returns>
     public static bool IsLineSegIntersect(Point2d a1, Point2d a2, Point2d b1, Point2d b2)
     {
         if ((a1 - a2).CrossProduct(b1 - b2) == 0)
@@ -73,7 +73,7 @@ public static class LinesExtentions
 
     public static bool IsLinePassesThroughPoint(this Line line, Point3d point)
     {
-        // Comparer les coordonnées du point avec les extrémités de la ligne
+        // Сравниваем координаты точки с концами линии
         return point.X >= Min(line.StartPoint.X, line.EndPoint.X) &&
                point.X <= Max(line.StartPoint.X, line.EndPoint.X) &&
                point.Y >= Min(line.StartPoint.Y, line.EndPoint.Y) &&
@@ -99,23 +99,23 @@ public static class LinesExtentions
         double x4 = line2.EndPoint.X;
         double y4 = line2.EndPoint.Y;
 
-        // Calculate the direction vectors
+        // Вычисляем направляющие векторы
         double uA = (((x4 - x3) * (y1 - y3)) - ((y4 - y3) * (x1 - x3))) /
                  (((y4 - y3) * (x2 - x1)) - ((x4 - x3) * (y2 - y1)));
 
         double uB = (((x2 - x1) * (y1 - y3)) - ((y2 - y1) * (x1 - x3))) /
                  (((y4 - y3) * (x2 - x1)) - ((x4 - x3) * (y2 - y1)));
 
-        // If 0 <= uA <= 1 and 0 <= uB <= 1, the lines intersect
+        // Если 0 <= uA <= 1 и 0 <= uB <= 1, линии пересекаются
         return uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1;
     }
 
 
     /// <summary>
-    ///     Converts line to polyline.
+    ///     Преобразует линию в полилинию.
     /// </summary>
-    /// <param name="line">The line.</param>
-    /// <returns>A polyline.</returns>
+    /// <param name="line">Линия.</param>
+    /// <returns>Полилиния.</returns>
     public static Polyline ToPolyline(this Line line)
     {
         Polyline poly = new();
@@ -125,10 +125,10 @@ public static class LinesExtentions
     }
 
     /// <summary>
-    ///     Converts arc to polyline.
+    ///     Преобразует дугу в полилинию.
     /// </summary>
-    /// <param name="arc">The arc.</param>
-    /// <returns>A polyline.</returns>
+    /// <param name="arc">Дуга.</param>
+    /// <returns>Полилиния.</returns>
     public static Polyline ToPolyline(this Arc arc)
     {
         Polyline poly = new();
