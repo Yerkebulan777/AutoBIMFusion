@@ -69,6 +69,8 @@ public static class RasterImagePathFixer
                 if (copiedBySourcePath.TryGetValue(resolvedPath, out string? existingRelativePath)
                     && !string.IsNullOrEmpty(existingRelativePath))
                 {
+                    if (def.IsLoaded)
+                        def.Unload(false);
                     def.SourceFileName = existingRelativePath;
                     def.Load();
                     continue;
@@ -85,6 +87,8 @@ public static class RasterImagePathFixer
 
                 _ = reservedDestinationPaths.Add(uniqueDestPath);
                 copiedBySourcePath[resolvedPath] = uniqueFileName;
+                if (def.IsLoaded)
+                    def.Unload(false);
                 def.SourceFileName = uniqueFileName; // относительный путь к папке DWG
                 def.Load(); // Правило 2: загружаем определение после смены пути
             }
