@@ -5,7 +5,7 @@ namespace AutoBIMFusion.Common.Mist.Geometry.PolygonOperations;
 
 public static partial class PolygonOperation
 {
-    public static List<Polyline>? LastSliceResult;
+    public static List<Polyline>? LastSliceResult { get; private set; }
 
     public static List<Polyline> Slice(Polyline BasePolyline, Polyline BaseCutLine)
     {
