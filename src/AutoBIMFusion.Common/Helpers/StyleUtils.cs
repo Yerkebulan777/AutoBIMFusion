@@ -1,5 +1,5 @@
-using Autodesk.AutoCAD.GraphicsInterface;
 using System.Globalization;
+using Autodesk.AutoCAD.GraphicsInterface;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace AutoBIMFusion.Common.Helpers;
@@ -10,15 +10,15 @@ namespace AutoBIMFusion.Common.Helpers;
 public static class StyleUtils
 {
     /// <summary>
-    ///  Создаёт (или возвращает существующий) текстовый стиль с заданным шрифтом и высотой.
+    ///     Создаёт (или возвращает существующий) текстовый стиль с заданным шрифтом и высотой.
     /// </summary>
     public static ObjectId GetOrCreateTextStyle(Database db, Transaction trx, string fontName, double xScale = 1.0, bool isItalic = false)
     {
-        TextStyleTable tt = (TextStyleTable)trx.GetObject(db.TextStyleTableId, OpenMode.ForRead);
+        var tt = (TextStyleTable)trx.GetObject(db.TextStyleTableId, OpenMode.ForRead);
 
         if (tt.Has(fontName))
         {
-            TextStyleTableRecord existing = (TextStyleTableRecord)trx.GetObject(tt[fontName], OpenMode.ForRead);
+            var existing = (TextStyleTableRecord)trx.GetObject(tt[fontName], OpenMode.ForRead);
 
             if (existing.TextSize > 0.0)
             {
@@ -26,38 +26,30 @@ public static class StyleUtils
                 existing.TextSize = 0.0;
             }
 
-            if (Math.Abs(existing.XScale - xScale) > 1e-6)
+            if (Abs(existing.XScale - xScale) > 1e-6)
             {
-                if (!existing.IsWriteEnabled)
-                {
-                    existing.UpgradeOpen();
-                }
+                if (!existing.IsWriteEnabled) existing.UpgradeOpen();
 
                 existing.XScale = xScale;
             }
 
             if (existing.Font.Italic != isItalic)
             {
-                if (!existing.IsWriteEnabled)
-                {
-                    existing.UpgradeOpen();
-                }
+                if (!existing.IsWriteEnabled) existing.UpgradeOpen();
 
-                FontDescriptor oldFont = existing.Font;
-                existing.Font = new FontDescriptor(oldFont.TypeFace, oldFont.Bold, isItalic, oldFont.CharacterSet, oldFont.PitchAndFamily);
+                var oldFont = existing.Font;
+                existing.Font = new FontDescriptor(oldFont.TypeFace, oldFont.Bold, isItalic, oldFont.CharacterSet,
+                    oldFont.PitchAndFamily);
             }
 
             return tt[fontName];
         }
 
-        if (!tt.IsWriteEnabled)
-        {
-            tt.UpgradeOpen();
-        }
+        if (!tt.IsWriteEnabled) tt.UpgradeOpen();
 
         // Side-database guard: new DBObject internally binds to WorkingDatabase.
         // Without this, tt.Add throws eWrongDatabase when db != active document.
-        Database prevWorking = HostApplicationServices.WorkingDatabase;
+        var prevWorking = HostApplicationServices.WorkingDatabase;
         HostApplicationServices.WorkingDatabase = db;
         try
         {
@@ -69,15 +61,11 @@ public static class StyleUtils
             };
 
             if (isItalic)
-            {
                 ts.Font = new FontDescriptor(fontName, false, true, 0, 34);
-            }
             else
-            {
                 ts.FileName = fontName + ".shx";
-            }
 
-            ObjectId id = tt.Add(ts);
+            var id = tt.Add(ts);
             trx.AddNewlyCreatedDBObject(ts, true);
             return id;
         }
@@ -92,9 +80,9 @@ public static class StyleUtils
     /// </summary>
     public static ObjectId GetArrowBlockId(Database db, Transaction trx, string arrowName = "_ArchTick")
     {
-        ObjectId arrObjId = db.Dimblk;
+        var arrObjId = db.Dimblk;
 
-        object obj = Application.GetSystemVariable("DIMBLK");
+        var obj = Application.GetSystemVariable("DIMBLK");
 
         if (obj is string oldArrName && !string.IsNullOrEmpty(oldArrName))
         {
@@ -107,17 +95,11 @@ public static class StyleUtils
                 return arrObjId;
             }
 
-            if (!string.IsNullOrEmpty(oldArrName))
-            {
-                Application.SetSystemVariable("DIMBLK", oldArrName);
-            }
+            if (!string.IsNullOrEmpty(oldArrName)) Application.SetSystemVariable("DIMBLK", oldArrName);
 
-            BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
+            var bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
 
-            if (bt.Has(arrowName))
-            {
-                arrObjId = bt[arrowName];
-            }
+            if (bt.Has(arrowName)) arrObjId = bt[arrowName];
         }
 
         return arrObjId;
@@ -128,26 +110,20 @@ public static class StyleUtils
     /// </summary>
     public static string BuildStyleName(TextStyleTableRecord ts)
     {
-        string fontBase = ResolveBaseFontName(ts);
-        FontDescriptor font = ts.Font;
+        var fontBase = ResolveBaseFontName(ts);
+        var font = ts.Font;
 
-        string heightPart = ts.TextSize > 0
+        var heightPart = ts.TextSize > 0
             ? ts.TextSize.ToString("0.##", CultureInfo.InvariantCulture)
             : string.Empty;
 
-        string modifiers = (font.Bold ? "B" : string.Empty) + (font.Italic ? "I" : string.Empty);
+        var modifiers = (font.Bold ? "B" : string.Empty) + (font.Italic ? "I" : string.Empty);
 
-        string name = fontBase;
+        var name = fontBase;
 
-        if (heightPart.Length > 0)
-        {
-            name += "-" + heightPart;
-        }
+        if (heightPart.Length > 0) name += "-" + heightPart;
 
-        if (modifiers.Length > 0)
-        {
-            name += "-" + modifiers;
-        }
+        if (modifiers.Length > 0) name += "-" + modifiers;
 
         return string.IsNullOrWhiteSpace(name) ? "TextStyle" : name;
     }
@@ -170,17 +146,12 @@ public static class StyleUtils
     public static string MakeUnique(string candidate, HashSet<string> existing, string currentName)
     {
         if (!existing.Contains(candidate) || StringComparer.OrdinalIgnoreCase.Equals(candidate, currentName))
-        {
             return candidate;
-        }
 
-        for (int i = 2; i < 1000; i++)
+        for (var i = 2; i < 1000; i++)
         {
-            string suffixed = $"{candidate}_{i}";
-            if (!existing.Contains(suffixed))
-            {
-                return suffixed;
-            }
+            var suffixed = $"{candidate}_{i}";
+            if (!existing.Contains(suffixed)) return suffixed;
         }
 
         return candidate;

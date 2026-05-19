@@ -1,9 +1,7 @@
 using AutoBIMFusion.Common.Compatibility;
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Mist.AutoCAD;
-using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Runtime;
-
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
@@ -28,7 +26,7 @@ public class CotePoints
     public CotePoints(Points Points, string Altitude)
     {
         this.Points = Points;
-        this.Altitude = double.TryParse(Altitude, out double AltitudeDbl) ? AltitudeDbl : 0;
+        this.Altitude = double.TryParse(Altitude, out var AltitudeDbl) ? AltitudeDbl : 0;
     }
 
     public Points Points { get; }
@@ -55,11 +53,11 @@ public class CotePoints
 
     public static bool NullPointExit(CotePoints cotePoints)
     {
-        Document doc = AcadApp.DocumentManager.MdiActiveDocument;
-        Database db = doc.Database;
+        var doc = AcadApp.DocumentManager.MdiActiveDocument;
+        var db = doc.Database;
         if (cotePoints is null)
         {
-            using Transaction trx = db.TransactionManager.StartTransaction();
+            using var trx = db.TransactionManager.StartTransaction();
             HightLighter.UnhighlightAll();
             trx.Commit();
             return true;
@@ -70,18 +68,18 @@ public class CotePoints
 
     private static double GetCote(Points Origin)
     {
-        Database db = Generic.GetDatabase();
-        Editor ed = Generic.GetEditor();
+        var db = Generic.GetDatabase();
+        var ed = Generic.GetEditor();
 
         // Укажите место, где требуется указать точку
         DBPoint PointDrawingEntity = new(Origin.SCG);
 
         ObjectId PointDrawingEntityObjectId;
 
-        using (Transaction trx = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
-            BlockTable? acBlkTbl = trx.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-            BlockTableRecord acBlkTblRec = Generic.GetCurrentSpaceBlockTableRecord(trx);
+            var acBlkTbl = trx.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+            var acBlkTblRec = Generic.GetCurrentSpaceBlockTableRecord(trx);
 
             _ = acBlkTblRec.AppendEntity(PointDrawingEntity);
             trx.AddNewlyCreatedDBObject(PointDrawingEntity, true);
@@ -95,13 +93,13 @@ public class CotePoints
             AllowNone = false
         };
 
-        PromptDoubleResult PromptDoubleAltitudeResult = ed.GetDouble(PromptDoubleAltitudeOptions);
+        var PromptDoubleAltitudeResult = ed.GetDouble(PromptDoubleAltitudeOptions);
 
         //remove the point where the altitude is asked
         if (!PointDrawingEntityObjectId.IsErased)
         {
-            using Transaction trx = db.TransactionManager.StartTransaction();
-            DBObject obj = PointDrawingEntityObjectId.GetObject(OpenMode.ForWrite);
+            using var trx = db.TransactionManager.StartTransaction();
+            var obj = PointDrawingEntityObjectId.GetObject(OpenMode.ForWrite);
             obj.Erase(true);
             trx.Commit();
         }
@@ -111,33 +109,33 @@ public class CotePoints
 
     public static double? GetAltitudeFromBloc(ObjectId BlocObjectId)
     {
-        Database db = Generic.GetDatabase();
-        Autodesk.AutoCAD.DatabaseServices.TransactionManager trx = db.TransactionManager;
-        DBObject BlocObject = trx.GetObject(BlocObjectId, OpenMode.ForRead);
+        var db = Generic.GetDatabase();
+        var trx = db.TransactionManager;
+        var BlocObject = trx.GetObject(BlocObjectId, OpenMode.ForRead);
         return BlocObject is BlockReference blkRef ? GetAltitudeFromBloc(blkRef) : null;
     }
 
     public static double? GetAltitudeFromBloc(BlockReference blkRef)
     {
-        Database db = Generic.GetDatabase();
-        Autodesk.AutoCAD.DatabaseServices.TransactionManager trx = db.TransactionManager;
+        var db = Generic.GetDatabase();
+        var trx = db.TransactionManager;
 
         foreach (ObjectId AttributeObjectId in blkRef.AttributeCollection)
         {
-            AttributeReference Attribute = (AttributeReference)trx.GetObject(AttributeObjectId, OpenMode.ForRead, true);
+            var Attribute = (AttributeReference)trx.GetObject(AttributeObjectId, OpenMode.ForRead, true);
 
-            string textString = Attribute.TextString.Trim();
+            var textString = Attribute.TextString.Trim();
 
             if (textString.Contains('.'))
             {
-                if (double.TryParse(textString, out double Altimetrie))
+                if (double.TryParse(textString, out var Altimetrie))
                 {
                     Generic.WriteMessage($"Cote sélectionnée : {FormatAltitude(Altimetrie)}");
                     blkRef.RegisterHighlight();
                     return Altimetrie;
                 }
 
-                double? ExtractedAltitude = ExtractDoubleInStringFromPoint(textString);
+                var ExtractedAltitude = ExtractDoubleInStringFromPoint(textString);
 
                 if (ExtractedAltitude.HasValue)
                 {
@@ -152,8 +150,8 @@ public class CotePoints
 
     public static double? ExtractDoubleInStringFromPoint(string OriginalString)
     {
-        Document doc = AcadApp.DocumentManager.MdiActiveDocument;
-        Editor ed = doc.Editor;
+        var doc = AcadApp.DocumentManager.MdiActiveDocument;
+        var ed = doc.Editor;
 
         if (OriginalString.Contains("%"))
         {
@@ -162,13 +160,13 @@ public class CotePoints
             return null;
         }
 
-        int[] StringPointPosition = OriginalString.AllIndexesOf(".").ToArray();
-        string NumberValueBeforePoint = "";
-        string NumberValueAfterPoint = "";
+        var StringPointPosition = OriginalString.AllIndexesOf(".").ToArray();
+        var NumberValueBeforePoint = "";
+        var NumberValueAfterPoint = "";
 
-        foreach (int index in StringPointPosition)
+        foreach (var index in StringPointPosition)
         {
-            int n = index;
+            var n = index;
             while (n > 0 && char.IsDigit(OriginalString[n - 1]))
             {
                 NumberValueBeforePoint = OriginalString[n - 1] + NumberValueBeforePoint;
@@ -183,13 +181,11 @@ public class CotePoints
             }
 
             if (string.IsNullOrWhiteSpace(NumberValueBeforePoint) || string.IsNullOrWhiteSpace(NumberValueAfterPoint))
-            {
                 //Not sure if this is a cote
                 return null;
-            }
 
-            string FinalNumberString = $"{NumberValueBeforePoint}.{NumberValueAfterPoint}";
-            bool IsValidNumber = double.TryParse(FinalNumberString, out double FinalNumberDouble);
+            var FinalNumberString = $"{NumberValueBeforePoint}.{NumberValueAfterPoint}";
+            var IsValidNumber = double.TryParse(FinalNumberString, out var FinalNumberDouble);
             if (IsValidNumber)
             {
                 ed.WriteMessage($"Côte détéctée : {FinalNumberString}\n");
@@ -207,30 +203,24 @@ public class CotePoints
     public static CotePoints GetBlockInXref(string Message, Point3d? NonInterractivePickedPoint,
         out PromptStatus PromptStatus)
     {
-        Editor ed = Generic.GetEditor();
+        var ed = Generic.GetEditor();
         BlockReference blkRef = null;
         List<ObjectId> XrefObjectId;
 
-        (ObjectId[] XrefObjectId, ObjectId SelectedObjectId, PromptStatus PromptStatus) XrefSelection = SelectInXref.Select(Message, NonInterractivePickedPoint);
+        var XrefSelection = SelectInXref.Select(Message, NonInterractivePickedPoint);
         XrefObjectId = XrefSelection.XrefObjectId.ToList();
         PromptStatus = XrefSelection.PromptStatus;
-        if (XrefSelection.PromptStatus != PromptStatus.OK)
-        {
-            return Null;
-        }
+        if (XrefSelection.PromptStatus != PromptStatus.OK) return Null;
 
-        if (XrefSelection.SelectedObjectId == ObjectId.Null)
-        {
-            return Null;
-        }
+        if (XrefSelection.SelectedObjectId == ObjectId.Null) return Null;
 
         HightLighter.UnhighlightAll();
         XrefSelection.SelectedObjectId.RegisterHighlight();
-        DBObject XrefObject = XrefSelection.SelectedObjectId.GetDBObject();
+        var XrefObject = XrefSelection.SelectedObjectId.GetDBObject();
 
         if (XrefObject is AttributeReference blkChildAttribute)
         {
-            DBObject DbObj = blkChildAttribute.OwnerId.GetDBObject();
+            var DbObj = blkChildAttribute.OwnerId.GetDBObject();
             blkRef = DbObj as BlockReference;
         }
         else if (XrefObject is BlockReference XrefObjectBlkRef)
@@ -239,7 +229,7 @@ public class CotePoints
         }
         else
         {
-            foreach (ObjectId objId in XrefSelection.XrefObjectId)
+            foreach (var objId in XrefSelection.XrefObjectId)
             {
                 _ = XrefObjectId.Remove(objId);
                 XrefObject = objId.GetDBObject();
@@ -252,32 +242,24 @@ public class CotePoints
             }
         }
 
-        if (blkRef is null)
-        {
-            return Null;
-        }
+        if (blkRef is null) return Null;
 
-        double? Altimetrie = GetAltitudeFromBloc(blkRef);
-        Points BlockPosition = SelectInXref.TransformPointInXrefsToCurrent(blkRef.Position, XrefObjectId.ToArray());
+        var Altimetrie = GetAltitudeFromBloc(blkRef);
+        var BlockPosition = SelectInXref.TransformPointInXrefsToCurrent(blkRef.Position, XrefObjectId.ToArray());
 
         if (Altimetrie == null)
         {
             Altimetrie = blkRef.Position.Z;
-            if (Altimetrie == 0)
-            {
-                return new CotePoints(BlockPosition, 0);
-            }
+            if (Altimetrie == 0) return new CotePoints(BlockPosition, 0);
 
             PromptKeywordOptions options = new(
                 $"Aucune cote n'a été trouvée pour ce bloc, cependant une altitude Z a été définie à {FormatAltitude(Altimetrie)}. Voulez-vous utiliser cette valeur ?\n");
             options.Keywords.Add("OUI");
             options.Keywords.Add("NON");
             options.AllowNone = true;
-            PromptResult result = ed.GetKeywords(options);
+            var result = ed.GetKeywords(options);
             if (result.Status == PromptStatus.OK && result.StringResult != "OUI")
-            {
                 return new CotePoints(BlockPosition, 0);
-            }
         }
 
         return new CotePoints(BlockPosition, Altimetrie ?? 0);
@@ -285,16 +267,16 @@ public class CotePoints
 
     private static CotePoints GetBloc(string Message)
     {
-        Database db = Generic.GetDatabase();
-        Editor ed = Generic.GetEditor();
+        var db = Generic.GetDatabase();
+        var ed = Generic.GetEditor();
 
         while (true)
         {
-            using Transaction trx = db.TransactionManager.StartTransaction();
+            using var trx = db.TransactionManager.StartTransaction();
             //list of available SelectionFilter : https://help.autodesk.com/view/ACD/2018/ENU/?guid=GUID-7D07C886-FD1D-4A0C-A7AB-B4D21F18E484
-            TypedValue[] EntitiesGroupCodesList = new TypedValue[1] { new((int)DxfCode.Start, "INSERT") };
+            var EntitiesGroupCodesList = new TypedValue[1] { new((int)DxfCode.Start, "INSERT") };
             SelectionFilter SelectionEntitiesFilter = new(EntitiesGroupCodesList);
-            string PromptSelectionKeyWordString = nameof(SelectionPointsType.Points).CapitalizeFirstLetters(2);
+            var PromptSelectionKeyWordString = nameof(SelectionPointsType.Points).CapitalizeFirstLetters(2);
             PromptEntityOptions PromptBlocSelectionOptions = new($"{Message} [{PromptSelectionKeyWordString}]")
             {
                 AllowNone = false,
@@ -322,16 +304,16 @@ public class CotePoints
                 SelectedObject = PromptBlocSelectionResult.ObjectId.GetEntity();
             } while (SelectedObject is not BlockReference);
 
-            BlockReference? blockReference = SelectedObject as BlockReference;
-            ObjectId SelectedBlocObjectId = blockReference.ObjectId;
-            double? Altitude = GetAltitudeFromBloc(SelectedBlocObjectId);
+            var blockReference = SelectedObject as BlockReference;
+            var SelectedBlocObjectId = blockReference.ObjectId;
+            var Altitude = GetAltitudeFromBloc(SelectedBlocObjectId);
             Points CoteLocation = new(blockReference.Position);
 
             if (blockReference.IsXref())
             {
-                CotePoints? CotePoint = GetBlockInXref(string.Empty, PromptBlocSelectionResult.PickedPoint, out _);
-                bool IsCotePointNotNull = CotePoint != Null;
-                bool IsAltimetrieDefined = (CotePoint?.Altitude ?? 0) != 0;
+                var CotePoint = GetBlockInXref(string.Empty, PromptBlocSelectionResult.PickedPoint, out _);
+                var IsCotePointNotNull = CotePoint != Null;
+                var IsAltimetrieDefined = (CotePoint?.Altitude ?? 0) != 0;
                 if (IsCotePointNotNull && IsAltimetrieDefined)
                 {
                     PromptKeywordOptions AskKeepXREFCoteValuesOptions = new(
@@ -340,7 +322,7 @@ public class CotePoints
                     AskKeepXREFCoteValuesOptions.Keywords.Add("Non");
                     AskKeepXREFCoteValuesOptions.Keywords.Default = "Oui";
                     AskKeepXREFCoteValuesOptions.AllowNone = true;
-                    PromptResult AskKeepXREFCoteValues = ed.GetKeywords(AskKeepXREFCoteValuesOptions);
+                    var AskKeepXREFCoteValues = ed.GetKeywords(AskKeepXREFCoteValuesOptions);
                     if ((AskKeepXREFCoteValues.Status == PromptStatus.OK &&
                          AskKeepXREFCoteValues.StringResult == "Oui") ||
                         AskKeepXREFCoteValues.Status == PromptStatus.None)
@@ -365,7 +347,7 @@ public class CotePoints
 
     public static CotePoints GetCotePoints(string Message, Points Origin)
     {
-        Editor ed = Generic.GetEditor();
+        var ed = Generic.GetEditor();
         PromptPointOptions PromptPointOptions =
             new($"{Message} [{SelectionPointsType.Bloc}]\n", nameof(SelectionPointsType.Bloc));
 
@@ -381,11 +363,11 @@ public class CotePoints
         do
         {
             IsLooping = false;
-            SelectionPointsType SelectionPointsType = GetSelectionPointsType();
+            var SelectionPointsType = GetSelectionPointsType();
 
             if (SelectionPointsType == SelectionPointsType.Points)
             {
-                PromptPointResult PromptPointResult = ed.GetPoint(PromptPointOptions);
+                var PromptPointResult = ed.GetPoint(PromptPointOptions);
                 if (PromptPointResult.Status == PromptStatus.Keyword)
                 {
                     SaveSelectionPointsType(SelectionPointsType.Bloc);
@@ -395,21 +377,20 @@ public class CotePoints
 
                 if (PromptPointResult.Status == PromptStatus.OK)
                 {
-                    Points CotePoint = Points.GetFromPromptPointResult(PromptPointResult);
-                    double Altitude = GetCote(CotePoint);
+                    var CotePoint = Points.GetFromPromptPointResult(PromptPointResult);
+                    var Altitude = GetCote(CotePoint);
                     return new CotePoints(CotePoint, Altitude);
                 }
             }
 
             if (SelectionPointsType == SelectionPointsType.Bloc)
-            {
                 try
                 {
                     return GetBloc(Message);
                 }
                 catch (Exception ex)
                 {
-                    Exception AutEx = ex;
+                    var AutEx = ex;
                     if (AutEx.ErrorStatus == ErrorStatus.OK &&
                         ex.Message.IgnoreCaseEquals(nameof(SelectionPointsType.Points)))
                     {
@@ -421,7 +402,6 @@ public class CotePoints
                         throw;
                     }
                 }
-            }
         } while (IsLooping);
 
         return Null;

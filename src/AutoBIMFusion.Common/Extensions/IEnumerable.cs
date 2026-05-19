@@ -10,9 +10,6 @@ public static class IEnumerableExtensions
     /// <param name="action">The action.</param>
     public static void ForEach<T>(this IEnumerable<T> source, Action<T> action)
     {
-        foreach (T? element in source)
-        {
-            action(element);
-        }
+        foreach (var element in source) action(element);
     }
 }

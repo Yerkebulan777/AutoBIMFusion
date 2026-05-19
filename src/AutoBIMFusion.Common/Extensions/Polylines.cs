@@ -1,7 +1,7 @@
+using System.Diagnostics;
 using AutoBIMFusion.Common.Mist;
 using AutoBIMFusion.Common.Mist.Geometry;
 using AutoBIMFusion.Common.Mist.Geometry.PolygonOperations;
-using System.Diagnostics;
 
 namespace AutoBIMFusion.Common.Extensions;
 
@@ -16,16 +16,10 @@ public static class PolylinesExtensions
 
     public static int GetReelNumberOfVertices(this Polyline TargetPolyline)
     {
-        if (TargetPolyline?.IsDisposed == true)
-        {
-            return 0;
-        }
+        if (TargetPolyline?.IsDisposed == true) return 0;
 
-        int NumberOfVertices = TargetPolyline.NumberOfVertices - 1;
-        if (TargetPolyline.Closed)
-        {
-            NumberOfVertices++;
-        }
+        var NumberOfVertices = TargetPolyline.NumberOfVertices - 1;
+        if (TargetPolyline.Closed) NumberOfVertices++;
 
         return NumberOfVertices;
     }
@@ -33,38 +27,32 @@ public static class PolylinesExtensions
     public static Polyline GetPolylineFromPoints(this IEnumerable<Points> listOfPoints)
     {
         Polyline polyline = new();
-        foreach (Points point in listOfPoints)
-        {
+        foreach (var point in listOfPoints)
             polyline.AddVertexAt(polyline.NumberOfVertices, point.SCG.ToPoint2d(), 0, 0, 0);
-        }
 
         return polyline;
     }
 
     public static PolylineSide CheckPointSide(this Polyline BasePolyline, Point3d TargetPoint)
     {
-        for (int segmentIndex = 0; segmentIndex < BasePolyline.NumberOfVertices - 1; segmentIndex++)
+        for (var segmentIndex = 0; segmentIndex < BasePolyline.NumberOfVertices - 1; segmentIndex++)
         {
-            Point3d startPoint = BasePolyline.GetPoint3dAt(segmentIndex);
-            Point3d endPoint = BasePolyline.GetPoint3dAt(segmentIndex + 1);
+            var startPoint = BasePolyline.GetPoint3dAt(segmentIndex);
+            var endPoint = BasePolyline.GetPoint3dAt(segmentIndex + 1);
 
             Vector2d polylineVector = new(endPoint.X - startPoint.X, endPoint.Y - startPoint.Y);
             Vector2d pointVector = new(TargetPoint.X - startPoint.X, TargetPoint.Y - startPoint.Y);
 
             //cross product
-            double crossProduct = (polylineVector.X * pointVector.Y) - (polylineVector.Y * pointVector.X);
+            var crossProduct = polylineVector.X * pointVector.Y - polylineVector.Y * pointVector.X;
 
             if (crossProduct < 0)
-            {
                 //left
                 return PolylineSide.Left;
-            }
 
             if (crossProduct > 0)
-            {
                 // Right
                 return PolylineSide.Right;
-            }
         }
 
         //collinear
@@ -87,10 +75,10 @@ public static class PolylinesExtensions
         if (polyline.Normal == Vector3d.ZAxis.MultiplyBy(-1))
         {
             Debug.WriteLine("Correction de la normal d'une polyline");
-            for (int i = 0; i < polyline.NumberOfVertices; i++)
+            for (var i = 0; i < polyline.NumberOfVertices; i++)
             {
                 //var acPlArc = acPlLwObj.GetArcSegmentAt(i);
-                Point3d acPl3DPoint = polyline.GetPoint3dAt(i);
+                var acPl3DPoint = polyline.GetPoint3dAt(i);
                 Point2d acPl2DPointNew = new(acPl3DPoint.X, acPl3DPoint.Y);
                 polyline.SetPointAt(i, acPl2DPointNew);
                 polyline.SetBulgeAt(i, -polyline.GetBulgeAt(i));
@@ -105,9 +93,9 @@ public static class PolylinesExtensions
 
     public static void Flatten(this Polyline polyline)
     {
-        for (int i = 0; i < polyline.NumberOfVertices; i++)
+        for (var i = 0; i < polyline.NumberOfVertices; i++)
         {
-            Point3d acPl3DPoint = polyline.GetPoint3dAt(i);
+            var acPl3DPoint = polyline.GetPoint3dAt(i);
             Point2d acPl2DPointNew = new(acPl3DPoint.X, acPl3DPoint.Y);
             polyline.SetPointAt(i, acPl2DPointNew);
         }
@@ -115,21 +103,18 @@ public static class PolylinesExtensions
 
     public static bool HasAngle(this Polyline TargetPolyline, double DegreesTolerance)
     {
-        for (int i = 0; i < TargetPolyline.NumberOfVertices - 2; i++)
+        for (var i = 0; i < TargetPolyline.NumberOfVertices - 2; i++)
         {
-            Point2d pt1 = TargetPolyline.GetPoint2dAt(i);
-            Point2d pt2 = TargetPolyline.GetPoint2dAt(i + 1);
-            Point2d pt3 = TargetPolyline.GetPoint2dAt(i + 2);
+            var pt1 = TargetPolyline.GetPoint2dAt(i);
+            var pt2 = TargetPolyline.GetPoint2dAt(i + 1);
+            var pt3 = TargetPolyline.GetPoint2dAt(i + 2);
 
-            Vector2d v1 = pt2 - pt1;
-            Vector2d v2 = pt3 - pt2;
+            var v1 = pt2 - pt1;
+            var v2 = pt3 - pt2;
 
-            double angle = v1.GetAngleTo(v2) * (180.0 / PI);
+            var angle = v1.GetAngleTo(v2) * (180.0 / PI);
 
-            if (Abs(angle - 180) > DegreesTolerance)
-            {
-                return true;
-            }
+            if (Abs(angle - 180) > DegreesTolerance) return true;
         }
 
         return false;
@@ -138,48 +123,33 @@ public static class PolylinesExtensions
     public static (Point3d StartPoint, Point3d EndPoint, double Bulge) GetSegmentAt(this Polyline TargetPolyline,
         int Index)
     {
-        int NumberOfVertices = TargetPolyline.NumberOfVertices;
-        double Bulge = TargetPolyline.GetBulgeAt(Index);
-        Point3d PolylineSegmentStart = TargetPolyline.GetPoint3dAt(Index);
+        var NumberOfVertices = TargetPolyline.NumberOfVertices;
+        var Bulge = TargetPolyline.GetBulgeAt(Index);
+        var PolylineSegmentStart = TargetPolyline.GetPoint3dAt(Index);
         Index++;
-        if (Index >= NumberOfVertices)
-        {
-            Index = 0;
-        }
+        if (Index >= NumberOfVertices) Index = 0;
 
-        Point3d PolylineSegmentEnd = TargetPolyline.GetPoint3dAt(Index);
+        var PolylineSegmentEnd = TargetPolyline.GetPoint3dAt(Index);
         return (PolylineSegmentStart, PolylineSegmentEnd, Bulge);
     }
 
     public static double GetArea(this Polyline pline)
     {
-        double area = 0.0;
-        if (pline.NumberOfVertices == 0)
-        {
-            return area;
-        }
+        var area = 0.0;
+        if (pline.NumberOfVertices == 0) return area;
 
-        int last = pline.NumberOfVertices - 1;
-        Point2d p0 = pline.GetPoint2dAt(0);
+        var last = pline.NumberOfVertices - 1;
+        var p0 = pline.GetPoint2dAt(0);
 
-        if (pline.GetBulgeAt(0) != 0.0)
-        {
-            area += pline.GetArcSegment2dAt(0).GetArea();
-        }
+        if (pline.GetBulgeAt(0) != 0.0) area += pline.GetArcSegment2dAt(0).GetArea();
 
-        for (int i = 1; i < last; i++)
+        for (var i = 1; i < last; i++)
         {
             area += p0.GetArea(pline.GetPoint2dAt(i), pline.GetPoint2dAt(i + 1));
-            if (pline.GetBulgeAt(i) != 0.0)
-            {
-                area += pline.GetArcSegment2dAt(i).GetArea();
-            }
+            if (pline.GetBulgeAt(i) != 0.0) area += pline.GetArcSegment2dAt(i).GetArea();
         }
 
-        if (pline.GetBulgeAt(last) != 0.0 && pline.Closed)
-        {
-            area += pline.GetArcSegment2dAt(last).GetArea();
-        }
+        if (pline.GetBulgeAt(last) != 0.0 && pline.Closed) area += pline.GetArcSegment2dAt(last).GetArea();
 
         return area;
     }
@@ -187,9 +157,9 @@ public static class PolylinesExtensions
     public static DBObjectCollection BreakAt(this Polyline poly, params Point3d[] points)
     {
         DoubleCollection DblCollection = [];
-        foreach (Point3d point in points)
+        foreach (var point in points)
         {
-            double param = poly.GetParamAtPointX(point);
+            var param = poly.GetParamAtPointX(point);
             _ = DblCollection.Add(param);
             _ = DblCollection.Add(param);
         }
@@ -199,15 +169,12 @@ public static class PolylinesExtensions
 
     public static void CleanupPolylines(this IEnumerable<Polyline> ListOfPolyline)
     {
-        foreach (Polyline Line in ListOfPolyline)
-        {
-            Line.Cleanup();
-        }
+        foreach (var Line in ListOfPolyline) Line.Cleanup();
     }
 
     public static void Cleanup(this Polyline polyline)
     {
-        int InverseCount = 0;
+        var InverseCount = 0;
 
         void InversePoly()
         {
@@ -215,51 +182,43 @@ public static class PolylinesExtensions
             polyline.Inverse();
         }
 
-        if (polyline == null)
-        {
-            return;
-        }
+        if (polyline == null) return;
 
-        int vertexCount = polyline.NumberOfVertices;
-        if (vertexCount <= 2)
-        {
-            return;
-        }
+        var vertexCount = polyline.NumberOfVertices;
+        if (vertexCount <= 2) return;
 
-        bool HasAVertexRemoved = true;
+        var HasAVertexRemoved = true;
         while (HasAVertexRemoved)
         {
             InversePoly();
             HasAVertexRemoved = false;
-            int index = 1;
+            var index = 1;
             while (polyline.GetReelNumberOfVertices() > index)
             {
-                Point3d lastPoint = polyline.GetPoint3dAt(index - 1);
-                Point3d currentPoint = polyline.GetPoint3dAt(index);
-                Point3d nextPoint = polyline.NumberOfVertices <= index + 1 ? polyline.StartPoint : polyline.GetPoint3dAt(index + 1);
-                Vector2d vector1 = currentPoint.GetVectorTo(lastPoint).ToVector2d();
-                Vector2d vector2 = nextPoint.GetVectorTo(currentPoint).ToVector2d();
+                var lastPoint = polyline.GetPoint3dAt(index - 1);
+                var currentPoint = polyline.GetPoint3dAt(index);
+                var nextPoint = polyline.NumberOfVertices <= index + 1
+                    ? polyline.StartPoint
+                    : polyline.GetPoint3dAt(index + 1);
+                var vector1 = currentPoint.GetVectorTo(lastPoint).ToVector2d();
+                var vector2 = nextPoint.GetVectorTo(currentPoint).ToVector2d();
 
-                bool IsColinear = vector1.IsColinear(vector2, Generic.MediumTolerance) && vector1.Length > 0;
-                bool HasBulgeLast = polyline.GetSegmentType(index - 1) == SegmentType.Arc;
-                bool HasBulge = polyline.GetSegmentType(index) == SegmentType.Arc;
-                bool IsDuplicateVertex = currentPoint.IsEqualTo(nextPoint, Generic.LowTolerance);
+                var IsColinear = vector1.IsColinear(vector2, Generic.MediumTolerance) && vector1.Length > 0;
+                var HasBulgeLast = polyline.GetSegmentType(index - 1) == SegmentType.Arc;
+                var HasBulge = polyline.GetSegmentType(index) == SegmentType.Arc;
+                var IsDuplicateVertex = currentPoint.IsEqualTo(nextPoint, Generic.LowTolerance);
                 if (IsColinear || IsDuplicateVertex)
                 {
                     if (HasBulge && HasBulgeLast)
                     {
-                        double lastBulge = polyline.GetBulgeAt(index - 1);
-                        double curBulge = polyline.GetBulgeAt(index);
+                        var lastBulge = polyline.GetBulgeAt(index - 1);
+                        var curBulge = polyline.GetBulgeAt(index);
                         if (Abs(Abs(lastBulge) - Abs(curBulge)) < Generic.MediumTolerance.EqualVector)
                         {
                             if (index == 1 && IsColinear && Abs(vector1.Angle - vector2.Angle) >= PI)
-                            {
                                 polyline.RemoveVertexAt(index - 1);
-                            }
                             else
-                            {
                                 polyline.RemoveVertexAt(index);
-                            }
 
                             HasAVertexRemoved = true;
                         }
@@ -282,10 +241,9 @@ public static class PolylinesExtensions
 
             index = 0;
             while (index < polyline.GetReelNumberOfVertices())
-            {
                 try
                 {
-                    (Point3d StartPoint, Point3d EndPoint, double Bulge) = polyline.GetSegmentAt(index);
+                    var (StartPoint, EndPoint, Bulge) = polyline.GetSegmentAt(index);
                     if (StartPoint.IsEqualTo(EndPoint, Generic.LowTolerance))
                     {
                         polyline.RemoveVertexAt(index);
@@ -300,22 +258,16 @@ public static class PolylinesExtensions
                 {
                     index++;
                 }
-            }
         }
 
-        if (InverseCount % 2 != 0)
-        {
-            InversePoly();
-        }
+        if (InverseCount % 2 != 0) InversePoly();
 
         if (!polyline.Closed && polyline.StartPoint.IsEqualTo(polyline.EndPoint, Generic.LowTolerance))
-        {
             if (polyline.NumberOfVertices > 3)
             {
                 polyline.RemoveVertexAt(polyline.NumberOfVertices - 1);
                 polyline.Closed = true;
             }
-        }
     }
 
     public static void Inverse(this Polyline poly)
@@ -333,10 +285,7 @@ public static class PolylinesExtensions
 
     public static IEnumerable<Point2d> GetPolyPoints(this Polyline poly)
     {
-        for (int i = 0; i < poly.NumberOfVertices; i++)
-        {
-            yield return poly.GetPoint2dAt(i);
-        }
+        for (var i = 0; i < poly.NumberOfVertices; i++) yield return poly.GetPoint2dAt(i);
     }
 
     public static Spline GetSpline(this Polyline pline)
@@ -351,7 +300,7 @@ public static class PolylinesExtensions
             }
             else
             {
-                using Spline spl = (Spline)Curve.CreateFromGeCurve(nurb);
+                using var spl = (Spline)Curve.CreateFromGeCurve(nurb);
                 try
                 {
                     spline.JoinEntity(spl);
@@ -363,8 +312,7 @@ public static class PolylinesExtensions
             }
         }
 
-        for (int i = 0; i < pline.NumberOfVertices; i++)
-        {
+        for (var i = 0; i < pline.NumberOfVertices; i++)
             switch (pline.GetSegmentType(i))
             {
                 case SegmentType.Line:
@@ -374,7 +322,6 @@ public static class PolylinesExtensions
                     CreateSpline(new NurbCurve3d(pline.GetArcSegmentAt(i).GetEllipticalArc()));
                     break;
             }
-        }
 
         return spline;
     }
@@ -383,33 +330,29 @@ public static class PolylinesExtensions
     {
         if (poly.HasBulges)
         {
-            uint NumberOfVertex = (uint)poly.GetReelNumberOfVertices();
-            for (int i = 0; i < poly.GetReelNumberOfVertices(); i++)
-            {
+            var NumberOfVertex = (uint)poly.GetReelNumberOfVertices();
+            for (var i = 0; i < poly.GetReelNumberOfVertices(); i++)
                 if (poly.GetSegmentType(i) == SegmentType.Arc)
-                {
                     NumberOfVertex += NumberOfVertexPerArc;
-                }
-            }
 
             Polyline NewPoly = new();
 
-            for (int VerticeIndex = 0; VerticeIndex < poly.NumberOfVertices; VerticeIndex++)
+            for (var VerticeIndex = 0; VerticeIndex < poly.NumberOfVertices; VerticeIndex++)
             {
-                Point3d CurrentPoint = poly.GetPoint3dAt(VerticeIndex);
+                var CurrentPoint = poly.GetPoint3dAt(VerticeIndex);
                 NewPoly.AddVertex(CurrentPoint);
                 if (poly.GetSegmentType(VerticeIndex) == SegmentType.Line)
                 {
                 }
                 else if (poly.GetSegmentType(VerticeIndex) == SegmentType.Arc)
                 {
-                    CircularArc3d Segment = poly.GetArcSegmentAt(VerticeIndex);
-                    using Curve Arc = Segment.ToCircleOrArc();
-                    double ReelNumberOfVertex = NumberOfVertexPerArc * Max(Abs(poly.GetBulgeAt(VerticeIndex)), 1);
-                    double Interval = (Arc.EndParam - Arc.StartParam) / (ReelNumberOfVertex + 1);
-                    for (int NumberOfInterval = 1; NumberOfInterval < ReelNumberOfVertex + 1; NumberOfInterval++)
+                    var Segment = poly.GetArcSegmentAt(VerticeIndex);
+                    using var Arc = Segment.ToCircleOrArc();
+                    var ReelNumberOfVertex = NumberOfVertexPerArc * Max(Abs(poly.GetBulgeAt(VerticeIndex)), 1);
+                    var Interval = (Arc.EndParam - Arc.StartParam) / (ReelNumberOfVertex + 1);
+                    for (var NumberOfInterval = 1; NumberOfInterval < ReelNumberOfVertex + 1; NumberOfInterval++)
                     {
-                        Point3d Pt = Arc.GetPointAtParam(Arc.StartParam + (Interval * NumberOfInterval));
+                        var Pt = Arc.GetPointAtParam(Arc.StartParam + Interval * NumberOfInterval);
                         NewPoly.AddVertex(Pt);
                     }
                 }
@@ -431,7 +374,7 @@ public static class PolylinesExtensions
     /// <returns>The bulge.</returns>
     public static double GetBulgeBetween(this Polyline poly, double startParam, double endParam)
     {
-        double total = poly.GetBulgeAt((int)Floor(startParam));
+        var total = poly.GetBulgeAt((int)Floor(startParam));
         return (endParam - startParam) * total;
     }
 
@@ -456,29 +399,22 @@ public static class PolylinesExtensions
     public static void AddVertexIfNotExist(this Polyline Poly, Point3d point, double bulge = 0, double startWidth = 0,
         double endWidth = 0)
     {
-        for (int i = 0; i < Poly.NumberOfVertices; i++)
-        {
+        for (var i = 0; i < Poly.NumberOfVertices; i++)
             if (Poly.GetPoint3dAt(i) == point)
-            {
                 return;
-            }
-        }
 
         Poly.AddVertex(point, bulge, startWidth, endWidth);
     }
 
     public static bool IsClockwise(this Polyline poly)
     {
-        if (poly.NumberOfVertices < 2)
-        {
-            return false;
-        }
+        if (poly.NumberOfVertices < 2) return false;
 
-        double area = 0.0;
-        for (int i = 0; i < poly.NumberOfVertices; i++)
+        var area = 0.0;
+        for (var i = 0; i < poly.NumberOfVertices; i++)
         {
-            Point2d p1 = poly.GetPoint2dAt(i);
-            Point2d p2 = poly.GetPoint2dAt((i + 1) % poly.NumberOfVertices);
+            var p1 = poly.GetPoint2dAt(i);
+            var p2 = poly.GetPoint2dAt((i + 1) % poly.NumberOfVertices);
             area += (p2.X - p1.X) * (p2.Y + p1.Y);
         }
 
@@ -492,15 +428,12 @@ public static class PolylinesExtensions
     /// <param name="poly1">The other polyline.</param>
     public static void JoinPolyline(this Polyline poly, Polyline poly1)
     {
-        int index = poly.GetPolyPoints().Count();
-        int index1 = 0;
-        IEnumerable<Point3d> Points = poly1.GetPoints();
-        if (!poly.IsWriteEnabled)
-        {
-            poly.UpgradeOpen();
-        }
+        var index = poly.GetPolyPoints().Count();
+        var index1 = 0;
+        var Points = poly1.GetPoints();
+        if (!poly.IsWriteEnabled) poly.UpgradeOpen();
 
-        foreach (Point3d point in Points)
+        foreach (var point in Points)
         {
             poly.AddVertexAt(index, point.ToPoint2d(), poly1.GetBulgeAt(index1), 0, 0);
             index++;
@@ -514,13 +447,11 @@ public static class PolylinesExtensions
         {
             Polyline poly2d = new();
             foreach (PolylineVertex3d vertex in poly3d)
-            {
                 if (vertex != null)
                 {
                     Point2d point = new(vertex.Position.X, vertex.Position.Y);
                     poly2d.AddVertexAt(poly2d.NumberOfVertices, point, 0, 0, 0);
                 }
-            }
 
             poly2d.Closed = poly3d.Closed;
             return poly2d;
@@ -538,7 +469,7 @@ public static class PolylinesExtensions
     {
         if (poly2d.PolyType is Poly2dType.QuadSplinePoly or Poly2dType.CubicSplinePoly)
         {
-            Spline Spline = poly2d.Spline;
+            var Spline = poly2d.Spline;
             return Spline.ToPolyline() as Polyline;
         }
 
@@ -554,18 +485,15 @@ public static class PolylinesExtensions
 
     public static IEnumerable<Polyline> SmartOffset(this Polyline ArgPoly, double ShrinkDistance)
     {
-        using Polyline? poly = ArgPoly.Clone() as Polyline;
-        if (poly.Area <= Generic.MediumTolerance.EqualPoint)
-        {
-            return Array.Empty<Polyline>();
-        }
+        using var poly = ArgPoly.Clone() as Polyline;
+        if (poly.Area <= Generic.MediumTolerance.EqualPoint) return Array.Empty<Polyline>();
 
         poly.Closed = true;
 
         //Forcing close can result in weird point, we need to cleanup these before executing a offset
         poly.Cleanup();
 
-        IEnumerable<Polyline> OffsetResult = InternalSmartOffset(poly);
+        var OffsetResult = InternalSmartOffset(poly);
         if (!OffsetResult.Any())
         {
             poly.Inverse();
@@ -577,27 +505,24 @@ public static class PolylinesExtensions
         IEnumerable<Polyline> InternalSmartOffset(Polyline InternalPoly)
         {
             // UseOffsetGapTypeCurrentValue need to be 0 to avoid rouded corners
-            List<Polyline> OffsetPolylineResult = InternalPoly.OffsetPolyline(ShrinkDistance, false).Cast<Polyline>().ToList();
+            var OffsetPolylineResult = InternalPoly.OffsetPolyline(ShrinkDistance, false).Cast<Polyline>().ToList();
 
             if (OffsetPolylineResult.Count == 0)
             {
                 //If OffsetPolyline result in no geometry, we need to fix the polyline first : custom cleanup
-                bool HasVertexRemoved = true;
+                var HasVertexRemoved = true;
                 while (HasVertexRemoved)
                 {
                     HasVertexRemoved = false;
-                    int index = 0;
+                    var index = 0;
                     while (index < InternalPoly.GetReelNumberOfVertices())
                     {
-                        Point2d CurrentPoint = InternalPoly.GetPoint2dAt(index);
-                        int nextPoint = index + 1;
-                        if (nextPoint >= InternalPoly.GetReelNumberOfVertices())
-                        {
-                            nextPoint = 0;
-                        }
+                        var CurrentPoint = InternalPoly.GetPoint2dAt(index);
+                        var nextPoint = index + 1;
+                        if (nextPoint >= InternalPoly.GetReelNumberOfVertices()) nextPoint = 0;
 
-                        Point2d NextPoint = InternalPoly.GetPoint2dAt(nextPoint);
-                        double DistanceBetween = CurrentPoint.GetDistanceTo(NextPoint);
+                        var NextPoint = InternalPoly.GetPoint2dAt(nextPoint);
+                        var DistanceBetween = CurrentPoint.GetDistanceTo(NextPoint);
                         if (InternalPoly.GetSegmentType(index) == SegmentType.Line)
                         {
                             //Small line that we cant offset;
@@ -610,15 +535,15 @@ public static class PolylinesExtensions
                         else if (InternalPoly.GetSegmentType(index) == SegmentType.Arc)
                         {
                             //If there is 0.2 with gap, that mean previous offset generated Arc, we need to remove those.
-                            CircularArc3d Segment = InternalPoly.GetArcSegmentAt(index);
+                            var Segment = InternalPoly.GetArcSegmentAt(index);
                             //Multiply by 2 + 5% of error margin
                             if (DistanceBetween <= Abs(ShrinkDistance) * 2.05)
                             {
-                                using Curve Arc = Segment.ToCircleOrArc();
-                                Point3d ArcMidPoint = Arc.GetPointAtParam((Arc.StartParam + Arc.EndParam) / 2);
-                                Point3d SegMidPoint = CurrentPoint.GetMiddlePoint(NextPoint);
+                                using var Arc = Segment.ToCircleOrArc();
+                                var ArcMidPoint = Arc.GetPointAtParam((Arc.StartParam + Arc.EndParam) / 2);
+                                var SegMidPoint = CurrentPoint.GetMiddlePoint(NextPoint);
 
-                                Point3d NewPoint = ArcMidPoint.TransformBy(Matrix3d.Displacement(SegMidPoint
+                                var NewPoint = ArcMidPoint.TransformBy(Matrix3d.Displacement(SegMidPoint
                                     .GetVectorTo(ArcMidPoint).SetLength(Abs(ShrinkDistance * 100))));
 
                                 InternalPoly.SetBulgeAt(index, 0);
@@ -637,15 +562,12 @@ public static class PolylinesExtensions
                 OffsetPolylineResult = InternalPoly.OffsetPolyline(ShrinkDistance, false).Cast<Polyline>().ToList();
             }
 
-            List<Curve> OffsetMergedPolylineResult = OffsetPolylineResult.JoinMerge();
+            var OffsetMergedPolylineResult = OffsetPolylineResult.JoinMerge();
             OffsetPolylineResult.DeepDispose();
-            List<Polyline> ReturnOffsetMergedPolylineResult = OffsetMergedPolylineResult.Cast<Polyline>()
+            var ReturnOffsetMergedPolylineResult = OffsetMergedPolylineResult.Cast<Polyline>()
                 .Where(p => p?.Closed == true && p.NumberOfVertices >= 2).ToList();
             OffsetMergedPolylineResult.RemoveCommun(ReturnOffsetMergedPolylineResult).DeepDispose();
-            foreach (Polyline item in ReturnOffsetMergedPolylineResult)
-            {
-                item.Cleanup();
-            }
+            foreach (var item in ReturnOffsetMergedPolylineResult) item.Cleanup();
 
             return ReturnOffsetMergedPolylineResult;
         }
@@ -653,28 +575,22 @@ public static class PolylinesExtensions
 
     public static Point3d GetInnerCentroid(this Polyline poly)
     {
-        Polyline polygon = poly.ToPolygon(10);
-        Point3d pt = PolygonOperation.GetInnerCentroid(polygon);
-        if (polygon != poly)
-        {
-            polygon?.Dispose();
-        }
+        var polygon = poly.ToPolygon(10);
+        var pt = PolygonOperation.GetInnerCentroid(polygon);
+        if (polygon != poly) polygon?.Dispose();
 
         return pt;
     }
 
     public static Point3d GetCentroid(this Polyline pl)
     {
-        int count = pl.NumberOfVertices;
-        if (count == 0)
-        {
-            throw new ArgumentException("Polyline vide.");
-        }
+        var count = pl.NumberOfVertices;
+        if (count == 0) throw new ArgumentException("Polyline vide.");
 
         double sumX = 0, sumY = 0, sumZ = 0;
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
-            Point3d pt = pl.GetPoint3dAt(i);
+            var pt = pl.GetPoint3dAt(i);
             sumX += pt.X;
             sumY += pt.Y;
             sumZ += pt.Z;
@@ -685,20 +601,16 @@ public static class PolylinesExtensions
 
     public static bool IsOverlaping(this Polyline LineA, Polyline LineB)
     {
-        int NumberOfVertices = LineA.GetReelNumberOfVertices();
-        for (int PolylineSegmentIndex = 0; PolylineSegmentIndex < NumberOfVertices; PolylineSegmentIndex++)
+        var NumberOfVertices = LineA.GetReelNumberOfVertices();
+        for (var PolylineSegmentIndex = 0; PolylineSegmentIndex < NumberOfVertices; PolylineSegmentIndex++)
         {
-            (Point3d StartPoint, Point3d EndPoint, double _) = LineA.GetSegmentAt(PolylineSegmentIndex);
-            Point3d MiddlePoint = StartPoint.GetMiddlePoint(EndPoint);
+            var (StartPoint, EndPoint, _) = LineA.GetSegmentAt(PolylineSegmentIndex);
+            var MiddlePoint = StartPoint.GetMiddlePoint(EndPoint);
 
             if (StartPoint.DistanceTo(EndPoint) / 2 >
                 Generic.MediumTolerance.EqualPoint)
-            {
                 if (MiddlePoint.IsOnPolyline(LineB))
-                {
                     return true;
-                }
-            }
         }
 
         return false;
@@ -706,43 +618,34 @@ public static class PolylinesExtensions
 
     public static bool IsInside(this Polyline LineA, Polyline LineB, bool CheckEach = true)
     {
-        int NumberOfVertices = 1;
-        int ReelNumberOfVertices = LineA.GetReelNumberOfVertices();
-        if (CheckEach)
-        {
-            NumberOfVertices = ReelNumberOfVertices;
-        }
+        var NumberOfVertices = 1;
+        var ReelNumberOfVertices = LineA.GetReelNumberOfVertices();
+        if (CheckEach) NumberOfVertices = ReelNumberOfVertices;
 
-        for (int PolylineSegmentIndex = 0; PolylineSegmentIndex < NumberOfVertices; PolylineSegmentIndex++)
+        for (var PolylineSegmentIndex = 0; PolylineSegmentIndex < NumberOfVertices; PolylineSegmentIndex++)
         {
-            (Point3d StartPoint, Point3d EndPoint, double _) = LineA.GetSegmentAt(PolylineSegmentIndex);
+            var (StartPoint, EndPoint, _) = LineA.GetSegmentAt(PolylineSegmentIndex);
             if (StartPoint.DistanceTo(EndPoint) / 2 >
                 Generic.MediumTolerance.EqualPoint)
             {
                 Point3d MiddlePoint;
                 if (LineA.GetSegmentType(PolylineSegmentIndex) == SegmentType.Arc)
                 {
-                    double Startparam = LineA.GetParameterAtPoint(StartPoint);
-                    double Endparam = LineA.GetParameterAtPoint(EndPoint);
-                    MiddlePoint = LineA.GetPointAtParam(Startparam + ((Endparam - Startparam) / 2));
+                    var Startparam = LineA.GetParameterAtPoint(StartPoint);
+                    var Endparam = LineA.GetParameterAtPoint(EndPoint);
+                    MiddlePoint = LineA.GetPointAtParam(Startparam + (Endparam - Startparam) / 2);
                 }
                 else
                 {
                     MiddlePoint = StartPoint.GetMiddlePoint(EndPoint);
                 }
 
-                if (!MiddlePoint.IsInsidePolyline(LineB))
-                {
-                    return false;
-                }
+                if (!MiddlePoint.IsInsidePolyline(LineB)) return false;
             }
             else
             {
                 //No good point found, we run back the function
-                if (NumberOfVertices < ReelNumberOfVertices - 1)
-                {
-                    NumberOfVertices++;
-                }
+                if (NumberOfVertices < ReelNumberOfVertices - 1) NumberOfVertices++;
             }
         }
 
@@ -751,50 +654,31 @@ public static class PolylinesExtensions
 
     public static bool IsSameAs(this Polyline polylineA, Polyline polylineB)
     {
-        if (polylineA.IsDisposed || polylineB.IsDisposed)
-        {
-            return false;
-        }
+        if (polylineA.IsDisposed || polylineB.IsDisposed) return false;
 
-        if (polylineA.NumberOfVertices != polylineB.NumberOfVertices)
-        {
-            return false;
-        }
+        if (polylineA.NumberOfVertices != polylineB.NumberOfVertices) return false;
 
-        Tolerance tol = Generic.MediumTolerance;
+        var tol = Generic.MediumTolerance;
 
-        bool IsClockwisePolyA = polylineA.IsClockwise();
-        bool IsClockwisePolyB = polylineB.IsClockwise();
+        var IsClockwisePolyA = polylineA.IsClockwise();
+        var IsClockwisePolyB = polylineB.IsClockwise();
         if (IsClockwisePolyA != IsClockwisePolyB)
         {
             if (IsClockwisePolyA)
-            {
                 polylineB.Inverse();
-            }
             else
-            {
                 polylineB.Inverse();
-            }
         }
 
-        for (int i = 0; i < polylineA.GetReelNumberOfVertices(); i++)
+        for (var i = 0; i < polylineA.GetReelNumberOfVertices(); i++)
         {
-            (Point3d StartPoint, Point3d EndPoint, double Bulge) = polylineA.GetSegmentAt(i);
-            (Point3d StartPoint, Point3d EndPoint, double Bulge) SegB = polylineB.GetSegmentAt(i);
-            if (!StartPoint.IsEqualTo(SegB.StartPoint, tol))
-            {
-                return false;
-            }
+            var (StartPoint, EndPoint, Bulge) = polylineA.GetSegmentAt(i);
+            var SegB = polylineB.GetSegmentAt(i);
+            if (!StartPoint.IsEqualTo(SegB.StartPoint, tol)) return false;
 
-            if (!EndPoint.IsEqualTo(SegB.EndPoint, tol))
-            {
-                return false;
-            }
+            if (!EndPoint.IsEqualTo(SegB.EndPoint, tol)) return false;
 
-            if (Bulge != SegB.Bulge)
-            {
-                return false;
-            }
+            if (Bulge != SegB.Bulge) return false;
         }
 
         return true;
@@ -804,10 +688,7 @@ public static class PolylinesExtensions
         out Point3dCollection IntersectionPointsFounds, Intersect intersect)
     {
         IntersectionPointsFounds = [];
-        if (polyline?.IsDisposed != false || CutLine?.IsDisposed != false)
-        {
-            return false;
-        }
+        if (polyline?.IsDisposed != false || CutLine?.IsDisposed != false) return false;
 
         polyline.IntersectWith(CutLine, intersect, IntersectionPointsFounds, IntPtr.Zero, IntPtr.Zero);
         return IntersectionPointsFounds.Count > 0;
@@ -815,19 +696,13 @@ public static class PolylinesExtensions
 
     public static bool ContainsSegment(this Polyline poly, Point3d Start, Point3d End)
     {
-        Tolerance tol = Generic.MediumTolerance;
-        for (int i = 0; i < poly.GetReelNumberOfVertices(); i++)
+        var tol = Generic.MediumTolerance;
+        for (var i = 0; i < poly.GetReelNumberOfVertices(); i++)
         {
-            (Point3d StartPoint, Point3d EndPoint, double _) = poly.GetSegmentAt(i);
-            if (StartPoint.IsEqualTo(Start, tol) && EndPoint.IsEqualTo(End, tol))
-            {
-                return true;
-            }
+            var (StartPoint, EndPoint, _) = poly.GetSegmentAt(i);
+            if (StartPoint.IsEqualTo(Start, tol) && EndPoint.IsEqualTo(End, tol)) return true;
 
-            if (StartPoint.IsEqualTo(End, tol) && EndPoint.IsEqualTo(Start, tol))
-            {
-                return true;
-            }
+            if (StartPoint.IsEqualTo(End, tol) && EndPoint.IsEqualTo(Start, tol)) return true;
         }
 
         return false;
@@ -835,9 +710,9 @@ public static class PolylinesExtensions
 
     public static double GetPassingThroughBulgeFrom(this Point3d Through, Point3d Start, Point3d End)
     {
-        Point3d MiddlePoint = Start.GetMiddlePoint(End);
-        double D1 = MiddlePoint.DistanceTo(Through);
-        double D2 = MiddlePoint.DistanceTo(Start);
+        var MiddlePoint = Start.GetMiddlePoint(End);
+        var D1 = MiddlePoint.DistanceTo(Through);
+        var D2 = MiddlePoint.DistanceTo(Start);
         return D1 / D2;
     }
 }

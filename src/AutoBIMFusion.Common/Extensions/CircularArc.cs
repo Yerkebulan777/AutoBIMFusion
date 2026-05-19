@@ -10,8 +10,8 @@ public static class CircularArcExtensions
             return Circle;
         }
 
-        double startAngle = circularArc.IsClockWise ? -circularArc.EndAngle : circularArc.StartAngle;
-        double endAngle = circularArc.IsClockWise ? -circularArc.StartAngle : circularArc.EndAngle;
+        var startAngle = circularArc.IsClockWise ? -circularArc.EndAngle : circularArc.StartAngle;
+        var endAngle = circularArc.IsClockWise ? -circularArc.StartAngle : circularArc.EndAngle;
         Arc arc = new(
             new Point3d(circularArc.Center.X, circularArc.Center.Y, 0.0),
             circularArc.Radius,
@@ -22,11 +22,11 @@ public static class CircularArcExtensions
 
     public static Curve ToCircleOrArc(this CircularArc3d circArc)
     {
-        Point3d center = circArc.Center;
-        Vector3d normal = circArc.Normal;
-        Vector3d referenceVector = circArc.ReferenceVector;
+        var center = circArc.Center;
+        var normal = circArc.Normal;
+        var referenceVector = circArc.ReferenceVector;
         Plane plane = new(center, normal);
-        double num = referenceVector.AngleOnPlane(plane);
+        var num = referenceVector.AngleOnPlane(plane);
 
         return circArc.EndPoint.IsEqualTo(circArc.StartPoint) && circArc.Radius > 0
             ? new Circle(circArc.Center, Vector3d.YAxis, circArc.Radius)

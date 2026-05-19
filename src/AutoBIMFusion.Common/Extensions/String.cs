@@ -7,7 +7,7 @@ internal static class StringExtensions
 {
     public static IEnumerable<int> AllIndexesOf(this string OriginalString, string SearchedString)
     {
-        int minIndex = OriginalString.IndexOf(SearchedString);
+        var minIndex = OriginalString.IndexOf(SearchedString);
         while (minIndex != -1)
         {
             yield return minIndex;
@@ -17,25 +17,19 @@ internal static class StringExtensions
 
     public static string Replace(this string BaseStr, IEnumerable<char> chars, char replaceChar)
     {
-        string ReplaceStr = BaseStr;
-        foreach (char c in chars)
-        {
-            ReplaceStr = ReplaceStr.Replace(c, replaceChar);
-        }
+        var ReplaceStr = BaseStr;
+        foreach (var c in chars) ReplaceStr = ReplaceStr.Replace(c, replaceChar);
 
         return ReplaceStr;
     }
 
     public static string CapitalizeFirstLetters(this string input, int x)
     {
-        if (string.IsNullOrWhiteSpace(input))
-        {
-            return input;
-        }
+        if (string.IsNullOrWhiteSpace(input)) return input;
 
         x = Min(x, input.Length);
-        string firstXLetters = input[..x].ToUpper();
-        string restOfTheString = input[x..];
+        var firstXLetters = input[..x].ToUpper();
+        var restOfTheString = input[x..];
 
         return firstXLetters + restOfTheString;
     }
@@ -52,12 +46,9 @@ internal static class StringExtensions
 
     public static string RemoveDiacritics(this string str)
     {
-        if (str == null)
-        {
-            return null;
-        }
+        if (str == null) return null;
 
-        char[] chars = str
+        var chars = str
             .Normalize(NormalizationForm.FormD)
             .ToCharArray()
             .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
@@ -73,20 +64,13 @@ internal static class StringExtensions
 
     public static string RemoveNonNumeric(this string str)
     {
-        if (str == null)
-        {
-            return null;
-        }
+        if (str == null) return null;
 
         StringBuilder result = new();
 
-        foreach (char c in str)
-        {
+        foreach (var c in str)
             if (char.IsDigit(c))
-            {
                 _ = result.Append(c);
-            }
-        }
 
         return result.ToString();
     }
@@ -99,25 +83,19 @@ internal static class StringExtensions
     public static string[] SplitUserInputByDelimiters(this string input, params string[] delimiters)
     {
         //var PossibleValuesSeparators = new List<string> { ";", "," };
-        string LanguageSeparator =
+        var LanguageSeparator =
             CultureInfo.CurrentUICulture.NumberFormat.NumberDecimalSeparator; //french use , as decimal separaror
-        IEnumerable<string> newdelimiters = delimiters.Where(car => car.Trim() != LanguageSeparator);
+        var newdelimiters = delimiters.Where(car => car.Trim() != LanguageSeparator);
         return input.SplitByListString(newdelimiters).ToArray();
     }
 
     public static string SanitizeToAlphanumericHyphens(this string input)
     {
-        if (string.IsNullOrEmpty(input))
-        {
-            return string.Empty;
-        }
+        if (string.IsNullOrEmpty(input)) return string.Empty;
 
         StringBuilder sb = new();
 
-        foreach (char c in input)
-        {
-            _ = char.IsLetterOrDigit(c) ? sb.Append(c) : sb.Append('-');
-        }
+        foreach (var c in input) _ = char.IsLetterOrDigit(c) ? sb.Append(c) : sb.Append('-');
 
         return sb.ToString();
     }

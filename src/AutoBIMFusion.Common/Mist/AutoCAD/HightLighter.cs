@@ -1,5 +1,5 @@
-using AutoBIMFusion.Common.Extensions;
 using System.Diagnostics;
+using AutoBIMFusion.Common.Extensions;
 
 namespace AutoBIMFusion.Common.Mist.AutoCAD;
 
@@ -9,10 +9,7 @@ internal static class HightLighter
 
     public static void RegisterHighlight(this ObjectId ObjectId)
     {
-        if (!HightLightedObject.Contains(ObjectId))
-        {
-            HightLightedObject.Add(ObjectId);
-        }
+        if (!HightLightedObject.Contains(ObjectId)) HightLightedObject.Add(ObjectId);
 
         ObjectId.GetEntity().Highlight();
     }
@@ -42,17 +39,11 @@ internal static class HightLighter
 
     public static void UnhighlightAll()
     {
-        foreach (ObjectId objectId in HightLightedObject.ToArray())
-        {
-            objectId.RegisterUnhighlight();
-        }
+        foreach (var objectId in HightLightedObject.ToArray()) objectId.RegisterUnhighlight();
     }
 
     public static void UnhighlightAll(IEnumerable<ObjectId> HightLightedObject)
     {
-        foreach (ObjectId objectId in HightLightedObject)
-        {
-            objectId.RegisterUnhighlight();
-        }
+        foreach (var objectId in HightLightedObject) objectId.RegisterUnhighlight();
     }
 }

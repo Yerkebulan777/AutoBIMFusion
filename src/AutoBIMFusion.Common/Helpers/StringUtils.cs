@@ -15,22 +15,16 @@ public static class StringUtils
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fallback);
 
-        if (string.IsNullOrWhiteSpace(message))
-        {
-            return fallback;
-        }
+        if (string.IsNullOrWhiteSpace(message)) return fallback;
 
-        ReadOnlySpan<char> span = message.AsSpan().Trim();
-        int lineBreakIdx = span.IndexOfAny('\r', '\n');
+        var span = message.AsSpan().Trim();
+        var lineBreakIdx = span.IndexOfAny('\r', '\n');
 
         if (lineBreakIdx >= 0)
         {
             span = span[..lineBreakIdx].TrimEnd();
 
-            if (span.Length == 0)
-            {
-                return fallback;
-            }
+            if (span.Length == 0) return fallback;
         }
 
         return span.Length <= maxLength ? span.ToString() : span[..maxLength].ToString();

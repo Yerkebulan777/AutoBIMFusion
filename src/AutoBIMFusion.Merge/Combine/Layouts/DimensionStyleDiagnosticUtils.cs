@@ -1,9 +1,9 @@
+using System.Reflection;
+using System.Text;
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Helpers;
 using Serilog.Core;
 using Serilog.Events;
-using System.Reflection;
-using System.Text;
 
 namespace AutoBIMFusion.Merge.Combine.Layouts;
 
@@ -66,26 +66,19 @@ public static class DimensionStyleDiagnosticUtils
     /// <param name="stage">Метка этапа (например: "after-merge").</param>
     public static void LogStyleSnapshot(Database db, Logger log, string stage)
     {
-        if (!log.IsEnabled(LogEventLevel.Debug))
-        {
-            return;
-        }
+        if (!log.IsEnabled(LogEventLevel.Debug)) return;
 
-        DimensionStyleSnapshot snapshot = BuildSnapshot(db, stage);
+        var snapshot = BuildSnapshot(db, stage);
 
         log.Debug(FormatStyleSnapshotHeader(snapshot));
 
-        foreach (DimensionStyleSnapshotEntry? style in
+        foreach (var style in
                  snapshot.DimensionStyles.Values.OrderBy(s => s.StyleName, StringComparer.OrdinalIgnoreCase))
-        {
             log.Debug(FormatStageLine("[DIM-STYLE-SUMMARY]", stage, FormatDimensionStyleSummary(style)));
-        }
 
-        foreach (DimensionStyleSnapshotEntry? style in snapshot.DimensionStyles.Values.OrderBy(s => s.FullLogLine,
+        foreach (var style in snapshot.DimensionStyles.Values.OrderBy(s => s.FullLogLine,
                      StringComparer.OrdinalIgnoreCase))
-        {
             log.Debug(FormatStageLine("[DIM-STYLE]", stage, style.FullLogLine));
-        }
 
         LogSnapshotDiff(snapshot, log);
         StoreSnapshot(snapshot);
@@ -93,23 +86,20 @@ public static class DimensionStyleDiagnosticUtils
 
     private static DimensionStyleSnapshot BuildSnapshot(Database db, string stage)
     {
-        using Transaction trx = db.TransactionManager.StartTransaction();
+        using var trx = db.TransactionManager.StartTransaction();
 
-        DimStyleTable dimStyleTable = (DimStyleTable)trx.GetObject(db.DimStyleTableId, OpenMode.ForRead);
-        Dictionary<ObjectId, DimensionStyleUsage> dimensionStyleUsage = CollectDimensionStyleUsage(db, trx);
+        var dimStyleTable = (DimStyleTable)trx.GetObject(db.DimStyleTableId, OpenMode.ForRead);
+        var dimensionStyleUsage = CollectDimensionStyleUsage(db, trx);
 
         Dictionary<string, DimensionStyleSnapshotEntry> dimStyles = new(StringComparer.Ordinal);
 
-        foreach (ObjectId id in dimStyleTable)
+        foreach (var id in dimStyleTable)
         {
-            DimStyleTableRecord style = (DimStyleTableRecord)trx.GetObject(id, OpenMode.ForRead);
-            if (style.IsErased || !ShouldLogDimensionStyle(style, dimensionStyleUsage.Keys))
-            {
-                continue;
-            }
+            var style = (DimStyleTableRecord)trx.GetObject(id, OpenMode.ForRead);
+            if (style.IsErased || !ShouldLogDimensionStyle(style, dimensionStyleUsage.Keys)) continue;
 
-            DimensionStyleUsage usage = dimensionStyleUsage.GetValueOrDefault(style.ObjectId) ?? new DimensionStyleUsage();
-            DimensionStyleSnapshotEntry entry = BuildDimensionStyleEntry(style, usage);
+            var usage = dimensionStyleUsage.GetValueOrDefault(style.ObjectId) ?? new DimensionStyleUsage();
+            var entry = BuildDimensionStyleEntry(style, usage);
             dimStyles[entry.ComparisonKey] = entry;
         }
 
@@ -124,26 +114,18 @@ public static class DimensionStyleDiagnosticUtils
 
         AddDimensionStyleUsage(db.Dimstyle, null, usageByStyleId);
 
-        BlockTable blockTable = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
+        var blockTable = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
 
-        foreach (ObjectId blockId in blockTable)
+        foreach (var blockId in blockTable)
         {
-            DBObject blockObj = trx.GetObject(blockId, OpenMode.ForRead, false);
+            var blockObj = trx.GetObject(blockId, OpenMode.ForRead, false);
 
             if (blockObj is BlockTableRecord block && !block.IsErased)
-            {
-                foreach (ObjectId entityId in block)
-                {
+                foreach (var entityId in block)
                     if (entityId.IsValidForOperation())
-                    {
                         if (trx.GetObject(entityId, OpenMode.ForRead, false) is Dimension dimension)
-                        {
                             AddDimensionStyleUsage(dimension.DimensionStyle, dimension.Handle.ToString(),
                                 usageByStyleId);
-                        }
-                    }
-                }
-            }
         }
 
         return usageByStyleId;
@@ -152,34 +134,25 @@ public static class DimensionStyleDiagnosticUtils
     private static void AddDimensionStyleUsage(ObjectId styleId, string? dimensionHandle,
         Dictionary<ObjectId, DimensionStyleUsage> usageByStyleId)
     {
-        if (!styleId.IsValidForOperation())
-        {
-            return;
-        }
+        if (!styleId.IsValidForOperation()) return;
 
-        if (!usageByStyleId.TryGetValue(styleId, out DimensionStyleUsage? usage))
+        if (!usageByStyleId.TryGetValue(styleId, out var usage))
         {
             usage = new DimensionStyleUsage();
             usageByStyleId[styleId] = usage;
         }
 
-        if (dimensionHandle is null)
-        {
-            return;
-        }
+        if (dimensionHandle is null) return;
 
         usage.Count++;
-        if (usage.DimensionHandles.Count < DimensionHandleSampleLimit)
-        {
-            usage.DimensionHandles.Add(dimensionHandle);
-        }
+        if (usage.DimensionHandles.Count < DimensionHandleSampleLimit) usage.DimensionHandles.Add(dimensionHandle);
     }
 
     private static DimensionStyleSnapshotEntry BuildDimensionStyleEntry(DimStyleTableRecord style,
         DimensionStyleUsage usage)
     {
-        Dictionary<string, string> summaryProperties = BuildSummaryProperties(style);
-        string styleHandle = style.Handle.ToString();
+        var summaryProperties = BuildSummaryProperties(style);
+        var styleHandle = style.Handle.ToString();
 
         return new DimensionStyleSnapshotEntry(
             BuildComparisonKey(styleHandle, style.Name),
@@ -197,9 +170,9 @@ public static class DimensionStyleDiagnosticUtils
     private static Dictionary<string, string> BuildSummaryProperties(DimStyleTableRecord style)
     {
         Dictionary<string, string> properties = new(StringComparer.Ordinal);
-        foreach (string propertyName in SummaryPropertyNames)
+        foreach (var propertyName in SummaryPropertyNames)
         {
-            PropertyInfo? property =
+            var property =
                 typeof(DimStyleTableRecord).GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public);
             if (property is null || property.GetIndexParameters().Length > 0)
             {
@@ -265,13 +238,10 @@ public static class DimensionStyleDiagnosticUtils
 
     private static void AppendDimStyleProperties(StringBuilder builder, DimStyleTableRecord style)
     {
-        bool hasPrevious = false;
-        foreach (PropertyInfo property in DimStyleProperties)
+        var hasPrevious = false;
+        foreach (var property in DimStyleProperties)
         {
-            if (hasPrevious)
-            {
-                _ = builder.Append(", ");
-            }
+            if (hasPrevious) _ = builder.Append(", ");
 
             _ = builder.Append(property.Name).Append('=').Append(ReflectionHelper.FormatPropertyValue(style, property));
             hasPrevious = true;
@@ -299,18 +269,12 @@ public static class DimensionStyleDiagnosticUtils
 
     private static string FormatDimensionHandles(IReadOnlyList<string> handles)
     {
-        if (handles.Count == 0)
-        {
-            return "[]";
-        }
+        if (handles.Count == 0) return "[]";
 
         StringBuilder builder = new("[");
-        for (int i = 0; i < handles.Count; i++)
+        for (var i = 0; i < handles.Count; i++)
         {
-            if (i > 0)
-            {
-                _ = builder.Append(", ");
-            }
+            if (i > 0) _ = builder.Append(", ");
 
             _ = builder.Append(handles[i]);
         }
@@ -321,13 +285,10 @@ public static class DimensionStyleDiagnosticUtils
 
     private static void AppendProperties(StringBuilder builder, IReadOnlyDictionary<string, string> properties)
     {
-        bool hasPrevious = false;
-        foreach (KeyValuePair<string, string> property in properties.OrderBy(p => p.Key, StringComparer.Ordinal))
+        var hasPrevious = false;
+        foreach (var property in properties.OrderBy(p => p.Key, StringComparer.Ordinal))
         {
-            if (hasPrevious)
-            {
-                _ = builder.Append(", ");
-            }
+            if (hasPrevious) _ = builder.Append(", ");
 
             _ = builder.Append(property.Key).Append('=').Append(property.Value);
             hasPrevious = true;
@@ -336,10 +297,7 @@ public static class DimensionStyleDiagnosticUtils
 
     private static void LogSnapshotDiff(DimensionStyleSnapshot snapshot, Logger log)
     {
-        if (!PreviousStageByStage.TryGetValue(snapshot.Stage, out string? previousStage))
-        {
-            return;
-        }
+        if (!PreviousStageByStage.TryGetValue(snapshot.Stage, out var previousStage)) return;
 
         DimensionStyleSnapshot? previousSnapshot;
         lock (SnapshotSync)
@@ -361,13 +319,10 @@ public static class DimensionStyleDiagnosticUtils
     private static void LogRemovedStyles(DimensionStyleSnapshot previousSnapshot, DimensionStyleSnapshot snapshot,
         Logger log)
     {
-        foreach (DimensionStyleSnapshotEntry? previousStyle in previousSnapshot.DimensionStyles.Values.OrderBy(s => s.StyleName,
+        foreach (var previousStyle in previousSnapshot.DimensionStyles.Values.OrderBy(s => s.StyleName,
                      StringComparer.OrdinalIgnoreCase))
         {
-            if (snapshot.DimensionStyles.ContainsKey(previousStyle.ComparisonKey))
-            {
-                continue;
-            }
+            if (snapshot.DimensionStyles.ContainsKey(previousStyle.ComparisonKey)) continue;
 
             log.Debug(FormatRemovedDiff(previousSnapshot.Stage, snapshot.Stage, previousStyle));
         }
@@ -376,13 +331,10 @@ public static class DimensionStyleDiagnosticUtils
     private static void LogAddedStyles(DimensionStyleSnapshot previousSnapshot, DimensionStyleSnapshot snapshot,
         Logger log)
     {
-        foreach (DimensionStyleSnapshotEntry? currentStyle in snapshot.DimensionStyles.Values.OrderBy(s => s.StyleName,
+        foreach (var currentStyle in snapshot.DimensionStyles.Values.OrderBy(s => s.StyleName,
                      StringComparer.OrdinalIgnoreCase))
         {
-            if (previousSnapshot.DimensionStyles.ContainsKey(currentStyle.ComparisonKey))
-            {
-                continue;
-            }
+            if (previousSnapshot.DimensionStyles.ContainsKey(currentStyle.ComparisonKey)) continue;
 
             log.Debug(FormatAddedDiff(previousSnapshot.Stage, snapshot.Stage, currentStyle));
         }
@@ -391,22 +343,16 @@ public static class DimensionStyleDiagnosticUtils
     private static void LogChangedStyles(DimensionStyleSnapshot previousSnapshot, DimensionStyleSnapshot snapshot,
         Logger log)
     {
-        foreach (KeyValuePair<string, DimensionStyleSnapshotEntry> currentPair in snapshot.DimensionStyles.OrderBy(p => p.Value.StyleName,
+        foreach (var currentPair in snapshot.DimensionStyles.OrderBy(p => p.Value.StyleName,
                      StringComparer.OrdinalIgnoreCase))
         {
-            if (!previousSnapshot.DimensionStyles.TryGetValue(currentPair.Key, out DimensionStyleSnapshotEntry? previousStyle))
-            {
-                continue;
-            }
+            if (!previousSnapshot.DimensionStyles.TryGetValue(currentPair.Key, out var previousStyle)) continue;
 
-            DimensionStyleSnapshotEntry currentStyle = currentPair.Value;
-            string changedProperties = FormatChangedProperties(previousStyle, currentStyle);
-            bool usageChanged = previousStyle.UsedByDimensions != currentStyle.UsedByDimensions;
+            var currentStyle = currentPair.Value;
+            var changedProperties = FormatChangedProperties(previousStyle, currentStyle);
+            var usageChanged = previousStyle.UsedByDimensions != currentStyle.UsedByDimensions;
 
-            if (changedProperties.Length == 0 && !usageChanged)
-            {
-                continue;
-            }
+            if (changedProperties.Length == 0 && !usageChanged) continue;
 
             log.Debug(FormatChangedDiff(previousSnapshot.Stage, snapshot.Stage, previousStyle, currentStyle,
                 changedProperties, usageChanged));
@@ -475,13 +421,11 @@ public static class DimensionStyleDiagnosticUtils
         AppendDiffStyleIdentity(builder, currentStyle);
 
         if (usageChanged)
-        {
             _ = builder
                 .Append(", usedByDimensions=")
                 .Append(previousStyle.UsedByDimensions)
                 .Append("->")
                 .Append(currentStyle.UsedByDimensions);
-        }
 
         _ = builder.Append(", properties={ ").Append(changedProperties).Append(" }");
         return builder.ToString();
@@ -491,22 +435,16 @@ public static class DimensionStyleDiagnosticUtils
         DimensionStyleSnapshotEntry currentStyle)
     {
         StringBuilder builder = new();
-        bool hasPrevious = false;
+        var hasPrevious = false;
 
-        foreach (string propertyName in SummaryPropertyNames)
+        foreach (var propertyName in SummaryPropertyNames)
         {
-            _ = previousStyle.SummaryProperties.TryGetValue(propertyName, out string? previousValue);
-            _ = currentStyle.SummaryProperties.TryGetValue(propertyName, out string? currentValue);
+            _ = previousStyle.SummaryProperties.TryGetValue(propertyName, out var previousValue);
+            _ = currentStyle.SummaryProperties.TryGetValue(propertyName, out var currentValue);
 
-            if (StringComparer.Ordinal.Equals(previousValue, currentValue))
-            {
-                continue;
-            }
+            if (StringComparer.Ordinal.Equals(previousValue, currentValue)) continue;
 
-            if (hasPrevious)
-            {
-                _ = builder.Append(", ");
-            }
+            if (hasPrevious) _ = builder.Append(", ");
 
             _ = builder
                 .Append(propertyName)
@@ -530,7 +468,7 @@ public static class DimensionStyleDiagnosticUtils
 
     private static string ReadOptionalBool(DimStyleTableRecord style, string propertyName)
     {
-        PropertyInfo? property =
+        var property =
             typeof(DimStyleTableRecord).GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public);
         return property is null || property.PropertyType != typeof(bool) || property.GetIndexParameters().Length > 0
             ? "n/a"

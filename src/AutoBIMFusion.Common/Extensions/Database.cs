@@ -1,7 +1,7 @@
+using System.Diagnostics;
 using AutoBIMFusion.Common.Mist;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Runtime;
-using System.Diagnostics;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 using Exception = System.Exception;
 
@@ -11,10 +11,10 @@ public static class DatabaseExtensions
 {
     public static void OpenAsNewTab(this Database db)
     {
-        DocumentCollection docCol = Application.DocumentManager;
-        string FilName = Path.Combine(Path.GetTempPath(), $"Memory_{DateTime.Now.Ticks}.dwg");
+        var docCol = Application.DocumentManager;
+        var FilName = Path.Combine(Path.GetTempPath(), $"Memory_{DateTime.Now.Ticks}.dwg");
         db.SaveAs(FilName, DwgVersion.Current);
-        Document newDoc = docCol.Open(FilName, false);
+        var newDoc = docCol.Open(FilName, false);
         docCol.MdiActiveDocument = newDoc;
     }
 
@@ -22,12 +22,8 @@ public static class DatabaseExtensions
     {
         Dictionary<ObjectId, string> dict = [];
         for (long i = 0; i < db.Handseed.Value; i++)
-        {
-            if (db.TryGetObjectId(new Handle(i), out ObjectId id))
-            {
+            if (db.TryGetObjectId(new Handle(i), out var id))
                 dict.Add(id, id.ObjectClass.Name);
-            }
-        }
 
         return dict;
     }
@@ -35,19 +31,15 @@ public static class DatabaseExtensions
     public static Dictionary<ObjectId, string> GetAllEntities(this Database db)
     {
         Dictionary<ObjectId, string> dict = [];
-        using (OpenCloseTransaction trx = db.TransactionManager.StartOpenCloseTransaction())
+        using (var trx = db.TransactionManager.StartOpenCloseTransaction())
         {
-            BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
-            foreach (ObjectId btrId in bt)
+            var bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
+            foreach (var btrId in bt)
             {
-                BlockTableRecord btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
+                var btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
                 if (btr.IsLayout)
-                {
-                    foreach (ObjectId id in btr)
-                    {
+                    foreach (var id in btr)
                         dict.Add(id, id.ObjectClass.Name);
-                    }
-                }
             }
 
             trx.Commit();
@@ -59,17 +51,13 @@ public static class DatabaseExtensions
     public static ObjectId EntLast(this Database db, Type type = null)
     {
         // Autodesk.AutoCAD.Internal.Utils.EntLast();
-        using Transaction trx = db.TransactionManager.StartTransaction();
-        BlockTableRecord btr = Generic.GetCurrentSpaceBlockTableRecord(trx);
-        RXClass? RXClassType = type == null ? null : RXObject.GetClass(type);
-        ObjectId EntLastObjectId = ObjectId.Null;
-        foreach (ObjectId objId in btr)
-        {
+        using var trx = db.TransactionManager.StartTransaction();
+        var btr = Generic.GetCurrentSpaceBlockTableRecord(trx);
+        var RXClassType = type == null ? null : RXObject.GetClass(type);
+        var EntLastObjectId = ObjectId.Null;
+        foreach (var objId in btr)
             if (RXClassType == null || objId.ObjectClass == RXClassType)
-            {
                 EntLastObjectId = objId;
-            }
-        }
 
         trx.Commit();
         return EntLastObjectId;
@@ -77,24 +65,22 @@ public static class DatabaseExtensions
 
     public static void SetAnnotativeScale(this Database db, string Name, double PaperUnits, double DrawingUnits)
     {
-        Editor ed = Generic.GetEditor();
+        var ed = Generic.GetEditor();
         if (db.Cannoscale.Name != Name)
         {
-            using Transaction trx = db.TransactionManager.StartTransaction();
-            ObjectContextManager ocm = db.ObjectContextManager;
-            ObjectContextCollection occ = ocm.GetContextCollection("ACDB_ANNOTATIONSCALES");
+            using var trx = db.TransactionManager.StartTransaction();
+            var ocm = db.ObjectContextManager;
+            var occ = ocm.GetContextCollection("ACDB_ANNOTATIONSCALES");
 
             if (occ != null)
             {
                 AnnotationScale scale = null;
-                foreach (ObjectContext? obj in occ)
-                {
+                foreach (var obj in occ)
                     if (obj is AnnotationScale annoScale && annoScale.Name == Name)
                     {
                         scale = annoScale;
                         break;
                     }
-                }
 
                 if (scale == null)
                 {
@@ -124,22 +110,16 @@ public static class DatabaseExtensions
     public static ObjectId GetObjectIdFromAppDictionary(this Database db, Transaction trx, string appDictName,
         string keyName)
     {
-        DBDictionary nod = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
+        var nod = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
 
-        if (!nod.Contains(appDictName))
-        {
-            return ObjectId.Null;
-        }
+        if (!nod.Contains(appDictName)) return ObjectId.Null;
 
-        DBDictionary appDict = (DBDictionary)trx.GetObject(nod.GetAt(appDictName), OpenMode.ForRead);
+        var appDict = (DBDictionary)trx.GetObject(nod.GetAt(appDictName), OpenMode.ForRead);
 
-        if (!appDict.Contains(keyName))
-        {
-            return ObjectId.Null;
-        }
+        if (!appDict.Contains(keyName)) return ObjectId.Null;
 
-        Xrecord xrec = (Xrecord)trx.GetObject(appDict.GetAt(keyName), OpenMode.ForRead);
-        TypedValue[] data = xrec.Data.AsArray();
+        var xrec = (Xrecord)trx.GetObject(appDict.GetAt(keyName), OpenMode.ForRead);
+        var data = xrec.Data.AsArray();
 
         return data.Length == 0 || data[0].Value is not ObjectId ? ObjectId.Null : (ObjectId)data[0].Value;
     }
@@ -148,7 +128,7 @@ public static class DatabaseExtensions
     public static void StoreObjectIdInAppDictionary(this Database db, Transaction trx, string appDictName,
         string keyName, ObjectId objectId)
     {
-        DBDictionary nod = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
+        var nod = (DBDictionary)trx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
 
         DBDictionary appDict;
         if (!nod.Contains(appDictName))
@@ -163,10 +143,7 @@ public static class DatabaseExtensions
             appDict = (DBDictionary)trx.GetObject(nod.GetAt(appDictName), OpenMode.ForRead);
         }
 
-        if (appDict.Contains(keyName))
-        {
-            return;
-        }
+        if (appDict.Contains(keyName)) return;
 
         appDict.UpgradeOpen();
         Xrecord xrec = new()
@@ -180,14 +157,14 @@ public static class DatabaseExtensions
 
     public static DwgVersion GetDwgVersion(this Database db)
     {
-        DwgVersion LastSaved = db.LastSavedAsVersion;
+        var LastSaved = db.LastSavedAsVersion;
         return LastSaved == DwgVersion.MC0To0 ? DwgVersion.Current : LastSaved;
     }
 
     public static long GetSize(this Database db, DwgVersion version)
     {
-        string tempFileName = $"SioForgeCAD_SizeCheck_{DateTime.Now:yyMMdd_HHmmss}_{Guid.NewGuid()}.dwg";
-        string tempFilePath = Path.Combine(Path.GetTempPath(), tempFileName);
+        var tempFileName = $"SioForgeCAD_SizeCheck_{DateTime.Now:yyMMdd_HHmmss}_{Guid.NewGuid()}.dwg";
+        var tempFilePath = Path.Combine(Path.GetTempPath(), tempFileName);
         long sizeBytes = 0;
 
         try
@@ -205,10 +182,7 @@ public static class DatabaseExtensions
         {
             try
             {
-                if (File.Exists(tempFilePath))
-                {
-                    File.Delete(tempFilePath);
-                }
+                if (File.Exists(tempFilePath)) File.Delete(tempFilePath);
             }
             catch (Exception ex)
             {

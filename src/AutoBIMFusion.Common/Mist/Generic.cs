@@ -1,11 +1,11 @@
+using System.Diagnostics;
+using System.Reflection;
 using AutoBIMFusion.Common.Compatibility;
 using AutoBIMFusion.Common.Helpers;
 using Autodesk.AutoCAD.AcInfoCenterConn;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.Internal.InfoCenter;
-using System.Diagnostics;
-using System.Reflection;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Common.Mist;
@@ -18,42 +18,38 @@ public static class Generic
     public static void ReadWriteToFileResource(string name, string ToFilePath)
     {
         // Determine path
-        byte[]? ressource_bytes = Resources.ResourceManager.GetObject(name) as byte[];
-        if (!FileUtil.IsFileLockedOrReadOnly(ToFilePath))
-        {
-            File.WriteAllBytes(ToFilePath, ressource_bytes);
-        }
+        var ressource_bytes = Resources.ResourceManager.GetObject(name) as byte[];
+        if (!FileUtil.IsFileLockedOrReadOnly(ToFilePath)) File.WriteAllBytes(ToFilePath, ressource_bytes);
     }
 
     public static string GetCurrentDocumentPath()
     {
-        Document doc = GetDocument();
-        if (Path.GetDirectoryName(doc.Name).Equals(string.Empty))
-        {
-            return "";
-        }
+        var doc = GetDocument();
+        if (Path.GetDirectoryName(doc.Name).Equals(string.Empty)) return "";
 
-        HostApplicationServices hs = HostApplicationServices.Current;
-        string FilePath = hs.FindFile(doc.Name, doc.Database, FindFileHint.Default);
-        string directory = new FileInfo(FilePath).Directory.FullName;
+        var hs = HostApplicationServices.Current;
+        var FilePath = hs.FindFile(doc.Name, doc.Database, FindFileHint.Default);
+        var directory = new FileInfo(FilePath).Directory.FullName;
         Debug.WriteLine(directory);
         return directory;
     }
 
     public static double FormatNumberForPrint(double Number)
     {
-        short DisplayPrecision = (short)Application.GetSystemVariable("LUPREC");
+        var DisplayPrecision = (short)Application.GetSystemVariable("LUPREC");
         return Round(Number, DisplayPrecision);
     }
 
     public static string TryFormatIfNumberForPrint(object obj)
     {
-        return double.TryParse(obj.ToString(), out double Number) ? FormatNumberForPrint(Number).ToString() : obj.ToString();
+        return double.TryParse(obj.ToString(), out var Number)
+            ? FormatNumberForPrint(Number).ToString()
+            : obj.ToString();
     }
 
     public static void WriteMessage(object message)
     {
-        Editor ed = GetEditor();
+        var ed = GetEditor();
         ed?.WriteMessage($"\n{message.ToString().Replace('\n', '\u2028').Replace("\r", "")}\n");
     }
 
@@ -70,8 +66,8 @@ public static class Generic
 
     public static void LoadLispFromStringCommand(string lispCode)
     {
-        Document doc = GetDocument();
-        string loadCommand = $"(eval '{lispCode})";
+        var doc = GetDocument();
+        var loadCommand = $"(eval '{lispCode})";
         doc.SendStringToExecute(loadCommand, true, false, false);
     }
 
@@ -87,12 +83,12 @@ public static class Generic
 
     public static ObjectId AddFontStyle(string font)
     {
-        Document doc = GetDocument();
-        Database db = GetDatabase();
-        using Transaction newTransaction = doc.TransactionManager.StartTransaction();
-        BlockTable? newBlockTable = newTransaction.GetObject(doc.Database.BlockTableId, OpenMode.ForRead) as BlockTable;
-        BlockTableRecord newBlockTableRecord = GetCurrentSpaceBlockTableRecord(newTransaction);
-        TextStyleTable? newTextStyleTable = newTransaction.GetObject(db.TextStyleTableId, OpenMode.ForRead) as TextStyleTable;
+        var doc = GetDocument();
+        var db = GetDatabase();
+        using var newTransaction = doc.TransactionManager.StartTransaction();
+        var newBlockTable = newTransaction.GetObject(doc.Database.BlockTableId, OpenMode.ForRead) as BlockTable;
+        var newBlockTableRecord = GetCurrentSpaceBlockTableRecord(newTransaction);
+        var newTextStyleTable = newTransaction.GetObject(db.TextStyleTableId, OpenMode.ForRead) as TextStyleTable;
 
         if (!newTextStyleTable.Has(font.ToUpperInvariant())) //The TextStyle is currently not in the database
         {
@@ -112,7 +108,7 @@ public static class Generic
 
     public static Transparency GetTransparencyFromAlpha(int Alpha)
     {
-        byte AlphaByte = (byte)(255 * (100 - Alpha) / 100);
+        var AlphaByte = (byte)(255 * (100 - Alpha) / 100);
         return new Transparency(AlphaByte);
     }
 
@@ -123,7 +119,7 @@ public static class Generic
 
     public static Transaction GetTrans()
     {
-        Database db = GetDatabase();
+        var db = GetDatabase();
         return db.TransactionManager.StartTransaction();
     }
 
@@ -140,7 +136,7 @@ public static class Generic
         //var section = profile.OpenSubsection("General");
         //var format = section.ReadProperty("DefaultFormatForSave", 0);
 
-        Database db = GetDatabase();
+        var db = GetDatabase();
         return db.OriginalFileSavedByVersion;
 
         // return AcadApp.DocumentManager.DefaultFormatForSave;
@@ -148,7 +144,7 @@ public static class Generic
 
     public static DocumentLock GetLock()
     {
-        Document doc = GetDocument();
+        var doc = GetDocument();
         return doc.GetLock();
     }
 
@@ -172,7 +168,7 @@ public static class Generic
     {
         //https://spiderinnet1.typepad.com/blog/2012/03/autocad-net-api-modelspacepaperspacecurrentspace-and-entity-creation.html
         //Use db.CurrentSpaceId instead of bt[BlockTableRecord.ModelSpace
-        Database db = GetDatabase();
+        var db = GetDatabase();
         return acTrans.GetObject(db.CurrentSpaceId, openMode) as BlockTableRecord;
     }
 
@@ -183,13 +179,13 @@ public static class Generic
 
     public static void SendStringToExecute(string Command, bool Echo = true)
     {
-        Document doc = GetDocument();
+        var doc = GetDocument();
         doc.SendStringToExecute(string.Concat(Command, ' '), true, false, Echo);
     }
 
     public static void SetSystemVariable(string Name, object Value, bool EchoChanges = true)
     {
-        object? OldValue = GetSystemVariable(Name);
+        var OldValue = GetSystemVariable(Name);
         if (OldValue is null)
         {
             Debug.WriteLine($"La variable {Name} n'existe pas !");
@@ -198,10 +194,7 @@ public static class Generic
 
         if (OldValue?.ToString() != Value?.ToString())
         {
-            if (EchoChanges)
-            {
-                WriteMessage($"Changement de la variable {Name} de {OldValue} à {Value}.");
-            }
+            if (EchoChanges) WriteMessage($"Changement de la variable {Name} de {OldValue} à {Value}.");
 
             Application.SetSystemVariable(Name, Value);
         }
@@ -214,16 +207,16 @@ public static class Generic
 
     public static void Command(params object[] args)
     {
-        short cmdecho = (short)Application.GetSystemVariable("CMDECHO");
+        var cmdecho = (short)Application.GetSystemVariable("CMDECHO");
         Application.SetSystemVariable("CMDECHO", 0);
-        Editor ed = GetEditor();
+        var ed = GetEditor();
         ed.Command(args);
         Application.SetSystemVariable("CMDECHO", cmdecho);
     }
 
     public static void Regen()
     {
-        Editor ed = GetEditor();
+        var ed = GetEditor();
         ed.Regen();
     }
 
@@ -245,9 +238,9 @@ public static class Generic
 
     public static async Task CommandAsync(params object[] args)
     {
-        short cmdecho = (short)Application.GetSystemVariable("CMDECHO");
+        var cmdecho = (short)Application.GetSystemVariable("CMDECHO");
         Application.SetSystemVariable("CMDECHO", 0);
-        Editor ed = GetEditor();
+        var ed = GetEditor();
         await ed.CommandAsync(args);
         Application.SetSystemVariable("CMDECHO", cmdecho);
     }

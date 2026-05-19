@@ -4,7 +4,7 @@ using Exception = System.Exception;
 namespace AutoBIMFusion.Common.Helpers;
 
 /// <summary>
-///  Утилиты для работы с файлами и проверками.
+///     Утилиты для работы с файлами и проверками.
 /// </summary>
 public static class FileUtil
 {
@@ -12,32 +12,26 @@ public static class FileUtil
     private static readonly WindowsNaturalComparer NaturalComparer = new();
 
     /// <summary>
-    /// Возвращает отсортированный список DWG-файлов из директории.
+    ///     Возвращает отсортированный список DWG-файлов из директории.
     /// </summary>
     public static string[] GetFiles(string rootPath, string excludePrefix = "#")
     {
         EnumerationOptions opts = new()
         {
-            MaxRecursionDepth = 1,   // Ограничиваем глубину рекурсии, так как RecurseSubdirectories = false
-            IgnoreInaccessible = true,   // Игнорируем папки, к которым нет доступа (например, из-за прав доступа)
-            RecurseSubdirectories = false,   // Включаем поиск в поддиректориях
-            MatchCasing = MatchCasing.PlatformDefault   // Игнорируем регистр при фильтрации по шаблону "*.dwg"
+            MaxRecursionDepth = 1, // Ограничиваем глубину рекурсии, так как RecurseSubdirectories = false
+            IgnoreInaccessible = true, // Игнорируем папки, к которым нет доступа (например, из-за прав доступа)
+            RecurseSubdirectories = false, // Включаем поиск в поддиректориях
+            MatchCasing = MatchCasing.PlatformDefault // Игнорируем регистр при фильтрации по шаблону "*.dwg"
         };
 
         List<string> files = [];
 
-        foreach (string path in Directory.EnumerateFiles(rootPath, "*.dwg", opts))
+        foreach (var path in Directory.EnumerateFiles(rootPath, "*.dwg", opts))
         {
-            string fileName = Path.GetFileName(path);
-            if (fileName.StartsWith(excludePrefix, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
+            var fileName = Path.GetFileName(path);
+            if (fileName.StartsWith(excludePrefix, StringComparison.OrdinalIgnoreCase)) continue;
 
-            if (new FileInfo(path).Length > MaxFileSizeBytes)
-            {
-                continue;
-            }
+            if (new FileInfo(path).Length > MaxFileSizeBytes) continue;
 
             files.Add(path);
         }
@@ -86,17 +80,11 @@ public static class FileUtil
     {
         _ = Directory.CreateDirectory(destinationRoot);
 
-        if (Directory.Exists(tempFolder))
-        {
-            Directory.Delete(tempFolder, true);
-        }
+        if (Directory.Exists(tempFolder)) Directory.Delete(tempFolder, true);
 
         _ = Directory.CreateDirectory(tempFolder);
 
-        if (File.Exists(zipFilePath))
-        {
-            File.Delete(zipFilePath);
-        }
+        if (File.Exists(zipFilePath)) File.Delete(zipFilePath);
     }
 
     /// <summary>
@@ -106,10 +94,7 @@ public static class FileUtil
     {
         try
         {
-            if (Directory.Exists(tempFolder))
-            {
-                Directory.Delete(tempFolder, true);
-            }
+            if (Directory.Exists(tempFolder)) Directory.Delete(tempFolder, true);
         }
         catch (IOException ex)
         {
@@ -130,22 +115,20 @@ public static class FileUtil
         string sourcePath,
         HashSet<string> reservedDestinationPaths)
     {
-        string sourceFullPath = Path.GetFullPath(sourcePath);
-        string sourceDir = Path.GetDirectoryName(sourceFullPath) ?? string.Empty;
+        var sourceFullPath = Path.GetFullPath(sourcePath);
+        var sourceDir = Path.GetDirectoryName(sourceFullPath) ?? string.Empty;
         if (string.Equals(sourceDir, Path.GetFullPath(targetDir), StringComparison.OrdinalIgnoreCase))
-        {
             return (sourceFullPath, Path.GetFileName(sourceFullPath));
-        }
 
-        string fileName = Path.GetFileName(sourcePath);
-        string destinationPath = Path.Combine(targetDir, fileName);
+        var fileName = Path.GetFileName(sourcePath);
+        var destinationPath = Path.Combine(targetDir, fileName);
 
-        int counter = 1;
+        var counter = 1;
         while (reservedDestinationPaths.Contains(destinationPath) || File.Exists(destinationPath))
         {
-            string name = Path.GetFileNameWithoutExtension(fileName);
-            string ext = Path.GetExtension(fileName);
-            string candidateName = $"{name}_{counter}{ext}";
+            var name = Path.GetFileNameWithoutExtension(fileName);
+            var ext = Path.GetExtension(fileName);
+            var candidateName = $"{name}_{counter}{ext}";
             destinationPath = Path.Combine(targetDir, candidateName);
             counter++;
         }
@@ -163,12 +146,9 @@ public static class FileUtil
 
         string SizeSuffix(long value, int decimalPlaces = 1)
         {
-            if (value < 0)
-            {
-                return "-" + SizeSuffix(-value, decimalPlaces);
-            }
+            if (value < 0) return "-" + SizeSuffix(-value, decimalPlaces);
 
-            int i = 0;
+            var i = 0;
             decimal dValue = value;
             while (Round(dValue, decimalPlaces) >= 1000)
             {
@@ -195,10 +175,7 @@ public static class FileUtil
     /// </summary>
     public static bool IsFileLockedOrReadOnly(FileInfo fi)
     {
-        if (!fi.Exists)
-        {
-            return false;
-        }
+        if (!fi.Exists) return false;
 
         FileStream fs = null;
         try
@@ -207,10 +184,7 @@ public static class FileUtil
         }
         catch (Exception ex)
         {
-            if (ex is IOException or UnauthorizedAccessException)
-            {
-                return true;
-            }
+            if (ex is IOException or UnauthorizedAccessException) return true;
             throw;
         }
         finally
@@ -229,7 +203,8 @@ public static class FileUtil
     ///     3. Поиск по имени файла в searchDir
     ///     4. AutoCAD FindFile
     /// </summary>
-    public static bool TryResolveImagePath(Database db, string path, string? searchDir, out string resolvedPath, out Exception? resolveError)
+    public static bool TryResolveImagePath(Database db, string path, string? searchDir, out string resolvedPath,
+        out Exception? resolveError)
     {
         resolvedPath = string.Empty;
         resolveError = null;
@@ -244,17 +219,17 @@ public static class FileUtil
         // Подстановка текущего пользователя (cross-machine C:\Users\OtherUser\...)
         if (Path.IsPathRooted(path))
         {
-            string userProfileParent = Path.GetDirectoryName(
+            var userProfileParent = Path.GetDirectoryName(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) ?? string.Empty;
             if (!string.IsNullOrEmpty(userProfileParent) &&
                 path.StartsWith(userProfileParent, StringComparison.OrdinalIgnoreCase))
             {
-                string afterUsersDir = path[(userProfileParent.Length + 1)..];
-                int slashIdx = afterUsersDir.IndexOf(Path.DirectorySeparatorChar);
+                var afterUsersDir = path[(userProfileParent.Length + 1)..];
+                var slashIdx = afterUsersDir.IndexOf(Path.DirectorySeparatorChar);
                 if (slashIdx > 0)
                 {
-                    string relativePart = afterUsersDir[(slashIdx + 1)..];
-                    string candidate = Path.Combine(
+                    var relativePart = afterUsersDir[(slashIdx + 1)..];
+                    var candidate = Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                         relativePart);
                     if (File.Exists(candidate))
@@ -269,7 +244,7 @@ public static class FileUtil
         // Только имя файла в папке целевого DWG
         if (!string.IsNullOrEmpty(searchDir))
         {
-            string candidate = Path.Combine(searchDir, Path.GetFileName(path));
+            var candidate = Path.Combine(searchDir, Path.GetFileName(path));
             if (File.Exists(candidate))
             {
                 resolvedPath = candidate;
@@ -280,7 +255,7 @@ public static class FileUtil
         // AutoCAD FindFile
         try
         {
-            string foundPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.EmbeddedImageFile);
+            var foundPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.EmbeddedImageFile);
 
             if (!string.IsNullOrEmpty(foundPath) && File.Exists(foundPath))
             {

@@ -1,42 +1,41 @@
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Logging;
 using AutoBIMFusion.Common.Mist;
-using Serilog.Core;
+using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
 namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
-///  Нормализует масштаб определения блока и всех его вставок.
+///     Нормализует масштаб определения блока и всех его вставок.
 /// </summary>
 public static class BlockScaleApplier
 {
     /// <summary>
-    /// Нормализует масштаб определения блока и всех его вставок в переданной базе.
+    ///     Нормализует масштаб определения блока и всех его вставок в переданной базе.
     /// </summary>
-    public static void NormalizeBlockScale(Database db, Transaction trx, BlockReference blockRef, HashSet<string> processedBlocks)
+    public static void NormalizeBlockScale(Database db, Transaction trx, BlockReference blockRef,
+        HashSet<string> processedBlocks)
     {
         ArgumentNullException.ThrowIfNull(blockRef);
-        Logger log = LoggerFactory.GetSharedLogger();
+        var log = LoggerFactory.GetSharedLogger();
 
-        ObjectId blockDefinitionId = GetBlockDefinitionId(blockRef);
+        var blockDefinitionId = GetBlockDefinitionId(blockRef);
         if (!blockDefinitionId.IsValid || blockDefinitionId.IsNull)
         {
             log.Warning("BlockScaleApplier: у вставки блока нет корректного определения.");
             return;
         }
 
-        BlockTableRecord btr = (BlockTableRecord)trx.GetObject(blockDefinitionId, OpenMode.ForWrite);
+        var btr = (BlockTableRecord)trx.GetObject(blockDefinitionId, OpenMode.ForWrite);
 
-        string blockName = btr.Name;
+        var blockName = btr.Name;
 
-        if (!processedBlocks.Add(blockName))
-        {
-            return;
-        }
+        if (!processedBlocks.Add(blockName)) return;
 
         if (btr.IsFromExternalReference || btr.IsDependent)
         {
-            log.Warning($"BlockScaleApplier: блок \"{blockName}\" является внешним или зависимым, нормализация пропущена.");
+            log.Warning(
+                $"BlockScaleApplier: блок \"{blockName}\" является внешним или зависимым, нормализация пропущена.");
             return;
         }
 
@@ -46,50 +45,36 @@ public static class BlockScaleApplier
             return;
         }
 
-        double refScale = Abs(blockRef.ScaleFactors.X);
+        var refScale = Abs(blockRef.ScaleFactors.X);
         if (refScale < Generic.LowTolerance.EqualVector)
         {
             log.Warning($"BlockScaleApplier: блок \"{blockName}\" имеет нулевой масштаб, нормализация пропущена.");
             return;
         }
 
-        if (Abs(refScale - 1.0) < Generic.LowTolerance.EqualVector && btr.Units == db.Insunits)
-        {
-            return;
-        }
+        if (Abs(refScale - 1.0) < Generic.LowTolerance.EqualVector && btr.Units == db.Insunits) return;
 
-        if (btr.Units != db.Insunits)
-        {
-            btr.Units = db.Insunits;
-        }
+        if (btr.Units != db.Insunits) btr.Units = db.Insunits;
 
-        Matrix3d scaleMatrix = Matrix3d.Scaling(refScale, Point3d.Origin);
+        var scaleMatrix = Matrix3d.Scaling(refScale, Point3d.Origin);
 
-        foreach (ObjectId entId in btr)
-        {
+        foreach (var entId in btr)
             try
             {
-                if (trx.GetObject(entId, OpenMode.ForWrite, false, true) is Entity ent)
-                {
-                    ent.TransformBy(scaleMatrix);
-                }
+                if (trx.GetObject(entId, OpenMode.ForWrite, false, true) is Entity ent) ent.TransformBy(scaleMatrix);
             }
-            catch (Autodesk.AutoCAD.Runtime.Exception ex)
+            catch (Exception ex)
             {
                 log.Warning(ex, $"BlockScaleApplier: не удалось масштабировать объект блока \"{blockName}\".");
             }
-        }
 
-        double scaleFactor = 1.0 / refScale;
+        var scaleFactor = 1.0 / refScale;
 
         foreach (ObjectId blockRefId in GetBlockReferenceIds(trx, btr))
         {
-            if (trx.GetObject(blockRefId, OpenMode.ForWrite, false, true) is not BlockReference otherBlockRef)
-            {
-                continue;
-            }
+            if (trx.GetObject(blockRefId, OpenMode.ForWrite, false, true) is not BlockReference otherBlockRef) continue;
 
-            Scale3d oldScale = otherBlockRef.ScaleFactors;
+            var oldScale = otherBlockRef.ScaleFactors;
 
             otherBlockRef.ScaleFactors = new Scale3d(
                 oldScale.X * scaleFactor,
@@ -122,14 +107,11 @@ public static class BlockScaleApplier
         ObjectIdCollection result = [];
         result.Join(btr.GetBlockReferenceIds(true, true));
 
-        if (!btr.IsDynamicBlock)
-        {
-            return result;
-        }
+        if (!btr.IsDynamicBlock) return result;
 
         foreach (ObjectId anonymousBtrId in btr.GetAnonymousBlockIds())
         {
-            BlockTableRecord anonymousBtr = (BlockTableRecord)trx.GetObject(anonymousBtrId, OpenMode.ForRead);
+            var anonymousBtr = (BlockTableRecord)trx.GetObject(anonymousBtrId, OpenMode.ForRead);
             result.Join(anonymousBtr.GetBlockReferenceIds(true, true));
         }
 

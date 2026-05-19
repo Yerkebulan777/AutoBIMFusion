@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Runtime.Versioning;
+using System.Text.Json;
 using AutoBIMFusion.Common;
 using AutoBIMFusion.Common.AcadSupport;
 using AutoBIMFusion.Common.Helpers;
@@ -6,10 +9,6 @@ using AutoBIMFusion.Merge.Combine;
 using AutoBIMFusion.Merge.Combine.Layouts;
 using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
-using System.Diagnostics;
-using System.Runtime.Versioning;
-using System.Text.Json;
-
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 using Exception = System.Exception;
 
@@ -32,15 +31,15 @@ public sealed class CombineCommands
         string? statusPath = null;
         string? sourceFolder = null;
 
-        DateTimeOffset startedAt = DateTimeOffset.Now;
+        var startedAt = DateTimeOffset.Now;
 
-        MergeExecutionResult result = MergeExecutionResult.Fail(null, "Пакетная команда не была выполнена.");
+        var result = MergeExecutionResult.Fail(null, "Пакетная команда не была выполнена.");
 
-        Logger log = LoggerFactory.GetSharedLogger();
+        var log = LoggerFactory.GetSharedLogger();
 
         try
         {
-            Editor? editor = AcadApp.DocumentManager.MdiActiveDocument?.Editor;
+            var editor = AcadApp.DocumentManager.MdiActiveDocument?.Editor;
             sourceFolder = PromptRequiredString(editor, "Папка DWG");
             statusPath = PromptRequiredString(editor, "Файл статуса");
 
@@ -75,15 +74,13 @@ public sealed class CombineCommands
         finally
         {
             if (!string.IsNullOrWhiteSpace(statusPath))
-            {
                 WriteBatchStatus(statusPath, sourceFolder ?? string.Empty, result, startedAt, DateTimeOffset.Now);
-            }
         }
     }
 
     private async Task<MergeExecutionResult> ExecuteMergeAsync(string? folderPath, bool showDialogs, string commandName)
     {
-        Logger log = LoggerFactory.GetSharedLogger();
+        var log = LoggerFactory.GetSharedLogger();
 
         if (!await _mergeGate.WaitAsync(0))
         {
@@ -94,32 +91,29 @@ public sealed class CombineCommands
 
         try
         {
-            string? sourceFolder = folderPath;
+            var sourceFolder = folderPath;
 
             if (UiDialogService.TrySelectFolder("Выберите папку с файлами DWG", out sourceFolder))
             {
-                string savePath = BuildSavePath(sourceFolder!);
+                var savePath = BuildSavePath(sourceFolder!);
 
-                string[] dwgFiles = FileUtil.GetFiles(sourceFolder!);
+                var dwgFiles = FileUtil.GetFiles(sourceFolder!);
 
                 if (dwgFiles.Length == 0)
                 {
-                    if (showDialogs)
-                    {
-                        UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
-                    }
+                    if (showDialogs) UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
 
                     return MergeExecutionResult.Fail(savePath, "DWG файлы не найдены.");
                 }
 
                 const double gapPercent = 0.1;
                 CombineStatistics stats = new();
-                Stopwatch sw = Stopwatch.StartNew();
+                var sw = Stopwatch.StartNew();
 
-                DocumentCollection docMgr = AcadApp.DocumentManager;
-                MergeDocumentSelection target = SelectMergeDocument(docMgr, log);
+                var docMgr = AcadApp.DocumentManager;
+                var target = SelectMergeDocument(docMgr, log);
 
-                Document mergeDoc = target.Document;
+                var mergeDoc = target.Document;
 
                 BlockInserter inserter = new(gapPercent, log);
 
@@ -148,12 +142,9 @@ public sealed class CombineCommands
                     savePath,
                     sw.Elapsed);
 
-                if (showDialogs)
-                {
-                    ShowSummary(stats, sw.Elapsed, savePath, commandName);
-                }
+                if (showDialogs) ShowSummary(stats, sw.Elapsed, savePath, commandName);
 
-                string message = stats.Failed == 0
+                var message = stats.Failed == 0
                     ? "Завершено успешно."
                     : $"Завершено с ошибками. Успешно: {stats.Successful}, пропущено: {stats.Skipped}, ошибок: {stats.Failed}.";
 
@@ -177,30 +168,25 @@ public sealed class CombineCommands
 
     private static string? PromptRequiredString(Editor? editor, string promptName)
     {
-        if (editor is null)
-        {
-            return null;
-        }
+        if (editor is null) return null;
 
         PromptStringOptions options = new($"\n{promptName}: ")
         {
             AllowSpaces = true
         };
 
-        PromptResult result = editor.GetString(options);
+        var result = editor.GetString(options);
         return result.Status == PromptStatus.OK
             ? result.StringResult.Trim().Trim('"')
             : null;
     }
 
-    private static void WriteBatchStatus(string statusPath, string folderPath, MergeExecutionResult result, DateTimeOffset startedAt, DateTimeOffset finishedAt)
+    private static void WriteBatchStatus(string statusPath, string folderPath, MergeExecutionResult result,
+        DateTimeOffset startedAt, DateTimeOffset finishedAt)
     {
-        string? dir = Path.GetDirectoryName(statusPath);
+        var dir = Path.GetDirectoryName(statusPath);
 
-        if (!string.IsNullOrWhiteSpace(dir) && !Directory.Exists(dir))
-        {
-            _ = Directory.CreateDirectory(dir);
-        }
+        if (!string.IsNullOrWhiteSpace(dir) && !Directory.Exists(dir)) _ = Directory.CreateDirectory(dir);
 
         var payload = new
         {
@@ -223,42 +209,36 @@ public sealed class CombineCommands
 
     private static MergeDocumentSelection SelectMergeDocument(DocumentCollection docMgr, Logger log)
     {
-        Document? activeDoc = docMgr.MdiActiveDocument;
+        var activeDoc = docMgr.MdiActiveDocument;
 
         if (activeDoc is not null && CanUseActiveDocument(activeDoc, log))
-        {
             return new MergeDocumentSelection(activeDoc, false);
-        }
 
-        Document mergeDoc = docMgr.Add(string.Empty);
+        var mergeDoc = docMgr.Add(string.Empty);
         docMgr.MdiActiveDocument = mergeDoc;
         return new MergeDocumentSelection(mergeDoc, true);
     }
 
     private static bool CanUseActiveDocument(Document doc, Logger log)
     {
-        if (doc.IsNamedDrawing)
-        {
-            return false;
-        }
+        if (doc.IsNamedDrawing) return false;
 
         try
         {
             using (doc.LockDocument())
             {
-                bool isEmpty = IsDrawingContentEmpty(doc.Database);
+                var isEmpty = IsDrawingContentEmpty(doc.Database);
 
-                if (!isEmpty)
-                {
-                    return false;
-                }
+                if (!isEmpty) return false;
 
                 return true;
             }
         }
         catch (Autodesk.AutoCAD.Runtime.Exception ex)
         {
-            log.Warning(ex, "MERGEDWG: не удалось проверить текущий документ \"{DocumentName}\", результат будет собран во временном документе.", doc.Name);
+            log.Warning(ex,
+                "MERGEDWG: не удалось проверить текущий документ \"{DocumentName}\", результат будет собран во временном документе.",
+                doc.Name);
             return false;
         }
     }
@@ -266,7 +246,7 @@ public sealed class CombineCommands
     private static bool IsDrawingContentEmpty(Database db)
     {
         using Transaction tr = db.TransactionManager.StartOpenCloseTransaction();
-        BlockTable blockTable = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+        var blockTable = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
 
         if (!IsBlockRecordEmpty(blockTable[BlockTableRecord.ModelSpace], tr))
         {
@@ -274,11 +254,11 @@ public sealed class CombineCommands
             return false;
         }
 
-        DBDictionary layoutDictionary = (DBDictionary)tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        var layoutDictionary = (DBDictionary)tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
-        foreach (DBDictionaryEntry entry in layoutDictionary)
+        foreach (var entry in layoutDictionary)
         {
-            Layout layout = (Layout)tr.GetObject(entry.Value, OpenMode.ForRead);
+            var layout = (Layout)tr.GetObject(entry.Value, OpenMode.ForRead);
 
             if (!layout.ModelType && !IsBlockRecordEmpty(layout.BlockTableRecordId, tr))
             {
@@ -293,22 +273,20 @@ public sealed class CombineCommands
 
     private static bool IsBlockRecordEmpty(ObjectId blockRecordId, Transaction tr)
     {
-        BlockTableRecord blockRecord = (BlockTableRecord)tr.GetObject(blockRecordId, OpenMode.ForRead);
+        var blockRecord = (BlockTableRecord)tr.GetObject(blockRecordId, OpenMode.ForRead);
 
-        foreach (ObjectId entityId in blockRecord)
+        foreach (var entityId in blockRecord)
         {
-            Entity entity = (Entity)tr.GetObject(entityId, OpenMode.ForRead);
+            var entity = (Entity)tr.GetObject(entityId, OpenMode.ForRead);
 
-            if (entity is not Viewport)
-            {
-                return false;
-            }
+            if (entity is not Viewport) return false;
         }
 
         return true;
     }
 
-    private static async Task MergeFiles(string[] files, BlockInserter inserter, Document doc, CombineStatistics stats, string savePath, Logger log)
+    private static async Task MergeFiles(string[] files, BlockInserter inserter, Document doc, CombineStatistics stats,
+        string savePath, Logger log)
     {
         using ProgressMeter pm = new();
         pm.Start("Объединение файлов DWG...");
@@ -316,24 +294,18 @@ public sealed class CombineCommands
 
         try
         {
-            for (int idx = 0; idx < files.Length; idx++)
+            for (var idx = 0; idx < files.Length; idx++)
             {
                 stats.AddTotal();
 
-                CombineResult result = await CombineOrchestrator.MergeSingleFile(files[idx], inserter, doc, log, savePath);
+                var result = await CombineOrchestrator.MergeSingleFile(files[idx], inserter, doc, log, savePath);
 
                 if (result.Success)
-                {
                     stats.AddSuccess();
-                }
                 else if (result.IsSkipped)
-                {
                     stats.AddSkipped();
-                }
                 else
-                {
                     stats.AddFailed();
-                }
 
                 pm.MeterProgress();
             }
@@ -347,11 +319,11 @@ public sealed class CombineCommands
     private static string BuildSavePath(string rootPath)
     {
         DirectoryInfo dir = new(rootPath);
-        DirectoryInfo? parent = dir.Parent;
+        var parent = dir.Parent;
 
         const string buildSuffix = "-сборка";
-        string outputFolderName = $"{dir.Name}{buildSuffix}";
-        string outputFileName = $"{dir.Name}.dwg";
+        var outputFolderName = $"{dir.Name}{buildSuffix}";
+        var outputFileName = $"{dir.Name}.dwg";
 
         return parent is null
             ? Path.Combine(dir.FullName, outputFolderName, outputFileName)
@@ -362,17 +334,11 @@ public sealed class CombineCommands
     {
         try
         {
-            string? dir = Path.GetDirectoryName(savePath);
+            var dir = Path.GetDirectoryName(savePath);
 
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-            {
-                _ = Directory.CreateDirectory(dir);
-            }
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) _ = Directory.CreateDirectory(dir);
 
-            if (File.Exists(savePath))
-            {
-                File.Delete(savePath);
-            }
+            if (File.Exists(savePath)) File.Delete(savePath);
 
             using (new AcadWarningSuppressScope())
             {
@@ -389,7 +355,7 @@ public sealed class CombineCommands
 
     private static void ShowSummary(CombineStatistics stats, TimeSpan elapsed, string savePath, string commandName)
     {
-        string summary = stats.Failed == 0
+        var summary = stats.Failed == 0
             ? $"Завершено успешно.\nОбработано файлов: {stats.Successful}\nВремя: {elapsed:mm\\:ss\\.fff}\nСохранено в: {savePath}"
             : $"Завершено с ошибками.\nУспешно: {stats.Successful}\nПропущено: {stats.Skipped}\nОшибок: {stats.Failed}\nВремя: {elapsed:mm\\:ss\\.fff}\nСохранено в: {savePath}";
 
@@ -405,6 +371,4 @@ public sealed class CombineCommands
             return new MergeExecutionResult(false, savePath, message);
         }
     }
-
-
 }

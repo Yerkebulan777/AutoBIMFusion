@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Reflection;
-
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Common;
@@ -11,7 +10,7 @@ public static class UiDialogService
     {
         folderPath = string.Empty;
 
-        Type? dialogType = ResolveWinFormsType("System.Windows.Forms.FolderBrowserDialog");
+        var dialogType = ResolveWinFormsType("System.Windows.Forms.FolderBrowserDialog");
 
         if (dialogType is null)
         {
@@ -19,13 +18,13 @@ public static class UiDialogService
             return false;
         }
 
-        using IDisposable dialog = (IDisposable)Activator.CreateInstance(dialogType)!;
+        using var dialog = (IDisposable)Activator.CreateInstance(dialogType)!;
 
         dialogType.GetProperty("Description")?.SetValue(dialog, description);
         dialogType.GetProperty("RootFolder")?.SetValue(dialog, Environment.SpecialFolder.Desktop);
         dialogType.GetProperty("ShowNewFolderButton")?.SetValue(dialog, false);
 
-        object? result = dialogType.GetMethod("ShowDialog", Type.EmptyTypes)?.Invoke(dialog, null);
+        var result = dialogType.GetMethod("ShowDialog", Type.EmptyTypes)?.Invoke(dialog, null);
         if (!string.Equals(result?.ToString(), "OK", StringComparison.Ordinal))
         {
             ShowMessage("Отменено пользователем.", "MERGEDWG");
@@ -51,16 +50,13 @@ public static class UiDialogService
 
     private static Type? ResolveWinFormsType(string typeName)
     {
-        Type? type = Type.GetType($"{typeName}, System.Windows.Forms", false);
+        var type = Type.GetType($"{typeName}, System.Windows.Forms", false);
 
-        if (type is not null)
-        {
-            return type;
-        }
+        if (type is not null) return type;
 
         try
         {
-            Assembly assembly = Assembly.Load("System.Windows.Forms");
+            var assembly = Assembly.Load("System.Windows.Forms");
             return assembly.GetType(typeName, false);
         }
         catch
@@ -68,7 +64,4 @@ public static class UiDialogService
             return null;
         }
     }
-
-
-
 }

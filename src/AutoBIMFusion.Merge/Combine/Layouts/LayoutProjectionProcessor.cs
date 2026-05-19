@@ -6,32 +6,34 @@ namespace AutoBIMFusion.Merge.Combine.Layouts;
 
 internal static class LayoutProjectionProcessor
 {
-    internal static LayoutProjectionResult ProjectLayoutToModelSpace(Database db, string layoutName, IReadOnlyList<ViewportInfo> viewports, Logger log)
+    internal static LayoutProjectionResult ProjectLayoutToModelSpace(Database db, string layoutName,
+        IReadOnlyList<ViewportInfo> viewports, Logger log)
     {
         return viewports.Count == 0
             ? ProjectNoViewport(db, layoutName, log)
             : ProjectWithViewports(db, layoutName, viewports, log);
     }
 
-    private static LayoutProjectionResult ProjectWithViewports(Database db, string layoutName, IReadOnlyList<ViewportInfo> viewports, Logger log)
+    private static LayoutProjectionResult ProjectWithViewports(Database db, string layoutName,
+        IReadOnlyList<ViewportInfo> viewports, Logger log)
     {
-        ViewportInfo mainOriginal = ViewportInfo.PickMainViewport(viewports);
-        ViewportScaleNormalization scale = ViewportScaleNormalizer.Normalize(mainOriginal.CustomScale);
-        ViewportInfo mainNormalized = mainOriginal with { CustomScale = scale.WorkingCustomScale };
+        var mainOriginal = ViewportInfo.PickMainViewport(viewports);
+        var scale = ViewportScaleNormalizer.Normalize(mainOriginal.CustomScale);
+        var mainNormalized = mainOriginal with { CustomScale = scale.WorkingCustomScale };
 
-        ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
+        var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
         ProjectAuxViewports(db, msId, mainOriginal, viewports, log);
 
         NormalizeModelSpaceScale(db, scale.GeometryScale, mainOriginal.ViewCenter, log);
 
         // Одна транзакция: сбор paper-сущностей + поиск рамки + фильтрация
-        LayoutData layoutData = CollectAndFilterLayoutData(db, layoutName);
+        var layoutData = CollectAndFilterLayoutData(db, layoutName);
 
         using (layoutData.FilteredPaperIds)
         {
-            Matrix3d matrix = ViewportTransformer.BuildPaperToMainMatrix(mainNormalized, log);
-            Extents3d? frameBounds = TransformFrameBounds(layoutData.FrameBounds, matrix);
+            var matrix = ViewportTransformer.BuildPaperToMainMatrix(mainNormalized, log);
+            var frameBounds = TransformFrameBounds(layoutData.FrameBounds, matrix);
             MovePaperToModelSpace(db, layoutData.BtrId, layoutData.FilteredPaperIds, matrix, log);
 
             return new LayoutProjectionResult(frameBounds, scale.TargetVisualScale, scale.LinearScaleMultiplier);
@@ -45,22 +47,16 @@ internal static class LayoutProjectionProcessor
         IReadOnlyList<ViewportInfo> viewports,
         Logger log)
     {
-        if (viewports.Count <= 1)
-        {
-            return;
-        }
+        if (viewports.Count <= 1) return;
 
-        IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities =
+        var modelEntities =
             ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
 
         HashSet<ObjectId> claimedSourceIds = [];
 
-        foreach (ViewportInfo aux in viewports)
+        foreach (var aux in viewports)
         {
-            if (aux.VpId == mainOriginal.VpId)
-            {
-                continue;
-            }
+            if (aux.VpId == mainOriginal.VpId) continue;
 
             ProjectAuxViewport(db, msId, mainOriginal, aux, modelEntities, claimedSourceIds, log);
         }
@@ -75,22 +71,24 @@ internal static class LayoutProjectionProcessor
         HashSet<ObjectId> claimedSourceIds,
         Logger log)
     {
-        Matrix3d matrix = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
+        var matrix = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
 
-        using ObjectIdCollection candidates =
+        using var candidates =
             ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, mainOriginal.ModelWindow, log);
 
-        using ObjectIdCollection toClone = CollectUnclaimedObjectIds(candidates, claimedSourceIds, out int duplicateSkipped);
+        using var toClone = CollectUnclaimedObjectIds(candidates, claimedSourceIds, out var duplicateSkipped);
 
         if (toClone.Count == 0)
         {
-            log.Debug($"Aux#{aux.Number}: candidates={candidates.Count}, duplicateSkipped={duplicateSkipped}, nothing to clone");
+            log.Debug(
+                $"Aux#{aux.Number}: candidates={candidates.Count}, duplicateSkipped={duplicateSkipped}, nothing to clone");
             return;
         }
 
-        log.Debug($"Aux#{aux.Number}: candidates={candidates.Count}, toClone={toClone.Count}, duplicateSkipped={duplicateSkipped}");
+        log.Debug(
+            $"Aux#{aux.Number}: candidates={candidates.Count}, toClone={toClone.Count}, duplicateSkipped={duplicateSkipped}");
 
-        using ViewportTransformer.CloneTransformResult cloneResult =
+        using var cloneResult =
             ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log);
 
         ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow);
@@ -105,16 +103,10 @@ internal static class LayoutProjectionProcessor
         duplicateSkipped = 0;
 
         foreach (ObjectId id in candidates)
-        {
             if (claimedSourceIds.Add(id))
-            {
                 _ = result.Add(id);
-            }
             else
-            {
                 duplicateSkipped++;
-            }
-        }
 
         return result;
     }
@@ -122,27 +114,24 @@ internal static class LayoutProjectionProcessor
     private static LayoutProjectionResult ProjectNoViewport(Database db, string layoutName, Logger log)
     {
         // Одна транзакция: сбор paper-сущностей + поиск рамки + фильтрация
-        LayoutData layoutData = CollectAndFilterLayoutData(db, layoutName);
+        var layoutData = CollectAndFilterLayoutData(db, layoutName);
 
         using (layoutData.FilteredPaperIds)
         {
             if (layoutData.FilteredPaperIds.Count == 0 || layoutData.BtrId.IsNull)
-            {
                 return new LayoutProjectionResult(null, ViewportScaleNormalizer.WorkingScaleMultiplier, 1.0);
-            }
 
-            Extents3d? paperBounds = ComputeBounds(db, layoutData.FilteredPaperIds, log);
+            var paperBounds = ComputeBounds(db, layoutData.FilteredPaperIds, log);
 
             if (!paperBounds.HasValue)
-            {
                 return new LayoutProjectionResult(null, ViewportScaleNormalizer.WorkingScaleMultiplier, 1.0);
-            }
 
-            Point3d minPt = paperBounds.Value.MinPoint;
+            var minPt = paperBounds.Value.MinPoint;
 
-            Matrix3d matrix = Matrix3d.Scaling(ViewportScaleNormalizer.WorkingScaleMultiplier, Point3d.Origin) * Matrix3d.Displacement(Point3d.Origin - minPt);
+            var matrix = Matrix3d.Scaling(ViewportScaleNormalizer.WorkingScaleMultiplier, Point3d.Origin) *
+                         Matrix3d.Displacement(Point3d.Origin - minPt);
 
-            Extents3d? frameBounds = TransformFrameBounds(layoutData.FrameBounds, matrix);
+            var frameBounds = TransformFrameBounds(layoutData.FrameBounds, matrix);
             MovePaperToModelSpace(db, layoutData.BtrId, layoutData.FilteredPaperIds, matrix, log);
 
             return new LayoutProjectionResult(frameBounds, ViewportScaleNormalizer.WorkingScaleMultiplier, 1.0);
@@ -156,9 +145,9 @@ internal static class LayoutProjectionProcessor
     /// <returns>BTR-идентификатор листа и отфильтрованная коллекция объектов.</returns>
     private static LayoutData CollectAndFilterLayoutData(Database db, string layoutName)
     {
-        using Transaction trx = db.TransactionManager.StartTransaction();
+        using var trx = db.TransactionManager.StartTransaction();
 
-        DBDictionary layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
+        var layoutDict = (DBDictionary)trx.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
         if (!layoutDict.Contains(layoutName))
         {
@@ -166,19 +155,19 @@ internal static class LayoutProjectionProcessor
             return new LayoutData(ObjectId.Null, [], null);
         }
 
-        ObjectId layoutId = layoutDict.GetAt(layoutName);
-        Layout layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
-        ObjectId btrId = layout.BlockTableRecordId;
-        BlockTableRecord btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
+        var layoutId = layoutDict.GetAt(layoutName);
+        var layout = (Layout)trx.GetObject(layoutId, OpenMode.ForRead);
+        var btrId = layout.BlockTableRecordId;
+        var btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
 
-        RXClass viewportClass = RXObject.GetClass(typeof(Viewport));
+        var viewportClass = RXObject.GetClass(typeof(Viewport));
 
-        HashSet<ObjectId> clipEntityIds = CollectViewportClipEntityIds(trx, btr, viewportClass);
-        List<ObjectId> paperIdsList = CollectPaperEntityIds(btr, viewportClass, clipEntityIds);
+        var clipEntityIds = CollectViewportClipEntityIds(trx, btr, viewportClass);
+        var paperIdsList = CollectPaperEntityIds(btr, viewportClass, clipEntityIds);
 
         // Поиск рамки-штампа и фильтрация в той же транзакции
-        Extents3d? titleBlockBounds = BlockReferences.FindLargestBlockReferenceBoundsByArea(trx, paperIdsList);
-        ObjectIdCollection filteredIds = FilterEntitiesByBounds(trx, paperIdsList, titleBlockBounds);
+        var titleBlockBounds = BlockReferences.FindLargestBlockReferenceBoundsByArea(trx, paperIdsList);
+        var filteredIds = FilterEntitiesByBounds(trx, paperIdsList, titleBlockBounds);
 
         trx.Commit();
         return new LayoutData(btrId, filteredIds, titleBlockBounds);
@@ -191,18 +180,12 @@ internal static class LayoutProjectionProcessor
     {
         HashSet<ObjectId> clipEntityIds = [];
 
-        foreach (ObjectId id in btr)
+        foreach (var id in btr)
         {
-            if (!id.ObjectClass.IsDerivedFrom(viewportClass))
-            {
-                continue;
-            }
+            if (!id.ObjectClass.IsDerivedFrom(viewportClass)) continue;
 
-            Viewport viewport = (Viewport)trx.GetObject(id, OpenMode.ForRead);
-            if (!viewport.NonRectClipEntityId.IsNull)
-            {
-                _ = clipEntityIds.Add(viewport.NonRectClipEntityId);
-            }
+            var viewport = (Viewport)trx.GetObject(id, OpenMode.ForRead);
+            if (!viewport.NonRectClipEntityId.IsNull) _ = clipEntityIds.Add(viewport.NonRectClipEntityId);
         }
 
         return clipEntityIds;
@@ -215,13 +198,9 @@ internal static class LayoutProjectionProcessor
     {
         List<ObjectId> paperIds = [];
 
-        foreach (ObjectId id in btr)
-        {
+        foreach (var id in btr)
             if (!id.ObjectClass.IsDerivedFrom(viewportClass) && !clipEntityIds.Contains(id))
-            {
                 paperIds.Add(id);
-            }
-        }
 
         return paperIds;
     }
@@ -239,27 +218,21 @@ internal static class LayoutProjectionProcessor
         if (!boundingBox.HasValue)
         {
             // Рамка не найдена — включаем все объекты
-            foreach (ObjectId id in paperIds)
-            {
-                _ = filtered.Add(id);
-            }
+            foreach (var id in paperIds) _ = filtered.Add(id);
 
             return filtered;
         }
 
-        Extents3d bounds = boundingBox.Value;
+        var bounds = boundingBox.Value;
 
-        foreach (ObjectId id in paperIds)
+        foreach (var id in paperIds)
         {
-            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent)
-            {
-                continue;
-            }
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
 
             // Сама рамка-штамп (BlockReference с совпадающими габаритами) включается всегда
             if (ent is BlockReference br)
             {
-                Extents3d? ext = ExtentsUtils.TryGetExtents(br);
+                var ext = ExtentsUtils.TryGetExtents(br);
                 if (ext.HasValue && ExtentsUtils.ExtentsApproxEqual(ext.Value, bounds))
                 {
                     _ = filtered.Add(id);
@@ -267,17 +240,14 @@ internal static class LayoutProjectionProcessor
                 }
             }
 
-            Extents3d? entityExt = ExtentsUtils.TryGetExtents(ent);
+            var entityExt = ExtentsUtils.TryGetExtents(ent);
             if (entityExt.HasValue && ExtentsUtils.AabbIntersect(bounds, entityExt.Value))
             {
                 _ = filtered.Add(id);
                 continue;
             }
 
-            if (ExtentsUtils.IsEntityPointIn(ent, bounds))
-            {
-                _ = filtered.Add(id);
-            }
+            if (ExtentsUtils.IsEntityPointIn(ent, bounds)) _ = filtered.Add(id);
         }
 
         return filtered;
@@ -290,7 +260,7 @@ internal static class LayoutProjectionProcessor
     {
         if (Abs(geometryScale - 1.0) > 1e-9)
         {
-            Matrix3d scaleMatrix = Matrix3d.Scaling(geometryScale, center);
+            var scaleMatrix = Matrix3d.Scaling(geometryScale, center);
             ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, geometryScale, log);
         }
     }
@@ -307,13 +277,10 @@ internal static class LayoutProjectionProcessor
         Matrix3d matrix,
         Logger log)
     {
-        if (filteredIds.Count == 0 || paperBtrId.IsNull)
-        {
-            return;
-        }
+        if (filteredIds.Count == 0 || paperBtrId.IsNull) return;
 
-        ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
-        using ViewportTransformer.CloneTransformResult cloneResult =
+        var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
+        using var cloneResult =
             ViewportTransformer.DeepCloneAndTransform(db, filteredIds, paperBtrId, msId, matrix, log);
 
         BlockReferences.EraseBlockContents(db, paperBtrId);
@@ -328,17 +295,18 @@ internal static class LayoutProjectionProcessor
 
     private static Extents3d? ComputeBounds(Database db, ObjectIdCollection entityIds, Logger log)
     {
-        Extents3d? result = ExtentsUtils.ComputeBounds(db, entityIds);
+        var result = ExtentsUtils.ComputeBounds(db, entityIds);
 
         if (result.HasValue)
-        {
             log.Debug($"ComputeBounds: entities={entityIds.Count}, bounds={ExtentsUtils.FormatExtents(result.Value)}");
-        }
 
         return result;
     }
 
     private sealed record LayoutData(ObjectId BtrId, ObjectIdCollection FilteredPaperIds, Extents3d? FrameBounds);
 
-    internal sealed record LayoutProjectionResult(Extents3d? FrameBounds, double TargetVisualScale, double LinearScaleMultiplier);
+    internal sealed record LayoutProjectionResult(
+        Extents3d? FrameBounds,
+        double TargetVisualScale,
+        double LinearScaleMultiplier);
 }

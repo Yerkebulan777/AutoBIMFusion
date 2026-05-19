@@ -7,7 +7,7 @@ public static class Point3dCollectionExtensions
 {
     public static Point3d[] ToArray(this Point3dCollection collection)
     {
-        Point3d[] array = new Point3d[collection.Count];
+        var array = new Point3d[collection.Count];
         collection.CopyTo(array, 0);
         return array;
     }
@@ -17,10 +17,7 @@ public static class Point3dCollectionExtensions
         foreach (Point3d item in collection)
         {
             DBPoint dBPoint = new(item);
-            if (ColorIndex != null)
-            {
-                dBPoint.ColorIndex = (int)ColorIndex;
-            }
+            if (ColorIndex != null) dBPoint.ColorIndex = (int)ColorIndex;
 
             _ = dBPoint.AddToDrawing();
         }
@@ -29,26 +26,19 @@ public static class Point3dCollectionExtensions
     public static Point3dCollection AddRange(this Point3dCollection A, Point3dCollection B)
     {
         foreach (Point3d pt in B)
-        {
             if (!A.Contains(pt))
-            {
                 _ = A.Add(pt);
-            }
-        }
 
         return A;
     }
 
     public static Point3dCollection ConvertToUCS(this Point3dCollection SCGPoint3DCollection)
     {
-        Editor ed = Generic.GetEditor();
-        Matrix3d SCGToUCS = ed.CurrentUserCoordinateSystem.Inverse();
+        var ed = Generic.GetEditor();
+        var SCGToUCS = ed.CurrentUserCoordinateSystem.Inverse();
 
         Point3dCollection UCSPoint3dCollection = [];
-        foreach (Point3d point in SCGPoint3DCollection)
-        {
-            _ = UCSPoint3dCollection.Add(point.TransformBy(SCGToUCS));
-        }
+        foreach (Point3d point in SCGPoint3DCollection) _ = UCSPoint3dCollection.Add(point.TransformBy(SCGToUCS));
 
         return UCSPoint3dCollection;
     }
@@ -57,9 +47,7 @@ public static class Point3dCollectionExtensions
     {
         Point3dCollection FlattenPoint3dCollection = [];
         foreach (Point3d point in SCGPoint3DCollection)
-        {
             _ = FlattenPoint3dCollection.Add(new Point3d(point.X, point.Y, Elevation));
-        }
 
         return FlattenPoint3dCollection;
     }
@@ -77,10 +65,7 @@ public static class Point3dCollectionExtensions
     public static Point2dCollection ToPoint2dCollection(this Point3dCollection collection)
     {
         Point2dCollection point2dCollection = [];
-        foreach (Point3d point in collection)
-        {
-            _ = point2dCollection.Add(point.ToPoint2d());
-        }
+        foreach (Point3d point in collection) _ = point2dCollection.Add(point.ToPoint2d());
 
         return point2dCollection;
     }
@@ -90,28 +75,18 @@ public static class Point3dCollectionExtensions
     {
         CustomTolerance ??= Generic.MediumTolerance;
         foreach (Point3d CollectionPoint in collection)
-        {
             if (CollectionPoint.IsEqualTo(Point, (Tolerance)CustomTolerance))
-            {
                 return true;
-            }
-        }
 
         return false;
     }
 
     public static bool HasDuplicatePoints(this Point3dCollection points, Tolerance tolerance)
     {
-        for (int i = 0; i < points.Count; i++)
-        {
-            for (int j = i + 1; j < points.Count; j++)
-            {
-                if (points[i].IsEqualTo(points[j], tolerance))
-                {
-                    return true;
-                }
-            }
-        }
+        for (var i = 0; i < points.Count; i++)
+        for (var j = i + 1; j < points.Count; j++)
+            if (points[i].IsEqualTo(points[j], tolerance))
+                return true;
 
         return false;
     }
@@ -120,12 +95,8 @@ public static class Point3dCollectionExtensions
     {
         Point3dCollection NoDuplicateCollection = [];
         foreach (Point3d point in points)
-        {
             if (!NoDuplicateCollection.ContainsTolerance(point, tolerance))
-            {
                 _ = NoDuplicateCollection.Add(point);
-            }
-        }
 
         return NoDuplicateCollection;
     }

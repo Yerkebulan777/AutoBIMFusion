@@ -1,7 +1,6 @@
-using AutoBIMFusion.Plugin.Ribbon;
-using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.Windows;
 using System.Runtime.Versioning;
+using AutoBIMFusion.Plugin.Ribbon;
+using Autodesk.Windows;
 using App = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace AutoBIMFusion.Plugin;
@@ -21,7 +20,7 @@ public sealed class AutoBIMFusionExtension : IExtensionApplication
 
     private void OnIdle(object? sender, EventArgs e)
     {
-        Document doc = App.DocumentManager.MdiActiveDocument;
+        var doc = App.DocumentManager.MdiActiveDocument;
 
         if (doc != null && ComponentManager.Ribbon != null)
         {

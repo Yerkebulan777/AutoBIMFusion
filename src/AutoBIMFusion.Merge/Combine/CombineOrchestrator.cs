@@ -1,8 +1,8 @@
+using System.Runtime.Versioning;
 using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Merge.Combine.Layouts;
 using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
-using System.Runtime.Versioning;
 using Exception = System.Exception;
 
 namespace AutoBIMFusion.Merge.Combine;
@@ -14,41 +14,34 @@ namespace AutoBIMFusion.Merge.Combine;
 [SupportedOSPlatform("windows")]
 public static class CombineOrchestrator
 {
-    public static Task<CombineResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc, Logger log, string targetSavePath)
+    public static Task<CombineResult> MergeSingleFile(string filePath, BlockInserter inserter, Document targetDoc,
+        Logger log, string targetSavePath)
     {
         return Task.FromResult(MergeSingleFileCore(filePath, inserter, targetDoc, log, targetSavePath));
     }
 
-    private static CombineResult MergeSingleFileCore(string filePath, BlockInserter inserter, Document targetDoc, Logger log, string targetSavePath)
+    private static CombineResult MergeSingleFileCore(string filePath, BlockInserter inserter, Document targetDoc,
+        Logger log, string targetSavePath)
     {
-        string fileName = Path.GetFileName(filePath);
+        var fileName = Path.GetFileName(filePath);
 
-        string layoutName = Path.GetFileNameWithoutExtension(filePath);
+        var layoutName = Path.GetFileNameWithoutExtension(filePath);
 
-        if (!FileUtil.TryValidateDwg(filePath, out string? warn))
-        {
-            return CombineResult.Warn(fileName, warn);
-        }
+        if (!FileUtil.TryValidateDwg(filePath, out var warn)) return CombineResult.Warn(fileName, warn);
 
         try
         {
-            using PreparedSourceDatabase? prepared = ViewportLayoutExporter.PrepareDatabaseForMerge(filePath, fileName, log);
+            using var prepared = ViewportLayoutExporter.PrepareDatabaseForMerge(filePath, fileName, log);
 
-            if (prepared == null)
-            {
-                return CombineResult.Warn(fileName, "Листы не найдены");
-            }
+            if (prepared == null) return CombineResult.Warn(fileName, "Листы не найдены");
 
             // Очистка мелких объектов за рамкой выполняется внутри PrepareDatabaseForMerge до нормализации базовых точек.
             BlockBasePointEditor.NormalizeAllBlocksBasePoints(prepared.Db);
 
             // ComputeModelSpaceBounds: прямой scan сущностей, не зависит от кэша db.Extmin/Extmax.
-            Extents3d? bounds = ExtentsUtils.ComputeModelSpaceBounds(prepared.Db);
+            var bounds = ExtentsUtils.ComputeModelSpaceBounds(prepared.Db);
 
-            if (!bounds.HasValue)
-            {
-                return CombineResult.Warn(fileName, "Пустой файл");
-            }
+            if (!bounds.HasValue) return CombineResult.Warn(fileName, "Пустой файл");
 
             log.Debug($"{fileName}: source bounds before insert {ExtentsUtils.FormatExtents(bounds.Value)}");
 
@@ -69,9 +62,7 @@ public static class CombineOrchestrator
                     prepared.LinearScaleMultiplier);
 
                 if (worldBounds is not null)
-                {
                     DimensionStyleDiagnosticUtils.LogStyleSnapshot(targetDoc.Database, log, "target-after-clone");
-                }
             }
 
             return CombineResult.Ok(fileName);

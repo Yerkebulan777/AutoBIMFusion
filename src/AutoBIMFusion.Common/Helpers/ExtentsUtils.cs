@@ -47,8 +47,8 @@ public static class ExtentsUtils
         return ent.IsErased
             ? null
             : ent is BlockReference blockRef
-            ? TryGetBlockReferenceLiveExtents(blockRef, trx, activeBlockDefinitions)
-            : TryGetExtents(ent);
+                ? TryGetBlockReferenceLiveExtents(blockRef, trx, activeBlockDefinitions)
+                : TryGetExtents(ent);
     }
 
     private static Extents3d? TryGetBlockReferenceLiveExtents(
@@ -56,66 +56,39 @@ public static class ExtentsUtils
         Transaction trx,
         HashSet<ObjectId> activeBlockDefinitions)
     {
-        ObjectId blockDefId = blockRef.BlockTableRecord;
-        if (blockDefId.IsNull || !blockDefId.IsValid || blockDefId.IsErased)
-        {
-            return null;
-        }
+        var blockDefId = blockRef.BlockTableRecord;
+        if (blockDefId.IsNull || !blockDefId.IsValid || blockDefId.IsErased) return null;
 
         // Защита от циклических/повреждённых ссылок блоков.
-        if (!activeBlockDefinitions.Add(blockDefId))
-        {
-            return null;
-        }
+        if (!activeBlockDefinitions.Add(blockDefId)) return null;
 
         try
         {
-            if (trx.GetObject(blockDefId, OpenMode.ForRead) is not BlockTableRecord blockDef)
-            {
-                return null;
-            }
+            if (trx.GetObject(blockDefId, OpenMode.ForRead) is not BlockTableRecord blockDef) return null;
 
             Extents3d? result = null;
 
-            foreach (ObjectId childId in blockDef)
+            foreach (var childId in blockDef)
             {
-                if (!childId.IsValid || childId.IsErased)
-                {
-                    continue;
-                }
+                if (!childId.IsValid || childId.IsErased) continue;
 
-                if (trx.GetObject(childId, OpenMode.ForRead) is not Entity child || child.IsErased)
-                {
-                    continue;
-                }
+                if (trx.GetObject(childId, OpenMode.ForRead) is not Entity child || child.IsErased) continue;
 
-                Extents3d? childExtents = TryGetLiveExtents(child, trx, activeBlockDefinitions);
-                if (!childExtents.HasValue)
-                {
-                    continue;
-                }
+                var childExtents = TryGetLiveExtents(child, trx, activeBlockDefinitions);
+                if (!childExtents.HasValue) continue;
 
-                Extents3d transformed = Transform(childExtents.Value, blockRef.BlockTransform);
+                var transformed = Transform(childExtents.Value, blockRef.BlockTransform);
                 result = result.HasValue ? Union(result.Value, transformed) : transformed;
             }
 
             foreach (ObjectId attributeId in blockRef.AttributeCollection)
             {
-                if (!attributeId.IsValid || attributeId.IsErased)
-                {
-                    continue;
-                }
+                if (!attributeId.IsValid || attributeId.IsErased) continue;
 
-                if (trx.GetObject(attributeId, OpenMode.ForRead) is not AttributeReference attribute)
-                {
-                    continue;
-                }
+                if (trx.GetObject(attributeId, OpenMode.ForRead) is not AttributeReference attribute) continue;
 
-                Extents3d? attributeExtents = TryGetExtents(attribute);
-                if (!attributeExtents.HasValue)
-                {
-                    continue;
-                }
+                var attributeExtents = TryGetExtents(attribute);
+                if (!attributeExtents.HasValue) continue;
 
                 result = result.HasValue ? Union(result.Value, attributeExtents.Value) : attributeExtents.Value;
             }
@@ -142,18 +115,12 @@ public static class ExtentsUtils
         beforeDiagonal = 0.0;
         afterDiagonal = 0.0;
 
-        if (!before.HasValue || !after.HasValue)
-        {
-            return false;
-        }
+        if (!before.HasValue || !after.HasValue) return false;
 
         beforeDiagonal = before.Value.MaxPoint.DistanceTo(before.Value.MinPoint);
         afterDiagonal = after.Value.MaxPoint.DistanceTo(after.Value.MinPoint);
 
-        if (beforeDiagonal <= MinValidDiagonal)
-        {
-            return false;
-        }
+        if (beforeDiagonal <= MinValidDiagonal) return false;
 
         ratio = afterDiagonal / beforeDiagonal;
         return true;
@@ -238,8 +205,8 @@ public static class ExtentsUtils
         try
         {
             db.UpdateExt(true);
-            Point3d min = db.Extmin;
-            Point3d max = db.Extmax;
+            var min = db.Extmin;
+            var max = db.Extmax;
 
             // В AutoCAD, если база пуста, Extmin > Extmax
             return min.X > max.X || min.Y > max.Y || min.Z > max.Z ? null : new Extents3d(min, max);
@@ -270,17 +237,17 @@ public static class ExtentsUtils
             new(ext.MinPoint.X, ext.MinPoint.Y, ext.MaxPoint.Z)
         ];
 
-        Point3d first = corners[0].TransformBy(mat);
-        double minX = first.X;
-        double minY = first.Y;
-        double minZ = first.Z;
-        double maxX = first.X;
-        double maxY = first.Y;
-        double maxZ = first.Z;
+        var first = corners[0].TransformBy(mat);
+        var minX = first.X;
+        var minY = first.Y;
+        var minZ = first.Z;
+        var maxX = first.X;
+        var maxY = first.Y;
+        var maxZ = first.Z;
 
-        for (int i = 1; i < corners.Length; i++)
+        for (var i = 1; i < corners.Length; i++)
         {
-            Point3d p = corners[i].TransformBy(mat);
+            var p = corners[i].TransformBy(mat);
             minX = Min(minX, p.X);
             minY = Min(minY, p.Y);
             minZ = Min(minZ, p.Z);
@@ -322,15 +289,9 @@ public static class ExtentsUtils
     /// <param name="db">База данных AutoCAD.</param>
     public static void SyncUnits(Database db)
     {
-        if (db.Insunits != UnitsValue.Millimeters)
-        {
-            db.Insunits = UnitsValue.Millimeters;
-        }
+        if (db.Insunits != UnitsValue.Millimeters) db.Insunits = UnitsValue.Millimeters;
 
-        if (db.Measurement != MeasurementValue.Metric)
-        {
-            db.Measurement = MeasurementValue.Metric;
-        }
+        if (db.Measurement != MeasurementValue.Metric) db.Measurement = MeasurementValue.Metric;
     }
 
     /// <summary>
@@ -347,8 +308,8 @@ public static class ExtentsUtils
 
     /// <summary>
     ///     Вычисляет габариты Model Space прямым сканированием сущностей, минуя кэшированные
-    ///     значения <see cref="Database.Extmin"/>/<see cref="Database.Extmax"/>.
-    ///     Надёжен на headless-базах после операций удаления, когда <see cref="Database.UpdateExt"/>
+    ///     значения <see cref="Database.Extmin" />/<see cref="Database.Extmax" />.
+    ///     Надёжен на headless-базах после операций удаления, когда <see cref="Database.UpdateExt" />
     ///     может возвращать устаревший результат.
     /// </summary>
     /// <param name="db">База данных AutoCAD.</param>
@@ -357,28 +318,19 @@ public static class ExtentsUtils
     {
         Extents3d? result = null;
 
-        using Transaction trx = db.TransactionManager.StartTransaction();
+        using var trx = db.TransactionManager.StartTransaction();
 
-        ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
-        BlockTableRecord ms = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
+        var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
+        var ms = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
 
-        foreach (ObjectId id in ms)
+        foreach (var id in ms)
         {
-            if (!id.IsValid || id.IsErased)
-            {
-                continue;
-            }
+            if (!id.IsValid || id.IsErased) continue;
 
-            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent)
-            {
-                continue;
-            }
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
 
-            Extents3d? ext = TryGetLiveExtents(ent, trx);
-            if (ext is null)
-            {
-                continue;
-            }
+            var ext = TryGetLiveExtents(ent, trx);
+            if (ext is null) continue;
 
             result = result is null ? ext.Value : Union(result.Value, ext.Value);
         }
@@ -392,31 +344,19 @@ public static class ExtentsUtils
     /// </summary>
     public static Extents3d? ComputeLiveBounds(Database db, ObjectIdCollection entityIds)
     {
-        if (entityIds.Count == 0)
-        {
-            return null;
-        }
+        if (entityIds.Count == 0) return null;
 
         Extents3d? acc = null;
-        using Transaction trx = db.TransactionManager.StartTransaction();
+        using var trx = db.TransactionManager.StartTransaction();
 
         foreach (ObjectId id in entityIds)
         {
-            if (!id.IsValid || id.IsErased)
-            {
-                continue;
-            }
+            if (!id.IsValid || id.IsErased) continue;
 
-            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent)
-            {
-                continue;
-            }
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
 
-            Extents3d? ext = TryGetLiveExtents(ent, trx);
-            if (!ext.HasValue)
-            {
-                continue;
-            }
+            var ext = TryGetLiveExtents(ent, trx);
+            if (!ext.HasValue) continue;
 
             acc = acc.HasValue ? Union(acc.Value, ext.Value) : ext.Value;
         }
@@ -431,26 +371,17 @@ public static class ExtentsUtils
     /// </summary>
     public static Extents3d? ComputeBounds(Database db, ObjectIdCollection entityIds)
     {
-        if (entityIds.Count == 0)
-        {
-            return null;
-        }
+        if (entityIds.Count == 0) return null;
 
         Extents3d? acc = null;
-        using Transaction trx = db.TransactionManager.StartTransaction();
+        using var trx = db.TransactionManager.StartTransaction();
 
         foreach (ObjectId id in entityIds)
         {
-            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent)
-            {
-                continue;
-            }
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
 
-            Extents3d? ext = TryGetExtents(ent);
-            if (ext is null)
-            {
-                continue;
-            }
+            var ext = TryGetExtents(ent);
+            if (ext is null) continue;
 
             acc = acc is null ? ext.Value : Union(acc.Value, ext.Value);
         }

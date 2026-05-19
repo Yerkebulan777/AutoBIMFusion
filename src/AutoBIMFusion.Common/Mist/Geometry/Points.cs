@@ -11,14 +11,14 @@ public class Points(Point3d SCG)
 
     public static Point3d ToCurrentSCU(Point3d OriginalPoint)
     {
-        Editor ed = Generic.GetEditor();
+        var ed = Generic.GetEditor();
         return OriginalPoint.TransformBy(ed.CurrentUserCoordinateSystem.Inverse());
     }
 
     public static Point3d ToSCGFromCurentSCU(Point3d OriginalPoint)
     {
-        Editor ed = Generic.GetEditor();
-        Point3d ConvertedPoint = OriginalPoint.TransformBy(ed.CurrentUserCoordinateSystem);
+        var ed = Generic.GetEditor();
+        var ConvertedPoint = OriginalPoint.TransformBy(ed.CurrentUserCoordinateSystem);
         return ConvertedPoint;
     }
 
@@ -36,7 +36,7 @@ public class Points(Point3d SCG)
 
     public static bool GetPoint(out Points Points, string Message, Points BasePoint = Null)
     {
-        Editor ed = Generic.GetEditor();
+        var ed = Generic.GetEditor();
 
         PromptPointOptions promptPointOptions = new(Message)
         {
@@ -53,7 +53,7 @@ public class Points(Point3d SCG)
             promptPointOptions.BasePoint = BasePoint.SCU;
         }
 
-        PromptPointResult SelectedPoint = ed.GetPoint(promptPointOptions);
+        var SelectedPoint = ed.GetPoint(promptPointOptions);
         if (SelectedPoint.Status == PromptStatus.OK)
         {
             Points = GetFromPromptPointResult(SelectedPoint);

@@ -90,10 +90,7 @@ public static class Extends3dExtensions
         if (entities.Any())
         {
             Extents3d extent = new();
-            foreach (Extents3d dbobj in entities)
-            {
-                extent.AddExtents(dbobj);
-            }
+            foreach (var dbobj in entities) extent.AddExtents(dbobj);
 
             return extent;
         }
@@ -106,13 +103,9 @@ public static class Extends3dExtensions
         if (entities.Any())
         {
             Extents3d extent = new();
-            foreach (object dbobj in entities)
-            {
+            foreach (var dbobj in entities)
                 if (dbobj is Entity ent)
-                {
                     extent.AddExtents(ent.GetExtents());
-                }
-            }
 
             return extent;
         }
@@ -128,30 +121,23 @@ public static class Extends3dExtensions
     public static Extents3d GetExtents(this IEnumerable<ObjectId> entities)
     {
         List<Entity> list = [];
-        foreach (ObjectId ent in entities)
-        {
+        foreach (var ent in entities)
             if (ent.GetEntity() is Entity entity)
-            {
                 list.Add(entity);
-            }
-        }
 
         return list.GetExtents();
     }
 
     public static Extents3d GetVisualExtents(this Entity ent, out Point3dCollection entPts)
     {
-        Database db = Generic.GetDatabase();
+        var db = Generic.GetDatabase();
 
-        using Transaction trx = db.TransactionManager.StartTransaction();
-        BlockTableRecord btr = (BlockTableRecord)trx.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+        using var trx = db.TransactionManager.StartTransaction();
+        var btr = (BlockTableRecord)trx.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
         entPts = CollectPoints(trx, ent);
 
         Extents3d extents = new();
-        foreach (Point3d item in entPts)
-        {
-            extents.AddExtents(new Extents3d(item, item));
-        }
+        foreach (Point3d item in entPts) extents.AddExtents(new Extents3d(item, item));
 
         trx.Commit();
         return extents;
@@ -170,42 +156,35 @@ public static class Extends3dExtensions
         // doesn't work for attributes (we only get the
         // AttributeDefinitions, which don't have bounds)
 
-        BlockReference? br = ent as BlockReference;
+        var br = ent as BlockReference;
         if (br != null)
-        {
             foreach (ObjectId arId in br.AttributeCollection)
             {
-                DBObject obj = trx.GetObject(arId, OpenMode.ForRead);
-                if (obj is AttributeReference ar)
-                {
-                    ar.ExtractBounds(pts);
-                }
+                var obj = trx.GetObject(arId, OpenMode.ForRead);
+                if (obj is AttributeReference ar) ar.ExtractBounds(pts);
             }
-        }
         // If we have a curve - other than a polyline, which
         // we will want to explode - we'll get points along
         // its length
 
-        Curve? cur = ent as Curve;
+        var cur = ent as Curve;
 
         if (cur is not null and not (Polyline or Polyline2d or Polyline3d))
         {
             // Two points are enough for a line, we'll go with
             // a higher number for other curves
-            int segs = ent is Line ? 2 : 20;
-            double param = cur.EndParam - cur.StartParam;
+            var segs = ent is Line ? 2 : 20;
+            var param = cur.EndParam - cur.StartParam;
 
-            for (int i = 0; i < segs; i++)
-            {
+            for (var i = 0; i < segs; i++)
                 try
                 {
-                    Point3d pt = cur.GetPointAtParameter(cur.StartParam + (i * param / (segs - 1)));
+                    var pt = cur.GetPointAtParameter(cur.StartParam + i * param / (segs - 1));
                     _ = pts.Add(pt);
                 }
                 catch
                 {
                 }
-            }
         }
         else if (ent is DBPoint dBPoint)
         {
@@ -219,10 +198,7 @@ public static class Extends3dExtensions
         {
             try
             {
-                for (short i = 0; i < 4; i++)
-                {
-                    _ = pts.Add(f.GetVertexAt(i));
-                }
+                for (short i = 0; i < 4; i++) _ = pts.Add(f.GetVertexAt(i));
             }
             catch
             {
@@ -232,10 +208,7 @@ public static class Extends3dExtensions
         {
             try
             {
-                for (short i = 0; i < 4; i++)
-                {
-                    _ = pts.Add(sol.GetPointAt(i));
-                }
+                for (short i = 0; i < 4; i++) _ = pts.Add(sol.GetPointAt(i));
             }
             catch
             {
@@ -250,21 +223,15 @@ public static class Extends3dExtensions
             {
                 ent.Explode(oc);
                 if (oc.Count > 0)
-                {
                     foreach (DBObject obj in oc)
                     {
-                        Entity? ent2 = obj as Entity;
+                        var ent2 = obj as Entity;
                         if (ent2?.Visible == true)
-                        {
                             foreach (Point3d pt in CollectPoints(trx, ent2))
-                            {
                                 _ = pts.Add(pt);
-                            }
-                        }
 
                         obj.Dispose();
                     }
-                }
             }
             catch
             {
@@ -277,10 +244,10 @@ public static class Extends3dExtensions
     public static List<Extents3d> GetExplodedExtents(this Entity ent)
     {
         List<Extents3d> ext;
-        Database db = Generic.GetDatabase();
+        var db = Generic.GetDatabase();
 
-        using Transaction trx = db.TransactionManager.StartTransaction();
-        BlockTableRecord btr = (BlockTableRecord)trx.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
+        using var trx = db.TransactionManager.StartTransaction();
+        var btr = (BlockTableRecord)trx.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
         ext = CollectExtends(trx, ent);
 
         trx.Commit();
@@ -296,11 +263,11 @@ public static class Extends3dExtensions
             ext.Add(dBPoint.GetExtents());
         }
         else if (ent is Entity and (Line or
-                     Circle or
-                     Arc or
-                     Hatch or
-                     Line)
-)
+                 Circle or
+                 Arc or
+                 Hatch or
+                 Line)
+                )
         {
             ext.Add(ent.GetExtents());
         }
@@ -313,22 +280,15 @@ public static class Extends3dExtensions
             {
                 ent.Explode(oc);
                 if (oc.Count > 0)
-                {
                     foreach (DBObject obj in oc)
                     {
-                        Entity? ent2 = obj as Entity;
-                        if (ent2?.Visible == true)
-                        {
-                            ext.AddRange(CollectExtends(trx, ent2));
-                        }
+                        var ent2 = obj as Entity;
+                        if (ent2?.Visible == true) ext.AddRange(CollectExtends(trx, ent2));
 
                         obj.Dispose();
                     }
-                }
                 else
-                {
                     ext.Add(ent.GetExtents());
-                }
             }
             catch
             {
@@ -350,9 +310,9 @@ public static class Extends3dExtensions
 
     public static void Expand(this ref Extents3d extents, double factor)
     {
-        Point3d center = extents.GetCenter();
-        Point3d Min = center + (factor * (extents.MinPoint - center));
-        Point3d Max = center + (factor * (extents.MaxPoint - center));
+        var center = extents.GetCenter();
+        var Min = center + factor * (extents.MinPoint - center);
+        var Max = center + factor * (extents.MaxPoint - center);
         try
         {
             extents = new Extents3d(Min, Max);
@@ -372,21 +332,18 @@ public static class Extends3dExtensions
 
     public static bool IsInside(this Polyline LineB, Extents3d extents, bool CheckEach = true)
     {
-        int NumberOfVertices = 1;
-        if (CheckEach)
-        {
-            NumberOfVertices = LineB.GetReelNumberOfVertices();
-        }
+        var NumberOfVertices = 1;
+        if (CheckEach) NumberOfVertices = LineB.GetReelNumberOfVertices();
 
-        for (int PolylineSegmentIndex = 0; PolylineSegmentIndex < NumberOfVertices; PolylineSegmentIndex++)
+        for (var PolylineSegmentIndex = 0; PolylineSegmentIndex < NumberOfVertices; PolylineSegmentIndex++)
         {
-            (Point3d StartPoint, Point3d EndPoint, double _) = LineB.GetSegmentAt(PolylineSegmentIndex);
+            var (StartPoint, EndPoint, _) = LineB.GetSegmentAt(PolylineSegmentIndex);
             Point3d MiddlePoint;
             if (LineB.GetSegmentType(PolylineSegmentIndex) == SegmentType.Arc)
             {
-                double Startparam = LineB.GetParameterAtPoint(StartPoint);
-                double Endparam = LineB.GetParameterAtPoint(EndPoint);
-                MiddlePoint = LineB.GetPointAtParam(Startparam + ((Endparam - Startparam) / 2));
+                var Startparam = LineB.GetParameterAtPoint(StartPoint);
+                var Endparam = LineB.GetParameterAtPoint(EndPoint);
+                MiddlePoint = LineB.GetPointAtParam(Startparam + (Endparam - Startparam) / 2);
             }
             else
             {
@@ -395,12 +352,8 @@ public static class Extends3dExtensions
 
             if (StartPoint.DistanceTo(EndPoint) / 2 >
                 Generic.MediumTolerance.EqualPoint)
-            {
                 if (!extents.IsPointIn(MiddlePoint))
-                {
                     return false;
-                }
-            }
         }
 
         return true;
@@ -432,29 +385,26 @@ public static class Extends3dExtensions
     // http://docs.autodesk.com/ACD/2010/ENU/AutoCAD%20.NET%20Developer%27s%20Guide/files/WS1a9193826455f5ff2566ffd511ff6f8c7ca-4363.htm
     public static void ZoomExtents(this Extents3d extents)
     {
-        Editor ed = Generic.GetEditor();
+        var ed = Generic.GetEditor();
         // Get the current view
-        using ViewTableRecord acView = ed.GetCurrentView();
+        using var acView = ed.GetCurrentView();
         // Translate WCS coordinates to DCS
-        Matrix3d matWCS2DCS = Matrix3d.Rotation(-acView.ViewTwist, acView.ViewDirection, acView.Target) *
+        var matWCS2DCS = Matrix3d.Rotation(-acView.ViewTwist, acView.ViewDirection, acView.Target) *
                          Matrix3d.Displacement(acView.Target - Point3d.Origin) *
                          Matrix3d.PlaneToWorld(acView.ViewDirection);
 
         // Calculate the ratio between the width and height of the current view
-        double dViewRatio = acView.Width / acView.Height;
+        var dViewRatio = acView.Width / acView.Height;
 
         // Tranform the extents of the view
         extents.TransformBy(matWCS2DCS.Inverse());
 
         // Calculate the new width and height of the current view
-        double dWidth = extents.MaxPoint.X - extents.MinPoint.X;
-        double dHeight = extents.MaxPoint.Y - extents.MinPoint.Y;
+        var dWidth = extents.MaxPoint.X - extents.MinPoint.X;
+        var dHeight = extents.MaxPoint.Y - extents.MinPoint.Y;
 
         // Check to see if the new width fits in current window
-        if (dWidth > dHeight * dViewRatio)
-        {
-            dHeight = dWidth / dViewRatio;
-        }
+        if (dWidth > dHeight * dViewRatio) dHeight = dWidth / dViewRatio;
 
         // Get the center of the view
         Point2d pNewCentPt = new((extents.MaxPoint.X + extents.MinPoint.X) * 0.5,

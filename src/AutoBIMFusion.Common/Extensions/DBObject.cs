@@ -7,34 +7,19 @@ public static class DBObjectExtensions
 {
     public static void RemoveAllXdata(this DBObject dbObj)
     {
-        if (dbObj == null)
-        {
-            throw new ArgumentNullException(nameof(dbObj));
-        }
+        if (dbObj == null) throw new ArgumentNullException(nameof(dbObj));
 
-        if (!dbObj.IsWriteEnabled)
-        {
-            throw new Exception(ErrorStatus.NotOpenForWrite);
-        }
+        if (!dbObj.IsWriteEnabled) throw new Exception(ErrorStatus.NotOpenForWrite);
 
-        ResultBuffer data = dbObj.XData;
+        var data = dbObj.XData;
         if (data != null)
-        {
-            foreach (TypedValue tv in data)
-            {
+            foreach (var tv in data)
                 if (tv.TypeCode == 1001)
-                {
                     dbObj.XData = new ResultBuffer(tv);
-                }
-            }
-        }
     }
 
     public static void TryUpgradeOpen(this DBObject Obj)
     {
-        if (!Obj.IsWriteEnabled)
-        {
-            Obj.UpgradeOpen();
-        }
+        if (!Obj.IsWriteEnabled) Obj.UpgradeOpen();
     }
 }

@@ -11,17 +11,11 @@ public static class ArcsExtensions
     public static double GetArcBulge(this Arc arc, Point3d start)
     {
         double bulge;
-        double angle = arc.EndAngle - arc.StartAngle;
-        if (angle < 0)
-        {
-            angle += PI * 2;
-        }
+        var angle = arc.EndAngle - arc.StartAngle;
+        if (angle < 0) angle += PI * 2;
 
         bulge = arc.Normal.Z > 0 ? Tan(angle / 4) : -Tan(angle / 4);
-        if (start == arc.EndPoint)
-        {
-            bulge = -bulge;
-        }
+        if (start == arc.EndPoint) bulge = -bulge;
 
         return bulge;
     }
@@ -33,24 +27,21 @@ public static class ArcsExtensions
         Point2d end = new(arc.EndPoint.X, arc.EndPoint.Y);
 
         // Clockwise : invert
-        bool isClockwise = arc.Normal.Z < 0;
+        var isClockwise = arc.Normal.Z < 0;
 
-        double deltaAngle = isClockwise ? arc.StartAngle - arc.EndAngle : arc.EndAngle - arc.StartAngle;
-        if (deltaAngle <= 0)
-        {
-            deltaAngle += 2 * PI;
-        }
+        var deltaAngle = isClockwise ? arc.StartAngle - arc.EndAngle : arc.EndAngle - arc.StartAngle;
+        if (deltaAngle <= 0) deltaAngle += 2 * PI;
 
-        double midAngle = isClockwise
-            ? arc.StartAngle - (deltaAngle / 2)
-            : arc.StartAngle + (deltaAngle / 2);
+        var midAngle = isClockwise
+            ? arc.StartAngle - deltaAngle / 2
+            : arc.StartAngle + deltaAngle / 2;
 
         // Convert to [0, 2π] 
-        midAngle = (midAngle + (2 * PI)) % (2 * PI);
+        midAngle = (midAngle + 2 * PI) % (2 * PI);
 
         // Arc median point
-        double midX = arc.Center.X + (arc.Radius * Cos(midAngle));
-        double midY = arc.Center.Y + (arc.Radius * Sin(midAngle));
+        var midX = arc.Center.X + arc.Radius * Cos(midAngle);
+        var midY = arc.Center.Y + arc.Radius * Sin(midAngle);
         Point2d mid = new(midX, midY);
 
         return new CircularArc2d(start, mid, end);

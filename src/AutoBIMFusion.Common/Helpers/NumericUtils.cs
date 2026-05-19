@@ -54,6 +54,6 @@ public static class NumericUtils
     /// </summary>
     public static double IntermediatePercentage(this double a, double b, double percentage)
     {
-        return a + (percentage * (b - a) / 100);
+        return a + percentage * (b - a) / 100;
     }
 }

@@ -19,21 +19,21 @@ internal static class ViewportTransformer
     /// </summary>
     internal static Matrix3d BuildMatrix(ViewportInfo main, ViewportInfo aux, Logger log)
     {
-        Vector3d z = Vector3d.ZAxis;
-        Point3d origin = Point3d.Origin;
+        var z = Vector3d.ZAxis;
+        var origin = Point3d.Origin;
 
         // PaperFromAuxModel: tAux -> rAux -> sAux
-        Matrix3d tAux = Matrix3d.Displacement(origin - aux.ViewCenter);
-        Matrix3d rAux = Matrix3d.Rotation(-aux.ViewTwist, z, origin);
-        Matrix3d sAux = Matrix3d.Scaling(aux.CustomScale, origin);
+        var tAux = Matrix3d.Displacement(origin - aux.ViewCenter);
+        var rAux = Matrix3d.Rotation(-aux.ViewTwist, z, origin);
+        var sAux = Matrix3d.Scaling(aux.CustomScale, origin);
 
         // MainModelFromPaper: tPaper -> sMain -> rMain -> tMain
-        Matrix3d tPaper = Matrix3d.Displacement(aux.CenterPaper - main.CenterPaper);
-        Matrix3d sMain = Matrix3d.Scaling(1.0 / main.CustomScale, origin);
-        Matrix3d rMain = Matrix3d.Rotation(main.ViewTwist, z, origin);
-        Matrix3d tMain = Matrix3d.Displacement(main.ViewCenter - origin);
+        var tPaper = Matrix3d.Displacement(aux.CenterPaper - main.CenterPaper);
+        var sMain = Matrix3d.Scaling(1.0 / main.CustomScale, origin);
+        var rMain = Matrix3d.Rotation(main.ViewTwist, z, origin);
+        var tMain = Matrix3d.Displacement(main.ViewCenter - origin);
 
-        Matrix3d result = tMain * rMain * sMain * tPaper * sAux * rAux * tAux;
+        var result = tMain * rMain * sMain * tPaper * sAux * rAux * tAux;
 
         log.Debug(
             $"BuildMatrix aux#{aux.Number} -> main#{main.Number}: " +
@@ -50,16 +50,16 @@ internal static class ViewportTransformer
     /// </summary>
     internal static Matrix3d BuildPaperToMainMatrix(ViewportInfo main, Logger log)
     {
-        Vector3d z = Vector3d.ZAxis;
-        Point3d origin = Point3d.Origin;
+        var z = Vector3d.ZAxis;
+        var origin = Point3d.Origin;
 
         // PaperToMain: tPaper -> sMain -> rMain -> tMain
-        Matrix3d tPaper = Matrix3d.Displacement(origin - main.CenterPaper);
-        Matrix3d sMain = Matrix3d.Scaling(1.0 / main.CustomScale, origin);
-        Matrix3d rMain = Matrix3d.Rotation(main.ViewTwist, z, origin);
-        Matrix3d tMain = Matrix3d.Displacement(main.ViewCenter - origin);
+        var tPaper = Matrix3d.Displacement(origin - main.CenterPaper);
+        var sMain = Matrix3d.Scaling(1.0 / main.CustomScale, origin);
+        var rMain = Matrix3d.Rotation(main.ViewTwist, z, origin);
+        var tMain = Matrix3d.Displacement(main.ViewCenter - origin);
 
-        Matrix3d result = tMain * rMain * sMain * tPaper;
+        var result = tMain * rMain * sMain * tPaper;
 
         log.Debug(
             $"BuildPaperToMainMatrix main#{main.Number}: " +
@@ -78,48 +78,39 @@ internal static class ViewportTransformer
     {
         Dictionary<string, int> errorTypes = [];
 
-        ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
+        var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
-        using Transaction trx = db.TransactionManager.StartTransaction();
-        BlockTableRecord modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
+        using var trx = db.TransactionManager.StartTransaction();
+        var modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
 
-        foreach (ObjectId id in modelSpace)
-        {
+        foreach (var id in modelSpace)
             if (trx.GetObject(id, OpenMode.ForWrite) is Entity ent)
             {
-                if (ent is Viewport)
-                {
-                    continue;
-                }
+                if (ent is Viewport) continue;
 
-                string entType = ent.GetType().Name;
-                string handle = ent.Handle.ToString();
+                var entType = ent.GetType().Name;
+                var handle = ent.Handle.ToString();
 
                 try
                 {
-                    Extents3d? oldExt = ExtentsUtils.TryGetExtents(ent);
+                    var oldExt = ExtentsUtils.TryGetExtents(ent);
 
-                    EntityTransformUtils.TransformResult transformResult = EntityTransformUtils.TransformEntity(ent, matrix, trx);
+                    var transformResult = EntityTransformUtils.TransformEntity(ent, matrix, trx);
 
-                    if (transformResult.SkippedAssociativeHatch)
-                    {
-                        continue;
-                    }
+                    if (transformResult.SkippedAssociativeHatch) continue;
 
-                    Extents3d? newExt = ExtentsUtils.TryGetExtents(ent);
+                    var newExt = ExtentsUtils.TryGetExtents(ent);
 
-                    if (ExtentsUtils.TryGetScaleRatio(oldExt, newExt, out double oldDig, out double newDig,
-                            out double digRatio) && digRatio > ratio * 5.0)
-                    {
+                    if (ExtentsUtils.TryGetScaleRatio(oldExt, newExt, out var oldDig, out var newDig,
+                            out var digRatio) && digRatio > ratio * 5.0)
                         log.Warning(
                             $"[АНОМАЛИЯ МАСШТАБА] Тип: {entType}, Handle: {handle}. Диагональ ДО: {oldDig:F2}, ПОСЛЕ: {newDig:F2}");
-                    }
                 }
                 catch (Exception ex)
                 {
                     log.Error(ex, $"[ОШИБКА ТРАНСФОРМАЦИИ] Тип: {entType}, Handle: {handle}. Сообщение: {ex.Message}");
 
-                    if (!errorTypes.TryGetValue(entType, out int value))
+                    if (!errorTypes.TryGetValue(entType, out var value))
                     {
                         value = 0;
                         errorTypes[entType] = value;
@@ -128,13 +119,12 @@ internal static class ViewportTransformer
                     errorTypes[entType] = ++value;
                 }
             }
-        }
 
         trx.Commit();
 
         if (errorTypes.Count > 0)
         {
-            string errorStr = string.Join(", ", errorTypes.Select(kv => $"{kv.Key}({kv.Value})"));
+            var errorStr = string.Join(", ", errorTypes.Select(kv => $"{kv.Key}({kv.Value})"));
             log.Warning($"Ошибочные типы (Scale): {errorStr}");
         }
     }
@@ -142,32 +132,23 @@ internal static class ViewportTransformer
     internal static IReadOnlyList<ModelEntitySnapshot> CollectModelEntitiesWithExtents(Database db, ObjectId msId,
         Logger log)
     {
-        int total = 0;
+        var total = 0;
 
         List<ModelEntitySnapshot> result = [];
 
-        using Transaction trx = db.TransactionManager.StartTransaction();
-        BlockTableRecord modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
+        using var trx = db.TransactionManager.StartTransaction();
+        var modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
 
-        foreach (ObjectId id in modelSpace)
+        foreach (var id in modelSpace)
         {
             total++;
 
-            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent)
-            {
-                continue;
-            }
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
 
-            if (ent is Viewport)
-            {
-                continue;
-            }
+            if (ent is Viewport) continue;
 
-            Extents3d? ext = ExtentsUtils.TryGetExtents(ent);
-            if (ext is null)
-            {
-                continue;
-            }
+            var ext = ExtentsUtils.TryGetExtents(ent);
+            if (ext is null) continue;
 
             result.Add(new ModelEntitySnapshot(id, ext.Value));
         }
@@ -191,19 +172,16 @@ internal static class ViewportTransformer
         Matrix3d matrix,
         Logger log)
     {
-        IReadOnlyList<ObjectId> sourceOrder = DrawOrderPreserver.Capture(db, sourceOwnerId, sourceIds, log);
+        var sourceOrder = DrawOrderPreserver.Capture(db, sourceOwnerId, sourceIds, log);
 
-        using ObjectIdCollection validIds = CollectValidIds(sourceIds);
+        using var validIds = CollectValidIds(sourceIds);
 
-        if (validIds.Count == 0)
-        {
-            return new CloneTransformResult();
-        }
+        if (validIds.Count == 0) return new CloneTransformResult();
 
         using IdMapping map = [];
         CloneTransformResult result = new();
 
-        using (Transaction trx = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
             db.DeepCloneObjects(validIds, ownerId, map, false);
             TransformClonedEntities(trx, map, matrix, result, log);
@@ -220,12 +198,8 @@ internal static class ViewportTransformer
         ObjectIdCollection validIds = [];
 
         foreach (ObjectId id in sourceIds)
-        {
             if (id.IsValidForOperation())
-            {
                 _ = validIds.Add(id);
-            }
-        }
 
         return validIds;
     }
@@ -239,15 +213,9 @@ internal static class ViewportTransformer
     {
         foreach (IdPair pair in map)
         {
-            if (!pair.IsCloned || !pair.IsPrimary)
-            {
-                continue;
-            }
+            if (!pair.IsCloned || !pair.IsPrimary) continue;
 
-            if (trx.GetObject(pair.Value, OpenMode.ForWrite) is not Entity entity)
-            {
-                continue;
-            }
+            if (trx.GetObject(pair.Value, OpenMode.ForWrite) is not Entity entity) continue;
 
             try
             {
@@ -271,13 +239,13 @@ internal static class ViewportTransformer
     {
         const double HugeEntityDiagonalRatio = 3.0;
 
-        int outsideWindow = 0;
-        int skippedHugeObjects = 0;
+        var outsideWindow = 0;
+        var skippedHugeObjects = 0;
         ObjectIdCollection result = [];
 
-        double windowDiagonal = window.MinPoint.DistanceTo(window.MaxPoint);
+        var windowDiagonal = window.MinPoint.DistanceTo(window.MaxPoint);
 
-        foreach (ModelEntitySnapshot entity in modelEntities)
+        foreach (var entity in modelEntities)
         {
             if (!ExtentsUtils.AabbIntersect(window, entity.Extents))
             {
@@ -287,7 +255,7 @@ internal static class ViewportTransformer
 
             // Эвристика: пропустить только если сущность огромна (фон main VP) И находится в main window.
             // Большой объект, которого нет в main window, — легитимный контент aux VP, не трогаем.
-            double entityDiagonal = entity.Extents.MinPoint.DistanceTo(entity.Extents.MaxPoint);
+            var entityDiagonal = entity.Extents.MinPoint.DistanceTo(entity.Extents.MaxPoint);
             if (windowDiagonal > 0
                 && entityDiagonal > windowDiagonal * HugeEntityDiagonalRatio
                 && ExtentsUtils.AabbIntersect(mainWindow, entity.Extents))
@@ -314,36 +282,24 @@ internal static class ViewportTransformer
     ///     Без этого шага объекты aux VP, чьи модельные координаты попадают в пределы листа,
     ///     не удаляются очисткой малых объектов за рамкой и остаются как «мусор» в результирующем файле.
     /// </summary>
-    internal static void EraseEntitiesOutsideMainWindow(Database db, ObjectIdCollection auxEntities, IReadOnlyList<ModelEntitySnapshot> modelSnapshots, Extents3d mainWindow)
+    internal static void EraseEntitiesOutsideMainWindow(Database db, ObjectIdCollection auxEntities,
+        IReadOnlyList<ModelEntitySnapshot> modelSnapshots, Extents3d mainWindow)
     {
         HashSet<ObjectId> inMain = [];
 
-        foreach (ModelEntitySnapshot s in modelSnapshots)
-        {
+        foreach (var s in modelSnapshots)
             if (ExtentsUtils.AabbIntersect(mainWindow, s.Extents))
-            {
                 _ = inMain.Add(s.Id);
-            }
-        }
 
-        using Transaction trx = db.TransactionManager.StartTransaction();
+        using var trx = db.TransactionManager.StartTransaction();
 
         foreach (ObjectId id in auxEntities)
         {
-            if (inMain.Contains(id))
-            {
-                continue;
-            }
+            if (inMain.Contains(id)) continue;
 
-            if (id.IsErased)
-            {
-                continue;
-            }
+            if (id.IsErased) continue;
 
-            if (trx.GetObject(id, OpenMode.ForWrite) is Entity e && !e.IsErased)
-            {
-                e.Erase();
-            }
+            if (trx.GetObject(id, OpenMode.ForWrite) is Entity e && !e.IsErased) e.Erase();
         }
 
         trx.Commit();

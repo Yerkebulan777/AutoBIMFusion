@@ -23,26 +23,23 @@ public static class ReflectionHelper
     {
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase;
 
-        Type targetType = target.GetType();
+        var targetType = target.GetType();
 
-        PropertyInfo? property = targetType.GetProperty(memberName, flags);
+        var property = targetType.GetProperty(memberName, flags);
         if (property is not null && property.CanWrite)
         {
             property.SetValue(target, ConvertMemberValue(value, property.PropertyType));
             return;
         }
 
-        FieldInfo? field = targetType.GetField(memberName, flags);
+        var field = targetType.GetField(memberName, flags);
         if (field is not null)
         {
             field.SetValue(target, ConvertMemberValue(value, field.FieldType));
             return;
         }
 
-        if (required)
-        {
-            throw new MissingMemberException(targetType.FullName, memberName);
-        }
+        if (required) throw new MissingMemberException(targetType.FullName, memberName);
     }
 
     /// <summary>
@@ -51,7 +48,7 @@ public static class ReflectionHelper
     /// </summary>
     public static object? ConvertMemberValue(object value, Type targetType)
     {
-        Type effectiveType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+        var effectiveType = Nullable.GetUnderlyingType(targetType) ?? targetType;
 
         return effectiveType == typeof(bool) && value is int intValue
             ? intValue != 0

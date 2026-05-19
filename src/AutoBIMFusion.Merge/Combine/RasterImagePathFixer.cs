@@ -7,13 +7,13 @@ namespace AutoBIMFusion.Merge.Combine;
 /// <summary>
 ///     Копирует файлы растровых изображений в папку с целевым DWG
 ///     и обновляет пути RasterImageDef на относительные.
-///     Утилитарные операции делегируются к <see cref="FileUtil"/>.
+///     Утилитарные операции делегируются к <see cref="FileUtil" />.
 /// </summary>
 public static class RasterImagePathFixer
 {
     public static void CopyImagesToTargetFolder(Database db, string targetFilePath, Logger log)
     {
-        string? targetDir = Path.GetDirectoryName(targetFilePath);
+        var targetDir = Path.GetDirectoryName(targetFilePath);
         if (string.IsNullOrEmpty(targetDir))
         {
             log.Warning("RasterImagePathFixer: не удалось определить папку целевого файла");
@@ -25,8 +25,8 @@ public static class RasterImagePathFixer
         Dictionary<string, string> copiedBySourcePath = new(StringComparer.OrdinalIgnoreCase);
         HashSet<string> reservedDestinationPaths = new(StringComparer.OrdinalIgnoreCase);
 
-        using Transaction trx = db.TransactionManager.StartTransaction();
-        ObjectId dictId = RasterImageDef.GetImageDictionary(db);
+        using var trx = db.TransactionManager.StartTransaction();
+        var dictId = RasterImageDef.GetImageDictionary(db);
 
         if (dictId.IsNull)
         {
@@ -34,39 +34,31 @@ public static class RasterImagePathFixer
             return;
         }
 
-        DBDictionary dict = (DBDictionary)trx.GetObject(dictId, OpenMode.ForRead);
+        var dict = (DBDictionary)trx.GetObject(dictId, OpenMode.ForRead);
 
-        foreach (DBDictionaryEntry entry in dict)
-        {
+        foreach (var entry in dict)
             try
             {
-                if (trx.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def)
-                {
-                    continue;
-                }
+                if (trx.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def) continue;
 
-                string path = def.SourceFileName;
+                var path = def.SourceFileName;
                 if (string.IsNullOrWhiteSpace(path))
                 {
                     log.Warning($"RasterImageDef '{entry.Key}': путь не задан");
                     continue;
                 }
 
-                if (!FileUtil.TryResolveImagePath(db, path, targetDir, out string? resolvedPath, out Exception? resolveError))
+                if (!FileUtil.TryResolveImagePath(db, path, targetDir, out var resolvedPath, out var resolveError))
                 {
                     if (resolveError is not null)
-                    {
                         log.Warning(resolveError, $"RasterImageDef '{entry.Key}': ошибка разрешения пути: {path}");
-                    }
                     else
-                    {
                         log.Warning($"RasterImageDef '{entry.Key}': файл не найден: {path}");
-                    }
 
                     continue;
                 }
 
-                if (copiedBySourcePath.TryGetValue(resolvedPath, out string? existingRelativePath)
+                if (copiedBySourcePath.TryGetValue(resolvedPath, out var existingRelativePath)
                     && !string.IsNullOrEmpty(existingRelativePath))
                 {
                     if (def.IsLoaded)
@@ -76,14 +68,12 @@ public static class RasterImagePathFixer
                     continue;
                 }
 
-                (string? uniqueDestPath, string? uniqueFileName) =
+                var (uniqueDestPath, uniqueFileName) =
                     FileUtil.BuildUniqueDestination(targetDir, resolvedPath, reservedDestinationPaths);
 
                 if (!string.Equals(Path.GetFullPath(resolvedPath), Path.GetFullPath(uniqueDestPath),
                         StringComparison.OrdinalIgnoreCase))
-                {
                     File.Copy(resolvedPath, uniqueDestPath, true);
-                }
 
                 _ = reservedDestinationPaths.Add(uniqueDestPath);
                 copiedBySourcePath[resolvedPath] = uniqueFileName;
@@ -96,7 +86,6 @@ public static class RasterImagePathFixer
             {
                 log.Warning(ex, $"RasterImageDef '{entry.Key}': не удалось обработать изображение");
             }
-        }
 
         trx.Commit();
     }

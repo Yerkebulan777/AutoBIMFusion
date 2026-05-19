@@ -11,10 +11,7 @@ public static class MTextUtils
     /// </summary>
     public static string EscapeMTextContent(string text)
     {
-        if (string.IsNullOrEmpty(text))
-        {
-            return text;
-        }
+        if (string.IsNullOrEmpty(text)) return text;
 
         // Экранируем обратный слэш первым, иначе последующие замены его задвоят
         return text

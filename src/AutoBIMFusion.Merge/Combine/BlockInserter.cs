@@ -34,51 +34,44 @@ public sealed class BlockInserter(double gapPercent, Logger log)
         {
             ExtentsUtils.SyncUnits(targetDb);
 
-            ObjectId sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
-            ObjectId targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
+            var sourceMsId = SymbolUtilityServices.GetBlockModelSpaceId(sourceDb);
+            var targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
 
             using ObjectIdCollection sourceIds = [];
 
-            using (Transaction srcTrx = sourceDb.TransactionManager.StartTransaction())
+            using (var srcTrx = sourceDb.TransactionManager.StartTransaction())
             {
                 StyleUnificationService.NormalizeTextStyleNames(sourceDb, srcTrx);
                 StyleUnificationService.ApplyGostToAllStyles(sourceDb, srcTrx);
 
-                BlockTableRecord ms = (BlockTableRecord)srcTrx.GetObject(sourceMsId, OpenMode.ForRead);
+                var ms = (BlockTableRecord)srcTrx.GetObject(sourceMsId, OpenMode.ForRead);
 
                 HashSet<string> processedBlocks = [];
 
-                foreach (ObjectId id in ms)
-                {
+                foreach (var id in ms)
                     if (id.IsValidForOperation())
                     {
                         if (srcTrx.GetObject(id, OpenMode.ForWrite) is BlockReference blockRef)
-                        {
                             BlockScaleApplier.NormalizeBlockScale(sourceDb, srcTrx, blockRef, processedBlocks);
-                        }
 
                         _ = sourceIds.Add(id);
                     }
-                }
 
                 srcTrx.Commit();
             }
 
-            if (sourceIds.Count == 0)
-            {
-                return null;
-            }
+            if (sourceIds.Count == 0) return null;
 
-            Extents3d placementBounds = ExtentsUtils.ComputeLiveBounds(sourceDb, sourceIds) ?? sourceBounds;
+            var placementBounds = ExtentsUtils.ComputeLiveBounds(sourceDb, sourceIds) ?? sourceBounds;
             log.Debug($"{sourceName}: placement bounds {ExtentsUtils.FormatExtents(placementBounds)}");
 
-            Point3d insertPt = CalcInsertionPoint(placementBounds);
-            Matrix3d displacement = Matrix3d.Displacement(new Vector3d(insertPt.X, insertPt.Y, insertPt.Z));
+            var insertPt = CalcInsertionPoint(placementBounds);
+            var displacement = Matrix3d.Displacement(new Vector3d(insertPt.X, insertPt.Y, insertPt.Z));
 
             Extents3d? worldBounds = null;
-            int clonedCount = 0;
+            var clonedCount = 0;
 
-            using Transaction targetTr = targetDb.TransactionManager.StartTransaction();
+            using var targetTr = targetDb.TransactionManager.StartTransaction();
 
             using IdMapping map = new();
             using (new DatabaseUnitSyncScope(sourceDb, targetDb))
@@ -88,23 +81,18 @@ public sealed class BlockInserter(double gapPercent, Logger log)
 
             foreach (IdPair pair in map)
             {
-                if (!pair.IsCloned || !pair.IsPrimary)
-                {
-                    continue;
-                }
+                if (!pair.IsCloned || !pair.IsPrimary) continue;
 
                 if (targetTr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
                 {
                     ent.TransformBy(displacement);
                     clonedCount++;
 
-                    Extents3d? ext = ExtentsUtils.TryGetLiveExtents(ent, targetTr);
+                    var ext = ExtentsUtils.TryGetLiveExtents(ent, targetTr);
                     if (ext.HasValue)
-                    {
                         worldBounds = worldBounds.HasValue
                             ? ExtentsUtils.Union(worldBounds.Value, ext.Value)
                             : ext.Value;
-                    }
                 }
             }
 
@@ -134,11 +122,11 @@ public sealed class BlockInserter(double gapPercent, Logger log)
 
     private Point3d CalcInsertionPoint(Extents3d bounds)
     {
-        double width = Max(0, bounds.MaxPoint.X - bounds.MinPoint.X);
-        double height = Max(0, bounds.MaxPoint.Y - bounds.MinPoint.Y);
-        double gap = Max(1.0, Round(Max(width, height) * gapPercent, 0));
+        var width = Max(0, bounds.MaxPoint.X - bounds.MinPoint.X);
+        var height = Max(0, bounds.MaxPoint.Y - bounds.MinPoint.Y);
+        var gap = Max(1.0, Round(Max(width, height) * gapPercent, 0));
 
-        double insertX = _hasPlacedObjects
+        var insertX = _hasPlacedObjects
             ? _rightMax + gap - bounds.MinPoint.X
             : -bounds.MinPoint.X;
 

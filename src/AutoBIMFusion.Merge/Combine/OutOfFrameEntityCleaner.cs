@@ -1,13 +1,13 @@
+using System.Runtime.Versioning;
 using AutoBIMFusion.Common.Helpers;
 using Serilog.Core;
-using System.Runtime.Versioning;
 
 namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
 ///     Удаляет малые сущности модели, чей центр габаритов находится за рамкой листа.
-///     Критерии «малая»: диагональ bbox ≤ <see cref="MaxBlockDiagonal"/>
-///     и количество прямых дочерних объектов ≤ <see cref="MaxEntityCount"/>.
+///     Критерии «малая»: диагональ bbox ≤ <see cref="MaxBlockDiagonal" />
+///     и количество прямых дочерних объектов ≤ <see cref="MaxEntityCount" />.
 ///     Крупные блоки (много элементов или большой bbox) не удаляются.
 /// </summary>
 [SupportedOSPlatform("windows")]
@@ -17,39 +17,33 @@ internal static class OutOfFrameEntityCleaner
     private const int MaxBlockDiagonal = 100;
 
     /// <summary>
-    /// Сканирует Model Space и удаляет малые сущности за рамкой листа.
+    ///     Сканирует Model Space и удаляет малые сущности за рамкой листа.
     /// </summary>
     internal static void Clean(Database db, Extents3d frameBounds, Logger log)
     {
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(log);
 
-        CleanResult result = EraseEntitiesOutsideFrame(db, frameBounds, log);
+        var result = EraseEntitiesOutsideFrame(db, frameBounds, log);
 
-        if (result.BlockDefinitionIds.Count > 0)
-        {
-            PurgeUnusedBlockDefinitions(db, result.BlockDefinitionIds);
-        }
+        if (result.BlockDefinitionIds.Count > 0) PurgeUnusedBlockDefinitions(db, result.BlockDefinitionIds);
     }
 
     private static CleanResult EraseEntitiesOutsideFrame(Database db, Extents3d frameBounds, Logger log)
     {
-        ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
+        var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
         HashSet<ObjectId> erasedBlockDefinitions = [];
-        int erasedCount = 0;
+        var erasedCount = 0;
 
-        using Transaction trx = db.TransactionManager.StartTransaction();
+        using var trx = db.TransactionManager.StartTransaction();
 
-        BlockTableRecord modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
+        var modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
 
-        List<EntityCandidate> candidates = FindEntitiesOutsideFrame(trx, modelSpace, frameBounds, log);
+        var candidates = FindEntitiesOutsideFrame(trx, modelSpace, frameBounds, log);
 
-        foreach (EntityCandidate candidate in candidates)
+        foreach (var candidate in candidates)
         {
-            if (candidate.BlockDefinitionId.HasValue)
-            {
-                _ = erasedBlockDefinitions.Add(candidate.BlockDefinitionId.Value);
-            }
+            if (candidate.BlockDefinitionId.HasValue) _ = erasedBlockDefinitions.Add(candidate.BlockDefinitionId.Value);
 
             if (trx.GetObject(candidate.EntityId, OpenMode.ForWrite) is Entity entity && !entity.IsErased)
             {
@@ -63,43 +57,36 @@ internal static class OutOfFrameEntityCleaner
         return new CleanResult(erasedCount, erasedBlockDefinitions);
     }
 
-    private static List<EntityCandidate> FindEntitiesOutsideFrame(Transaction trx, BlockTableRecord modelSpace, Extents3d frameBounds, Logger log)
+    private static List<EntityCandidate> FindEntitiesOutsideFrame(Transaction trx, BlockTableRecord modelSpace,
+        Extents3d frameBounds, Logger log)
     {
         List<EntityCandidate> result = [];
 
-        foreach (ObjectId id in modelSpace)
+        foreach (var id in modelSpace)
         {
-            if (!id.IsValid || id.IsErased)
-            {
-                continue;
-            }
+            if (!id.IsValid || id.IsErased) continue;
 
             if (trx.GetObject(id, OpenMode.ForRead) is Entity entity && !entity.IsErased)
             {
-                Extents3d? extents = ExtentsUtils.TryGetLiveExtents(entity, trx);
+                var extents = ExtentsUtils.TryGetLiveExtents(entity, trx);
 
                 if (extents.HasValue)
                 {
-                    Extents3d bounds = extents.Value;
-                    Point3d center = GetCenter(bounds);
+                    var bounds = extents.Value;
+                    var center = GetCenter(bounds);
 
-                    if (IsPointInFrameXY(frameBounds, center))
-                    {
-                        continue;
-                    }
+                    if (IsPointInFrameXY(frameBounds, center)) continue;
 
                     if (entity is BlockReference br)
                     {
                         // Проверяем диагональ габаритов, чтобы не удалять крупные блоки
-                        double diagonal = bounds.MaxPoint.DistanceTo(bounds.MinPoint);
+                        var diagonal = bounds.MaxPoint.DistanceTo(bounds.MinPoint);
 
                         // Дополнительно проверяем количество прямых дочерних объектов
-                        int entityCount = CountDirectChildren(trx, br.BlockTableRecord);
+                        var entityCount = CountDirectChildren(trx, br.BlockTableRecord);
 
                         if (entityCount < MaxEntityCount && diagonal < MaxBlockDiagonal)
-                        {
                             result.Add(new EntityCandidate(id, br.BlockTableRecord));
-                        }
                     }
                     else if (entity != null)
                     {
@@ -119,21 +106,12 @@ internal static class OutOfFrameEntityCleaner
 
     private static int CountDirectChildren(Transaction trx, ObjectId blockDefinitionId)
     {
-        if (blockDefinitionId.IsNull || blockDefinitionId.IsErased)
-        {
-            return 0;
-        }
+        if (blockDefinitionId.IsNull || blockDefinitionId.IsErased) return 0;
 
-        if (trx.GetObject(blockDefinitionId, OpenMode.ForRead) is not BlockTableRecord btr)
-        {
-            return 0;
-        }
+        if (trx.GetObject(blockDefinitionId, OpenMode.ForRead) is not BlockTableRecord btr) return 0;
 
-        int count = 0;
-        foreach (ObjectId _ in btr)
-        {
-            count++;
-        }
+        var count = 0;
+        foreach (var _ in btr) count++;
 
         return count;
     }
@@ -158,26 +136,17 @@ internal static class OutOfFrameEntityCleaner
     {
         using ObjectIdCollection ids = new(blockDefinitionIds.Where(id => id.IsValid && !id.IsErased).ToArray());
 
-        if (ids.Count == 0)
-        {
-            return;
-        }
+        if (ids.Count == 0) return;
 
         db.Purge(ids);
 
-        if (ids.Count == 0)
-        {
-            return;
-        }
+        if (ids.Count == 0) return;
 
-        using Transaction trx = db.TransactionManager.StartTransaction();
+        using var trx = db.TransactionManager.StartTransaction();
 
         foreach (ObjectId id in ids)
         {
-            if (id.IsErased)
-            {
-                continue;
-            }
+            if (id.IsErased) continue;
 
             trx.GetObject(id, OpenMode.ForWrite).Erase();
         }

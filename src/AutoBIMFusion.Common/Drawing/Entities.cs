@@ -9,18 +9,12 @@ public static class Entities
         bool Clone = false)
     {
         List<ObjectId> objs = [];
-        foreach (Entity entity in entities)
+        foreach (var entity in entities)
         {
-            Entity ent = entity;
-            if (Clone)
-            {
-                ent = (Entity)ent.Clone();
-            }
+            var ent = entity;
+            if (Clone) ent = (Entity)ent.Clone();
 
-            if (ColorIndex != null)
-            {
-                ent.ColorIndex = (int)ColorIndex;
-            }
+            if (ColorIndex != null) ent.ColorIndex = (int)ColorIndex;
 
             objs.Add(ent.AddToDrawing());
         }
@@ -36,9 +30,9 @@ public static class Entities
 
     public static ObjectId AddToDrawing(this Entity entity, int? ColorIndex = null, bool Clone = false)
     {
-        Database db = Generic.GetDatabase();
-        using Transaction acTrans = db.TransactionManager.StartTransaction();
-        BlockTableRecord acBlkTblRec = Generic.GetCurrentSpaceBlockTableRecord(acTrans);
+        var db = Generic.GetDatabase();
+        using var acTrans = db.TransactionManager.StartTransaction();
+        var acBlkTblRec = Generic.GetCurrentSpaceBlockTableRecord(acTrans);
 
         // Check if the entity is already in the database
         if (entity?.IsErased != false)
@@ -47,15 +41,9 @@ public static class Entities
             return ObjectId.Null;
         }
 
-        if (Clone)
-        {
-            entity = entity.Clone() as Entity;
-        }
+        if (Clone) entity = entity.Clone() as Entity;
 
-        if (ColorIndex != null)
-        {
-            entity.ColorIndex = (int)ColorIndex;
-        }
+        if (ColorIndex != null) entity.ColorIndex = (int)ColorIndex;
 
         try
         {
@@ -72,9 +60,10 @@ public static class Entities
 
     public static ObjectId ReplaceInDrawing(this Entity OriginalEntity, Entity ReplaceEntity)
     {
-        Database db = Generic.GetDatabase();
-        using Transaction acTrans = db.TransactionManager.StartTransaction();
-        if (ReplaceEntity?.IsErased != false || acTrans.GetObject(OriginalEntity.OwnerId, OpenMode.ForWrite) is not BlockTableRecord ownerBtr)
+        var db = Generic.GetDatabase();
+        using var acTrans = db.TransactionManager.StartTransaction();
+        if (ReplaceEntity?.IsErased != false ||
+            acTrans.GetObject(OriginalEntity.OwnerId, OpenMode.ForWrite) is not BlockTableRecord ownerBtr)
         {
             acTrans.Abort();
             return ObjectId.Null;
@@ -93,11 +82,11 @@ public static class Entities
 
     public static ObjectId AddToDrawingCurrentTransaction(this Entity entity)
     {
-        Database db = Generic.GetDatabase();
-        Transaction acTrans = db.TransactionManager.TopTransaction;
-        BlockTableRecord acBlkTblRec = Generic.GetCurrentSpaceBlockTableRecord(acTrans);
+        var db = Generic.GetDatabase();
+        var acTrans = db.TransactionManager.TopTransaction;
+        var acBlkTblRec = Generic.GetCurrentSpaceBlockTableRecord(acTrans);
 
-        ObjectId objid = acBlkTblRec.AppendEntity(entity);
+        var objid = acBlkTblRec.AppendEntity(entity);
         acTrans.AddNewlyCreatedDBObject(entity, true);
         return objid;
     }

@@ -1,5 +1,5 @@
-using AutoBIMFusion.Common.Mist;
 using System.Drawing;
+using AutoBIMFusion.Common.Mist;
 
 namespace AutoBIMFusion.Common.Extensions;
 
@@ -13,13 +13,10 @@ public static class EditorExtensions
 {
     public static double GetUSCRotation(this Editor ed, AngleUnit angleUnit)
     {
-        Matrix3d ucsCur = ed.CurrentUserCoordinateSystem;
-        CoordinateSystem3d cs = ucsCur.CoordinateSystem3d;
-        double ucs_rotAngle = cs.Xaxis.AngleOnPlane(new Plane(Point3d.Origin, Vector3d.ZAxis));
-        if (angleUnit == AngleUnit.Radians)
-        {
-            return ucs_rotAngle;
-        }
+        var ucsCur = ed.CurrentUserCoordinateSystem;
+        var cs = ucsCur.CoordinateSystem3d;
+        var ucs_rotAngle = cs.Xaxis.AngleOnPlane(new Plane(Point3d.Origin, Vector3d.ZAxis));
+        if (angleUnit == AngleUnit.Radians) return ucs_rotAngle;
 
         return ucs_rotAngle * 180 / PI; //in egrees
     }
@@ -28,52 +25,49 @@ public static class EditorExtensions
     {
         //https://drive-cad-with-code.blogspot.com/2013/04/how-to-get-current-view-size.html
         //Get current view height
-        double h = (double)Application.GetSystemVariable("VIEWSIZE");
+        var h = (double)Application.GetSystemVariable("VIEWSIZE");
         //Get current view width,
         //by calculate current view's width-height ratio
-        Point2d screen = (Point2d)Application.GetSystemVariable("SCREENSIZE");
-        double w = h * (screen.X / screen.Y);
+        var screen = (Point2d)Application.GetSystemVariable("SCREENSIZE");
+        var w = h * (screen.X / screen.Y);
         return new SizeF((float)w, (float)h);
     }
 
     public static Extents3d GetCurrentViewBound(this Editor ed, double shrinkScale = 1.0)
     {
         //Get current view size
-        SizeF vSize = ed.GetCurrentViewSize();
+        var vSize = ed.GetCurrentViewSize();
 
-        double w = vSize.Width * shrinkScale;
-        double h = vSize.Height * shrinkScale;
+        var w = vSize.Width * shrinkScale;
+        var h = vSize.Height * shrinkScale;
 
         //Get current view's centre.
         //Note, the centre point from VIEWCTR is in UCS and
         //need to be transformed back to World CS
-        Point3d cent = ((Point3d)Application.GetSystemVariable("VIEWCTR")).TransformBy(ed.CurrentUserCoordinateSystem);
+        var cent = ((Point3d)Application.GetSystemVariable("VIEWCTR")).TransformBy(ed.CurrentUserCoordinateSystem);
 
-        Point3d minPoint = new(cent.X - (w / 2.0), cent.Y - (h / 2.0), 0);
-        Point3d maxPoint = new(cent.X + (w / 2.0), cent.Y + (h / 2.0), 0);
+        Point3d minPoint = new(cent.X - w / 2.0, cent.Y - h / 2.0, 0);
+        Point3d maxPoint = new(cent.X + w / 2.0, cent.Y + h / 2.0, 0);
 
         return new Extents3d(minPoint, maxPoint);
     }
 
     public static List<Layout> GetAllLayout(this Editor _)
     {
-        Database db = Generic.GetDatabase();
+        var db = Generic.GetDatabase();
         List<Layout> AllLayout = [];
 
-        using (Transaction trx = db.TransactionManager.StartTransaction())
+        using (var trx = db.TransactionManager.StartTransaction())
         {
-            foreach (ObjectId btrId in db.BlockTableId.GetDBObject() as BlockTable)
+            foreach (var btrId in db.BlockTableId.GetDBObject() as BlockTable)
             {
-                BlockTableRecord? btr = btrId.GetDBObject() as BlockTableRecord;
+                var btr = btrId.GetDBObject() as BlockTableRecord;
 
                 if (btr.IsLayout && !btr.Name.Equals(BlockTableRecord.ModelSpace,
                         StringComparison.InvariantCultureIgnoreCase))
                 {
-                    Layout? layout = btr.LayoutId.GetDBObject() as Layout;
-                    if (!layout.ModelType)
-                    {
-                        AllLayout.Add(layout);
-                    }
+                    var layout = btr.LayoutId.GetDBObject() as Layout;
+                    if (!layout.ModelType) AllLayout.Add(layout);
                 }
             }
 
@@ -85,21 +79,18 @@ public static class EditorExtensions
 
     public static Layout GetModelLayout(this Editor _)
     {
-        Database db = Generic.GetDatabase();
-        using Transaction trx = db.TransactionManager.StartTransaction();
+        var db = Generic.GetDatabase();
+        using var trx = db.TransactionManager.StartTransaction();
         try
         {
-            foreach (ObjectId btrId in db.BlockTableId.GetDBObject() as BlockTable)
+            foreach (var btrId in db.BlockTableId.GetDBObject() as BlockTable)
             {
-                BlockTableRecord? btr = btrId.GetDBObject() as BlockTableRecord;
+                var btr = btrId.GetDBObject() as BlockTableRecord;
 
                 if (btr.Name.Equals(BlockTableRecord.ModelSpace, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    Layout? layout = btr.LayoutId.GetDBObject() as Layout;
-                    if (layout.ModelType)
-                    {
-                        return layout;
-                    }
+                    var layout = btr.LayoutId.GetDBObject() as Layout;
+                    if (layout.ModelType) return layout;
                 }
             }
         }
@@ -114,46 +105,35 @@ public static class EditorExtensions
 
     public static Layout GetLayoutFromName(this Editor _, string Name)
     {
-        List<Layout> Layouts = _.GetAllLayout();
-        foreach (Layout item in Layouts)
-        {
+        var Layouts = _.GetAllLayout();
+        foreach (var item in Layouts)
             if (item.LayoutName.Equals(Name, StringComparison.InvariantCultureIgnoreCase))
-            {
                 return item;
-            }
-        }
 
         return null;
     }
 
     public static Viewport GetViewport(this Editor ed)
     {
-        Database db = Generic.GetDatabase();
+        var db = Generic.GetDatabase();
 
-        using Transaction trx = db.TransactionManager.StartTransaction();
+        using var trx = db.TransactionManager.StartTransaction();
         try
         {
             while (true)
             {
                 if (ed.IsInLayoutViewport())
-                {
                     return (Viewport)trx.GetObject(ed.CurrentViewportObjectId, OpenMode.ForWrite);
-                }
 
                 if (!ed.IsInLayoutPaper())
-                {
                     //In model space
                     return null;
-                }
 
-                if (ed.IsInModel())
-                {
-                    ed.SwitchToPaperSpace();
-                }
+                if (ed.IsInModel()) ed.SwitchToPaperSpace();
 
                 // Get the BlockTableRecord for the current layout
-                BlockTableRecord? btr = trx.GetObject(Generic.GetDatabase().CurrentSpaceId, OpenMode.ForRead) as BlockTableRecord;
-                List<ObjectId> Viewports = ed.GetAllViewportsInPaperSpace(btr);
+                var btr = trx.GetObject(Generic.GetDatabase().CurrentSpaceId, OpenMode.ForRead) as BlockTableRecord;
+                var Viewports = ed.GetAllViewportsInPaperSpace(btr);
                 if (Viewports.Count == 1)
                 {
                     ed.SwitchToModelSpace();
@@ -167,7 +147,7 @@ public static class EditorExtensions
                         AllowNone = true,
                         AllowArbitraryInput = true
                     };
-                PromptPointResult Validate = ed.GetPoint(promptPointOptions);
+                var Validate = ed.GetPoint(promptPointOptions);
                 if (!Validate.Status.HasFlag(PromptStatus.OK) && !Validate.Status.HasFlag(PromptStatus.None))
                 {
                     ed.SwitchToPaperSpace();
@@ -185,7 +165,7 @@ public static class EditorExtensions
         bool RejectObjectsOnLockedLayers = true)
     {
         objectId = Array.Empty<ObjectId>();
-        TypedValue[] filterList = new[] { new TypedValue((int)DxfCode.Start, "INSERT") };
+        var filterList = new[] { new TypedValue((int)DxfCode.Start, "INSERT") };
         PromptSelectionOptions selectionOptions = new()
         {
             MessageForAdding = Message,
@@ -196,21 +176,16 @@ public static class EditorExtensions
 
         while (true)
         {
-            (PromptStatus Status, object Value) = ed.GetSelectionRedraw(selectionOptions, new SelectionFilter(filterList));
+            var (Status, Value) = ed.GetSelectionRedraw(selectionOptions, new SelectionFilter(filterList));
 
-            if (Status == PromptStatus.Cancel)
-            {
-                return false;
-            }
+            if (Status == PromptStatus.Cancel) return false;
 
             if (Status == PromptStatus.OK)
-            {
                 if (Value is SelectionSet selection && selection.Count > 0)
                 {
                     objectId = selection.GetObjectIds();
                     return true;
                 }
-            }
         }
     }
 
@@ -227,21 +202,16 @@ public static class EditorExtensions
 
         while (true)
         {
-            PromptEntityResult promptResult = ed.GetEntity(selectionOptions);
-            if (promptResult.Status == PromptStatus.Cancel)
-            {
-                return false;
-            }
+            var promptResult = ed.GetEntity(selectionOptions);
+            if (promptResult.Status == PromptStatus.Cancel) return false;
 
             if (promptResult.Status == PromptStatus.OK)
-            {
                 if (promptResult.ObjectId != ObjectId.Null &&
                     promptResult.ObjectId.IsDerivedFrom(typeof(BlockReference)))
                 {
                     objectId = promptResult.ObjectId;
                     return true;
                 }
-            }
         }
     }
 
@@ -251,33 +221,25 @@ public static class EditorExtensions
         PromptKeywordOptions options = new("");
 
         Dictionary<string, string> optionsDic = [];
-        foreach (string item in Keywords)
+        foreach (var item in Keywords)
         {
-            string SanitizedName = item.SanitizeToAlphanumericHyphens();
-            if (LowerCaseOptions)
-            {
-                SanitizedName = SanitizedName.ToLowerInvariant();
-            }
+            var SanitizedName = item.SanitizeToAlphanumericHyphens();
+            if (LowerCaseOptions) SanitizedName = SanitizedName.ToLowerInvariant();
 
             optionsDic.Add(SanitizedName, item);
         }
 
 
-        foreach (string item in optionsDic.Keys)
-        {
-            options.Keywords.Add(item);
-        }
+        foreach (var item in optionsDic.Keys) options.Keywords.Add(item);
 
         options.Message = Message;
         options.AppendKeywordsToMessage = true;
         options.AllowArbitraryInput = false;
         options.Keywords.Default = options.Keywords[0].GlobalName;
         options.AllowNone = false;
-        PromptResult Result = ed.GetKeywords(options);
-        if (optionsDic.TryGetValue(Result.StringResult, out string? SelectedStringResult))
-        {
+        var Result = ed.GetKeywords(options);
+        if (optionsDic.TryGetValue(Result.StringResult, out var SelectedStringResult))
             return (Result.Status, SelectedStringResult);
-        }
 
         return (PromptStatus.Error, Result.StringResult);
     }
@@ -315,7 +277,7 @@ public static class EditorExtensions
 
     public static PromptSelectionResult GetCurves(this Editor ed, PromptSelectionOptions promptSelectionOptions)
     {
-        SelectionFilter filterList = ed.GetCurvesFilter();
+        var filterList = ed.GetCurvesFilter();
         return ed.GetSelection(promptSelectionOptions, filterList);
     }
 
@@ -329,9 +291,9 @@ public static class EditorExtensions
 
     public static void AddToImpliedSelection(this Editor ed, ObjectId objectId)
     {
-        if (ed.GetImpliedSelection(out PromptSelectionResult? CurrentSelectionResult) && CurrentSelectionResult.Status == PromptStatus.OK)
+        if (ed.GetImpliedSelection(out var CurrentSelectionResult) && CurrentSelectionResult.Status == PromptStatus.OK)
         {
-            ObjectId[] CurrentSelectionSet = CurrentSelectionResult.Value.GetObjectIds().ToArray();
+            var CurrentSelectionSet = CurrentSelectionResult.Value.GetObjectIds().ToArray();
             _ = CurrentSelectionSet.Append(objectId);
             ed.SetImpliedSelection(CurrentSelectionSet.ToArray());
         }
@@ -362,12 +324,8 @@ public static class EditorExtensions
         };
 
         if (Options != null)
-        {
-            foreach (string opt in Options)
-            {
+            foreach (var opt in Options)
                 selectionOptions.Keywords.Add(opt);
-            }
-        }
 
         selectionOptions.MessageForAdding += selectionOptions.Keywords.GetDisplayString(true);
 
@@ -379,33 +337,25 @@ public static class EditorExtensions
     {
         PromptSelectionResult selectResult;
         selectionOptions.KeywordInput += (sender, e) => throw new PromptSelectionKeywordEntered("Keyword entered")
-        { Keyword = e.Input };
+            { Keyword = e.Input };
 
         try
         {
-            for (int index = 0; ; index++)
+            for (var index = 0;; index++)
             {
                 if (index == 0)
                 {
                     if (!ed.GetImpliedSelection(out selectResult))
-                    {
                         selectResult = ed.GetSelection(selectionOptions, selectionFilter);
-                    }
                 }
                 else
                 {
                     selectResult = ed.GetSelection(selectionOptions, selectionFilter);
                 }
 
-                if (selectResult.Status == PromptStatus.Cancel)
-                {
-                    return (selectResult.Status, selectResult.Value);
-                }
+                if (selectResult.Status == PromptStatus.Cancel) return (selectResult.Status, selectResult.Value);
 
-                if (selectResult.Status == PromptStatus.OK)
-                {
-                    return (selectResult.Status, selectResult.Value);
-                }
+                if (selectResult.Status == PromptStatus.OK) return (selectResult.Status, selectResult.Value);
 
                 Generic.WriteMessage("Sélection invalide.");
             }
@@ -420,45 +370,31 @@ public static class EditorExtensions
         bool RejectObjectsOnLockedLayers = true, bool Clone = true, bool AllowOtherCurveType = true)
     {
         EntObjectId = ObjectId.Null;
-        for (int index = 0; ; index++)
+        for (var index = 0;; index++)
         {
             PromptSelectionResult polyResult;
             if (index == 0)
             {
                 if (!ed.GetImpliedSelection(out polyResult))
-                {
                     polyResult = ed.GetCurves(Message, true, RejectObjectsOnLockedLayers);
-                }
             }
             else
             {
                 polyResult = ed.GetCurves(Message, true, RejectObjectsOnLockedLayers);
             }
 
-            if (polyResult.Status == PromptStatus.Error)
-            {
-                continue;
-            }
+            if (polyResult.Status == PromptStatus.Error) continue;
 
-            if (polyResult.Status != PromptStatus.OK)
-            {
-                return null;
-            }
+            if (polyResult.Status != PromptStatus.OK) return null;
 
             EntObjectId = polyResult.Value[0].ObjectId;
-            Entity? SelectedEntity = EntObjectId.GetNoTransactionDBObject() as Entity;
+            var SelectedEntity = EntObjectId.GetNoTransactionDBObject() as Entity;
             if (SelectedEntity is Polyline ProjectionTargetPolyline)
-            {
                 return Clone ? (Polyline)ProjectionTargetPolyline.Clone() : ProjectionTargetPolyline;
-            }
 
             if (AllowOtherCurveType && SelectedEntity is Curve SelectedCurve)
-            {
                 if (SelectedCurve.ToPolyline() is Polyline ConvertedCurveAsPoly)
-                {
                     return ConvertedCurveAsPoly;
-                }
-            }
 
             Generic.WriteMessage("L'objet sélectionné n'est pas une polyligne. \n");
         }
@@ -467,41 +403,33 @@ public static class EditorExtensions
     public static bool GetHatch(this Editor ed, out ObjectId HatchObjectId, string AskText = null)
     {
         HatchObjectId = ObjectId.Null;
-        SelectionSet? BaseSelection = ed.SelectImplied()?.Value;
+        var BaseSelection = ed.SelectImplied()?.Value;
         if (BaseSelection?.Count > 0)
-        {
-            foreach (ObjectId item in BaseSelection.GetObjectIds())
+            foreach (var item in BaseSelection.GetObjectIds())
             {
-                DBObject Obj = item.GetDBObject();
+                var Obj = item.GetDBObject();
                 if (Obj is Hatch)
                 {
                     HatchObjectId = item;
                     break;
                 }
             }
-        }
 
         if (HatchObjectId == ObjectId.Null)
         {
             PromptEntityOptions option =
                 new("\n" +
-                                        (string.IsNullOrWhiteSpace(AskText) ? "Selectionnez une hachure" : AskText))
+                    (string.IsNullOrWhiteSpace(AskText) ? "Selectionnez une hachure" : AskText))
                 {
                     AllowNone = true,
                     AllowObjectOnLockedLayer = false
                 };
             option.SetRejectMessage("\nVeuillez selectionner seulement des hachures");
             option.AddAllowedClass(typeof(Hatch), false);
-            PromptEntityResult Result = ed.GetEntity(option);
-            if (Result.Status == PromptStatus.None)
-            {
-                return true;
-            }
+            var Result = ed.GetEntity(option);
+            if (Result.Status == PromptStatus.None) return true;
 
-            if (Result.Status != PromptStatus.OK)
-            {
-                return false;
-            }
+            if (Result.Status != PromptStatus.OK) return false;
 
             HatchObjectId = Result.ObjectId;
         }
@@ -512,16 +440,13 @@ public static class EditorExtensions
     public static bool GetHatch(this Editor ed, out Hatch Hachure, string AskText = null)
     {
         Hachure = null;
-        Database db = Generic.GetDatabase();
-        using Transaction trx = db.TransactionManager.StartTransaction();
+        var db = Generic.GetDatabase();
+        using var trx = db.TransactionManager.StartTransaction();
         try
         {
             while (true)
             {
-                if (!ed.GetHatch(out ObjectId HatchObjectId, AskText))
-                {
-                    return false;
-                }
+                if (!ed.GetHatch(out ObjectId HatchObjectId, AskText)) return false;
 
                 if (HatchObjectId.GetDBObject() is Hatch hatch)
                 {
@@ -540,20 +465,20 @@ public static class EditorExtensions
 
     public static bool IsInLockedViewport(this Editor ed)
     {
-        Database db = Generic.GetDatabase();
+        var db = Generic.GetDatabase();
 
-        using Transaction trx = db.TransactionManager.StartTransaction();
-        Viewport? viewport = ed.ActiveViewportId.GetDBObject() as Viewport;
+        using var trx = db.TransactionManager.StartTransaction();
+        var viewport = ed.ActiveViewportId.GetDBObject() as Viewport;
         trx.Commit();
         return viewport?.Locked == true;
     }
 
     public static bool IsInPaperSpace(this Editor ed)
     {
-        Database db = Generic.GetDatabase();
+        var db = Generic.GetDatabase();
 
-        using Transaction trx = db.TransactionManager.StartTransaction();
-        Viewport? viewport = ed.ActiveViewportId.GetDBObject() as Viewport;
+        using var trx = db.TransactionManager.StartTransaction();
+        var viewport = ed.ActiveViewportId.GetDBObject() as Viewport;
         trx.Commit();
         return viewport?.Number == 1;
     }
@@ -561,18 +486,18 @@ public static class EditorExtensions
     public static void ViewPlan(this Editor ed)
     {
         //From https://cadxp.com/topic/61249-net-c-%C3%A9quivalents-des-commandes-lisp-ucs-dview-plan/?do=findComment&comment=349377
-        CoordinateSystem3d ucs = ed.CurrentUserCoordinateSystem.CoordinateSystem3d;
-        using ViewTableRecord view = ed.GetCurrentView();
-        Matrix3d dcsToWcs =
+        var ucs = ed.CurrentUserCoordinateSystem.CoordinateSystem3d;
+        using var view = ed.GetCurrentView();
+        var dcsToWcs =
             Matrix3d.Rotation(-view.ViewTwist, view.ViewDirection, view.Target) *
             Matrix3d.Displacement(view.Target.GetAsVector()) *
             Matrix3d.PlaneToWorld(view.ViewDirection);
-        Point3d centerPoint =
+        var centerPoint =
             new Point3d(view.CenterPoint.X, view.CenterPoint.Y, 0.0)
                 .TransformBy(dcsToWcs);
         view.ViewDirection = ucs.Zaxis;
         view.ViewTwist = ucs.Xaxis.GetAngleTo(Vector3d.XAxis, ucs.Zaxis);
-        Matrix3d wcsToDcs =
+        var wcsToDcs =
             Matrix3d.WorldToPlane(view.ViewDirection) *
             Matrix3d.Displacement(view.Target.GetAsVector().Negate()) *
             Matrix3d.Rotation(view.ViewTwist, view.ViewDirection, view.Target);
