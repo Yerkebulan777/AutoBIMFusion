@@ -20,9 +20,9 @@ public sealed class CombineCommands
     private readonly SemaphoreSlim _mergeGate = new(1, 1);
 
     [CommandMethod("MERGEDWG", CommandFlags.Modal | CommandFlags.Session)]
-    public async void MergeDwgFolderCommand()
+    public async Task MergeDwgFolderCommand()
     {
-        _ = await ExecuteMergeAsync(null, true, "MERGEDWG");
+        await ExecuteMergeAsync(null, true, "MERGEDWG");
     }
 
     [CommandMethod("MERGEDWG_BATCH", CommandFlags.Modal | CommandFlags.Session)]
@@ -134,10 +134,10 @@ public sealed class CombineCommands
                     DrawingPurger.Optimize(mergeDoc.Database, log);
 
                     SaveMerged(mergeDoc.Database, savePath, log);
-                }
 
-                mergeDoc.SendStringToExecute("._REGENALL ", true, false, false);
-                mergeDoc.SendStringToExecute("._ZOOM _EXTENTS ", true, false, false);
+                    mergeDoc.Editor.Command("._REGENALL");
+                    mergeDoc.Editor.Command("._ZOOM", "_EXTENTS");
+                }
 
                 sw.Stop();
 

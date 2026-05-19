@@ -1,4 +1,4 @@
-using AutoBIMFusion.Infrastructure.Logging;
+using AutoBIMFusion.Common.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
 using System.Runtime.Versioning;
