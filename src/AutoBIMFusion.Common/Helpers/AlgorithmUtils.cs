@@ -16,16 +16,20 @@ public static class AlgorithmUtils
     /// <returns>Индекс первого элемента с ключом >= value, или list.Count если такого нет.</returns>
     public static int LowerBound<T>(IReadOnlyList<T> list, double value, Func<T, double> selector)
     {
-        var left = 0;
-        var right = list.Count;
+        int left = 0;
+        int right = list.Count;
 
         while (left < right)
         {
-            var middle = left + (right - left) / 2;
+            int middle = left + ((right - left) / 2);
             if (selector(list[middle]) < value)
+            {
                 left = middle + 1;
+            }
             else
+            {
                 right = middle;
+            }
         }
 
         return left;

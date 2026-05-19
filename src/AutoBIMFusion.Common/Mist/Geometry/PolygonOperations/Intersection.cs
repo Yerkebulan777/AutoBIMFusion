@@ -11,19 +11,30 @@ public static partial class PolygonOperation
 
         if (PolyHoleA.Boundary.IsSegmentIntersecting(PolyHoleB.Boundary, out _, Intersect.OnBothOperands))
         {
-            var SliceResult = Slice(PolyHoleA.Boundary, PolyHoleB.Boundary);
-            foreach (var item in SliceResult)
+            List<Polyline> SliceResult = Slice(PolyHoleA.Boundary, PolyHoleB.Boundary);
+            foreach (Polyline item in SliceResult)
+            {
                 if (item.GetInnerCentroid().IsInsidePolyline(PolyHoleA.Boundary) &&
                     item.GetInnerCentroid().IsInsidePolyline(PolyHoleB.Boundary))
+                {
                     BoundaryIntersectionResult.Add(new PolyHole(item, null));
+                }
                 else
+                {
                     item.Dispose();
+                }
+            }
         }
         else
         {
             if (PolyHoleA.Boundary.IsInside(PolyHoleB.Boundary, false))
+            {
                 BoundaryIntersectionResult.Add(PolyHoleA);
-            else if (PolyHoleB.Boundary.IsInside(PolyHoleA.Boundary, false)) BoundaryIntersectionResult.Add(PolyHoleB);
+            }
+            else if (PolyHoleB.Boundary.IsInside(PolyHoleA.Boundary, false))
+            {
+                BoundaryIntersectionResult.Add(PolyHoleB);
+            }
         }
 
         List<Polyline> PolyHoleHoles = [.. PolyHoleA.Holes, .. PolyHoleB.Holes];
@@ -36,9 +47,9 @@ public static partial class PolygonOperation
         }
 
         //if there is hole, we substract them from the boundary
-        foreach (var boundary in BoundaryIntersectionResult.ToList())
+        foreach (PolyHole? boundary in BoundaryIntersectionResult.ToList())
         {
-            _ = Substraction(boundary, PolyHoleHoles, out var TempIntersectionResult);
+            _ = Substraction(boundary, PolyHoleHoles, out List<PolyHole>? TempIntersectionResult);
             IntersectionResult.AddRange(TempIntersectionResult);
         }
 

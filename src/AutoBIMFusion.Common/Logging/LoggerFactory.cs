@@ -1,10 +1,10 @@
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 using System.Diagnostics;
 using System.Reflection;
 using System.Security;
 using System.Text;
-using Serilog;
-using Serilog.Core;
-using Serilog.Events;
 using DiagnosticsTrace = System.Diagnostics.Trace;
 
 namespace AutoBIMFusion.Common.Logging;
@@ -33,13 +33,16 @@ public static class LoggerFactory
     /// </summary>
     private static string GetLogsDirectory()
     {
-        var assemblyLocation = typeof(LoggerFactory).Assembly.Location;
+        string assemblyLocation = typeof(LoggerFactory).Assembly.Location;
 
         if (!string.IsNullOrEmpty(assemblyLocation))
         {
-            var baseDir = Path.GetDirectoryName(assemblyLocation);
+            string? baseDir = Path.GetDirectoryName(assemblyLocation);
 
-            if (baseDir is not null) return Path.Combine(baseDir, "Logs");
+            if (baseDir is not null)
+            {
+                return Path.Combine(baseDir, "Logs");
+            }
         }
 
         // Fallback: use the app context base directory (e.g., C:\Program Files\Autodesk\...)
@@ -53,13 +56,13 @@ public static class LoggerFactory
 
     private static Logger CreateFileLogger()
     {
-        var minimumLevel = LogEventLevel.Information;
+        LogEventLevel minimumLevel = LogEventLevel.Information;
         string? logFile = null;
 
         try
         {
             minimumLevel = ResolveMinimumLevel();
-            var logsDir = GetLogsDirectory();
+            string logsDir = GetLogsDirectory();
             _ = Directory.CreateDirectory(logsDir);
 
             logFile = Path.Combine(logsDir, BuildLogFileName());
@@ -137,11 +140,11 @@ public static class LoggerFactory
     {
         try
         {
-            var logsDir = ResolveBootstrapLogsDirectory();
+            string logsDir = ResolveBootstrapLogsDirectory();
             _ = Directory.CreateDirectory(logsDir);
 
-            var bootstrapFile = Path.Combine(logsDir, BootstrapFailureFileName);
-            var message = BuildBootstrapFailureMessage(context, ex, logFile);
+            string bootstrapFile = Path.Combine(logsDir, BootstrapFailureFileName);
+            string message = BuildBootstrapFailureMessage(context, ex, logFile);
             File.AppendAllText(bootstrapFile, message, Encoding.UTF8);
         }
         catch (Exception writeEx) when (IsExpectedBootstrapException(writeEx))
@@ -186,11 +189,11 @@ public static class LoggerFactory
         _ = sb.AppendLine($"LoggerFactory.Assembly.Location: {GetAssemblyLocation(typeof(LoggerFactory).Assembly)}");
         _ = sb.AppendLine("Loaded Serilog assemblies:");
 
-        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()
+        foreach (Assembly? assembly in AppDomain.CurrentDomain.GetAssemblies()
                      .Where(a => a.GetName().Name?.StartsWith("Serilog", StringComparison.OrdinalIgnoreCase) == true)
                      .OrderBy(a => a.GetName().Name, StringComparer.OrdinalIgnoreCase))
         {
-            var name = assembly.GetName();
+            AssemblyName name = assembly.GetName();
             _ = sb.AppendLine($"- {name.Name}, Version={name.Version}, Location={GetAssemblyLocation(assembly)}");
         }
 
@@ -219,7 +222,7 @@ public static class LoggerFactory
 
     private static LogEventLevel ResolveMinimumLevel()
     {
-        var envValue = Environment.GetEnvironmentVariable(LogLevelEnvVar);
+        string? envValue = Environment.GetEnvironmentVariable(LogLevelEnvVar);
 
         return string.IsNullOrWhiteSpace(envValue)
             ? LogEventLevel.Information
@@ -255,15 +258,25 @@ public static class LoggerFactory
 
         public void Emit(LogEvent logEvent)
         {
-            if (logEvent.Level < _minimumLevel) return;
+            if (logEvent.Level < _minimumLevel)
+            {
+                return;
+            }
 
-            var msg = $"{logEvent.Timestamp:HH:mm:ss.fff} [{logEvent.Level}] {logEvent.RenderMessage()}";
-            if (logEvent.Exception is not null) msg = $"{msg}{Environment.NewLine}{logEvent.Exception}";
+            string msg = $"{logEvent.Timestamp:HH:mm:ss.fff} [{logEvent.Level}] {logEvent.RenderMessage()}";
+            if (logEvent.Exception is not null)
+            {
+                msg = $"{msg}{Environment.NewLine}{logEvent.Exception}";
+            }
 
             if (Debugger.IsAttached)
+            {
                 Debug.WriteLine(msg);
+            }
             else
+            {
                 DiagnosticsTrace.WriteLine(msg);
+            }
         }
     }
 }

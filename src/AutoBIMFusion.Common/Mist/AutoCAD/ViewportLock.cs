@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using AutoBIMFusion.Common.Extensions;
+using System.Diagnostics;
 
 namespace AutoBIMFusion.Common.Mist.AutoCAD;
 
@@ -7,21 +7,24 @@ public static class ViewportLock
 {
     public static void DoLockUnlock(bool @lock)
     {
-        var db = Generic.GetDatabase();
-        var ed = Generic.GetEditor();
+        Database db = Generic.GetDatabase();
+        Editor ed = Generic.GetEditor();
 
         TypedValue[] viewportFilter = [new((int)DxfCode.Start, "Viewport")];
 
         try
         {
-            var viewportSelection = ed.SelectAll(new SelectionFilter(viewportFilter));
-            var selectionSet = viewportSelection.Value;
-            if (selectionSet is null) return;
-
-            using var trx = db.TransactionManager.StartTransaction();
-            foreach (var objectId in selectionSet.GetObjectIds())
+            PromptSelectionResult viewportSelection = ed.SelectAll(new SelectionFilter(viewportFilter));
+            SelectionSet? selectionSet = viewportSelection.Value;
+            if (selectionSet is null)
             {
-                var viewport = (Viewport)objectId.GetDBObject(OpenMode.ForWrite);
+                return;
+            }
+
+            using Transaction trx = db.TransactionManager.StartTransaction();
+            foreach (ObjectId objectId in selectionSet.GetObjectIds())
+            {
+                Viewport viewport = (Viewport)objectId.GetDBObject(OpenMode.ForWrite);
                 viewport.Locked = @lock;
             }
 

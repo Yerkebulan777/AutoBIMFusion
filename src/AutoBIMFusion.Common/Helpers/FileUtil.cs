@@ -26,12 +26,18 @@ public static class FileUtil
 
         List<string> files = [];
 
-        foreach (var path in Directory.EnumerateFiles(rootPath, "*.dwg", opts))
+        foreach (string path in Directory.EnumerateFiles(rootPath, "*.dwg", opts))
         {
-            var fileName = Path.GetFileName(path);
-            if (fileName.StartsWith(excludePrefix, StringComparison.OrdinalIgnoreCase)) continue;
+            string fileName = Path.GetFileName(path);
+            if (fileName.StartsWith(excludePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
 
-            if (new FileInfo(path).Length > MaxFileSizeBytes) continue;
+            if (new FileInfo(path).Length > MaxFileSizeBytes)
+            {
+                continue;
+            }
 
             files.Add(path);
         }
@@ -80,11 +86,17 @@ public static class FileUtil
     {
         _ = Directory.CreateDirectory(destinationRoot);
 
-        if (Directory.Exists(tempFolder)) Directory.Delete(tempFolder, true);
+        if (Directory.Exists(tempFolder))
+        {
+            Directory.Delete(tempFolder, true);
+        }
 
         _ = Directory.CreateDirectory(tempFolder);
 
-        if (File.Exists(zipFilePath)) File.Delete(zipFilePath);
+        if (File.Exists(zipFilePath))
+        {
+            File.Delete(zipFilePath);
+        }
     }
 
     /// <summary>
@@ -94,7 +106,10 @@ public static class FileUtil
     {
         try
         {
-            if (Directory.Exists(tempFolder)) Directory.Delete(tempFolder, true);
+            if (Directory.Exists(tempFolder))
+            {
+                Directory.Delete(tempFolder, true);
+            }
         }
         catch (IOException ex)
         {
@@ -115,20 +130,22 @@ public static class FileUtil
         string sourcePath,
         HashSet<string> reservedDestinationPaths)
     {
-        var sourceFullPath = Path.GetFullPath(sourcePath);
-        var sourceDir = Path.GetDirectoryName(sourceFullPath) ?? string.Empty;
+        string sourceFullPath = Path.GetFullPath(sourcePath);
+        string sourceDir = Path.GetDirectoryName(sourceFullPath) ?? string.Empty;
         if (string.Equals(sourceDir, Path.GetFullPath(targetDir), StringComparison.OrdinalIgnoreCase))
+        {
             return (sourceFullPath, Path.GetFileName(sourceFullPath));
+        }
 
-        var fileName = Path.GetFileName(sourcePath);
-        var destinationPath = Path.Combine(targetDir, fileName);
+        string fileName = Path.GetFileName(sourcePath);
+        string destinationPath = Path.Combine(targetDir, fileName);
 
-        var counter = 1;
+        int counter = 1;
         while (reservedDestinationPaths.Contains(destinationPath) || File.Exists(destinationPath))
         {
-            var name = Path.GetFileNameWithoutExtension(fileName);
-            var ext = Path.GetExtension(fileName);
-            var candidateName = $"{name}_{counter}{ext}";
+            string name = Path.GetFileNameWithoutExtension(fileName);
+            string ext = Path.GetExtension(fileName);
+            string candidateName = $"{name}_{counter}{ext}";
             destinationPath = Path.Combine(targetDir, candidateName);
             counter++;
         }
@@ -146,9 +163,12 @@ public static class FileUtil
 
         string SizeSuffix(long value, int decimalPlaces = 1)
         {
-            if (value < 0) return "-" + SizeSuffix(-value, decimalPlaces);
+            if (value < 0)
+            {
+                return "-" + SizeSuffix(-value, decimalPlaces);
+            }
 
-            var i = 0;
+            int i = 0;
             decimal dValue = value;
             while (Round(dValue, decimalPlaces) >= 1000)
             {
@@ -175,7 +195,10 @@ public static class FileUtil
     /// </summary>
     public static bool IsFileLockedOrReadOnly(FileInfo fi)
     {
-        if (!fi.Exists) return false;
+        if (!fi.Exists)
+        {
+            return false;
+        }
 
         FileStream fs = null;
         try
@@ -184,7 +207,11 @@ public static class FileUtil
         }
         catch (Exception ex)
         {
-            if (ex is IOException or UnauthorizedAccessException) return true;
+            if (ex is IOException or UnauthorizedAccessException)
+            {
+                return true;
+            }
+
             throw;
         }
         finally
@@ -219,17 +246,17 @@ public static class FileUtil
         // Подстановка текущего пользователя (cross-machine C:\Users\OtherUser\...)
         if (Path.IsPathRooted(path))
         {
-            var userProfileParent = Path.GetDirectoryName(
+            string userProfileParent = Path.GetDirectoryName(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) ?? string.Empty;
             if (!string.IsNullOrEmpty(userProfileParent) &&
                 path.StartsWith(userProfileParent, StringComparison.OrdinalIgnoreCase))
             {
-                var afterUsersDir = path[(userProfileParent.Length + 1)..];
-                var slashIdx = afterUsersDir.IndexOf(Path.DirectorySeparatorChar);
+                string afterUsersDir = path[(userProfileParent.Length + 1)..];
+                int slashIdx = afterUsersDir.IndexOf(Path.DirectorySeparatorChar);
                 if (slashIdx > 0)
                 {
-                    var relativePart = afterUsersDir[(slashIdx + 1)..];
-                    var candidate = Path.Combine(
+                    string relativePart = afterUsersDir[(slashIdx + 1)..];
+                    string candidate = Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                         relativePart);
                     if (File.Exists(candidate))
@@ -244,7 +271,7 @@ public static class FileUtil
         // Только имя файла в папке целевого DWG
         if (!string.IsNullOrEmpty(searchDir))
         {
-            var candidate = Path.Combine(searchDir, Path.GetFileName(path));
+            string candidate = Path.Combine(searchDir, Path.GetFileName(path));
             if (File.Exists(candidate))
             {
                 resolvedPath = candidate;
@@ -255,7 +282,7 @@ public static class FileUtil
         // AutoCAD FindFile
         try
         {
-            var foundPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.EmbeddedImageFile);
+            string foundPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.EmbeddedImageFile);
 
             if (!string.IsNullOrEmpty(foundPath) && File.Exists(foundPath))
             {

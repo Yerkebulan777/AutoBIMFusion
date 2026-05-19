@@ -1,5 +1,6 @@
 using AutoBIMFusion.Common.Mist;
 using AutoBIMFusion.Common.Mist.AutoCAD;
+using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.Runtime;
 
@@ -16,28 +17,36 @@ public static class ObjectIdExtensions
 
     public static DBObject GetDBObject(this ObjectId objectId, OpenMode openMode = OpenMode.ForRead)
     {
-        if (objectId.IsNull) return null;
+        if (objectId.IsNull)
+        {
+            return null;
+        }
 
-        var db = Generic.GetDatabase();
+        Database db = Generic.GetDatabase();
         return db.TransactionManager.GetObject(objectId, openMode, false, true);
     }
 
     public static List<ObjectId> GetObjectIds(this IEnumerable<DBObject> dBObjects)
     {
         List<ObjectId> ObjectIds = [];
-        foreach (var obj in dBObjects) ObjectIds.Add(obj.ObjectId);
+        foreach (DBObject obj in dBObjects)
+        {
+            ObjectIds.Add(obj.ObjectId);
+        }
 
         return ObjectIds;
     }
 
     public static DBObject GetNoTransactionDBObject(this ObjectId objectId, OpenMode openMode = OpenMode.ForRead)
     {
-        var db = Generic.GetDatabase();
+        Database db = Generic.GetDatabase();
         if (db.TransactionManager.NumberOfActiveTransactions == 0)
+        {
             using (db.TransactionManager.StartTransaction())
             {
                 return objectId.GetDBObject(openMode);
             }
+        }
 
         return objectId.GetDBObject(openMode);
     }
@@ -47,9 +56,9 @@ public static class ObjectIdExtensions
         DBObjectCollection objs = [];
 
         // Loop through the selected objects
-        foreach (var ObjectToExplode in ObjectsToExplode)
+        foreach (ObjectId ObjectToExplode in ObjectsToExplode)
         {
-            var ent = ObjectToExplode.GetEntity();
+            Entity ent = ObjectToExplode.GetEntity();
             // Explode the object into our collection
             ent.Explode(objs);
             if (EraseOriginal)
@@ -69,9 +78,12 @@ public static class ObjectIdExtensions
 
     public static DBObjectCollection ToDBObjectCollection(this SelectionSet entities)
     {
-        var ObjectIdsCollection = entities.GetObjectIds();
+        ObjectId[] ObjectIdsCollection = entities.GetObjectIds();
         DBObjectCollection NewDBObjectCollection = [];
-        foreach (var ObjectId in ObjectIdsCollection) _ = NewDBObjectCollection.Add(ObjectId.GetDBObject());
+        foreach (ObjectId ObjectId in ObjectIdsCollection)
+        {
+            _ = NewDBObjectCollection.Add(ObjectId.GetDBObject());
+        }
 
         return NewDBObjectCollection;
     }
@@ -79,7 +91,10 @@ public static class ObjectIdExtensions
     public static ObjectIdCollection ToObjectIdCollection(this IEnumerable<ObjectId> objectId)
     {
         ObjectIdCollection NewObjectIdCollection = [];
-        foreach (var ObjectId in objectId) _ = NewObjectIdCollection.Add(ObjectId);
+        foreach (ObjectId ObjectId in objectId)
+        {
+            _ = NewObjectIdCollection.Add(ObjectId);
+        }
 
         return NewObjectIdCollection;
     }
@@ -87,7 +102,10 @@ public static class ObjectIdExtensions
     public static DBObjectCollection ToDBObjectCollection(this IEnumerable<DBObject> entities)
     {
         DBObjectCollection NewDBObjectCollection = [];
-        foreach (var entity in entities) _ = NewDBObjectCollection.Add(entity);
+        foreach (DBObject entity in entities)
+        {
+            _ = NewDBObjectCollection.Add(entity);
+        }
 
         return NewDBObjectCollection;
     }
@@ -95,7 +113,10 @@ public static class ObjectIdExtensions
     public static List<DBObject> ToList(this DBObjectCollection entities)
     {
         List<DBObject> list = [];
-        foreach (var ent in entities) list.Add(ent as DBObject);
+        foreach (object? ent in entities)
+        {
+            list.Add(ent as DBObject);
+        }
 
         return list;
     }
@@ -109,11 +130,14 @@ public static class ObjectIdExtensions
 
     public static void EraseObject(this ObjectId ObjectToErase)
     {
-        var doc = Generic.GetDocument();
-        using var trx = doc.TransactionManager.StartTransaction();
-        if (ObjectToErase.IsErased) return;
+        Document doc = Generic.GetDocument();
+        using Transaction trx = doc.TransactionManager.StartTransaction();
+        if (ObjectToErase.IsErased)
+        {
+            return;
+        }
 
-        var ent = trx.GetObject(ObjectToErase, OpenMode.ForRead);
+        DBObject ent = trx.GetObject(ObjectToErase, OpenMode.ForRead);
         //Can only errase if entity is not on a locked layer
         if (ent is Entity enty && enty.IsEntityOnLockedLayer())
         {
@@ -122,7 +146,10 @@ public static class ObjectIdExtensions
         else
         {
             ent.UpgradeOpen();
-            if (!ent.IsErased) ent.Erase(true);
+            if (!ent.IsErased)
+            {
+                ent.Erase(true);
+            }
 
             trx.Commit();
         }
@@ -132,24 +159,38 @@ public static class ObjectIdExtensions
     {
         foreach (ObjectId id in ids)
         {
-            if (!id.IsValid || id.IsErased) continue;
+            if (!id.IsValid || id.IsErased)
+            {
+                continue;
+            }
 
-            if (trx.GetObject(id, OpenMode.ForWrite) is DBObject obj && !obj.IsErased) obj.Erase();
+            if (trx.GetObject(id, OpenMode.ForWrite) is DBObject obj && !obj.IsErased)
+            {
+                obj.Erase();
+            }
         }
     }
 
     public static void Join(this ObjectIdCollection A, ObjectIdCollection B)
     {
         foreach (ObjectId ent in B)
+        {
             if (!A.Contains(ent))
+            {
                 _ = A.Add(ent);
+            }
+        }
     }
 
     public static void Add(this ObjectIdCollection col, ObjectId[] ids)
     {
-        foreach (var id in ids)
+        foreach (ObjectId id in ids)
+        {
             if (!col.Contains(id))
+            {
                 _ = col.Add(id);
+            }
+        }
     }
 
     public static Hatch HatchObject(this ObjectId Obj, string Layer)
@@ -182,18 +223,21 @@ public static class ObjectIdExtensions
 
     public static long GetObjectByteSize(this ObjectId objId)
     {
-        var currentDb = objId.Database;
-        if (currentDb == null || objId == ObjectId.Null) return 0;
+        Database currentDb = objId.Database;
+        if (currentDb == null || objId == ObjectId.Null)
+        {
+            return 0;
+        }
 
         using Database emptyDb = new(true, true);
-        var emptyDwgByteSize = emptyDb.GetSize(currentDb.GetDwgVersion());
+        long emptyDwgByteSize = emptyDb.GetSize(currentDb.GetDwgVersion());
 
-        var modelSpaceId = SymbolUtilityServices.GetBlockModelSpaceId(emptyDb);
+        ObjectId modelSpaceId = SymbolUtilityServices.GetBlockModelSpaceId(emptyDb);
 
         ObjectIdCollection ids = [objId];
         emptyDb.WblockCloneObjects(ids, modelSpaceId, [], DuplicateRecordCloning.Replace, false);
 
-        var finalDwgByteSize = emptyDb.GetSize(currentDb.GetDwgVersion());
+        long finalDwgByteSize = emptyDb.GetSize(currentDb.GetDwgVersion());
         return Max(finalDwgByteSize - emptyDwgByteSize, 0);
     }
 }

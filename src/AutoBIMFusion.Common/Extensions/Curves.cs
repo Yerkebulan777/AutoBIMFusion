@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using AutoBIMFusion.Common.Mist;
+using System.Diagnostics;
 
 namespace AutoBIMFusion.Common.Extensions;
 
@@ -13,10 +13,15 @@ public static class CurvesExtensions
     /// <returns>The parameter.</returns>
     public static double GetParamAtPointX(this Curve cv, Point3d point)
     {
-        if (point.DistanceTo(cv.StartPoint) < Generic.MediumTolerance.EqualPoint) return 0.0;
+        if (point.DistanceTo(cv.StartPoint) < Generic.MediumTolerance.EqualPoint)
+        {
+            return 0.0;
+        }
 
         if (point.DistanceTo(cv.EndPoint) < Generic.MediumTolerance.EqualPoint)
+        {
             return cv.GetParameterAtPoint(cv.EndPoint);
+        }
 
         try
         {
@@ -37,8 +42,13 @@ public static class CurvesExtensions
     public static Point3d GetPointAtParam(this Curve cv, double param)
     {
         if (param < 0)
+        {
             param = 0;
-        else if (param > cv.EndParam) param = cv.EndParam;
+        }
+        else if (param > cv.EndParam)
+        {
+            param = cv.EndParam;
+        }
 
         return cv.GetPointAtParameter(param);
     }
@@ -54,7 +64,10 @@ public static class CurvesExtensions
     /// <returns>The points.</returns>
     public static IEnumerable<Point3d> GetPoints(this Curve cv, double paramDelta = 1)
     {
-        for (var param = 0d; param <= cv.EndParam; param += paramDelta) yield return cv.GetPointAtParam(param);
+        for (double param = 0d; param <= cv.EndParam; param += paramDelta)
+        {
+            yield return cv.GetPointAtParam(param);
+        }
     }
 
     /// <summary>
@@ -64,10 +77,10 @@ public static class CurvesExtensions
     /// <returns>Ordered array of Curve3d.</returns>
     public static Curve3d[] ToOrderedArray(this IEnumerable<Curve3d> source)
     {
-        var list = source.ToList();
-        var count = list.Count;
-        var array = new Curve3d[count];
-        var i = 0;
+        List<Curve3d> list = source.ToList();
+        int count = list.Count;
+        Curve3d[] array = new Curve3d[count];
+        int i = 0;
         array[0] = list[0];
         list.RemoveAt(0);
         int index;
@@ -100,8 +113,10 @@ public static class CurvesExtensions
         List<Curve> OffsetCurves = [];
 
         foreach (var ent in Curves)
+        {
             OffsetCurves.AddRange(ent.OffsetPolyline(OffsetDistance, UseOffsetGapTypeCurrentValue).ToList()
                 .Cast<Curve>());
+        }
 
         return OffsetCurves;
     }
@@ -109,18 +124,25 @@ public static class CurvesExtensions
     public static DBObjectCollection OffsetPolyline(this Curve Curve, double OffsetDistance,
         bool UseOffsetGapTypeCurrentValue = true)
     {
-        var OffsetGapType =
+        object OffsetGapType =
             Generic.GetSystemVariable(
                 "OFFSETGAPTYPE"); //Controls how potential gaps between segments are treated when polylines are offset. 
         if (!UseOffsetGapTypeCurrentValue)
+        {
             Generic.SetSystemVariable("OFFSETGAPTYPE", 0,
                 false); //Extends line segments to their projected intersections.
+        }
 
         try
         {
             if (Curve is Polyline)
+            {
                 return Curve.GetOffsetCurves((Curve as Polyline).GetArea() < 0.0 ? -OffsetDistance : OffsetDistance);
-            else if (Curve is Ellipse or Circle) return Curve.GetOffsetCurves(OffsetDistance);
+            }
+            else if (Curve is Ellipse or Circle)
+            {
+                return Curve.GetOffsetCurves(OffsetDistance);
+            }
 
             return [];
         }
@@ -135,12 +157,12 @@ public static class CurvesExtensions
         IntersectionFound = [];
         DBObjectCollection entities = [];
         poly.Explode(entities);
-        for (var i = 0; i < entities.Count; ++i)
+        for (int i = 0; i < entities.Count; ++i)
         {
-            for (var j = i + 1; j < entities.Count; ++j)
+            for (int j = i + 1; j < entities.Count; ++j)
             {
-                var curve1 = entities[i] as Curve;
-                var curve2 = entities[j] as Curve;
+                Curve? curve1 = entities[i] as Curve;
+                Curve? curve2 = entities[j] as Curve;
                 Point3dCollection points = [];
                 curve1.IntersectWith(curve2, Intersect.OnBothOperands, points, IntPtr.Zero, IntPtr.Zero);
 
@@ -149,15 +171,24 @@ public static class CurvesExtensions
                     // Make a check to skip the start/end points
                     // since they are connected vertices
                     if (point == curve1.StartPoint || point == curve1.EndPoint)
+                    {
                         if (point == curve2.StartPoint || point == curve2.EndPoint)
+                        {
                             continue;
+                        }
+                    }
 
                     // If two consecutive segments, then skip
-                    if (j == i + 1) continue;
+                    if (j == i + 1)
+                    {
+                        continue;
+                    }
 
                     if (curve1.GetClosestPointTo(point, false).DistanceTo(point) < Generic.MediumTolerance.EqualPoint &&
                         curve2.GetClosestPointTo(point, false).DistanceTo(point) < Generic.MediumTolerance.EqualPoint)
+                    {
                         _ = IntersectionFound.Add(point);
+                    }
                 }
             }
 
@@ -171,15 +202,21 @@ public static class CurvesExtensions
 
     public static bool CanBeJoinWith(this Curve A, Curve B)
     {
-        if (A == B) return false;
+        if (A == B)
+        {
+            return false;
+        }
 
-        if (A.Closed || B.Closed) return false;
+        if (A.Closed || B.Closed)
+        {
+            return false;
+        }
 
         if (A.IsCurveCanClose(B))
         {
             //Check if the polyline is already joined
             var PAPoint = A.GetPoints();
-            var PAPointList = PAPoint.ToList();
+            List<Point3d> PAPointList = PAPoint.ToList();
             if (A.StartPoint.DistanceTo(A.EndPoint) > Generic.MediumTolerance.EqualPoint)
             {
                 _ = PAPointList.Remove(A.StartPoint);
@@ -188,7 +225,10 @@ public static class CurvesExtensions
 
             var PBPoint = B.GetPoints();
 
-            if (PAPointList.ContainsAll(PBPoint)) return false;
+            if (PAPointList.ContainsAll(PBPoint))
+            {
+                return false;
+            }
         }
 
         return A.HasEndPointOrStartPointInCommun(B);
@@ -217,7 +257,10 @@ public static class CurvesExtensions
 
     public static Polyline ToPolyline(this Curve curve)
     {
-        if (curve.IsDisposed) return null;
+        if (curve.IsDisposed)
+        {
+            return null;
+        }
 
         Type PreviousTryConvertCurve;
         Entity LastCurveConverted = curve.Clone() as Curve;
@@ -240,13 +283,19 @@ public static class CurvesExtensions
         static Entity TryGetPolyligne(Entity curv)
         {
             //Convert all curves to regular Polyline
-            if (curv is Polyline ProjectionTargetPolyLine) return ProjectionTargetPolyLine.Clone() as Polyline;
+            if (curv is Polyline ProjectionTargetPolyLine)
+            {
+                return ProjectionTargetPolyLine.Clone() as Polyline;
+            }
 
-            if (curv is Ellipse ProjectionTargetEllipse) return ProjectionTargetEllipse.ToPolyline();
+            if (curv is Ellipse ProjectionTargetEllipse)
+            {
+                return ProjectionTargetEllipse.ToPolyline();
+            }
 
             if (curv is Helix ProjectionTargetHelix)
             {
-                var FlattenProjectionTargetHelix = (Helix)ProjectionTargetHelix.Clone();
+                Helix FlattenProjectionTargetHelix = (Helix)ProjectionTargetHelix.Clone();
                 _ = FlattenProjectionTargetHelix.Flatten();
                 var Converted = FlattenProjectionTargetHelix.ToPolyline(true, true);
                 return Converted as Polyline;
@@ -288,19 +337,21 @@ public static class CurvesExtensions
                 return line;
             case CircularArc2d circularArc:
                 if (circularArc.EndPoint.IsEqualTo(circularArc.StartPoint) && circularArc.Radius > 0)
+                {
                     return new Circle(circularArc.Center.ToPoint3d(), Vector3d.YAxis, circularArc.Radius);
+                }
 
-                var startAngle = circularArc.IsClockWise ? -circularArc.EndAngle : circularArc.StartAngle;
-                var endAngle = circularArc.IsClockWise ? -circularArc.StartAngle : circularArc.EndAngle;
+                double startAngle = circularArc.IsClockWise ? -circularArc.EndAngle : circularArc.StartAngle;
+                double endAngle = circularArc.IsClockWise ? -circularArc.StartAngle : circularArc.EndAngle;
                 return new Arc(
                     new Point3d(circularArc.Center.X, circularArc.Center.Y, 0.0),
                     circularArc.Radius,
                     circularArc.ReferenceVector.Angle + startAngle,
                     circularArc.ReferenceVector.Angle + endAngle);
             case EllipticalArc2d ellipticalArc:
-                var ratio = ellipticalArc.MinorRadius / ellipticalArc.MajorRadius;
-                var startParam = ellipticalArc.IsClockWise ? -ellipticalArc.EndAngle : ellipticalArc.StartAngle;
-                var endParam = ellipticalArc.IsClockWise ? -ellipticalArc.StartAngle : ellipticalArc.EndAngle;
+                double ratio = ellipticalArc.MinorRadius / ellipticalArc.MajorRadius;
+                double startParam = ellipticalArc.IsClockWise ? -ellipticalArc.EndAngle : ellipticalArc.StartAngle;
+                double endParam = ellipticalArc.IsClockWise ? -ellipticalArc.StartAngle : ellipticalArc.EndAngle;
                 Ellipse ellipse = new(
                     new Point3d(ellipticalArc.Center.X, ellipticalArc.Center.Y, 0.0),
                     Vector3d.ZAxis,
@@ -311,17 +362,23 @@ public static class CurvesExtensions
                 return ellipse;
             case NurbCurve2d nurbCurve:
                 Point3dCollection points = [];
-                for (var j = 0; j < nurbCurve.NumControlPoints; j++)
+                for (int j = 0; j < nurbCurve.NumControlPoints; j++)
                 {
                     var pt = nurbCurve.GetControlPointAt(j);
                     _ = points.Add(new Point3d(pt.X, pt.Y, 0.0));
                 }
 
                 DoubleCollection knots = [];
-                for (var k = 0; k < nurbCurve.NumKnots; k++) _ = knots.Add(nurbCurve.GetKnotAt(k));
+                for (int k = 0; k < nurbCurve.NumKnots; k++)
+                {
+                    _ = knots.Add(nurbCurve.GetKnotAt(k));
+                }
 
                 DoubleCollection weights = [];
-                for (var l = 0; l < nurbCurve.NumWeights; l++) _ = weights.Add(nurbCurve.GetWeightAt(l));
+                for (int l = 0; l < nurbCurve.NumWeights; l++)
+                {
+                    _ = weights.Add(nurbCurve.GetWeightAt(l));
+                }
 
                 Spline spline = new(nurbCurve.Degree, nurbCurve.IsRational, nurbCurve.IsClosed(), false, points,
                     knots, weights, 0.0, 0.0);
@@ -334,51 +391,57 @@ public static class CurvesExtensions
 
     public static List<Curve> JoinMerge(this IEnumerable<Curve> Curves)
     {
-        var entities = Curves.ToList();
+        List<Curve> entities = Curves.ToList();
         if (entities.Count <= 1)
+        {
             //No geometry to merge
             return entities.Clone();
+        }
 
-        for (var i = 0; i < entities.Count; i++)
+        for (int i = 0; i < entities.Count; i++)
         {
             var JoignableEnt = entities[i].GetJoinableCurve();
             //entities[i].CopyPropertiesTo(JoignableEnt);
             entities[i] = JoignableEnt;
         }
 
-        for (var i = entities.Count - 1; i >= 0; i--)
-        for (var j = i - 1; j >= 0; j--)
-            try
+        for (int i = entities.Count - 1; i >= 0; i--)
+        {
+            for (int j = i - 1; j >= 0; j--)
             {
-                // check if start/endpoints are the same
-                // if they are join them and reset the loops and start again
-                var srcCurve = entities[i];
-                var addCurve = entities[j];
-
-                if (srcCurve.CanBeJoinWith(addCurve))
+                try
                 {
-                    if (addCurve is Spline && srcCurve is not Spline)
-                    {
-                        addCurve.JoinEntity(srcCurve);
-                        entities.RemoveAt(i);
-                        srcCurve.Dispose();
-                    }
-                    else
-                    {
-                        srcCurve.JoinEntity(addCurve);
-                        entities.RemoveAt(j);
-                        addCurve.Dispose();
-                    }
+                    // check if start/endpoints are the same
+                    // if they are join them and reset the loops and start again
+                    var srcCurve = entities[i];
+                    var addCurve = entities[j];
 
-                    // reset i to the start (as it has changed)
-                    i = entities.Count;
-                    j = 0;
+                    if (srcCurve.CanBeJoinWith(addCurve))
+                    {
+                        if (addCurve is Spline && srcCurve is not Spline)
+                        {
+                            addCurve.JoinEntity(srcCurve);
+                            entities.RemoveAt(i);
+                            srcCurve.Dispose();
+                        }
+                        else
+                        {
+                            srcCurve.JoinEntity(addCurve);
+                            entities.RemoveAt(j);
+                            addCurve.Dispose();
+                        }
+
+                        // reset i to the start (as it has changed)
+                        i = entities.Count;
+                        j = 0;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("\nError: n{0}", ex.Message);
                 }
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("\nError: n{0}", ex.Message);
-            }
+        }
 
         return entities;
     }
@@ -399,11 +462,15 @@ public static class CurvesExtensions
         DBObjectCollection reg;
         try
         {
-            var CurvesCollection = Curves.ToDBObjectCollection();
+            DBObjectCollection CurvesCollection = Curves.ToDBObjectCollection();
             foreach (var ent in Curves.ToArray())
+            {
                 if (ent is Polyline polyline && polyline.IsSelfIntersecting(out var IntersectionFound))
+                {
                     Generic.WriteMessage(
                         "Jeux de selection incorrect : une ou plusieurs polylignes se coupent elles-même");
+                }
+            }
 
             reg = Region.CreateFromCurves(CurvesCollection);
         }
@@ -416,9 +483,11 @@ public static class CurvesExtensions
 
         if (reg.Count > 0)
         {
-            var RegionZero = reg[0] as Region;
-            for (var i = 1; i < reg.Count; i++)
+            Region? RegionZero = reg[0] as Region;
+            for (int i = 1; i < reg.Count; i++)
+            {
                 RegionZero.BooleanOperation(BooleanOperationType.BoolUnite, reg[i] as Region);
+            }
 
             var MergedCurves = RegionZero.GetPolylines();
             return MergedCurves.Cast<Curve>().ToList();

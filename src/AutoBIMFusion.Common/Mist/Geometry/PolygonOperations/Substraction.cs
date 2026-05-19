@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using AutoBIMFusion.Common.Extensions;
+using System.Diagnostics;
 
 namespace AutoBIMFusion.Common.Mist.Geometry.PolygonOperations;
 
@@ -12,7 +12,7 @@ public static partial class PolygonOperation
         List<Polyline> CuttedPolyline = [BasePolygon.Boundary];
 
         //Add existing hole to the substraction if not present
-        var SubstractionPolygons = SubstractionPolygonsArg.AddRangeUnique(BasePolygon.Holes);
+        List<Polyline> SubstractionPolygons = SubstractionPolygonsArg.AddRangeUnique(BasePolygon.Holes);
 
         foreach (Curve SubstractionPolygonCurve in SubstractionPolygons.ToArray())
         {
@@ -22,31 +22,37 @@ public static partial class PolygonOperation
                 continue;
             }
 
-            using var SimplifiedSubstractionPolygonCurve = SubstractionPolygonCurve.ToPolyline();
+            using Polyline SimplifiedSubstractionPolygonCurve = SubstractionPolygonCurve.ToPolyline();
             if (SimplifiedSubstractionPolygonCurve != null)
-                foreach (var NewBoundary in CuttedPolyline.ToArray())
+            {
+                foreach (Polyline NewBoundary in CuttedPolyline.ToArray())
+                {
                     if (NewBoundary.IsSegmentIntersecting(SimplifiedSubstractionPolygonCurve, out _,
                             Intersect.OnBothOperands))
                     {
                         //pts.AddToDrawing(5);
-                        var Cuts = Slice(NewBoundary, SimplifiedSubstractionPolygonCurve);
+                        List<Polyline> Cuts = Slice(NewBoundary, SimplifiedSubstractionPolygonCurve);
                         //if the boundary was cuted 
                         if (Cuts.Count > 0)
                         {
                             _ = CuttedPolyline.Remove(NewBoundary);
                             if (NewBoundary != BasePolygon.Boundary)
+                            {
                                 //dont dispose item that we don't own
                                 NewBoundary.Dispose();
+                            }
                         }
 
-                        foreach (var CuttedNewBoundary in Cuts)
+                        foreach (Polyline CuttedNewBoundary in Cuts)
                         {
                             //If cutted is inside a substraction polygon, we ignore it,
                             //we check if Cuts.Count > 1, if is inside and Cuts.Count == 1, mean that IsSegmentIntersecting have false result
                             if (CuttedNewBoundary.GetInnerCentroid()
                                     .IsInsidePolyline(SimplifiedSubstractionPolygonCurve) &&
                                 Cuts.Count > 1)
+                            {
                                 continue;
+                            }
 
                             CuttedPolyline.Add(CuttedNewBoundary);
                         }
@@ -57,12 +63,16 @@ public static partial class PolygonOperation
                     {
                         //If the substraction is not cutting the edge, then the subs is inside hole
                         if (SimplifiedSubstractionPolygonCurve.IsInside(NewBoundary, false))
+                        {
                             NewBoundaryHoles.Add(SubstractionPolygonCurve);
+                        }
                     }
+                }
+            }
         }
 
         //Merge overlaping hole polyline
-        _ = Union(PolyHole.CreateFromList(NewBoundaryHoles.Cast<Polyline>()), out var HoleUnionResult);
+        _ = Union(PolyHole.CreateFromList(NewBoundaryHoles.Cast<Polyline>()), out List<PolyHole>? HoleUnionResult);
         NewBoundaryHoles.RemoveCommun(SubstractionPolygonsArg).RemoveCommun(BasePolygon.Holes).DeepDispose();
         UnionResult = PolyHole.CreateFromList(CuttedPolyline, HoleUnionResult.GetBoundaries());
         return true;

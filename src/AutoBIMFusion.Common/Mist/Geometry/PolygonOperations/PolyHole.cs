@@ -24,13 +24,19 @@ public class PolyHole : IDisposable
         IEnumerable<Polyline> PossibleHole = null)
     {
         List<PolyHole> polyholes = [];
-        foreach (var poly in polylines)
+        foreach (Polyline poly in polylines)
         {
             List<Polyline> holes = [];
             if (PossibleHole != null)
-                foreach (var Hole in PossibleHole)
+            {
+                foreach (Polyline? Hole in PossibleHole)
+                {
                     if (Hole?.IsDisposed != true && Hole.IsInside(poly, false))
+                    {
                         holes.Add(Hole);
+                    }
+                }
+            }
 
             polyholes.Add(new PolyHole(poly, holes));
         }
@@ -44,7 +50,10 @@ public static class PolyHoleExtensions
     public static List<Polyline> GetBoundaries(this IEnumerable<PolyHole> polyHolesList)
     {
         List<Polyline> holes = [];
-        foreach (var item in polyHolesList) holes.Add(item.Boundary);
+        foreach (PolyHole item in polyHolesList)
+        {
+            holes.Add(item.Boundary);
+        }
 
         return holes;
     }
@@ -52,7 +61,10 @@ public static class PolyHoleExtensions
     public static List<Polyline> GetAllHoles(this IEnumerable<PolyHole> polyHolesList)
     {
         List<Polyline> holes = [];
-        foreach (var item in polyHolesList) holes.AddRange(item.Holes);
+        foreach (PolyHole item in polyHolesList)
+        {
+            holes.AddRange(item.Holes);
+        }
 
         return holes;
     }

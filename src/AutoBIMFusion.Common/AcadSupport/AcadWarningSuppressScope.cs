@@ -25,7 +25,10 @@ public sealed class AcadWarningSuppressScope : IDisposable
 
     public AcadWarningSuppressScope()
     {
-        foreach (var (name, suppressedValue, _) in Variables) Set(name, suppressedValue);
+        foreach ((string? name, object? suppressedValue, object _) in Variables)
+        {
+            Set(name, suppressedValue);
+        }
     }
 
     public void Dispose()
@@ -35,7 +38,10 @@ public sealed class AcadWarningSuppressScope : IDisposable
 
     public static void ResetToDefaultValues()
     {
-        foreach (var (name, _, defaultValue) in Variables) Set(name, defaultValue);
+        foreach ((string? name, object _, object? defaultValue) in Variables)
+        {
+            Set(name, defaultValue);
+        }
     }
 
     private static void Set(string name, object value)

@@ -22,8 +22,8 @@ public static class ColorsEntensions
 
     public static Autodesk.AutoCAD.Colors.Color ConvertColorToGray(this Autodesk.AutoCAD.Colors.Color BaseColor)
     {
-        var DrawingColor = BaseColor.ColorValue;
-        var Gray = (byte)(0.2989 * DrawingColor.R + 0.5870 * DrawingColor.G + 0.1140 * DrawingColor.B);
+        Color DrawingColor = BaseColor.ColorValue;
+        byte Gray = (byte)((0.2989 * DrawingColor.R) + (0.5870 * DrawingColor.G) + (0.1140 * DrawingColor.B));
         return Autodesk.AutoCAD.Colors.Color.FromRgb(Gray, Gray, Gray);
     }
 
@@ -34,8 +34,8 @@ public static class ColorsEntensions
         Autodesk.AutoCAD.Colors.Color DefinedColor;
         if (ent.Color.IsByLayer)
         {
-            var EntityLayer = ent.Layer;
-            var LayerTableRecordObjId = Layers.GetLayerIdByName(EntityLayer);
+            string EntityLayer = ent.Layer;
+            ObjectId LayerTableRecordObjId = Layers.GetLayerIdByName(EntityLayer);
             DefinedColor = Layers.GetLayerColor(LayerTableRecordObjId);
         }
         else
@@ -49,9 +49,12 @@ public static class ColorsEntensions
 
     public static string ColorToHex(this Autodesk.AutoCAD.Colors.Color acadColor)
     {
-        if (acadColor == null) return "#000000"; // Or string.Empty
+        if (acadColor == null)
+        {
+            return "#000000"; // Or string.Empty
+        }
 
-        var rgb = acadColor.ColorValue;
+        Color rgb = acadColor.ColorValue;
         return $"#{rgb.R:X2}{rgb.G:X2}{rgb.B:X2}";
     }
 
@@ -60,7 +63,7 @@ public static class ColorsEntensions
         //BrightnessFactor need to be between -1 and 1
         double SetBrignessChannel(double Channel)
         {
-            var ScaledValue = Channel * (1 + BrightnessFactor);
+            double ScaledValue = Channel * (1 + BrightnessFactor);
             return ScaledValue.Clamp(0, 255);
         }
 
@@ -70,11 +73,11 @@ public static class ColorsEntensions
     public static (double R, double G, double B) SetContrast(double ContrastFactor, double R, double G, double B)
     {
         //BrightnessFactor need to be between -1 and 1
-        var ContrastLevel = Pow((1.0 + ContrastFactor) / 1.0, 2);
+        double ContrastLevel = Pow((1.0 + ContrastFactor) / 1.0, 2);
 
         double SetContrastChannel(double Channel)
         {
-            var ScaledValue = ((Channel / 255.0 - 0.5) * ContrastLevel + 0.5) * 255.0;
+            double ScaledValue = ((((Channel / 255.0) - 0.5) * ContrastLevel) + 0.5) * 255.0;
             return ScaledValue.Clamp(0, 255);
         }
 
@@ -83,8 +86,8 @@ public static class ColorsEntensions
 
     public static Autodesk.AutoCAD.Colors.Color GetTransGraphicsColor(Entity _, bool IsPrimary)
     {
-        var PrimaryColorIndex = Settings.TransientPrimaryColorIndex;
-        var SecondaryColorIndex = Settings.TransientSecondaryColorIndex;
+        int PrimaryColorIndex = Settings.TransientPrimaryColorIndex;
+        int SecondaryColorIndex = Settings.TransientSecondaryColorIndex;
 
         return Autodesk.AutoCAD.Colors.Color.FromColorIndex(ColorMethod.ByColor,
             !IsPrimary ? (short)SecondaryColorIndex : (short)PrimaryColorIndex);
@@ -100,7 +103,7 @@ public static class ColorsEntensions
         int min = Min(color.Red, Min(color.Green, color.Blue));
 
         // Calcul de la Saturation et de la Valeur (Luminosité)
-        saturation = max == 0 ? 0 : 1d - 1d * min / max;
+        saturation = max == 0 ? 0 : 1d - (1d * min / max);
         value = max / 255d;
 
         // Calcul de la Teinte (Hue)
@@ -115,11 +118,14 @@ public static class ColorsEntensions
             hue = max == color.Red
                 ? 60d * ((color.Green - color.Blue) / delta)
                 : max == color.Green
-                    ? 60d * (2d + (color.Blue - color.Red) / delta)
-                    : 60d * (4d + (color.Red - color.Green) / delta);
+                    ? 60d * (2d + ((color.Blue - color.Red) / delta))
+                    : 60d * (4d + ((color.Red - color.Green) / delta));
 
             // Si l'angle est négatif, on le ramène dans le cercle [0, 360[
-            if (hue < 0d) hue += 360d;
+            if (hue < 0d)
+            {
+                hue += 360d;
+            }
         }
 
         return (hue, saturation, value);
@@ -127,14 +133,14 @@ public static class ColorsEntensions
 
     public static Autodesk.AutoCAD.Colors.Color FromHSV(double hue, double saturation, double value)
     {
-        var hi = Convert.ToInt32(Floor(hue / 60)) % 6;
-        var f = hue / 60 - Floor(hue / 60);
+        int hi = Convert.ToInt32(Floor(hue / 60)) % 6;
+        double f = (hue / 60) - Floor(hue / 60);
 
         value *= 255;
-        var v = (byte)value;
-        var p = (byte)(value * (1 - saturation));
-        var q = (byte)(value * (1 - f * saturation));
-        var t = (byte)(value * (1 - (1 - f) * saturation));
+        byte v = (byte)value;
+        byte p = (byte)(value * (1 - saturation));
+        byte q = (byte)(value * (1 - (f * saturation)));
+        byte t = (byte)(value * (1 - ((1 - f) * saturation)));
 
         return hi switch
         {

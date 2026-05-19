@@ -12,7 +12,10 @@ public static class LinesExtentions
     /// <returns>The result.</returns>
     public static bool IsLineSegIntersect(Point2d a1, Point2d a2, Point2d b1, Point2d b2)
     {
-        if ((a1 - a2).CrossProduct(b1 - b2) == 0) return false;
+        if ((a1 - a2).CrossProduct(b1 - b2) == 0)
+        {
+            return false;
+        }
 
         double lambda;
         double miu;
@@ -20,47 +23,51 @@ public static class LinesExtentions
         if (b1.X == b2.X)
         {
             lambda = (b1.X - a1.X) / (a2.X - b1.X);
-            var Y = (a1.Y + lambda * a2.Y) / (1 + lambda);
+            double Y = (a1.Y + (lambda * a2.Y)) / (1 + lambda);
             miu = (Y - b1.Y) / (b2.Y - Y);
         }
         else if (a1.X == a2.X)
         {
             miu = (a1.X - b1.X) / (b2.X - a1.X);
-            var Y = (b1.Y + miu * b2.Y) / (1 + miu);
+            double Y = (b1.Y + (miu * b2.Y)) / (1 + miu);
             lambda = (Y - a1.Y) / (a2.Y - Y);
         }
         else if (b1.Y == b2.Y)
         {
             lambda = (b1.Y - a1.Y) / (a2.Y - b1.Y);
-            var X = (a1.X + lambda * a2.X) / (1 + lambda);
+            double X = (a1.X + (lambda * a2.X)) / (1 + lambda);
             miu = (X - b1.X) / (b2.X - X);
         }
         else if (a1.Y == a2.Y)
         {
             miu = (a1.Y - b1.Y) / (b2.Y - a1.Y);
-            var X = (b1.X + miu * b2.X) / (1 + miu);
+            double X = (b1.X + (miu * b2.X)) / (1 + miu);
             lambda = (X - a1.X) / (a2.X - X);
         }
         else
         {
-            lambda = (b1.X * a1.Y - b2.X * a1.Y - a1.X * b1.Y + b2.X * b1.Y + a1.X * b2.Y - b1.X * b2.Y) /
-                     (-b1.X * a2.Y + b2.X * a2.Y + a2.X * b1.Y - b2.X * b1.Y - a2.X * b2.Y + b1.X * b2.Y);
-            miu = (-a2.X * a1.Y + b1.X * a1.Y + a1.X * a2.Y - b1.X * a2.Y - a1.X * b1.Y + a2.X * b1.Y) /
-                  (a2.X * a1.Y - b2.X * a1.Y - a1.X * a2.Y + b2.X * a2.Y + a1.X * b2.Y -
-                   a2.X * b2.Y); // from Mathematica
+            lambda = ((b1.X * a1.Y) - (b2.X * a1.Y) - (a1.X * b1.Y) + (b2.X * b1.Y) + (a1.X * b2.Y) - (b1.X * b2.Y)) /
+                     ((-b1.X * a2.Y) + (b2.X * a2.Y) + (a2.X * b1.Y) - (b2.X * b1.Y) - (a2.X * b2.Y) + (b1.X * b2.Y));
+            miu = ((-a2.X * a1.Y) + (b1.X * a1.Y) + (a1.X * a2.Y) - (b1.X * a2.Y) - (a1.X * b1.Y) + (a2.X * b1.Y)) /
+                  ((a2.X * a1.Y) - (b2.X * a1.Y) - (a1.X * a2.Y) + (b2.X * a2.Y) + (a1.X * b2.Y) -
+                   (a2.X * b2.Y)); // from Mathematica
         }
 
-        var result = false;
+        bool result = false;
         if (lambda >= 0 || double.IsInfinity(lambda))
+        {
             if (miu >= 0 || double.IsInfinity(miu))
+            {
                 result = true;
+            }
+        }
 
         return result;
     }
 
     public static Vector3d GetVector3d(this Line line)
     {
-        var direction = line.EndPoint - line.StartPoint;
+        Vector3d direction = line.EndPoint - line.StartPoint;
         return direction.GetNormal();
     }
 
@@ -82,22 +89,22 @@ public static class LinesExtentions
 
     public static bool IsCutting(this Line line1, Line line2)
     {
-        var x1 = line1.StartPoint.X;
-        var y1 = line1.StartPoint.Y;
-        var x2 = line1.EndPoint.X;
-        var y2 = line1.EndPoint.Y;
+        double x1 = line1.StartPoint.X;
+        double y1 = line1.StartPoint.Y;
+        double x2 = line1.EndPoint.X;
+        double y2 = line1.EndPoint.Y;
 
-        var x3 = line2.StartPoint.X;
-        var y3 = line2.StartPoint.Y;
-        var x4 = line2.EndPoint.X;
-        var y4 = line2.EndPoint.Y;
+        double x3 = line2.StartPoint.X;
+        double y3 = line2.StartPoint.Y;
+        double x4 = line2.EndPoint.X;
+        double y4 = line2.EndPoint.Y;
 
         // Calculate the direction vectors
-        var uA = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) /
-                 ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
+        double uA = (((x4 - x3) * (y1 - y3)) - ((y4 - y3) * (x1 - x3))) /
+                 (((y4 - y3) * (x2 - x1)) - ((x4 - x3) * (y2 - y1)));
 
-        var uB = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) /
-                 ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
+        double uB = (((x2 - x1) * (y1 - y3)) - ((y2 - y1) * (x1 - x3))) /
+                 (((y4 - y3) * (x2 - x1)) - ((x4 - x3) * (y2 - y1)));
 
         // If 0 <= uA <= 1 and 0 <= uB <= 1, the lines intersect
         return uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1;

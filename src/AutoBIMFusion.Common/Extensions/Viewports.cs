@@ -10,26 +10,32 @@ public static class ViewportsExtensions
     public static IntegerCollection GetViewPortsNumbers(this TransientManager _)
     {
         //https://www.keanw.com/2011/03/drawing-transient-graphics-appropriately-in-autocad-within-multiple-paperspace-viewports-using-net.html
-        var db = Generic.GetDatabase();
-        var ed = Generic.GetEditor();
+        Database db = Generic.GetDatabase();
+        Editor ed = Generic.GetEditor();
         // Are we in model space outside floating viewports?
         // Then we'll initalize an empty IntegerCollection
 
-        if (db.TileMode) return [];
+        if (db.TileMode)
+        {
+            return [];
+        }
 
         List<int> vps = [];
 
-        var trx = db.TransactionManager.StartTransaction();
+        Transaction trx = db.TransactionManager.StartTransaction();
         using (trx)
         {
-            var vp = trx.GetObject(ed.ActiveViewportId, OpenMode.ForRead) as Viewport;
+            Viewport? vp = trx.GetObject(ed.ActiveViewportId, OpenMode.ForRead) as Viewport;
 
             // Are we in paper space and not inside a floating
             // viewport? Then only the paper space viewport itself
             // is of interest
             if (vp?.Number == 1)
+            {
                 vps.Add(1);
+            }
             else
+            {
                 // Now we're inside a floating viewport and
                 // will display transients in active viewports
                 foreach (ObjectId vpId in db.GetViewports(false))
@@ -37,6 +43,7 @@ public static class ViewportsExtensions
                     vp = (Viewport)trx.GetObject(vpId, OpenMode.ForRead);
                     vps.Add(vp.Number);
                 }
+            }
 
             trx.Commit();
         }
@@ -73,14 +80,20 @@ public static class ViewportsExtensions
 
     public static void PaperToModel(this IEnumerable<Entity> src, Viewport viewport)
     {
-        var xform = viewport.GetModelToPaperTransform().Inverse();
-        foreach (var ent in src) ent.TransformBy(xform);
+        Matrix3d xform = viewport.GetModelToPaperTransform().Inverse();
+        foreach (Entity ent in src)
+        {
+            ent.TransformBy(xform);
+        }
     }
 
     public static void ModelToPaper(this IEnumerable<Entity> src, Viewport viewport)
     {
-        var xform = viewport.GetModelToPaperTransform();
-        foreach (var ent in src) ent.TransformBy(xform);
+        Matrix3d xform = viewport.GetModelToPaperTransform();
+        foreach (Entity ent in src)
+        {
+            ent.TransformBy(xform);
+        }
     }
 
     public static bool IsInModel(this Editor _)
@@ -95,7 +108,7 @@ public static class ViewportsExtensions
 
     public static bool IsInLayoutPaper(this Editor ed)
     {
-        var db = ed.Document.Database;
+        Database db = ed.Document.Database;
 
         return !db.TileMode &&
                db.PaperSpaceVportId != ObjectId.Null &&
@@ -110,15 +123,17 @@ public static class ViewportsExtensions
 
     public static List<ObjectId> GetAllViewportsInPaperSpace(this Editor _, BlockTableRecord btr)
     {
-        var db = Generic.GetDatabase();
+        Database db = Generic.GetDatabase();
 
         List<ObjectId> ListOfViewPorts = [];
 
-        foreach (var objId in btr)
+        foreach (ObjectId objId in btr)
         {
-            var entity = objId.GetEntity();
+            Entity entity = objId.GetEntity();
             if (entity != null && entity is Viewport && db.GetViewports(false).Contains(entity.ObjectId))
+            {
                 ListOfViewPorts.Add(entity.ObjectId);
+            }
         }
 
         return ListOfViewPorts;
@@ -126,30 +141,33 @@ public static class ViewportsExtensions
 
     public static Polyline GetBoundary(this Viewport viewport)
     {
-        var db = Generic.GetDatabase();
+        Database db = Generic.GetDatabase();
 
-        using var trx = db.TransactionManager.StartTransaction();
+        using Transaction trx = db.TransactionManager.StartTransaction();
         try
         {
-            if (viewport == null) return null;
+            if (viewport == null)
+            {
+                return null;
+            }
 
             if (viewport.NonRectClipEntityId != ObjectId.Null)
             {
                 // Get the non-rectangular clipping boundary
-                var clipEntity = viewport.NonRectClipEntityId.GetEntity();
+                Entity clipEntity = viewport.NonRectClipEntityId.GetEntity();
                 return clipEntity is Curve clipEntCurve ? clipEntCurve.ToPolyline() : null;
             }
             else
             {
                 // Get the standard rectangular boundary
-                var center = viewport.CenterPoint;
+                Point3d center = viewport.CenterPoint;
                 var width = viewport.Width;
                 var height = viewport.Height;
 
-                Point3d lowerLeft = new(center.X - width / 2, center.Y - height / 2, center.Z);
-                Point3d lowerRight = new(center.X + width / 2, center.Y - height / 2, center.Z);
-                Point3d upperRight = new(center.X + width / 2, center.Y + height / 2, center.Z);
-                Point3d upperLeft = new(center.X - width / 2, center.Y + height / 2, center.Z);
+                Point3d lowerLeft = new(center.X - (width / 2), center.Y - (height / 2), center.Z);
+                Point3d lowerRight = new(center.X + (width / 2), center.Y - (height / 2), center.Z);
+                Point3d upperRight = new(center.X + (width / 2), center.Y + (height / 2), center.Z);
+                Point3d upperLeft = new(center.X - (width / 2), center.Y + (height / 2), center.Z);
 
                 Polyline polyline = new();
                 polyline.AddVertexAt(0, lowerLeft.ToPoint2d(), 0, 0, 0);
@@ -185,7 +203,7 @@ public static class ViewportsExtensions
     /// </summary>
     public static Point3d GetViewCenterWcs(this Viewport vp)
     {
-        var mat = vp.GetDcsToWcsMatrix();
+        Matrix3d mat = vp.GetDcsToWcsMatrix();
         return new Point3d(vp.ViewCenter.X, vp.ViewCenter.Y, 0).TransformBy(mat);
     }
 
@@ -210,8 +228,8 @@ public static class ViewportsExtensions
         var halfW = widthModel / 2.0;
         var halfH = heightModel / 2.0;
 
-        var dcsToWcs = vp.GetDcsToWcsMatrix();
-        var vc = vp.ViewCenter;
+        Matrix3d dcsToWcs = vp.GetDcsToWcsMatrix();
+        Point2d vc = vp.ViewCenter;
 
         Point3d[] corners =
         [
@@ -225,7 +243,7 @@ public static class ViewportsExtensions
         double minY = double.PositiveInfinity, maxY = double.NegativeInfinity;
         double minZ = double.PositiveInfinity, maxZ = double.NegativeInfinity;
 
-        foreach (var p in corners)
+        foreach (Point3d p in corners)
         {
             minX = Min(minX, p.X);
             maxX = Max(maxX, p.X);

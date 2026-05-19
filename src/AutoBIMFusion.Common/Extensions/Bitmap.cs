@@ -1,7 +1,7 @@
+using AutoBIMFusion.Common.Helpers;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.Versioning;
-using AutoBIMFusion.Common.Helpers;
 using Image = System.Drawing.Image;
 
 namespace AutoBIMFusion.Common.Extensions;
@@ -14,14 +14,14 @@ public static class BitmapExtensions
         ArgumentNullException.ThrowIfNull(image);
 
         angleRadians = -angleRadians % (2 * PI);
-        var sin = Abs(Sin(angleRadians));
-        var cos = Abs(Cos(angleRadians));
-        var newWidth = (int)Round(image.Width * cos + image.Height * sin);
-        var newHeight = (int)Round(image.Width * sin + image.Height * cos);
+        double sin = Abs(Sin(angleRadians));
+        double cos = Abs(Cos(angleRadians));
+        int newWidth = (int)Round((image.Width * cos) + (image.Height * sin));
+        int newHeight = (int)Round((image.Width * sin) + (image.Height * cos));
 
         Bitmap rotatedImage = new(newWidth, newHeight);
 
-        using var g = Graphics.FromImage(rotatedImage);
+        using Graphics g = Graphics.FromImage(rotatedImage);
         g.Clear(backgroundColor);
         g.TranslateTransform(newWidth / 2, newHeight / 2);
         g.RotateTransform((float)(angleRadians * (180 / PI)));

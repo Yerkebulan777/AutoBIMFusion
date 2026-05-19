@@ -9,34 +9,46 @@ public static class ListExtensions
 
     public static void DeepDispose<T>(this IEnumerable<T> list)
     {
-        foreach (var item in list)
+        foreach (T? item in list)
+        {
             if (item is IDisposable disposable)
+            {
                 disposable.Dispose();
+            }
+        }
     }
 
     public static List<T> RemoveCommun<T>(this IEnumerable<T> list, IEnumerable<T> ItemsToRemove)
     {
-        var NewList = list.ToList();
-        foreach (var item in list)
+        List<T> NewList = list.ToList();
+        foreach (T? item in list)
+        {
             if (ItemsToRemove.Contains(item))
+            {
                 _ = NewList.Remove(item);
+            }
+        }
 
         return NewList;
     }
 
     public static List<T> AddRangeUnique<T>(this IEnumerable<T> list, IEnumerable<T> ItemsToAddIfNotAlreadyInside)
     {
-        var NewList = list.ToList();
-        foreach (var item in ItemsToAddIfNotAlreadyInside)
+        List<T> NewList = list.ToList();
+        foreach (T? item in ItemsToAddIfNotAlreadyInside)
+        {
             if (!NewList.Contains(item))
+            {
                 NewList.Add(item);
+            }
+        }
 
         return NewList;
     }
 
     public static double SumNumeric(this List<object> values)
     {
-        var doubles = values.ConvertAll(v =>
+        List<double> doubles = values.ConvertAll(v =>
         {
             return v is double d ? d : double.TryParse(v.ToString(), out var res) ? res : 0.0;
         });

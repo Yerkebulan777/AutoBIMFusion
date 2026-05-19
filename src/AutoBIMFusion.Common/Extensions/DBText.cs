@@ -40,10 +40,10 @@ public static class DBTextExtensions
             // (which it should, as the original did)
             if (txt2.Bounds.HasValue)
             {
-                var maxPt = txt2.Bounds.Value.MaxPoint;
+                Point3d maxPt = txt2.Bounds.Value.MaxPoint;
                 // Place all four corners of the bounding box
                 // in an array
-                var bounds = new[]
+                Point2d[] bounds = new[]
                 {
                     Point2d.Origin, new Point2d(0.0, maxPt.Y), new Point2d(maxPt.X, maxPt.Y), new Point2d(maxPt.X, 0.0)
                 };
@@ -54,7 +54,10 @@ public static class DBTextExtensions
 
                 // Rotate each point and add its WCS location to the collection
 
-                foreach (var pt in bounds) _ = pts?.Add(pl.EvaluatePoint(pt.RotateBy(txt.Rotation, Point2d.Origin)));
+                foreach (Point2d pt in bounds)
+                {
+                    _ = pts?.Add(pl.EvaluatePoint(pt.RotateBy(txt.Rotation, Point2d.Origin)));
+                }
             }
         }
     }
