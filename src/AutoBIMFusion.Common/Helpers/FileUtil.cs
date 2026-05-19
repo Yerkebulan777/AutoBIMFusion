@@ -212,7 +212,6 @@ public static class FileUtil
             {
                 return true;
             }
-
             throw;
         }
         finally
@@ -223,44 +222,6 @@ public static class FileUtil
         return false;
     }
 
-    /// <summary>
-    ///     Возвращает дату сборки (linker timestamp) из PE-заголовка сборки.
-    ///     https://blog.codinghorror.com/determining-build-date-the-hard-way/
-    /// </summary>
-    public static DateTime GetLinkerTime(this Assembly assembly, TimeZoneInfo target = null)
-    {
-        string filePath = assembly.Location;
-        const int c_PeHeaderOffset = 60;
-        const int c_LinkerTimestampOffset = 8;
-
-        byte[] buffer = new byte[2048];
-
-        using (FileStream stream = new(filePath, FileMode.Open, FileAccess.Read))
-        {
-            int totalRead = 0;
-            while (totalRead < 2048)
-            {
-                int read = stream.Read(buffer, totalRead, 2048 - totalRead);
-                if (read == 0)
-                {
-                    break;
-                }
-
-                totalRead += read;
-            }
-        }
-
-        int offset = BitConverter.ToInt32(buffer, c_PeHeaderOffset);
-        int secondsSince1970 = BitConverter.ToInt32(buffer, offset + c_LinkerTimestampOffset);
-        DateTime epoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
-        DateTime linkTimeUtc = epoch.AddSeconds(secondsSince1970);
-
-        TimeZoneInfo tz = target ?? TimeZoneInfo.Local;
-        DateTime localTime = TimeZoneInfo.ConvertTimeFromUtc(linkTimeUtc, tz);
-
-        return localTime;
-    }
 
     /// <summary>
     ///     Разрешает путь к файлу изображения через несколько стратегий:
@@ -269,21 +230,19 @@ public static class FileUtil
     ///     3. Поиск по имени файла в searchDir
     ///     4. AutoCAD FindFile
     /// </summary>
-    public static bool TryResolveImagePath(
-        Database db, string path, string? searchDir,
-        out string resolvedPath, out Exception? resolveError)
+    public static bool TryResolveImagePath(Database db, string path, string? searchDir, out string resolvedPath, out Exception? resolveError)
     {
         resolvedPath = string.Empty;
         resolveError = null;
 
-        // 1. Абсолютный путь на текущей машине
+        // Абсолютный путь на текущей машине
         if (Path.IsPathRooted(path) && File.Exists(path))
         {
             resolvedPath = path;
             return true;
         }
 
-        // 2. Подстановка текущего пользователя (cross-machine C:\Users\OtherUser\...)
+        // Подстановка текущего пользователя (cross-machine C:\Users\OtherUser\...)
         if (Path.IsPathRooted(path))
         {
             string userProfileParent = Path.GetDirectoryName(
@@ -308,7 +267,7 @@ public static class FileUtil
             }
         }
 
-        // 3. Только имя файла в папке целевого DWG
+        // Только имя файла в папке целевого DWG
         if (!string.IsNullOrEmpty(searchDir))
         {
             string candidate = Path.Combine(searchDir, Path.GetFileName(path));
@@ -319,10 +278,11 @@ public static class FileUtil
             }
         }
 
-        // 4. AutoCAD FindFile
+        // AutoCAD FindFile
         try
         {
             string foundPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.EmbeddedImageFile);
+
             if (!string.IsNullOrEmpty(foundPath) && File.Exists(foundPath))
             {
                 resolvedPath = foundPath;
