@@ -4,7 +4,7 @@ using Exception = System.Exception;
 namespace AutoBIMFusion.Common.Helpers;
 
 /// <summary>
-///     Утилиты для работы с файлами и проверками.
+///  Утилиты для работы с файлами и проверками.
 /// </summary>
 public static class FileUtil
 {
@@ -12,16 +12,16 @@ public static class FileUtil
     private static readonly WindowsNaturalComparer NaturalComparer = new();
 
     /// <summary>
-    ///     Возвращает отсортированный список DWG-файлов из директории.
+    /// Возвращает отсортированный список DWG-файлов из директории.
     /// </summary>
-    public static string[] GetFiles(string rootPath, string excludePrefix = "#", Logger? log = null)
+    public static string[] GetFiles(string rootPath, string excludePrefix = "#")
     {
         EnumerationOptions opts = new()
         {
-            MaxRecursionDepth = 3,
-            IgnoreInaccessible = true,
-            RecurseSubdirectories = true,
-            MatchCasing = MatchCasing.CaseInsensitive
+            MaxRecursionDepth = 1,   // Ограничиваем глубину рекурсии, так как RecurseSubdirectories = false
+            IgnoreInaccessible = true,   // Игнорируем папки, к которым нет доступа (например, из-за прав доступа)
+            RecurseSubdirectories = false,   // Включаем поиск в поддиректориях
+            MatchCasing = MatchCasing.PlatformDefault   // Игнорируем регистр при фильтрации по шаблону "*.dwg"
         };
 
         List<string> files = [];

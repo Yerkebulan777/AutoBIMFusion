@@ -100,7 +100,7 @@ public sealed class CombineCommands
             {
                 string savePath = BuildSavePath(sourceFolder!);
 
-                string[] dwgFiles = FileUtil.GetFiles(sourceFolder!, log: log);
+                string[] dwgFiles = FileUtil.GetFiles(sourceFolder!);
 
                 if (dwgFiles.Length == 0)
                 {
