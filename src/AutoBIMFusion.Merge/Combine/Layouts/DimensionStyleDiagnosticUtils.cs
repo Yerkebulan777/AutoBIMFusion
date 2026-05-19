@@ -236,18 +236,6 @@ public static class DimensionStyleDiagnosticUtils
         return builder.ToString();
     }
 
-    private static void AppendDimStyleProperties(StringBuilder builder, DimStyleTableRecord style)
-    {
-        var hasPrevious = false;
-        foreach (var property in DimStyleProperties)
-        {
-            if (hasPrevious) _ = builder.Append(", ");
-
-            _ = builder.Append(property.Name).Append('=').Append(ReflectionHelper.FormatPropertyValue(style, property));
-            hasPrevious = true;
-        }
-    }
-
     private static string FormatDimensionStyleSummary(DimensionStyleSnapshotEntry style)
     {
         StringBuilder builder = new();
@@ -281,18 +269,6 @@ public static class DimensionStyleDiagnosticUtils
 
         _ = builder.Append(']');
         return builder.ToString();
-    }
-
-    private static void AppendProperties(StringBuilder builder, IReadOnlyDictionary<string, string> properties)
-    {
-        var hasPrevious = false;
-        foreach (var property in properties.OrderBy(p => p.Key, StringComparer.Ordinal))
-        {
-            if (hasPrevious) _ = builder.Append(", ");
-
-            _ = builder.Append(property.Key).Append('=').Append(property.Value);
-            hasPrevious = true;
-        }
     }
 
     private static void LogSnapshotDiff(DimensionStyleSnapshot snapshot, Logger log)
