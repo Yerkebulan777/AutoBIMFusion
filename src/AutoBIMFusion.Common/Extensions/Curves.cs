@@ -438,7 +438,7 @@ public static class CurvesExtensions
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("\nError: n{0}", ex.Message);
+                    Debug.WriteLine("\nОшибка: {0}", ex.Message);
                 }
             }
         }
@@ -468,7 +468,7 @@ public static class CurvesExtensions
                 if (ent is Polyline polyline && polyline.IsSelfIntersecting(out var IntersectionFound))
                 {
                     Generic.WriteMessage(
-                        "Jeux de selection incorrect : une ou plusieurs polylignes se coupent elles-même");
+                        "Неверный набор выбора: одна или несколько полилиний пересекают сами себя");
                 }
             }
 
@@ -476,7 +476,7 @@ public static class CurvesExtensions
         }
         catch (Exception e)
         {
-            Generic.WriteMessage("Impossible de combiner les hachures");
+            Generic.WriteMessage("Невозможно объединить штриховки");
             Debug.WriteLine(e);
             return [];
         }

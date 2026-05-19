@@ -30,13 +30,13 @@ public static class HatchsExtensions
 
             if (Hachure is null || ExternalMergedCurves is null || ExternalMergedCurves.Count == 0)
             {
-                Generic.WriteMessage("Impossible de découpper cette hachure.");
+                Generic.WriteMessage("Невозможно разрезать эту штриховку.");
                 return false;
             }
 
             if (ExternalMergedCurves.Count > 1)
             {
-                Generic.WriteMessage("Impossible de découpper une hachure combinée.");
+                Generic.WriteMessage("Невозможно разрезать комбинированную штриховку.");
                 return false;
             }
 
@@ -44,7 +44,7 @@ public static class HatchsExtensions
             if (Boundary.TryGetArea() == 0)
             {
                 Generic.WriteMessage(
-                    "Erreur, ompossible de découpper cette hachure pour le moment. Réouvrir le dessin peux aider à résoudre ce soucis");
+                    "Ошибка: невозможно разрезать эту штриховку в данный момент. Повторное открытие чертежа может помочь решить проблему");
                 Boundary.Dispose();
                 return false;
             }

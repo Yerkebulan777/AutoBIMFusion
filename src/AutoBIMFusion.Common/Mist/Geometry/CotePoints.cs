@@ -88,7 +88,7 @@ public class CotePoints
             trx.Commit();
         }
 
-        PromptDoubleOptions PromptDoubleAltitudeOptions = new("Saississez la cote\n")
+        PromptDoubleOptions PromptDoubleAltitudeOptions = new("Введите отметку\n")
         {
             AllowNegative = false,
             AllowNone = false
@@ -131,7 +131,7 @@ public class CotePoints
             {
                 if (double.TryParse(textString, out double Altimetrie))
                 {
-                    Generic.WriteMessage($"Cote sélectionnée : {FormatAltitude(Altimetrie)}");
+                    Generic.WriteMessage($"Выбрана отметка: {FormatAltitude(Altimetrie)}");
                     blkRef.RegisterHighlight();
                     return Altimetrie;
                 }
@@ -157,7 +157,7 @@ public class CotePoints
         if (OriginalString.Contains("%"))
         {
             Generic.WriteMessage(
-                "Par mesure de sécurité, les textes contenant des % ne peuvent être convertis en cote.");
+                "В целях безопасности тексты, содержащие %, не могут быть преобразованы в отметки.");
             return null;
         }
 
@@ -191,7 +191,7 @@ public class CotePoints
             bool IsValidNumber = double.TryParse(FinalNumberString, out double FinalNumberDouble);
             if (IsValidNumber)
             {
-                ed.WriteMessage($"Côte détéctée : {FinalNumberString}\n");
+                ed.WriteMessage($"Обнаружена отметка: {FinalNumberString}\n");
                 return FinalNumberDouble;
             }
 
@@ -268,7 +268,7 @@ public class CotePoints
             }
 
             PromptKeywordOptions options = new(
-                $"Aucune cote n'a été trouvée pour ce bloc, cependant une altitude Z a été définie à {FormatAltitude(Altimetrie)}. Voulez-vous utiliser cette valeur ?\n");
+                $"Для этого блока не найдена отметка, однако задана высота Z = {FormatAltitude(Altimetrie)}. Хотите использовать это значение?\n");
             options.Keywords.Add("OUI");
             options.Keywords.Add("NON");
             options.AllowNone = true;
@@ -334,7 +334,7 @@ public class CotePoints
                 if (IsCotePointNotNull && IsAltimetrieDefined)
                 {
                     PromptKeywordOptions AskKeepXREFCoteValuesOptions = new(
-                        $"La cote {FormatAltitude(CotePoint.Altitude)} a été trouvée dans une XREF. Voulez-vous utiliser cette valeur ?\n");
+                        $"Отметка {FormatAltitude(CotePoint.Altitude)} найдена во внешней ссылке. Хотите использовать это значение?\n");
                     AskKeepXREFCoteValuesOptions.Keywords.Add("Oui");
                     AskKeepXREFCoteValuesOptions.Keywords.Add("Non");
                     AskKeepXREFCoteValuesOptions.Keywords.Default = "Oui";
@@ -352,7 +352,7 @@ public class CotePoints
 
             if (Altitude == null)
             {
-                Generic.WriteMessage("Aucune côte détéctée");
+                Generic.WriteMessage("Отметка не обнаружена");
                 trx.Commit();
                 continue;
             }

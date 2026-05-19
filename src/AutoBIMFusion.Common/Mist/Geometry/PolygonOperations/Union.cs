@@ -61,7 +61,7 @@ public static partial class PolygonOperation
                 if (item.TryGetArea() == 0 ||
                     item.NumberOfVertices < 2) //cannot keep 3 because circle is valid and is only 2
                 {
-                    Debug.WriteLine("Deleted invalid geometry while doing UNION operation");
+                    Debug.WriteLine("Удалена недопустимая геометрия при операции ОБЪЕДИНЕНИЯ");
                     _ = PossibleBoundary.Remove(item);
                     item.Dispose();
                 }
@@ -157,7 +157,7 @@ public static partial class PolygonOperation
     {
         if (pline == null || pline.NumberOfVertices < 3)
         {
-            Debug.WriteLine("Polyligne invalide ou pas assez de sommets.");
+            Debug.WriteLine("Недопустимая полилиния или недостаточно вершин.");
             return;
         }
 
@@ -175,7 +175,7 @@ public static partial class PolygonOperation
             if (IsParallelTo)
             {
                 pline.RemoveVertexAt(0);
-                Debug.WriteLine("Segment du début supprimé (superposition détectée).");
+                Debug.WriteLine("Начальный сегмент удалён (обнаружено перекрытие).");
             }
 
             seg0.Dispose();
@@ -198,7 +198,7 @@ public static partial class PolygonOperation
             if (IsParallelTo)
             {
                 pline.RemoveVertexAt(count - 1);
-                Debug.WriteLine("Segment de fin supprimé (superposition détectée).");
+                Debug.WriteLine("Конечный сегмент удалён (обнаружено перекрытие).");
             }
 
             segA.Dispose();
@@ -341,7 +341,7 @@ public static partial class PolygonOperation
             PolyHole.Boundary.Cleanup();
             if (PolyHole.Boundary.IsSelfIntersecting(out _))
             {
-                Generic.WriteMessage("Self Intersecting detected. AllowMarginError is disabled");
+                Generic.WriteMessage("Обнаружено самопересечение. AllowMarginError отключен");
                 return false;
             }
         }
@@ -495,9 +495,9 @@ public static partial class PolygonOperation
         if (OffsetCurve.Count == 0)
         {
             Generic.WriteMessage(
-                $"Impossible de merger les courbes (erreur lors de l'offset des contours). Offset value : {OffsetDistance}.");
+                $"Невозможно объединить кривые (ошибка при смещении контуров). Значение смещения: {OffsetDistance}.");
             return polyHoles;
-            throw new Exception("Impossible de merger les courbes (erreur lors de l'offset des contours).");
+            throw new Exception("Невозможно объединить кривые (ошибка при смещении контуров).");
         }
 
         polyHole.Boundary.Dispose();

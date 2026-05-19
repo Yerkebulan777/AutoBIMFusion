@@ -553,7 +553,7 @@ public static class EntityExtensions
     {
         if (value.Length > 255)
         {
-            throw new ArgumentException("La chaine est trop longue");
+            throw new ArgumentException("Строка слишком длинная");
         }
 
         ent.AddXData(new TypedValue((int)DxfCode.ExtendedDataAsciiString, value));

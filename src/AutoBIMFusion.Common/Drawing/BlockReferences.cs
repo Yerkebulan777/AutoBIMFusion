@@ -124,7 +124,7 @@ public static class BlockReferences
 
         if (bt.Has(BlockName))
         {
-            Generic.WriteMessage($"Le bloc {Name} existe déja dans le dessin");
+            Generic.WriteMessage($"Блок {Name} уже существует в чертеже");
         }
 
         BlockTableRecord btr = new()
@@ -174,7 +174,7 @@ public static class BlockReferences
 
         if (bt.Has(BlockName))
         {
-            Generic.WriteMessage($"Le bloc {Name} existe déja dans le dessin");
+            Generic.WriteMessage($"Блок {Name} уже существует в чертеже");
         }
 
         IdMapping acIdMap = [];
@@ -375,7 +375,7 @@ public static class BlockReferences
 
         if (!bt.Has(BlocName))
         {
-            throw new InvalidOperationException($"Le bloc {BlocName} n'existe pas dans le dessin");
+            throw new InvalidOperationException($"Блок {BlocName} не существует в чертеже");
         }
 
         BlockTableRecord? blockDef = bt[BlocName].GetObject(OpenMode.ForRead) as BlockTableRecord;
@@ -612,7 +612,7 @@ public static class BlockReferences
             }
             catch (Autodesk.AutoCAD.Runtime.Exception ex)
             {
-                Generic.WriteMessage("\nErreur : " + ex.Message);
+                Generic.WriteMessage("\nОшибка: " + ex.Message);
             }
             finally
             {

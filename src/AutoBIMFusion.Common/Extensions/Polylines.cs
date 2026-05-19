@@ -86,7 +86,7 @@ public static class PolylinesExtensions
         // Исправление нормалей: должны быть 0,0,1, а сейчас 0,0,-1. Это происходит, когда полилиния нарисована снизу вверх
         if (polyline.Normal == Vector3d.ZAxis.MultiplyBy(-1))
         {
-            Debug.WriteLine("Correction de la normal d'une polyline");
+            Debug.WriteLine("Коррекция нормали полилинии");
             for (int i = 0; i < polyline.NumberOfVertices; i++)
             {
                 //var acPlArc = acPlLwObj.GetArcSegmentAt(i);
@@ -670,7 +670,7 @@ public static class PolylinesExtensions
         int count = pl.NumberOfVertices;
         if (count == 0)
         {
-            throw new ArgumentException("Polyline vide.");
+            throw new ArgumentException("Пустая полилиния.");
         }
 
         double sumX = 0, sumY = 0, sumZ = 0;

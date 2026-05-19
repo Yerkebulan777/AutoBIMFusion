@@ -108,11 +108,11 @@ public static class DatabaseExtensions
                 }
 
                 db.Cannoscale = scale;
-                Generic.WriteMessage($"Échelle annotative définie sur {Name}.");
+                Generic.WriteMessage($"Аннотативный масштаб установлен на {Name}.");
             }
             else
             {
-                Generic.WriteMessage("Impossible d'accéder aux échelles annotatives.");
+                Generic.WriteMessage("Невозможно получить доступ к аннотативным масштабам.");
             }
 
             ed.Regen();
@@ -199,7 +199,7 @@ public static class DatabaseExtensions
         }
         catch (Exception ex)
         {
-            Debug.WriteLine("Erreur GetSize: " + ex.Message);
+            Debug.WriteLine("Ошибка GetSize: " + ex.Message);
         }
         finally
         {
@@ -212,7 +212,7 @@ public static class DatabaseExtensions
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Impossible de supprimer le temp : " + ex.Message);
+                Debug.WriteLine("Невозможно удалить временный файл: " + ex.Message);
             }
         }
 

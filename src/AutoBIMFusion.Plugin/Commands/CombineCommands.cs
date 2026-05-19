@@ -9,6 +9,7 @@ using Serilog.Core;
 using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Text.Json;
+
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 using Exception = System.Exception;
 
@@ -33,7 +34,7 @@ public sealed class CombineCommands
 
         DateTimeOffset startedAt = DateTimeOffset.Now;
 
-        MergeExecutionResult result = MergeExecutionResult.Fail(null, "Пакетная команда не была выполнена.");
+        ExecutionResult result = ExecutionResult.Fail(null, "Пакетная команда не была выполнена.");
 
         Logger log = LoggerFactory.GetSharedLogger();
 
@@ -46,7 +47,7 @@ public sealed class CombineCommands
 
             if (string.IsNullOrWhiteSpace(sourceFolder) || string.IsNullOrWhiteSpace(statusPath))
             {
-                result = MergeExecutionResult.Fail(null, "Не переданы обязательные параметры пакетной команды.");
+                result = ExecutionResult.Fail(null, "Не переданы обязательные параметры пакетной команды.");
                 return;
             }
 
@@ -55,22 +56,22 @@ public sealed class CombineCommands
         catch (Autodesk.AutoCAD.Runtime.Exception ex)
         {
             log.Error(ex, "MERGEDWG_BATCH");
-            result = MergeExecutionResult.Fail(null, ex.Message);
+            result = ExecutionResult.Fail(null, ex.Message);
         }
         catch (InvalidOperationException ex)
         {
             log.Error(ex, "MERGEDWG_BATCH");
-            result = MergeExecutionResult.Fail(null, ex.Message);
+            result = ExecutionResult.Fail(null, ex.Message);
         }
         catch (IOException ex)
         {
             log.Error(ex, "MERGEDWG_BATCH");
-            result = MergeExecutionResult.Fail(null, ex.Message);
+            result = ExecutionResult.Fail(null, ex.Message);
         }
         catch (UnauthorizedAccessException ex)
         {
             log.Error(ex, "MERGEDWG_BATCH");
-            result = MergeExecutionResult.Fail(null, ex.Message);
+            result = ExecutionResult.Fail(null, ex.Message);
         }
         finally
         {
@@ -81,7 +82,7 @@ public sealed class CombineCommands
         }
     }
 
-    private MergeExecutionResult ExecuteMerge(string? folderPath, bool showDialogs, string commandName)
+    private ExecutionResult ExecuteMerge(string? folderPath, bool showDialogs, string commandName)
     {
         Logger log = LoggerFactory.GetSharedLogger();
 
@@ -89,7 +90,7 @@ public sealed class CombineCommands
         {
             const string busyMessage = "Операция объединения уже выполняется.";
             log.Warning("{Command}: {Message}", commandName, busyMessage);
-            return MergeExecutionResult.Fail(null, busyMessage);
+            return ExecutionResult.Fail(null, busyMessage);
         }
 
         try
@@ -101,7 +102,7 @@ public sealed class CombineCommands
                 if (!UiDialogService.TrySelectFolder("Выберите папку с файлами DWG", out sourceFolder))
                 {
                     const string cancelMessage = "Выбор папки отменён.";
-                    return MergeExecutionResult.Fail(null, cancelMessage);
+                    return ExecutionResult.Fail(null, cancelMessage);
                 }
             }
             else
@@ -120,7 +121,7 @@ public sealed class CombineCommands
                     UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
                 }
 
-                return MergeExecutionResult.Fail(savePath, "DWG файлы не найдены.");
+                return ExecutionResult.Fail(savePath, "DWG файлы не найдены.");
             }
 
             const double gapPercent = 0.1;
@@ -128,6 +129,7 @@ public sealed class CombineCommands
             Stopwatch sw = Stopwatch.StartNew();
 
             DocumentCollection docMgr = AcadApp.DocumentManager;
+
             MergeDocumentSelection target = SelectMergeDocument(docMgr, log);
 
             Document mergeDoc = target.Document;
@@ -168,12 +170,12 @@ public sealed class CombineCommands
                 ? "Завершено успешно."
                 : $"Завершено с ошибками. Успешно: {stats.Successful}, пропущено: {stats.Skipped}, ошибок: {stats.Failed}.";
 
-            return new MergeExecutionResult(stats.Failed == 0, savePath, message);
+            return new ExecutionResult(stats.Failed == 0, savePath, message);
         }
         catch (Exception ex)
         {
             log.Error(ex, "Ошибка {Command}", commandName);
-            return MergeExecutionResult.Fail(null, ex.Message);
+            return ExecutionResult.Fail(null, ex.Message);
         }
         finally
         {
@@ -200,7 +202,7 @@ public sealed class CombineCommands
             : null;
     }
 
-    private static void WriteBatchStatus(string statusPath, string folderPath, MergeExecutionResult result, DateTimeOffset startedAt, DateTimeOffset finishedAt)
+    private static void WriteBatchStatus(string statusPath, string folderPath, ExecutionResult result, DateTimeOffset startedAt, DateTimeOffset finishedAt)
     {
         var dir = Path.GetDirectoryName(statusPath);
 
@@ -313,8 +315,7 @@ public sealed class CombineCommands
         return true;
     }
 
-    private static void MergeFiles(string[] files, BlockInserter inserter, Document doc, CombineStatistics stats,
-        string savePath, Logger log)
+    private static void MergeFiles(string[] files, BlockInserter inserter, Document doc, CombineStatistics stats, string savePath, Logger log)
     {
         using ProgressMeter pm = new();
         pm.Start("Объединение файлов DWG...");
@@ -403,11 +404,14 @@ public sealed class CombineCommands
 
     private readonly record struct MergeDocumentSelection(Document Document, bool CloseAfterSave);
 
-    private readonly record struct MergeExecutionResult(bool Success, string? SavePath, string Message)
+    private readonly record struct ExecutionResult(bool Success, string? SavePath, string Message)
     {
-        public static MergeExecutionResult Fail(string? savePath, string message)
+        public static ExecutionResult Fail(string? savePath, string message)
         {
-            return new MergeExecutionResult(false, savePath, message);
+            return new ExecutionResult(false, savePath, message);
         }
     }
+
+
+
 }

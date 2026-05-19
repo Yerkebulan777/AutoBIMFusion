@@ -22,7 +22,7 @@ internal static class RibbonIconLoader
             || fileName.Contains('/')
             || fileName.Contains('\\'))
         {
-            Debug.WriteLine($"Invalid icon file name: {fileName}");
+            Debug.WriteLine($"Недопустимое имя файла иконки: {fileName}");
             return null;
         }
 

@@ -162,7 +162,7 @@ public static class EditorExtensions
 
                 ed.SwitchToModelSpace();
                 PromptPointOptions promptPointOptions =
-                    new("Activez la fenêtre CIBLE et appuyez sur ENTREE pour continuer.")
+                    new("Активируйте ЦЕЛЕВОЕ окно и нажмите ENTER для продолжения.")
                     {
                         AllowNone = true,
                         AllowArbitraryInput = true
@@ -351,7 +351,7 @@ public static class EditorExtensions
         bool RejectObjectsOnLockedLayers = true, bool SingleOnly = false, SelectionFilter selectionFilter = null,
         string[] Options = null)
     {
-        Message ??= SingleOnly ? "Veuillez selectionner des entités" : "Veuillez selectionner une entité";
+        Message ??= SingleOnly ? "Выберите объекты" : "Выберите объект";
 
         PromptSelectionOptions selectionOptions = new()
         {
@@ -407,7 +407,7 @@ public static class EditorExtensions
                     return (selectResult.Status, selectResult.Value);
                 }
 
-                Generic.WriteMessage("Sélection invalide.");
+                Generic.WriteMessage("Неверный выбор.");
             }
         }
         catch (PromptSelectionKeywordEntered ex)
@@ -460,7 +460,7 @@ public static class EditorExtensions
                 }
             }
 
-            Generic.WriteMessage("L'objet sélectionné n'est pas une polyligne. \n");
+            Generic.WriteMessage("Выбранный объект не является полилинией. \n");
         }
     }
 
@@ -485,12 +485,12 @@ public static class EditorExtensions
         {
             PromptEntityOptions option =
                 new("\n" +
-                    (string.IsNullOrWhiteSpace(AskText) ? "Selectionnez une hachure" : AskText))
+                    (string.IsNullOrWhiteSpace(AskText) ? "Выберите штриховку" : AskText))
                 {
                     AllowNone = true,
                     AllowObjectOnLockedLayer = false
                 };
-            option.SetRejectMessage("\nVeuillez selectionner seulement des hachures");
+            option.SetRejectMessage("\nВыбирайте только штриховки");
             option.AddAllowedClass(typeof(Hatch), false);
             PromptEntityResult Result = ed.GetEntity(option);
             if (Result.Status == PromptStatus.None)

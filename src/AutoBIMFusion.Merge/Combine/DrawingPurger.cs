@@ -23,15 +23,15 @@ public static class DrawingPurger
         // Выводим отчёт пользователю.
         if (TotalDeletedCount == 0)
         {
-            Generic.WriteMessage("Le dessin est déjà purgé.");
+            Generic.WriteMessage("Чертёж уже очищен.");
         }
         else
         {
             var maxLength = purgeReport.Max(p => p.Key.Length);
             foreach (var entry in purgeReport)
-                Generic.WriteMessage($" - {entry.Key.PadRight(maxLength)} : {entry.Value} supprimés");
+                Generic.WriteMessage($" - {entry.Key.PadRight(maxLength)} : удалено {entry.Value}");
 
-            Generic.WriteMessage($"Total : {TotalDeletedCount} éléments supprimés dans le dessin");
+            Generic.WriteMessage($"Итого: {TotalDeletedCount} элементов удалено из чертежа");
         }
 
         ViewportLock.DoLockUnlock(true);

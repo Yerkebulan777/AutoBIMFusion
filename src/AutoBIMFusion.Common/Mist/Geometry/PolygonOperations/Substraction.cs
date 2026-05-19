@@ -18,7 +18,7 @@ public static partial class PolygonOperation
         {
             if (SubstractionPolygonCurve?.IsDisposed == true)
             {
-                Debug.WriteLine("Error : SubstractionPolygonCurve was null or disposed");
+                Debug.WriteLine("Ошибка: SubstractionPolygonCurve равен null или удалён");
                 continue;
             }
 
