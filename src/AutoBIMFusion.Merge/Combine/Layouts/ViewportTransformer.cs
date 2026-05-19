@@ -14,6 +14,9 @@ namespace AutoBIMFusion.Merge.Combine.Layouts;
 /// </summary>
 internal static class ViewportTransformer
 {
+    private const double HugeEntityDiagonalRatio = 3.0;
+    private const double SmallEntityDiagonalThreshold = 100.0;
+
     /// <summary>
     ///     Матрица переноса «модель aux-VP → модель main-VP».
     /// </summary>
@@ -235,28 +238,28 @@ internal static class ViewportTransformer
     internal static ObjectIdCollection SelectModelInside(IReadOnlyList<ModelEntitySnapshot> modelEntities,
         Extents3d window, Extents3d mainWindow, Logger log)
     {
-        const double HugeEntityDiagonalRatio = 3.0;
-
         var outsideWindow = 0;
+        var smallPartialOutsideWindow = 0;
         var skippedHugeObjects = 0;
         ObjectIdCollection result = [];
 
-        var windowDiagonal = window.MinPoint.DistanceTo(window.MaxPoint);
-
         foreach (var entity in modelEntities)
         {
-            if (!ExtentsUtils.AabbIntersect(window, entity.Extents))
+            var decision = ClassifyModelEntityForViewport(window, mainWindow, entity.Extents);
+
+            if (decision == ModelEntitySelection.OutsideWindow)
             {
                 outsideWindow++;
                 continue;
             }
 
-            // Эвристика: пропустить только если сущность огромна (фон main VP) И находится в main window.
-            // Большой объект, которого нет в main window, — легитимный контент aux VP, не трогаем.
-            var entityDiagonal = entity.Extents.MinPoint.DistanceTo(entity.Extents.MaxPoint);
-            if (windowDiagonal > 0
-                && entityDiagonal > windowDiagonal * HugeEntityDiagonalRatio
-                && ExtentsUtils.AabbIntersect(mainWindow, entity.Extents))
+            if (decision == ModelEntitySelection.SmallPartialOutsideWindow)
+            {
+                smallPartialOutsideWindow++;
+                continue;
+            }
+
+            if (decision == ModelEntitySelection.HugeInMainWindow)
             {
                 skippedHugeObjects++;
                 continue;
@@ -266,9 +269,48 @@ internal static class ViewportTransformer
         }
 
         log.Debug(
-            "SelectModelInside cached={Cached}, selected={Selected}, skippedHuge={SkippedHuge}, outsideWindow={OutsideWindow}, window={Window}",
-            modelEntities.Count, result.Count, skippedHugeObjects, outsideWindow, ExtentsUtils.FormatExtents(window));
+            "SelectModelInside cached={Cached}, selected={Selected}, skippedHuge={SkippedHuge}, smallPartialOutside={SmallPartialOutside}, outsideWindow={OutsideWindow}, window={Window}",
+            modelEntities.Count, result.Count, skippedHugeObjects, smallPartialOutsideWindow, outsideWindow, ExtentsUtils.FormatExtents(window));
         return result;
+    }
+
+    internal static ModelEntitySelection ClassifyModelEntityForViewport(
+        Extents3d window,
+        Extents3d mainWindow,
+        Extents3d entityExtents)
+    {
+        if (!ExtentsUtils.AabbIntersect(window, entityExtents))
+        {
+            return ModelEntitySelection.OutsideWindow;
+        }
+
+        var entityDiagonal = entityExtents.MinPoint.DistanceTo(entityExtents.MaxPoint);
+
+        if (entityDiagonal <= SmallEntityDiagonalThreshold
+            && !AabbContainsXY(window, entityExtents))
+        {
+            return ModelEntitySelection.SmallPartialOutsideWindow;
+        }
+
+        var windowDiagonal = window.MinPoint.DistanceTo(window.MaxPoint);
+
+        // Большой объект главного VP не должен становиться контентом aux VP.
+        if (windowDiagonal > 0
+            && entityDiagonal > windowDiagonal * HugeEntityDiagonalRatio
+            && ExtentsUtils.AabbIntersect(mainWindow, entityExtents))
+        {
+            return ModelEntitySelection.HugeInMainWindow;
+        }
+
+        return ModelEntitySelection.Selected;
+    }
+
+    private static bool AabbContainsXY(Extents3d outer, Extents3d inner, double tolerance = 1e-6)
+    {
+        return inner.MinPoint.X >= outer.MinPoint.X - tolerance
+               && inner.MaxPoint.X <= outer.MaxPoint.X + tolerance
+               && inner.MinPoint.Y >= outer.MinPoint.Y - tolerance
+               && inner.MaxPoint.Y <= outer.MaxPoint.Y + tolerance;
     }
 
     /// <summary>
@@ -306,6 +348,14 @@ internal static class ViewportTransformer
     ///     Снимок состояния сущности модели, включая её идентификатор и границы.
     /// </summary>
     internal sealed record ModelEntitySnapshot(ObjectId Id, Extents3d Extents);
+
+    internal enum ModelEntitySelection
+    {
+        Selected,
+        OutsideWindow,
+        SmallPartialOutsideWindow,
+        HugeInMainWindow
+    }
 
     /// <summary>
     ///     Результат клонирования и трансформации сущностей модели.
