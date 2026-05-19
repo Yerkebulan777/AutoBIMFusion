@@ -10,7 +10,7 @@ namespace AutoBIMFusion.Common.Helpers;
 public static class StyleUtils
 {
     /// <summary>
-    ///  Создаёт (или возвращает существующий) текстовый стиль с заданным шрифтом и высотой 0.
+    ///  Создаёт (или возвращает существующий) текстовый стиль с заданным шрифтом и высотой.
     /// </summary>
     public static ObjectId GetOrCreateTextStyle(Database db, Transaction trx, string fontName, double xScale = 1.0, bool isItalic = false)
     {
@@ -19,6 +19,7 @@ public static class StyleUtils
         if (tt.Has(fontName))
         {
             TextStyleTableRecord existing = (TextStyleTableRecord)trx.GetObject(tt[fontName], OpenMode.ForRead);
+
             if (existing.TextSize > 0.0)
             {
                 existing.UpgradeOpen();
