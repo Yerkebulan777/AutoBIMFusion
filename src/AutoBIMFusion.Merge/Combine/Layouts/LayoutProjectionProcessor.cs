@@ -194,7 +194,7 @@ internal static class LayoutProjectionProcessor
     private static List<ObjectId> CollectPaperEntityIds(
         BlockTableRecord btr,
         RXClass viewportClass,
-        IReadOnlySet<ObjectId> clipEntityIds)
+        HashSet<ObjectId> clipEntityIds)
     {
         List<ObjectId> paperIds = [];
 

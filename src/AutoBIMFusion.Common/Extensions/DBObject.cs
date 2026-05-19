@@ -7,10 +7,7 @@ public static class DBObjectExtensions
 {
     public static void RemoveAllXdata(this DBObject dbObj)
     {
-        if (dbObj == null)
-        {
-            throw new ArgumentNullException(nameof(dbObj));
-        }
+        ArgumentNullException.ThrowIfNull(dbObj);
 
         if (!dbObj.IsWriteEnabled)
         {

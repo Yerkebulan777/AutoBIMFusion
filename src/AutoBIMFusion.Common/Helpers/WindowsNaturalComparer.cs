@@ -6,6 +6,7 @@ namespace AutoBIMFusion.Common.Helpers;
 ///     Сравнитель строк с использованием естественной сортировки Windows (shlwapi.dll).
 ///     Обеспечивает порядок: file2.dwg перед file10.dwg.
 /// </summary>
+#pragma warning disable SYSLIB1054 // DllImport is preferred over LibraryImport for simple P/Invoke
 internal sealed class WindowsNaturalComparer : IComparer<string>
 {
     public int Compare(string? x, string? y)
@@ -16,3 +17,4 @@ internal sealed class WindowsNaturalComparer : IComparer<string>
     [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
     private static extern int StrCmpLogicalW(string x, string y);
 }
+#pragma warning restore SYSLIB1054

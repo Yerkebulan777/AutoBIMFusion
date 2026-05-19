@@ -19,6 +19,7 @@ namespace AutoBIMFusion.Plugin.Commands;
 public sealed class CombineCommands
 {
     private static readonly SemaphoreSlim _mergeGate = new(1, 1);
+    private static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
 
     [CommandMethod("MERGEDWG", CommandFlags.Modal | CommandFlags.Session)]
     public void MergeDwgFolderCommand()
@@ -237,12 +238,7 @@ public sealed class CombineCommands
             finishedAt
         };
 
-        JsonSerializerOptions options = new()
-        {
-            WriteIndented = true
-        };
-
-        File.WriteAllText(statusPath, JsonSerializer.Serialize(payload, options));
+        File.WriteAllText(statusPath, JsonSerializer.Serialize(payload, _jsonOptions));
     }
 
     private static MergeDocumentSelection SelectMergeDocument(DocumentCollection docMgr, Logger log)

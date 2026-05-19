@@ -154,7 +154,7 @@ public class CotePoints
         Document doc = AcadApp.DocumentManager.MdiActiveDocument;
         Editor ed = doc.Editor;
 
-        if (OriginalString.Contains("%"))
+        if (OriginalString.Contains('%'))
         {
             Generic.WriteMessage(
                 "В целях безопасности тексты, содержащие %, не могут быть преобразованы в отметки.");
