@@ -118,9 +118,11 @@ public sealed class CombineCommands
 
                 DocumentCollection docMgr = AcadApp.DocumentManager;
                 MergeDocumentSelection target = SelectMergeDocument(docMgr, log);
+
                 Document mergeDoc = target.Document;
 
                 BlockInserter inserter = new(gapPercent, log);
+
                 await MergeFiles(dwgFiles, inserter, mergeDoc, stats, savePath, log);
 
                 using (mergeDoc.LockDocument())
