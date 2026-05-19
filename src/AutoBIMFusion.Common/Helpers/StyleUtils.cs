@@ -5,12 +5,12 @@ using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 namespace AutoBIMFusion.Common.Helpers;
 
 /// <summary>
-///     Утилиты для работы со стилями текста и размеров.
+/// Утилиты для работы со стилями текста и размеров.
 /// </summary>
 public static class StyleUtils
 {
     /// <summary>
-    ///     Создаёт (или возвращает существующий) текстовый стиль с заданным шрифтом и высотой.
+    ///  Создаёт (или возвращает существующий) текстовый стиль с заданным шрифтом и высотой.
     /// </summary>
     public static ObjectId GetOrCreateTextStyle(Database db, Transaction trx, string fontName, double xScale = 1.0, bool isItalic = false)
     {

@@ -1,6 +1,3 @@
-using System.Diagnostics;
-using System.Runtime.Versioning;
-using System.Text.Json;
 using AutoBIMFusion.Common;
 using AutoBIMFusion.Common.AcadSupport;
 using AutoBIMFusion.Common.Helpers;
@@ -9,6 +6,9 @@ using AutoBIMFusion.Merge.Combine;
 using AutoBIMFusion.Merge.Combine.Layouts;
 using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
+using System.Diagnostics;
+using System.Runtime.Versioning;
+using System.Text.Json;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 using Exception = System.Exception;
 
@@ -31,15 +31,16 @@ public sealed class CombineCommands
         string? statusPath = null;
         string? sourceFolder = null;
 
-        var startedAt = DateTimeOffset.Now;
+        DateTimeOffset startedAt = DateTimeOffset.Now;
 
         var result = MergeExecutionResult.Fail(null, "Пакетная команда не была выполнена.");
 
-        var log = LoggerFactory.GetSharedLogger();
+        Logger log = LoggerFactory.GetSharedLogger();
 
         try
         {
-            var editor = AcadApp.DocumentManager.MdiActiveDocument?.Editor;
+            Editor? editor = AcadApp.DocumentManager.MdiActiveDocument?.Editor;
+
             sourceFolder = PromptRequiredString(editor, "Папка DWG");
             statusPath = PromptRequiredString(editor, "Файл статуса");
 
@@ -74,13 +75,15 @@ public sealed class CombineCommands
         finally
         {
             if (!string.IsNullOrWhiteSpace(statusPath))
+            {
                 WriteBatchStatus(statusPath, sourceFolder ?? string.Empty, result, startedAt, DateTimeOffset.Now);
+            }
         }
     }
 
     private async Task<MergeExecutionResult> ExecuteMergeAsync(string? folderPath, bool showDialogs, string commandName)
     {
-        var log = LoggerFactory.GetSharedLogger();
+        Logger log = LoggerFactory.GetSharedLogger();
 
         if (!await _mergeGate.WaitAsync(0))
         {
@@ -101,7 +104,10 @@ public sealed class CombineCommands
 
                 if (dwgFiles.Length == 0)
                 {
-                    if (showDialogs) UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
+                    if (showDialogs)
+                    {
+                        UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
+                    }
 
                     return MergeExecutionResult.Fail(savePath, "DWG файлы не найдены.");
                 }
@@ -110,10 +116,10 @@ public sealed class CombineCommands
                 CombineStatistics stats = new();
                 var sw = Stopwatch.StartNew();
 
-                var docMgr = AcadApp.DocumentManager;
-                var target = SelectMergeDocument(docMgr, log);
+                DocumentCollection docMgr = AcadApp.DocumentManager;
+                MergeDocumentSelection target = SelectMergeDocument(docMgr, log);
 
-                var mergeDoc = target.Document;
+                Document mergeDoc = target.Document;
 
                 BlockInserter inserter = new(gapPercent, log);
 
@@ -142,7 +148,10 @@ public sealed class CombineCommands
                     savePath,
                     sw.Elapsed);
 
-                if (showDialogs) ShowSummary(stats, sw.Elapsed, savePath, commandName);
+                if (showDialogs)
+                {
+                    ShowSummary(stats, sw.Elapsed, savePath, commandName);
+                }
 
                 var message = stats.Failed == 0
                     ? "Завершено успешно."
@@ -168,25 +177,30 @@ public sealed class CombineCommands
 
     private static string? PromptRequiredString(Editor? editor, string promptName)
     {
-        if (editor is null) return null;
+        if (editor is null)
+        {
+            return null;
+        }
 
         PromptStringOptions options = new($"\n{promptName}: ")
         {
             AllowSpaces = true
         };
 
-        var result = editor.GetString(options);
+        PromptResult result = editor.GetString(options);
         return result.Status == PromptStatus.OK
             ? result.StringResult.Trim().Trim('"')
             : null;
     }
 
-    private static void WriteBatchStatus(string statusPath, string folderPath, MergeExecutionResult result,
-        DateTimeOffset startedAt, DateTimeOffset finishedAt)
+    private static void WriteBatchStatus(string statusPath, string folderPath, MergeExecutionResult result, DateTimeOffset startedAt, DateTimeOffset finishedAt)
     {
         var dir = Path.GetDirectoryName(statusPath);
 
-        if (!string.IsNullOrWhiteSpace(dir) && !Directory.Exists(dir)) _ = Directory.CreateDirectory(dir);
+        if (!string.IsNullOrWhiteSpace(dir) && !Directory.Exists(dir))
+        {
+            _ = Directory.CreateDirectory(dir);
+        }
 
         var payload = new
         {
@@ -209,19 +223,24 @@ public sealed class CombineCommands
 
     private static MergeDocumentSelection SelectMergeDocument(DocumentCollection docMgr, Logger log)
     {
-        var activeDoc = docMgr.MdiActiveDocument;
+        Document? activeDoc = docMgr.MdiActiveDocument;
 
         if (activeDoc is not null && CanUseActiveDocument(activeDoc, log))
+        {
             return new MergeDocumentSelection(activeDoc, false);
+        }
 
-        var mergeDoc = docMgr.Add(string.Empty);
+        Document mergeDoc = docMgr.Add(string.Empty);
         docMgr.MdiActiveDocument = mergeDoc;
         return new MergeDocumentSelection(mergeDoc, true);
     }
 
     private static bool CanUseActiveDocument(Document doc, Logger log)
     {
-        if (doc.IsNamedDrawing) return false;
+        if (doc.IsNamedDrawing)
+        {
+            return false;
+        }
 
         try
         {
@@ -229,9 +248,7 @@ public sealed class CombineCommands
             {
                 var isEmpty = IsDrawingContentEmpty(doc.Database);
 
-                if (!isEmpty) return false;
-
-                return true;
+                return isEmpty;
             }
         }
         catch (Autodesk.AutoCAD.Runtime.Exception ex)
@@ -256,7 +273,7 @@ public sealed class CombineCommands
 
         var layoutDictionary = (DBDictionary)tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
-        foreach (var entry in layoutDictionary)
+        foreach (DBDictionaryEntry entry in layoutDictionary)
         {
             var layout = (Layout)tr.GetObject(entry.Value, OpenMode.ForRead);
 
@@ -275,11 +292,14 @@ public sealed class CombineCommands
     {
         var blockRecord = (BlockTableRecord)tr.GetObject(blockRecordId, OpenMode.ForRead);
 
-        foreach (var entityId in blockRecord)
+        foreach (ObjectId entityId in blockRecord)
         {
             var entity = (Entity)tr.GetObject(entityId, OpenMode.ForRead);
 
-            if (entity is not Viewport) return false;
+            if (entity is not Viewport)
+            {
+                return false;
+            }
         }
 
         return true;
@@ -298,14 +318,20 @@ public sealed class CombineCommands
             {
                 stats.AddTotal();
 
-                var result = await CombineOrchestrator.MergeSingleFile(files[idx], inserter, doc, log, savePath);
+                CombineResult result = await CombineOrchestrator.MergeSingleFile(files[idx], inserter, doc, log, savePath);
 
                 if (result.Success)
+                {
                     stats.AddSuccess();
+                }
                 else if (result.IsSkipped)
+                {
                     stats.AddSkipped();
+                }
                 else
+                {
                     stats.AddFailed();
+                }
 
                 pm.MeterProgress();
             }
@@ -319,7 +345,7 @@ public sealed class CombineCommands
     private static string BuildSavePath(string rootPath)
     {
         DirectoryInfo dir = new(rootPath);
-        var parent = dir.Parent;
+        DirectoryInfo? parent = dir.Parent;
 
         const string buildSuffix = "-сборка";
         var outputFolderName = $"{dir.Name}{buildSuffix}";
@@ -336,9 +362,15 @@ public sealed class CombineCommands
         {
             var dir = Path.GetDirectoryName(savePath);
 
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) _ = Directory.CreateDirectory(dir);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                _ = Directory.CreateDirectory(dir);
+            }
 
-            if (File.Exists(savePath)) File.Delete(savePath);
+            if (File.Exists(savePath))
+            {
+                File.Delete(savePath);
+            }
 
             using (new AcadWarningSuppressScope())
             {
