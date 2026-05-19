@@ -18,12 +18,18 @@ namespace AutoBIMFusion.Plugin.Commands;
 [SupportedOSPlatform("Windows")]
 public sealed class CombineCommands
 {
-    private readonly SemaphoreSlim _mergeGate = new(1, 1);
+    private static readonly SemaphoreSlim _mergeGate = new(1, 1);
 
     [CommandMethod("MERGEDWG", CommandFlags.Modal | CommandFlags.Session)]
     public void MergeDwgFolderCommand()
     {
-        _ = ExecuteMerge(null, true, "MERGEDWG");
+        Logger log = LoggerFactory.GetSharedLogger();
+        ExecutionResult result = ExecuteMerge(null, true, "MERGEDWG");
+
+        if (!result.Success)
+        {
+            log.Warning("MERGEDWG: {Message}", result.Message);
+        }
     }
 
     [CommandMethod("MERGEDWG_BATCH", CommandFlags.Modal | CommandFlags.Session)]
@@ -77,7 +83,14 @@ public sealed class CombineCommands
         {
             if (!string.IsNullOrWhiteSpace(statusPath))
             {
-                WriteBatchStatus(statusPath, sourceFolder ?? string.Empty, result, startedAt, DateTimeOffset.Now);
+                try
+                {
+                    WriteBatchStatus(statusPath, sourceFolder ?? string.Empty, result, startedAt, DateTimeOffset.Now);
+                }
+                catch (Exception ex)
+                {
+                    log.Error(ex, "MERGEDWG_BATCH: не удалось записать статус в {StatusPath}", statusPath);
+                }
             }
         }
     }
@@ -92,6 +105,8 @@ public sealed class CombineCommands
             log.Warning("{Command}: {Message}", commandName, busyMessage);
             return ExecutionResult.Fail(null, busyMessage);
         }
+
+        using var warningSuppress = new AcadWarningSuppressScope();
 
         try
         {
@@ -124,6 +139,7 @@ public sealed class CombineCommands
                 return ExecutionResult.Fail(savePath, "DWG файлы не найдены.");
             }
 
+            // Зазор 0.1% от габаритов чертежа для предотвращения наложения объектов при вставке
             const double gapPercent = 0.1;
             CombineStatistics stats = new();
             Stopwatch sw = Stopwatch.StartNew();
@@ -179,7 +195,6 @@ public sealed class CombineCommands
         }
         finally
         {
-            AcadWarningSuppressScope.ResetToDefaultValues();
             _ = _mergeGate.Release();
         }
     }
@@ -236,12 +251,12 @@ public sealed class CombineCommands
 
         if (activeDoc is not null && CanUseActiveDocument(activeDoc, log))
         {
-            return new MergeDocumentSelection(activeDoc, false);
+            return new MergeDocumentSelection(activeDoc);
         }
 
         Document mergeDoc = docMgr.Add(string.Empty);
         docMgr.MdiActiveDocument = mergeDoc;
-        return new MergeDocumentSelection(mergeDoc, true);
+        return new MergeDocumentSelection(mergeDoc);
     }
 
     private static bool CanUseActiveDocument(Document doc, Logger log)
@@ -367,29 +382,23 @@ public sealed class CombineCommands
 
     private static void SaveMerged(Database db, string savePath, Logger log)
     {
-        try
+        var dir = Path.GetDirectoryName(savePath);
+
+        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
         {
-            var dir = Path.GetDirectoryName(savePath);
-
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-            {
-                _ = Directory.CreateDirectory(dir);
-            }
-
-            if (File.Exists(savePath))
-            {
-                File.Delete(savePath);
-            }
-
-            using (new AcadWarningSuppressScope())
-            {
-                DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "target-before-save");
-                db.SaveAs(savePath, DwgVersion.AC1032);
-            }
+            _ = Directory.CreateDirectory(dir);
         }
-        catch (Exception ex)
+
+        if (File.Exists(savePath))
         {
-            log.Error(ex, "Сбой сохранения: {SavePath}", savePath);
+            File.Delete(savePath);
+        }
+
+        using (new AcadWarningSuppressScope())
+        {
+            DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "target-before-save");
+            // AC1032 = AutoCAD 2018 format — самый стабильный и широко поддерживаемый формат DWG
+            db.SaveAs(savePath, DwgVersion.AC1032);
         }
     }
 
@@ -402,7 +411,7 @@ public sealed class CombineCommands
         UiDialogService.ShowMessage(summary, commandName);
     }
 
-    private readonly record struct MergeDocumentSelection(Document Document, bool CloseAfterSave);
+    private readonly record struct MergeDocumentSelection(Document Document);
 
     private readonly record struct ExecutionResult(bool Success, string? SavePath, string Message)
     {

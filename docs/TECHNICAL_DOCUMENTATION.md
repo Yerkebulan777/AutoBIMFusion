@@ -144,7 +144,11 @@ CombineCommands
 
 `CoreConsoleDiagnostics=true` добавляет `CORECONSOLE_DIAGNOSTICS`, исключает `AutoBIMFusionExtension.cs`, весь `Ribbon/**` и `Microsoft.WindowsDesktop.App`. Архивные команды в `Commands/Archive/**` исключаются из сборки всегда.
 
-## 8. Управление ресурсами
+## 8. Формат сохранения
+
+Результат объединения сохраняется в формате `DwgVersion.AC1032` (AutoCAD 2018). Это самый стабильный и широко поддерживаемый формат DWG, обеспечивающий максимальную совместимость с другими приложениями и версиями AutoCAD. Новые типы объектов, появившиеся в AutoCAD 2025-2027, могут быть упрощены или конвертированы при сохранении.
+
+## 9. Управление ресурсами
 
 - Любая запись в активный документ выполняется внутри `using (doc.LockDocument())`.
 - Транзакции создаются через `TransactionManager.StartTransaction()` и завершаются `Commit()`.
@@ -152,14 +156,14 @@ CombineCommands
 - `AcadWarningSuppressScope` восстанавливает системные переменные AutoCAD через RAII; `DatabaseUnitSyncScope` синхронизирует `Insunits`/`Measurement`/`Dimalt` source с target на время `WblockCloneObjects`.
 - AutoCAD API остается на основном потоке; API не потокобезопасен.
 
-## 9. Логирование
+## 10. Логирование
 
 - Основной логгер: `LoggerFactory.GetSharedLogger()`.
 - Активная команда пишет в `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle\Contents\Logs\merge-YYYY-MM-DD.log`.
 - `DiagnosticSink` дублирует сообщения в `Debug.WriteLine` или `Trace.WriteLine`.
 - Размерные стили диагностируются стадиями `source-after-normalize-before-clone`, `target-after-clone` и `target-after-merge` только при `LOG_LEVEL=DEBUG`.
 
-## 10. Extensions
+## 11. Extensions
 
 `AutoBIMFusion.Common/Extensions/` содержит ~30 файлов extension methods для упрощения работы с AutoCAD API:
 
@@ -178,7 +182,7 @@ CombineCommands
 
 Extensions централизуют повторяющуюся логику и обеспечивают единообразную обработку ошибок across the codebase.
 
-## 11. Drawing & Mist helpers
+## 12. Drawing & Mist helpers
 
 ### Drawing
 
