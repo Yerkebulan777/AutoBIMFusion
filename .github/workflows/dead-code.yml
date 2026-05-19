@@ -1,0 +1,20 @@
+name: Dead Code Check
+
+on:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  dead-code:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 8.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Build with warnings as errors
+      run: dotnet build AutoBIMFusion.slnx -c Release -warnaserror
