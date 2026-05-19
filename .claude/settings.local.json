@@ -22,7 +22,9 @@
       "Bash(python3 -m scripts \"C:\\\\Users\\\\y.zhumabayev\\\\.claude\\\\projects\\\\C--Users-y-zhumabayev-Repository-AutoBIMFusion\\\\memory\\\\MEMORY.md\")",
       "Bash(python -m scripts \"C:\\\\Users\\\\y.zhumabayev\\\\.claude\\\\projects\\\\C--Users-y-zhumabayev-Repository-AutoBIMFusion\\\\memory\\\\MEMORY.md\")",
       "mcp__gitnexus__impact",
-      "mcp__gitnexus__detect_changes"
+      "mcp__gitnexus__detect_changes",
+      "mcp__gitnexus__cypher",
+      "mcp__gitnexus__query"
     ]
   }
 }
