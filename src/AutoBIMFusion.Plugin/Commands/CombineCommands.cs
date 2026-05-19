@@ -18,6 +18,7 @@ namespace AutoBIMFusion.Plugin.Commands;
 [SupportedOSPlatform("Windows")]
 public sealed class CombineCommands
 {
+    private const double gapPercent = 0.1; // Зазор 10%
     private static readonly SemaphoreSlim _mergeGate = new(1, 1);
     private static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
 
@@ -96,7 +97,7 @@ public sealed class CombineCommands
         }
     }
 
-    private ExecutionResult ExecuteMerge(string? folderPath, bool showDialogs, string commandName)
+    private static ExecutionResult ExecuteMerge(string? folderPath, bool showDialogs, string commandName)
     {
         Logger log = LoggerFactory.GetSharedLogger();
 
@@ -107,7 +108,7 @@ public sealed class CombineCommands
             return ExecutionResult.Fail(null, busyMessage);
         }
 
-        using var warningSuppress = new AcadWarningSuppressScope();
+        using AcadWarningSuppressScope warningSuppress = new();
 
         try
         {
@@ -126,9 +127,9 @@ public sealed class CombineCommands
                 sourceFolder = folderPath;
             }
 
-            var savePath = BuildSavePath(sourceFolder!);
+            string savePath = BuildSavePath(sourceFolder!);
 
-            var dwgFiles = FileUtil.GetFiles(sourceFolder!);
+            string[] dwgFiles = FileUtil.GetFiles(sourceFolder!);
 
             if (dwgFiles.Length == 0)
             {
@@ -140,8 +141,7 @@ public sealed class CombineCommands
                 return ExecutionResult.Fail(savePath, "DWG файлы не найдены.");
             }
 
-            // Зазор 0.1% от габаритов чертежа для предотвращения наложения объектов при вставке
-            const double gapPercent = 0.1;
+
             CombineStatistics stats = new();
             Stopwatch sw = Stopwatch.StartNew();
 
@@ -183,7 +183,7 @@ public sealed class CombineCommands
                 ShowSummary(stats, sw.Elapsed, savePath, commandName);
             }
 
-            var message = stats.Failed == 0
+            string message = stats.Failed == 0
                 ? "Завершено успешно."
                 : $"Завершено с ошибками. Успешно: {stats.Successful}, пропущено: {stats.Skipped}, ошибок: {stats.Failed}.";
 
@@ -220,7 +220,7 @@ public sealed class CombineCommands
 
     private static void WriteBatchStatus(string statusPath, string folderPath, ExecutionResult result, DateTimeOffset startedAt, DateTimeOffset finishedAt)
     {
-        var dir = Path.GetDirectoryName(statusPath);
+        string? dir = Path.GetDirectoryName(statusPath);
 
         if (!string.IsNullOrWhiteSpace(dir) && !Directory.Exists(dir))
         {
@@ -266,7 +266,7 @@ public sealed class CombineCommands
         {
             using (doc.LockDocument())
             {
-                var isEmpty = IsDrawingContentEmpty(doc.Database);
+                bool isEmpty = IsDrawingContentEmpty(doc.Database);
 
                 return isEmpty;
             }
@@ -334,7 +334,7 @@ public sealed class CombineCommands
 
         try
         {
-            for (var idx = 0; idx < files.Length; idx++)
+            for (int idx = 0; idx < files.Length; idx++)
             {
                 stats.AddTotal();
 
@@ -368,8 +368,8 @@ public sealed class CombineCommands
         DirectoryInfo? parent = dir.Parent;
 
         const string buildSuffix = "-сборка";
-        var outputFolderName = $"{dir.Name}{buildSuffix}";
-        var outputFileName = $"{dir.Name}.dwg";
+        string outputFolderName = $"{dir.Name}{buildSuffix}";
+        string outputFileName = $"{dir.Name}.dwg";
 
         return parent is null
             ? Path.Combine(dir.FullName, outputFolderName, outputFileName)
@@ -378,7 +378,7 @@ public sealed class CombineCommands
 
     private static void SaveMerged(Database db, string savePath, Logger log)
     {
-        var dir = Path.GetDirectoryName(savePath);
+        string? dir = Path.GetDirectoryName(savePath);
 
         if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
         {
@@ -400,7 +400,7 @@ public sealed class CombineCommands
 
     private static void ShowSummary(CombineStatistics stats, TimeSpan elapsed, string savePath, string commandName)
     {
-        var summary = stats.Failed == 0
+        string summary = stats.Failed == 0
             ? $"Завершено успешно.\nОбработано файлов: {stats.Successful}\nВремя: {elapsed:mm\\:ss\\.fff}\nСохранено в: {savePath}"
             : $"Завершено с ошибками.\nУспешно: {stats.Successful}\nПропущено: {stats.Skipped}\nОшибок: {stats.Failed}\nВремя: {elapsed:mm\\:ss\\.fff}\nСохранено в: {savePath}";
 
