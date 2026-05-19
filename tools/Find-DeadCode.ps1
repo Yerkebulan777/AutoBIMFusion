@@ -19,11 +19,9 @@ $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot   = Split-Path -Parent $scriptRoot
 $outputFile = Join-Path $scriptRoot "roslynator-results.txt"
 
-$projects = @(
-    "src\AutoBIMFusion.Common\AutoBIMFusion.Common.csproj",
-    "src\AutoBIMFusion.Merge\AutoBIMFusion.Merge.csproj",
-    "src\AutoBIMFusion.Plugin\AutoBIMFusion.Plugin.csproj"
-)
+$projects = Get-ChildItem -Path $repoRoot -Filter *.csproj -Recurse |
+    Where-Object { $_.FullName -notmatch '\\obj\\' } |
+    Select-Object -ExpandProperty FullName
 
 # Install roslynator if missing
 $cmd = Get-Command roslynator -ErrorAction SilentlyContinue

@@ -183,11 +183,8 @@ function Remove-Symbol([string]$filePath, [string]$symbolName, [int]$approxLine)
 
     Write-Host "  Removing lines $($startIdx + 1)..$($endIdx + 1) ($symbolName)" -ForegroundColor Yellow
 
-    $newLines = @()
-    for ($i = 0; $i -lt $lines.Count; $i++) {
-        if ($i -lt $startIdx -or $i -gt $endIdx) {
-            $newLines += $lines[$i]
-        }
+    $newLines = foreach ($i in 0..($lines.Count - 1)) {
+        if ($i -lt $startIdx -or $i -gt $endIdx) { $lines[$i] }
     }
 
     Set-Content -Path $filePath -Value $newLines -Encoding UTF8
