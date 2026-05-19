@@ -54,22 +54,22 @@ public sealed class CombineCommands
         }
         catch (Autodesk.AutoCAD.Runtime.Exception ex)
         {
-            log.Error(ex, "Ошибка MERGEDWG_BATCH");
+            log.Error(ex, "MERGEDWG_BATCH");
             result = MergeExecutionResult.Fail(null, ex.Message);
         }
         catch (InvalidOperationException ex)
         {
-            log.Error(ex, "Ошибка MERGEDWG_BATCH");
+            log.Error(ex, "MERGEDWG_BATCH");
             result = MergeExecutionResult.Fail(null, ex.Message);
         }
         catch (IOException ex)
         {
-            log.Error(ex, "Ошибка MERGEDWG_BATCH");
+            log.Error(ex, "MERGEDWG_BATCH");
             result = MergeExecutionResult.Fail(null, ex.Message);
         }
         catch (UnauthorizedAccessException ex)
         {
-            log.Error(ex, "Ошибка MERGEDWG_BATCH");
+            log.Error(ex, "MERGEDWG_BATCH");
             result = MergeExecutionResult.Fail(null, ex.Message);
         }
         finally
