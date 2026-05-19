@@ -68,7 +68,7 @@ public sealed class TextStyleCommands
                 }
 
                 trx.Commit();
-                log.Information($"MergeTextStyles: групп дубликатов {duplicateGroups.Count}, обновлено объектов {updatedObjects}, удалено стилей {deletedStyles}.");
+                log.Information("MergeTextStyles: групп дубликатов {DuplicateGroups}, обновлено объектов {UpdatedObjects}, удалено стилей {DeletedStyles}.", duplicateGroups.Count, updatedObjects, deletedStyles);
             }
 
             log.Information("Завершение команды MergeTextStyles.");
@@ -253,7 +253,7 @@ public sealed class TextStyleCommands
             }
             catch (Autodesk.AutoCAD.Runtime.Exception ex)
             {
-                log.Warning($"MergeTextStyles: не удалось удалить стиль '{styleRecord.Name}': {ex.Message}");
+                log.Warning("MergeTextStyles: не удалось удалить стиль '{StyleName}': {Message}", styleRecord.Name, ex.Message);
             }
         }
 

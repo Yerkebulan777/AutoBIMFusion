@@ -123,7 +123,7 @@ public sealed class JoinCommands
 
                 if (joinedGroups > 0)
                 {
-                    log.Information($"Объединено групп: {joinedGroups}, исходных линий: {joinedLines}");
+                    log.Information("Объединено групп: {JoinedGroups}, исходных линий: {JoinedLines}", joinedGroups, joinedLines);
                 }
                 else
                 {

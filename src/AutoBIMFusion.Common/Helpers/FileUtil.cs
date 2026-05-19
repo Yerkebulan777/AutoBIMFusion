@@ -113,11 +113,11 @@ public static class FileUtil
         }
         catch (IOException ex)
         {
-            log.Warning(ex, $"Не удалось удалить временную папку: {tempFolder}");
+            log.Warning(ex, "Не удалось удалить временную папку: {TempFolder}", tempFolder);
         }
         catch (UnauthorizedAccessException ex)
         {
-            log.Warning(ex, $"Нет прав на удаление временной папки: {tempFolder}");
+            log.Warning(ex, "Нет прав на удаление временной папки: {TempFolder}", tempFolder);
         }
     }
 
@@ -200,10 +200,9 @@ public static class FileUtil
             return false;
         }
 
-        FileStream fs = null;
         try
         {
-            fs = fi.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            using FileStream fs = fi.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None);
         }
         catch (Exception ex)
         {
@@ -213,10 +212,6 @@ public static class FileUtil
             }
 
             throw;
-        }
-        finally
-        {
-            fs?.Close();
         }
 
         return false;

@@ -36,10 +36,8 @@ internal static class ViewportTransformer
         var result = tMain * rMain * sMain * tPaper * sAux * rAux * tAux;
 
         log.Debug(
-            $"BuildMatrix aux#{aux.Number} -> main#{main.Number}: " +
-            $"auxScale={aux.CustomScale:F6}, mainScale={main.CustomScale:F6}, " +
-            $"auxTwist={aux.ViewTwist:F6}, mainTwist={main.ViewTwist:F6}, " +
-            $"auxWindow={ExtentsUtils.FormatExtents(aux.ModelWindow)}");
+            "BuildMatrix aux#{AuxNumber} -> main#{MainNumber}: auxScale={AuxScale:F6}, mainScale={MainScale:F6}, auxTwist={AuxTwist:F6}, mainTwist={MainTwist:F6}, auxWindow={AuxWindow}",
+            aux.Number, main.Number, aux.CustomScale, main.CustomScale, aux.ViewTwist, main.ViewTwist, ExtentsUtils.FormatExtents(aux.ModelWindow));
 
         return result;
     }
@@ -62,9 +60,8 @@ internal static class ViewportTransformer
         var result = tMain * rMain * sMain * tPaper;
 
         log.Debug(
-            $"BuildPaperToMainMatrix main#{main.Number}: " +
-            $"mainScale={main.CustomScale:F6}, mainTwist={main.ViewTwist:F6}, " +
-            $"centerPaper={ExtentsUtils.FormatPoint(main.CenterPaper)}, viewCenter={ExtentsUtils.FormatPoint(main.ViewCenter)}");
+            "BuildPaperToMainMatrix main#{MainNumber}: mainScale={MainScale:F6}, mainTwist={MainTwist:F6}, centerPaper={CenterPaper}, viewCenter={ViewCenter}",
+            main.Number, main.CustomScale, main.ViewTwist, ExtentsUtils.FormatPoint(main.CenterPaper), ExtentsUtils.FormatPoint(main.ViewCenter));
 
         return result;
     }
@@ -104,11 +101,12 @@ internal static class ViewportTransformer
                     if (ExtentsUtils.TryGetScaleRatio(oldExt, newExt, out var oldDig, out var newDig,
                             out var digRatio) && digRatio > ratio * 5.0)
                         log.Warning(
-                            $"[АНОМАЛИЯ МАСШТАБА] Тип: {entType}, Handle: {handle}. Диагональ ДО: {oldDig:F2}, ПОСЛЕ: {newDig:F2}");
+                            "[АНОМАЛИЯ МАСШТАБА] Тип: {EntityType}, Handle: {Handle}. Диагональ ДО: {OldDiag:F2}, ПОСЛЕ: {NewDiag:F2}",
+                            entType, handle, oldDig, newDig);
                 }
                 catch (Exception ex)
                 {
-                    log.Error(ex, $"[ОШИБКА ТРАНСФОРМАЦИИ] Тип: {entType}, Handle: {handle}. Сообщение: {ex.Message}");
+                    log.Error(ex, "[ОШИБКА ТРАНСФОРМАЦИИ] Тип: {EntityType}, Handle: {Handle}. Сообщение: {Message}", entType, handle, ex.Message);
 
                     if (!errorTypes.TryGetValue(entType, out var value))
                     {
@@ -125,7 +123,7 @@ internal static class ViewportTransformer
         if (errorTypes.Count > 0)
         {
             var errorStr = string.Join(", ", errorTypes.Select(kv => $"{kv.Key}({kv.Value})"));
-            log.Warning($"Ошибочные типы (Scale): {errorStr}");
+            log.Warning("Ошибочные типы (Scale): {ErrorTypes}", errorStr);
         }
     }
 
@@ -154,7 +152,7 @@ internal static class ViewportTransformer
         }
 
         trx.Commit();
-        log.Debug($"CollectModelEntitiesWithExtents total={total}, cached={result.Count}");
+        log.Debug("CollectModelEntitiesWithExtents total={Total}, cached={Cached}", total, result.Count);
         return result;
     }
 
@@ -224,7 +222,7 @@ internal static class ViewportTransformer
             }
             catch (Exception ex)
             {
-                log.Warning($"[ОШИБКА КЛОНА] {entity.GetType().Name} {entity.Handle}: {ex.Message}");
+                log.Warning("[ОШИБКА КЛОНА] {EntityType} {Handle}: {Message}", entity.GetType().Name, entity.Handle, ex.Message);
             }
         }
     }
@@ -268,9 +266,8 @@ internal static class ViewportTransformer
         }
 
         log.Debug(
-            $"SelectModelInside cached={modelEntities.Count}, selected={result.Count}, " +
-            $"skippedHuge={skippedHugeObjects}, outsideWindow={outsideWindow}, " +
-            $"window={ExtentsUtils.FormatExtents(window)}");
+            "SelectModelInside cached={Cached}, selected={Selected}, skippedHuge={SkippedHuge}, outsideWindow={OutsideWindow}, window={Window}",
+            modelEntities.Count, result.Count, skippedHugeObjects, outsideWindow, ExtentsUtils.FormatExtents(window));
         return result;
     }
 

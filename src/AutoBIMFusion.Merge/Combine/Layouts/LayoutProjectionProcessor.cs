@@ -298,7 +298,7 @@ internal static class LayoutProjectionProcessor
         var result = ExtentsUtils.ComputeBounds(db, entityIds);
 
         if (result.HasValue)
-            log.Debug($"ComputeBounds: entities={entityIds.Count}, bounds={ExtentsUtils.FormatExtents(result.Value)}");
+            log.Debug("ComputeBounds: entities={Count}, bounds={Bounds}", entityIds.Count, ExtentsUtils.FormatExtents(result.Value));
 
         return result;
     }

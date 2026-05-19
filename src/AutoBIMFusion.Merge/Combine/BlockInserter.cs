@@ -63,7 +63,7 @@ public sealed class BlockInserter(double gapPercent, Logger log)
             if (sourceIds.Count == 0) return null;
 
             var placementBounds = ExtentsUtils.ComputeLiveBounds(sourceDb, sourceIds) ?? sourceBounds;
-            log.Debug($"{sourceName}: placement bounds {ExtentsUtils.FormatExtents(placementBounds)}");
+            log.Debug("{SourceName}: placement bounds {Bounds}", sourceName, ExtentsUtils.FormatExtents(placementBounds));
 
             var insertPt = CalcInsertionPoint(placementBounds);
             var displacement = Matrix3d.Displacement(new Vector3d(insertPt.X, insertPt.Y, insertPt.Z));
@@ -102,7 +102,7 @@ public sealed class BlockInserter(double gapPercent, Logger log)
 
             if (clonedCount == 0)
             {
-                log.Warning($"{sourceName}: не удалось клонировать объекты");
+                log.Warning("{SourceName}: не удалось клонировать объекты", sourceName);
                 return null;
             }
 
@@ -115,7 +115,7 @@ public sealed class BlockInserter(double gapPercent, Logger log)
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Ошибка вставки: {sourceName}");
+            log.Error(ex, "Ошибка вставки: {SourceName}", sourceName);
             return null;
         }
     }

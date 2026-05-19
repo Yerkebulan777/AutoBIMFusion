@@ -37,7 +37,7 @@ internal static class DrawOrderPreserver
                 filtered.Add(id);
 
         trx.Commit();
-        log.Debug($"DrawOrderPreserver.Capture: fullOrder={fullOrder.Count}, filtered={filtered.Count}");
+        log.Debug("DrawOrderPreserver.Capture: fullOrder={FullOrder}, filtered={Filtered}", fullOrder.Count, filtered.Count);
         return filtered;
     }
 
@@ -64,7 +64,7 @@ internal static class DrawOrderPreserver
 
         if (orderedTargets.Count <= 1)
         {
-            log.Debug($"DrawOrderPreserver.Restore: нечего упорядочивать (orderedTargets={orderedTargets.Count})");
+            log.Debug("DrawOrderPreserver.Restore: нечего упорядочивать (orderedTargets={Count})", orderedTargets.Count);
             return;
         }
 
@@ -82,6 +82,6 @@ internal static class DrawOrderPreserver
         sortents.SetRelativeDrawOrder(orderedTargets);
 
         trx.Commit();
-        log.Debug($"DrawOrderPreserver.Restore: reordered={orderedTargets.Count}, missingMapping={missingMapping}");
+        log.Debug("DrawOrderPreserver.Restore: reordered={Reordered}, missingMapping={MissingMapping}", orderedTargets.Count, missingMapping);
     }
 }

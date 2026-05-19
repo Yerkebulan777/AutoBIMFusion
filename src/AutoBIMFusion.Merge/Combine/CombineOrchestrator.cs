@@ -37,7 +37,7 @@ public static class CombineOrchestrator
 
             if (!bounds.HasValue) return CombineResult.Warn(fileName, "Пустой файл");
 
-            log.Debug($"{fileName}: source bounds before insert {ExtentsUtils.FormatExtents(bounds.Value)}");
+            log.Debug("{FileName}: source bounds before insert {Bounds}", fileName, ExtentsUtils.FormatExtents(bounds.Value));
 
             RasterImagePathFixer.CopyImagesToTargetFolder(prepared.Db, targetSavePath, log);
 
@@ -63,7 +63,7 @@ public static class CombineOrchestrator
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Ошибка: {fileName}");
+            log.Error(ex, "Ошибка: {FileName}", fileName);
             return CombineResult.Fail(fileName, ex.Message, "Ошибка обработки");
         }
     }

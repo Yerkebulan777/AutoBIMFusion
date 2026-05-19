@@ -66,7 +66,7 @@ public sealed class TransmittalCommands
 
             if (!string.Equals(addResultName, "eFileAdded", StringComparison.OrdinalIgnoreCase))
             {
-                log.Warning($"Не удалось добавить чертеж в пакет eTransmit. Код: {addResultName}");
+                log.Warning("Не удалось добавить чертеж в пакет eTransmit. Код: {AddResultName}", addResultName);
                 return;
             }
 
@@ -75,7 +75,7 @@ public sealed class TransmittalCommands
             log.Information("Создание ZIP-архива...");
             ZipFile.CreateFromDirectory(tempFolder, zipFilePath, CompressionLevel.Optimal, false);
 
-            log.Information($"Пакет eTransmit сохранен: {zipFilePath}");
+            log.Information("Пакет eTransmit сохранен: {ZipFilePath}", zipFilePath);
         }
         catch (System.Exception ex)
         {
@@ -97,7 +97,7 @@ public sealed class TransmittalCommands
             try
             {
                 ReflectionHelper.SetMemberValue(transmittalInfo, candidateName, tempFolder, required: true);
-                log.Debug($"Поле назначения eTransmit задано через: {candidateName}");
+                log.Debug("Поле назначения eTransmit задано через: {CandidateName}", candidateName);
                 destinationSet = true;
                 break;
             }
@@ -165,7 +165,7 @@ public sealed class TransmittalCommands
         }
         catch (System.Exception ex)
         {
-            log.Debug($"TryLoadAssemblyByName: {assemblyName} — {ex.GetType().Name}: {ex.Message}");
+            log.Debug("TryLoadAssemblyByName: {AssemblyName} — {ExceptionType}: {ExceptionMessage}", assemblyName, ex.GetType().Name, ex.Message);
         }
     }
 
@@ -180,7 +180,7 @@ public sealed class TransmittalCommands
         }
         catch (System.Exception ex)
         {
-            log.Debug($"TryLoadAssemblyByPath: {assemblyPath} — {ex.GetType().Name}: {ex.Message}");
+            log.Debug("TryLoadAssemblyByPath: {AssemblyPath} — {ExceptionType}: {ExceptionMessage}", assemblyPath, ex.GetType().Name, ex.Message);
         }
     }
 }

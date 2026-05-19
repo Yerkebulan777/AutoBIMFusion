@@ -44,16 +44,16 @@ public static class RasterImagePathFixer
                 var path = def.SourceFileName;
                 if (string.IsNullOrWhiteSpace(path))
                 {
-                    log.Warning($"RasterImageDef '{entry.Key}': путь не задан");
+                    log.Warning("RasterImageDef '{Key}': путь не задан", entry.Key);
                     continue;
                 }
 
                 if (!FileUtil.TryResolveImagePath(db, path, targetDir, out var resolvedPath, out var resolveError))
                 {
                     if (resolveError is not null)
-                        log.Warning(resolveError, $"RasterImageDef '{entry.Key}': ошибка разрешения пути: {path}");
+                        log.Warning(resolveError, "RasterImageDef '{Key}': ошибка разрешения пути: {Path}", entry.Key, path);
                     else
-                        log.Warning($"RasterImageDef '{entry.Key}': файл не найден: {path}");
+                        log.Warning("RasterImageDef '{Key}': файл не найден: {Path}", entry.Key, path);
 
                     continue;
                 }
@@ -84,7 +84,7 @@ public static class RasterImagePathFixer
             }
             catch (Exception ex)
             {
-                log.Warning(ex, $"RasterImageDef '{entry.Key}': не удалось обработать изображение");
+                log.Warning(ex, "RasterImageDef '{Key}': не удалось обработать изображение", entry.Key);
             }
 
         trx.Commit();

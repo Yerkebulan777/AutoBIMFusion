@@ -165,7 +165,7 @@ public sealed class CombineCommands
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Ошибка {commandName}");
+            log.Error(ex, "Ошибка {Command}", commandName);
             return MergeExecutionResult.Fail(null, ex.Message);
         }
         finally
@@ -381,7 +381,7 @@ public sealed class CombineCommands
         }
         catch (Exception ex)
         {
-            log.Error(ex, $"Сбой сохранения: {savePath}");
+            log.Error(ex, "Сбой сохранения: {SavePath}", savePath);
             throw;
         }
     }

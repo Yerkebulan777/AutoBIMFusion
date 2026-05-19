@@ -81,7 +81,7 @@ public sealed class SmartTextCommands
                 }
 
                 trx.Commit();
-                log.Information($"SMART_MERGE_TEXT: собрано групп текста: {mergedGroupsCount}");
+                log.Information("SMART_MERGE_TEXT: собрано групп текста: {MergedGroupsCount}", mergedGroupsCount);
             }
 
             log.Information("Завершение команды SMART_MERGE_TEXT.");
@@ -162,7 +162,7 @@ public sealed class SmartTextCommands
             }
         }
 
-        log.Information($"Диагностика Model Space: найдено однострочных TEXT: {textCount}, многострочных MTEXT: {mtextCount}, других объектов: {otherCount}");
+        log.Information("Диагностика Model Space: найдено однострочных TEXT: {TextCount}, многострочных MTEXT: {MTextCount}, других объектов: {OtherCount}", textCount, mtextCount, otherCount);
 
         return result;
     }

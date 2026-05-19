@@ -2,7 +2,6 @@
 
     <PropertyGroup>
         <Configurations>DebugA25;DebugA26;DebugA27;ReleaseA25;ReleaseA26;ReleaseA27</Configurations>
-        <TargetFramework>net10.0-windows</TargetFramework>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)' == 'DebugA25' Or '$(Configuration)' == 'ReleaseA25'">

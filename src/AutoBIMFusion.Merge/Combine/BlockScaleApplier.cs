@@ -34,21 +34,20 @@ public static class BlockScaleApplier
 
         if (btr.IsFromExternalReference || btr.IsDependent)
         {
-            log.Warning(
-                $"BlockScaleApplier: блок \"{blockName}\" является внешним или зависимым, нормализация пропущена.");
+            log.Warning("BlockScaleApplier: блок \"{BlockName}\" является внешним или зависимым, нормализация пропущена.", blockName);
             return;
         }
 
         if (!IsUniformScaleAllowNegative(blockRef))
         {
-            log.Warning($"BlockScaleApplier: блок \"{blockName}\" не имеет равномерного масштаба.");
+            log.Warning("BlockScaleApplier: блок \"{BlockName}\" не имеет равномерного масштаба.", blockName);
             return;
         }
 
         var refScale = Abs(blockRef.ScaleFactors.X);
         if (refScale < Generic.LowTolerance.EqualVector)
         {
-            log.Warning($"BlockScaleApplier: блок \"{blockName}\" имеет нулевой масштаб, нормализация пропущена.");
+            log.Warning("BlockScaleApplier: блок \"{BlockName}\" имеет нулевой масштаб, нормализация пропущена.", blockName);
             return;
         }
 
@@ -65,7 +64,7 @@ public static class BlockScaleApplier
             }
             catch (Exception ex)
             {
-                log.Warning(ex, $"BlockScaleApplier: не удалось масштабировать объект блока \"{blockName}\".");
+                log.Warning(ex, "BlockScaleApplier: не удалось масштабировать объект блока \"{BlockName}\".", blockName);
             }
 
         var scaleFactor = 1.0 / refScale;

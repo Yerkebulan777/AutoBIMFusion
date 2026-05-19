@@ -53,7 +53,7 @@ internal static class ViewportLayoutExporter
 
             if (!LayoutUtil.TryFindFirstLayout(db, out var layoutName))
             {
-                log.Warning($"{fileName}: листы не найдены");
+                log.Warning("{FileName}: листы не найдены", fileName);
                 db.Dispose();
                 return null;
             }
