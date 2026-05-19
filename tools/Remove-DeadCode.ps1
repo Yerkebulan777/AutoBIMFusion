@@ -77,13 +77,13 @@ function Write-Header([string]$msg) {
     Write-Host ("=" * 60) -ForegroundColor DarkGray
 }
 
-function Confirm-Action([string]$prompt): [bool] {
+function Confirm-Action([string]$prompt) {
     if ($AutoConfirm) { return $true }
     $reply = Read-Host "$prompt [y/N]"
     return $reply -match '^[Yy]'
 }
 
-function Build-Verify(): [bool] {
+function Build-Verify() {
     Write-Host "  Verifying build..." -ForegroundColor Gray
     $pluginProj = Join-Path $repoRoot "src\AutoBIMFusion.Plugin\AutoBIMFusion.Plugin.csproj"
     $output = dotnet build $pluginProj -c $Configuration --no-incremental -nologo 2>&1
@@ -96,7 +96,19 @@ function Build-Verify(): [bool] {
     return $true
 }
 
-function Get-MethodBounds([string]$filePath, [string]$symbolName, [int]$approxLine): @{Start=[int]; End=[int]} {
+function Strip-CodeNoise([string]$line) {
+    # Remove single-line comments
+    $line = $line -replace '//.*$', ''
+    # Remove double-quoted string literals (handles simple cases; \" inside strings not counted)
+    $line = $line -replace '"[^"]*"', '""'
+    # Remove single-quoted char literals like '{' or '}'
+    $line = $line -replace "'\.'", "'x'"
+    # Remove verbatim strings @"..."  (single-line portion only)
+    $line = $line -replace '@"[^"]*"', '@""'
+    return $line
+}
+
+function Get-MethodBounds([string]$filePath, [string]$symbolName, [int]$approxLine) {
     $lines  = Get-Content $filePath
     $total  = $lines.Count
 
@@ -137,11 +149,12 @@ function Get-MethodBounds([string]$filePath, [string]$symbolName, [int]$approxLi
         }
     }
 
-    # Find opening brace
+    # Find opening brace — strip strings/comments first to avoid false brace counts
     $braceDepth = 0
     $bodyStart  = -1
     for ($i = $declLine; $i -lt $total; $i++) {
-        foreach ($ch in $lines[$i].ToCharArray()) {
+        $stripped = Strip-CodeNoise $lines[$i]
+        foreach ($ch in $stripped.ToCharArray()) {
             if ($ch -eq '{') {
                 $braceDepth++
                 $bodyStart = $i

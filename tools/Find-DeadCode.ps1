@@ -1,13 +1,7 @@
 <#
 .SYNOPSIS
-    Finds dead code in AutoBIMFusion not reachable from MERGEDWG / MERGEDWG_BATCH.
-
-.DESCRIPTION
-    Two-pass analysis:
-      Pass 1 — GitNexus (already complete): results in tools/dead-code-candidates.md
-      Pass 2 — Roslynator: finds unused private members per project, appends to the same file.
-
-    Run from repo root or tools/ directory.
+    Runs Roslynator analyze on all three AutoBIMFusion projects.
+    Saves output to tools/roslynator-results.txt.
 
 .EXAMPLE
     .\tools\Find-DeadCode.ps1
@@ -15,16 +9,15 @@
 #>
 
 param(
-    [string]$Configuration = "DebugA26",
-    [switch]$SkipRoslynator
+    [string]$Configuration = "DebugA26"
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$scriptRoot  = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repoRoot    = Split-Path -Parent $scriptRoot
-$reportFile  = Join-Path $scriptRoot "dead-code-candidates.md"
+$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot   = Split-Path -Parent $scriptRoot
+$outputFile = Join-Path $scriptRoot "roslynator-results.txt"
 
 $projects = @(
     "src\AutoBIMFusion.Common\AutoBIMFusion.Common.csproj",
@@ -32,91 +25,36 @@ $projects = @(
     "src\AutoBIMFusion.Plugin\AutoBIMFusion.Plugin.csproj"
 )
 
-# ---------------------------------------------------------------------------
-# Helper
-# ---------------------------------------------------------------------------
-function Write-Section([string]$title) {
-    Write-Host ""
-    Write-Host "=== $title ===" -ForegroundColor Cyan
+# Install roslynator if missing
+$cmd = Get-Command roslynator -ErrorAction SilentlyContinue
+if ($null -eq $cmd) {
+    Write-Host "Installing roslynator..." -ForegroundColor Yellow
+    dotnet tool install -g roslynator.dotnet.cli
+    if ($LASTEXITCODE -ne 0) { Write-Error "Install failed."; exit 1 }
+    Write-Host "Installed." -ForegroundColor Green
 }
 
-# ---------------------------------------------------------------------------
-# Roslynator install check
-# ---------------------------------------------------------------------------
-if (-not $SkipRoslynator) {
-    Write-Section "Checking Roslynator"
-    $roslynatorPath = (Get-Command roslynator -ErrorAction SilentlyContinue)?.Source
+if (Test-Path $outputFile) { Remove-Item $outputFile }
 
-    if (-not $roslynatorPath) {
-        Write-Host "Roslynator not found. Installing..." -ForegroundColor Yellow
-        dotnet tool install -g roslynator.dotnet.cli
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "Install failed. Rerun with -SkipRoslynator to skip Roslynator pass."
-            exit 1
-        }
-        Write-Host "Roslynator installed." -ForegroundColor Green
-    } else {
-        Write-Host "Roslynator found: $roslynatorPath" -ForegroundColor Green
+$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm"
+Add-Content $outputFile "Roslynator analyze — $timestamp | Config: $Configuration"
+Add-Content $outputFile ("=" * 60)
+
+foreach ($proj in $projects) {
+    $projPath = Join-Path $repoRoot $proj
+    Write-Host "Analyzing $proj ..." -ForegroundColor Cyan
+
+    Add-Content $outputFile ""
+    Add-Content $outputFile "### $proj"
+
+    $output = roslynator analyze $projPath --severity-level info 2>&1
+    $output | Add-Content $outputFile
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "roslynator returned non-zero for $proj"
     }
 }
-
-# ---------------------------------------------------------------------------
-# Pass 2: Roslynator per-project
-# ---------------------------------------------------------------------------
-if (-not $SkipRoslynator) {
-    Write-Section "Pass 2 — Roslynator (unused private members)"
-
-    $roslynatorRaw = Join-Path $scriptRoot "roslynator-unused-raw.txt"
-    if (Test-Path $roslynatorRaw) { Remove-Item $roslynatorRaw }
-
-    foreach ($proj in $projects) {
-        $projPath = Join-Path $repoRoot $proj
-        Write-Host "  Analyzing $proj ..." -ForegroundColor Gray
-
-        # Roslynator find-symbols finds unused symbols (unreferenced types/members).
-        # We focus on: unused members (private fields, methods, properties) and unused types.
-        $output = roslynator find-symbols `
-            --project $projPath `
-            --symbol-kind all `
-            --visibility private,internal `
-            2>&1
-
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "  Roslynator failed for $proj. Continuing."
-        } else {
-            Add-Content -Path $roslynatorRaw -Value "### $proj"
-            Add-Content -Path $roslynatorRaw -Value ($output | Out-String)
-            Add-Content -Path $roslynatorRaw -Value ""
-        }
-    }
-
-    Write-Host "Raw Roslynator output saved to: $roslynatorRaw" -ForegroundColor Green
-}
-
-# ---------------------------------------------------------------------------
-# Update report header timestamp
-# ---------------------------------------------------------------------------
-Write-Section "Updating report timestamp"
-
-$header = @"
-
----
-<!-- Roslynator pass run: $(Get-Date -Format 'yyyy-MM-dd HH:mm') | Config: $Configuration -->
-<!-- Raw Roslynator output: tools/roslynator-unused-raw.txt -->
-
-## Pass 2 — Roslynator Results
-
-See ``tools\roslynator-unused-raw.txt`` for full output.
-Cross-reference with the GitNexus candidates above to determine confidence level.
-
-**Confidence guide:**
-- Both GitNexus + Roslynator flag → **High** — safe to remove
-- Only GitNexus flags → **Medium** — check for event handlers / reflection / interface impls
-- Only Roslynator flags → **Low** — verify not used as public API from outside
-"@
-
-Add-Content -Path $reportFile -Value $header
 
 Write-Host ""
-Write-Host "Done. Review: $reportFile" -ForegroundColor Green
-Write-Host "Next step:   .\tools\Remove-DeadCode.ps1 --dry-run" -ForegroundColor Yellow
+Write-Host "Results: $outputFile" -ForegroundColor Green
+Write-Host "Cross-reference with: tools\dead-code-candidates.md" -ForegroundColor Yellow
