@@ -1,6 +1,6 @@
 # Алгоритм работы AutoBIMFusion
 
-**Последнее обновление:** 2026-05-15
+**Последнее обновление:** 2026-05-19
 
 ## 1. Запуск и выбор файлов
 
@@ -21,7 +21,7 @@
 5. Layout выбирается через `LayoutUtil.TryFindFirstLayout`: минимальный `TabOrder` среди Paper Space layouts (записи с `ModelType = true` пропускаются).
 6. `ViewportCollector.Collect` собирает viewports выбранного листа.
 7. `ExtentsUtils.GetDatabaseExtents` вычисляет границы подготовленной базы в `CombineOrchestrator` перед вставкой.
-8. `SmallOutOfFrameEntityCleaner.Clean()` — удаление малых объектов после проекции Layout в Model Space: диагональ bbox должна быть ≤15 единиц, а центральная точка bbox по XY должна находиться за рамкой листа. Рамка определяется как самый габаритный `BlockReference` из LayoutSpace и трансформируется той же матрицей, что и Paper Space. Критично выполнять ДО нормализации базовых точек, т.к. мелкая мусорная геометрия может исказить extents calculations.
+8. `OutOfFrameEntityCleaner.Clean()` — удаление малых объектов после проекции Layout в Model Space: диагональ bbox должна быть ≤15 единиц, а центральная точка bbox по XY должна находиться за рамкой листа. Рамка определяется как самый габаритный `BlockReference` из LayoutSpace и трансформируется той же матрицей, что и Paper Space. Критично выполнять ДО нормализации базовых точек, т.к. мелкая мусорная геометрия может исказить extents calculations.
 9. `BlockBasePointEditor.NormalizeAllBlocksBasePoints()` — вычисление extents блока (игнорируя entities с diagonal < 25), расчёт offset от origin до bottom-left corner, сдвиг definition geometry на `-offset` и всех block references на `+offset` (компенсированный через rotation/scale matrix). Пропускает layouts, anonymous, dynamic, xref блоки.
 10. `BlockScaleApplier.NormalizeBlockScale()` — масштабирование всех entities в block definition на refScale, обратное масштабирование всех block reference ScaleFactors, обновление anonymous blocks для dynamic blocks, сохранение пропорций при разных масштабах вставок.
 
@@ -48,7 +48,7 @@
 
 *Выполняется внутри `ViewportLayoutExporter.PrepareDatabaseForMerge`.*
 
-1. Если рассчитана рамка листа (`projection.FrameBounds.HasValue`), `SmallOutOfFrameEntityCleaner.Clean` удаляет только малые объекты, центр bbox которых находится за рамкой.
+1. Если рассчитана рамка листа (`projection.FrameBounds.HasValue`), `OutOfFrameEntityCleaner.Clean` удаляет только малые объекты, центр bbox которых находится за рамкой.
 2. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `source-after-normalize-before-clone` только при `LOG_LEVEL=DEBUG`.
 3. После вставки в target `DimensionStyleNormalizer` удаляет DSTYLE overrides из XData/ExtensionDictionary и пересчитывает скопированные размеры.
 

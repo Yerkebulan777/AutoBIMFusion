@@ -1,6 +1,6 @@
 # Структура проекта AutoBIMFusion
 
-**Последнее обновление:** 2026-05-15
+**Последнее обновление:** 2026-05-19
 
 ## Цель структуры
 
@@ -21,30 +21,32 @@ src/
     Resources/
   AutoBIMFusion.Merge/
     Combine/
+      ├── BlockBasePointEditor.cs
       ├── BlockInserter.cs
+      ├── BlockScaleApplier.cs
       ├── CombineOrchestrator.cs
       ├── CombineResult.cs
       ├── CombineStatistics.cs
-      ├── SmallOutOfFrameEntityCleaner.cs
-      ├── BlockBasePointEditor.cs
-      ├── BlockScaleApplier.cs
       ├── DrawingPurger.cs
+      ├── OutOfFrameEntityCleaner.cs
       ├── RasterImagePathFixer.cs
       └── Layouts/
-          ├── ViewportLayoutExporter.cs
+          ├── DimensionStyleDiagnosticUtils.cs
+          ├── DimensionStyleNormalizer.cs
+          ├── DrawOrderPreserver.cs
           ├── LayoutProjectionProcessor.cs
+          ├── StyleUnificationService.cs
           ├── ViewportCollector.cs
           ├── ViewportInfo.cs
-          ├── ViewportTransformer.cs
+          ├── ViewportLayoutExporter.cs
           ├── ViewportScaleNormalizer.cs
-          ├── DrawOrderPreserver.cs
-          ├── DimensionStyleNormalizer.cs
-          ├── StyleUnificationService.cs
-          └── DimensionStyleDiagnosticUtils.cs
+          └── ViewportTransformer.cs
   AutoBIMFusion.Common/
     ├── AcadSupport/
     │   ├── AcadWarningSuppressScope.cs
     │   └── DatabaseUnitSyncScope.cs
+    ├── Compatibility/
+    │   └── LegacySettings.cs
     ├── Extensions/          (30 файлов extension methods)
     ├── Drawing/
     │   ├── BlockReferences.cs
@@ -52,14 +54,33 @@ src/
     ├── Mist/
     │   ├── Generic.cs
     │   ├── AutoCAD/
+    │   │   ├── Layers.cs
+    │   │   ├── SelectInXref.cs
+    │   │   └── ViewportLock.cs
     │   └── Geometry/
+    │       ├── Arythmetique.cs
+    │       ├── Points.cs
+    │       ├── CotePoints.cs
+    │       └── PolygonOperations/
+    │           ├── InnerCentroid.cs
+    │           ├── Intersection.cs
+    │           ├── PolyHole.cs
+    │           ├── Slice.cs
+    │           ├── Substraction.cs
+    │           └── Union.cs
     ├── Helpers/
+    │   ├── AlgorithmUtils.cs
+    │   ├── EntityTransformUtils.cs
     │   ├── ExtentsUtils.cs
     │   ├── FileUtil.cs
-    │   ├── EntityTransformUtils.cs
-    │   └── LayoutUtil.cs
+    │   ├── FormatUtils.cs
+    │   ├── LayoutUtil.cs
+    │   ├── MTextUtils.cs
+    │   ├── NumericUtils.cs
+    │   ├── ReflectionHelper.cs
+    │   ├── StringUtils.cs
+    │   └── WindowsNaturalComparer.cs
     ├── UiDialogService.cs
-    ├── WindowsNaturalComparer.cs
     └── Logging/
         └── LoggerFactory.cs
   AutoBIMFusion.Infrastructure/
@@ -134,6 +155,8 @@ dotnet build AutoBIMFusion.slnx -c DebugA26
 dotnet build AutoBIMFusion.slnx -c DebugA26 /p:CoreConsoleDiagnostics=true
 dotnet run --project tests/AutoBIMFusion.Tests/AutoBIMFusion.Tests.csproj -c DebugA26
 ```
+
+С `Directory.Build.props` включены Roslyn анализаторы (`AnalysisLevel=latest`, `EnableNETAnalyzers=true`) для обнаружения неиспользуемого кода.
 
 Release matrix:
 

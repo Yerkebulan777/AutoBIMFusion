@@ -1,6 +1,6 @@
 # Техническая документация AutoBIMFusion
 
-**Последнее обновление:** 2026-05-15
+**Последнее обновление:** 2026-05-19
 
 ## 1. Обзор
 
@@ -27,13 +27,17 @@ src/
     Resources/
   AutoBIMFusion.Merge/
     Combine/
+      OutOfFrameEntityCleaner.cs
       Layouts/
   AutoBIMFusion.Common/
     AcadSupport/
-    FileUtil.cs
-    LayoutUtil.cs
+    Compatibility/
+    Drawing/
+    Extensions/
+    Helpers/
+    Mist/
     UiDialogService.cs
-    WindowsNaturalComparer.cs
+    Logging/
   AutoBIMFusion.Infrastructure/
     Logging/
 tests/
@@ -92,7 +96,7 @@ AutoBIMFusion.Tests
 | `DimensionStyleNormalizer` | `AutoBIMFusion.Merge` | Очистка DSTYLE overrides и назначение чистого AutoBIM-стиля скопированным размерам |
 | `DimensionStyleDiagnosticUtils` | `AutoBIMFusion.Merge` | Диагностические снимки размерных стилей, включаются при `LOG_LEVEL=DEBUG` |
 | `BlockInserter` | `AutoBIMFusion.Merge` | `WblockCloneObjects` + расстановка по оси X |
-| `SmallOutOfFrameEntityCleaner` | `AutoBIMFusion.Merge` | Удаление малых объектов, центр bbox которых находится за рамкой листа |
+| `OutOfFrameEntityCleaner` | `AutoBIMFusion.Merge` | Удаление малых объектов, центр bbox которых находится за рамкой листа |
 | `BlockBasePointEditor` | `AutoBIMFusion.Merge` | Нормализация базовых точек блоков в левый нижний угол (offset compensation) |
 | `BlockScaleApplier` | `AutoBIMFusion.Merge` | Нормализация non-uniform block scale к 1.0 (definition + inverse reference scaling) |
 | `StyleUnificationService` | `AutoBIMFusion.Merge` | Переименование text styles + применение GOST параметров ко всем dimension styles |
@@ -113,7 +117,7 @@ CombineCommands
   -> FileUtil
   -> CombineOrchestrator
   -> ViewportLayoutExporter / LayoutProjectionProcessor
-  -> SmallOutOfFrameEntityCleaner
+  -> OutOfFrameEntityCleaner
   -> BlockBasePointEditor
   -> BlockScaleApplier
   -> BlockInserter
@@ -153,7 +157,7 @@ CombineCommands
 - Любая запись в активный документ выполняется внутри `using (doc.LockDocument())`.
 - Транзакции создаются через `TransactionManager.StartTransaction()` и завершаются `Commit()`.
 - Фоновые `Database` уничтожаются через `using`.
-- `AcadWarningSuppressScope` восстанавливает системные переменные AutoCAD через RAII; `DatabaseUnitSyncScope` синхронизирует `Insunits`/`Measurement`/`Dimalt` source с target на время `WblockCloneObjects`.
+- `AcadWarningSuppressScope` восстанавливает системные переменные AutoCAD через RAII — сохраняет оригинальные значения при создании и восстанавливает при Dispose; `DatabaseUnitSyncScope` синхронизирует `Insunits`/`Measurement`/`Dimalt` source с target на время `WblockCloneObjects`.
 - AutoCAD API остается на основном потоке; API не потокобезопасен.
 
 ## 10. Логирование
@@ -165,7 +169,7 @@ CombineCommands
 
 ## 11. Extensions
 
-`AutoBIMFusion.Common/Extensions/` содержит ~30 файлов extension methods для упрощения работы с AutoCAD API:
+`AutoBIMFusion.Common/Extensions/` содержит 30 файлов extension methods для упрощения работы с AutoCAD API:
 
 | Extension | Назначение |
 |---|---|
@@ -179,12 +183,42 @@ CombineCommands
 | `CurvesExtensions` | Методы для Curve-наследников (parameter, point at distance) |
 | `HatchsExtensions` | Методы для Hatch (evaluate, loop management) |
 | `CollectionsExtensions` | `Join`, `ToHashSet` и другие collection helpers |
+| `DBTextExtensions` | Методы для DBText (alignment, formatting) |
+| `Point3dExtensions` | Методы для Point3d (distance, angle, containment) |
+| `Vector3dExtensions` | Методы для Vector3d (colinearity, rotation, projection) |
+| `ColorsExtensions` | Цветовые утилиты (HSV, brightness, contrast, hex) |
+| `StringExtensions` | Строковые утилиты (numeric extraction, diacritics, sanitization) |
+| `ArcsExtensions` | Методы для Arc (circular arc conversion, bulge) |
+| `LinesExtensions` | Методы для Line (intersection, vector, polyline conversion) |
+| `Extends3dExtensions` | Методы для Extents3d (geometry, center, collision, zoom) |
+| `RegionsExtensions` | Методы для Region (boolean operations, union, subtraction) |
+| `CircularArcExtensions` / `CircularArc2dExtensions` / `CircularArc3dExtensions` | Методы для CircularArc типов |
+| `ListExtensions` | Методы для List (remove common, sum numeric, deep dispose) |
+| `IEnumerableExtensions` | Extension methods для IEnumerable |
+| `Point3dCollectionExtensions` | Методы для Point3dCollection |
+| `IntegerCollectionExtensions` | Методы для IntegerCollection |
+| `DBObjectCollectionExtensions` | Методы для DBObjectCollection |
+| `AttributeCollectionExtensions` | Методы для AttributeCollection |
+| `BitmapExtensions` | Методы для Bitmap (image file size, rotation) |
+| `ConcurrentBagExtensions` | Методы для ConcurrentBag |
 
 Extensions централизуют повторяющуюся логику и обеспечивают единообразную обработку ошибок across the codebase.
 
-## 12. Drawing & Mist helpers
+## 13. Roslyn анализаторы и CI
 
-### Drawing
+С мая 2026 включены Roslyn анализаторы через `Directory.Build.props`:
+
+- `AnalysisLevel=latest` — последние правила анализа
+- `EnforceCodeStyleInBuild=true` — проверка стиля кода при сборке
+- `EnableNETAnalyzers=true` — включение .NET analyzers
+- `TreatWarningsAsErrors=false` — предупреждения не блокируют сборку
+
+GitHub Actions workflows:
+- `.github/workflows/format-check.yml` — проверка форматирования
+- `.github/workflows/format.yml` — автоформатирование
+- `.github/workflows/dead-code.yml` — поиск неиспользуемого кода
+
+## 14. Drawing & Mist helpers
 
 - `BlockReferences.cs` (694 строки) — comprehensive block utilities: создание, копирование, трансформация block references; работа с dynamic block properties; поиск и фильтрация блоков по имени/слою.
 - `Entities.cs` — утилиты для создания и модификации AutoCAD entities (lines, polylines, circles, text, dimensions).
