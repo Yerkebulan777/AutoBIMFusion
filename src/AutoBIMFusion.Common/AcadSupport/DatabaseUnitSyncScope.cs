@@ -23,8 +23,7 @@ public sealed class DatabaseUnitSyncScope : IDisposable
         _sourceDb = sourceDb;
         _originalDimalt = sourceDb.Dimalt; // Dimalt влияет на масштаб размеров при клонировании
         _originalUnits = sourceDb.Insunits; // Сохраняем оригинальные единицы измерения, чтобы восстановить их в Dispose
-        _originalMeasurement =
-            sourceDb.Measurement; // Сохраняем оригинальную систему измерения, чтобы восстановить её в Dispose
+        _originalMeasurement = sourceDb.Measurement; // Сохраняем оригинальную систему измерения, чтобы восстановить её в Dispose
 
         if (_sourceDb.Insunits != targetDb.Insunits)
         {
