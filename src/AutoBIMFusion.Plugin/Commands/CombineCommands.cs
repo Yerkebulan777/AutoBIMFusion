@@ -94,13 +94,24 @@ public sealed class CombineCommands
 
         try
         {
-            var sourceFolder = folderPath;
+            string? sourceFolder;
 
-            if (UiDialogService.TrySelectFolder("Выберите папку с файлами DWG", out sourceFolder))
+            if (folderPath is null)
             {
-                var savePath = BuildSavePath(sourceFolder!);
+                if (!UiDialogService.TrySelectFolder("Выберите папку с файлами DWG", out sourceFolder))
+                {
+                    const string cancelMessage = "Выбор папки отменён.";
+                    return MergeExecutionResult.Fail(null, cancelMessage);
+                }
+            }
+            else
+            {
+                sourceFolder = folderPath;
+            }
 
-                var dwgFiles = FileUtil.GetFiles(sourceFolder!);
+            var savePath = BuildSavePath(sourceFolder!);
+
+            var dwgFiles = FileUtil.GetFiles(sourceFolder!);
 
                 if (dwgFiles.Length == 0)
                 {
@@ -158,10 +169,6 @@ public sealed class CombineCommands
                     : $"Завершено с ошибками. Успешно: {stats.Successful}, пропущено: {stats.Skipped}, ошибок: {stats.Failed}.";
 
                 return new MergeExecutionResult(stats.Failed == 0, savePath, message);
-            }
-
-            const string cancelMessage = "Выбор папки отменён.";
-            return MergeExecutionResult.Fail(null, cancelMessage);
         }
         catch (Exception ex)
         {
@@ -382,7 +389,6 @@ public sealed class CombineCommands
         catch (Exception ex)
         {
             log.Error(ex, "Сбой сохранения: {SavePath}", savePath);
-            throw;
         }
     }
 
