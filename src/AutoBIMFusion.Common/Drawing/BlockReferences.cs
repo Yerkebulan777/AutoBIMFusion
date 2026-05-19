@@ -365,9 +365,10 @@ public static class BlockReferences
         Database db = Generic.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
         BlockTable? bt = db.BlockTableId.GetObject(OpenMode.ForRead) as BlockTable;
+
         if (!bt.Has(BlocName))
         {
-            throw new Exception($"Le bloc {BlocName} n'existe pas dans le dessin");
+            throw new InvalidOperationException($"Le bloc {BlocName} n'existe pas dans le dessin");
         }
 
         BlockTableRecord? blockDef = bt[BlocName].GetObject(OpenMode.ForRead) as BlockTableRecord;
@@ -375,11 +376,12 @@ public static class BlockReferences
         return new BlockReference(PositionSCG, blockDef.ObjectId);
     }
 
-    public static ObjectId InsertFromName(string BlocName, Points BlocLocation, double Angle = 0,
-        Dictionary<string, string> AttributesValues = null, string Layer = null, BlockTableRecord targetSpace = null)
+    public static ObjectId InsertFromName(string BlocName, Points BlocLocation, double Angle = 0, Dictionary<string, string> AttributesValues = null, string Layer = null, BlockTableRecord targetSpace = null)
     {
         Database db = Generic.GetDatabase();
+
         using Transaction trx = db.TransactionManager.StartTransaction();
+
         if (targetSpace == null)
         {
             targetSpace = Generic.GetCurrentSpaceBlockTableRecord(trx);
