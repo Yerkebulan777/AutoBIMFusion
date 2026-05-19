@@ -96,7 +96,7 @@ public sealed class CombineCommands
         {
             string? sourceFolder = folderPath;
 
-            if (UiDialogService.TrySelectFolder("Выберите папку с файлами DWG для объединения", out sourceFolder))
+            if (UiDialogService.TrySelectFolder("Выберите папку с файлами DWG", out sourceFolder))
             {
                 string savePath = BuildSavePath(sourceFolder!);
 
