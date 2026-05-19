@@ -26,7 +26,12 @@
       "mcp__gitnexus__cypher",
       "mcp__gitnexus__query",
       "Bash(git checkout *)",
-      "Bash(npx gitnexus *)"
+      "Bash(npx gitnexus *)",
+      "Bash(powershell -ExecutionPolicy Bypass -File tools/Find-DeadCode.ps1)",
+      "Bash(dotnet tool *)",
+      "Bash(roslynator find-symbols *)",
+      "Bash(roslynator --help)",
+      "Bash(roslynator analyze *)"
     ]
   }
 }
