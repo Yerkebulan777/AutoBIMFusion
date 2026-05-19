@@ -263,6 +263,7 @@ public sealed class CombineCommands
     private static bool IsDrawingContentEmpty(Database db)
     {
         using Transaction tr = db.TransactionManager.StartOpenCloseTransaction();
+
         var blockTable = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
 
         if (!IsBlockRecordEmpty(blockTable[BlockTableRecord.ModelSpace], tr))
