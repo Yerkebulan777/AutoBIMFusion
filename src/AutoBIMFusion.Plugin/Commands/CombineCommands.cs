@@ -20,9 +20,9 @@ public sealed class CombineCommands
     private readonly SemaphoreSlim _mergeGate = new(1, 1);
 
     [CommandMethod("MERGEDWG", CommandFlags.Modal | CommandFlags.Session)]
-    public async Task MergeDwgFolderCommand()
+    public void MergeDwgFolderCommand()
     {
-        await ExecuteMergeAsync(null, true, "MERGEDWG");
+        ExecuteMerge(null, true, "MERGEDWG");
     }
 
     [CommandMethod("MERGEDWG_BATCH", CommandFlags.Modal | CommandFlags.Session)]
@@ -50,7 +50,7 @@ public sealed class CombineCommands
                 return;
             }
 
-            result = ExecuteMergeAsync(sourceFolder, false, "MERGEDWG_BATCH").GetAwaiter().GetResult();
+            result = ExecuteMerge(sourceFolder, false, "MERGEDWG_BATCH");
         }
         catch (Autodesk.AutoCAD.Runtime.Exception ex)
         {
@@ -81,11 +81,11 @@ public sealed class CombineCommands
         }
     }
 
-    private async Task<MergeExecutionResult> ExecuteMergeAsync(string? folderPath, bool showDialogs, string commandName)
+    private MergeExecutionResult ExecuteMerge(string? folderPath, bool showDialogs, string commandName)
     {
         Logger log = LoggerFactory.GetSharedLogger();
 
-        if (!await _mergeGate.WaitAsync(0))
+        if (!_mergeGate.Wait(0))
         {
             const string busyMessage = "Операция объединения уже выполняется.";
             log.Warning("{Command}: {Message}", commandName, busyMessage);
@@ -123,7 +123,7 @@ public sealed class CombineCommands
 
                 BlockInserter inserter = new(gapPercent, log);
 
-                await MergeFiles(dwgFiles, inserter, mergeDoc, stats, savePath, log);
+                MergeFiles(dwgFiles, inserter, mergeDoc, stats, savePath, log);
 
                 using (mergeDoc.LockDocument())
                 {
@@ -306,7 +306,7 @@ public sealed class CombineCommands
         return true;
     }
 
-    private static async Task MergeFiles(string[] files, BlockInserter inserter, Document doc, CombineStatistics stats,
+    private static void MergeFiles(string[] files, BlockInserter inserter, Document doc, CombineStatistics stats,
         string savePath, Logger log)
     {
         using ProgressMeter pm = new();
@@ -319,7 +319,7 @@ public sealed class CombineCommands
             {
                 stats.AddTotal();
 
-                CombineResult result = await CombineOrchestrator.MergeSingleFile(files[idx], inserter, doc, log, savePath);
+                CombineResult result = CombineOrchestrator.MergeSingleFile(files[idx], inserter, doc, log, savePath);
 
                 if (result.Success)
                 {
