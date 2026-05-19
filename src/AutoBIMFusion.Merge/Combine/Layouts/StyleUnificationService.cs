@@ -72,43 +72,6 @@ internal static class StyleUnificationService
         }
     }
 
-    /// <summary>
-    ///     Создаёт (или возвращает существующий) эталонный размерный стиль AutoBIM в целевой БД.
-    ///     TextSize связанного текстового стиля строго = 0.0 — иначе AutoCAD игнорирует Dimtxt.
-    /// </summary>
-    internal static ObjectId GetOrCreateStandardDimensionStyle(Database targetDb, Transaction trx,
-        string fontName = "Gost Common")
-    {
-        var dimStyleName = $"AutoBIM-{fontName}";
-
-        var dst = (DimStyleTable)trx.GetObject(targetDb.DimStyleTableId, OpenMode.ForRead);
-
-        // Gost Common: XScale = 0.85, Italic = true
-        var textStyleId = StyleUtils.GetOrCreateTextStyle(targetDb, trx, fontName, 0.85, true);
-
-        var arrowBlockId = StyleUtils.GetArrowBlockId(targetDb, trx);
-
-        if (dst.Has(dimStyleName))
-        {
-            var existing = (DimStyleTableRecord)trx.GetObject(dst[dimStyleName], OpenMode.ForWrite);
-            ApplyGostDimensionStyle(existing, textStyleId, arrowBlockId);
-            return existing.ObjectId;
-        }
-
-        if (!dst.IsWriteEnabled) dst.UpgradeOpen();
-
-        DimStyleTableRecord dsr = new()
-        {
-            Name = dimStyleName
-        };
-
-        ApplyGostDimensionStyle(dsr, textStyleId, arrowBlockId);
-
-        var id = dst.Add(dsr);
-        trx.AddNewlyCreatedDBObject(dsr, true);
-        return id;
-    }
-
     private static void ApplyGostDimensionStyle(DimStyleTableRecord dsr, ObjectId textStyleId, ObjectId arrowBlockId)
     {
         // 1. ТЕКСТ
