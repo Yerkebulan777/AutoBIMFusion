@@ -40,6 +40,22 @@ return TestRunner.Run(
         TestRunner.AssertEqual(3, root.GetProperty("entityCount").GetInt32());
         TestRunner.AssertTrue(root.TryGetProperty("timestamp", out _));
     })),
+    ("Diagnostics log line is usable without JSONL file", (Action)(() =>
+    {
+        MergeDiagnosticContext context = MergeDiagnostics.CreateFileContext(@"C:\dwg\a.dwg");
+
+        string line = MergeDiagnostics.BuildEventLogLine(
+            context,
+            "scale.normalized",
+            new Dictionary<string, object?>
+            {
+                ["geometryScale"] = 100.0
+            });
+
+        TestRunner.AssertContains("[MERGE_DIAG]", line);
+        TestRunner.AssertContains("scale.normalized", line);
+        TestRunner.AssertContains("\"geometryScale\":100", line);
+    })),
     ("Small object fully inside aux window is selected", (Action)(() =>
     {
         var window = Bounds(0, 0, 100, 100);
@@ -121,6 +137,14 @@ internal static class TestRunner
         if (condition)
         {
             throw new InvalidOperationException("Expected false.");
+        }
+    }
+
+    internal static void AssertContains(string expected, string actual)
+    {
+        if (!actual.Contains(expected, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"Expected '{actual}' to contain '{expected}'.");
         }
     }
 }

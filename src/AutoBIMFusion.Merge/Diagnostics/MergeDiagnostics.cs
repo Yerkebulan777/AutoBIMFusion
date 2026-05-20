@@ -102,7 +102,15 @@ public static class MergeDiagnostics
         string eventName,
         IReadOnlyDictionary<string, object?>? properties = null)
     {
-        if (context is null || !IsEnabled())
+        if (context is null)
+        {
+            return;
+        }
+
+        string json = BuildEventJson(context, eventName, properties);
+        LoggerFactory.GetSharedLogger().Information("{DiagnosticLine}", BuildEventLogLine(eventName, json));
+
+        if (!IsEnabled())
         {
             return;
         }
@@ -121,7 +129,6 @@ public static class MergeDiagnostics
                 _ = Directory.CreateDirectory(directory);
             }
 
-            string json = BuildEventJson(context, eventName, properties);
             lock (WriteSync)
             {
                 File.AppendAllText(path, json + Environment.NewLine);
@@ -147,6 +154,14 @@ public static class MergeDiagnostics
         {
             Debug.WriteLine($"[AutoBIMFusion] Failed to write merge diagnostics: {ex}");
         }
+    }
+
+    public static string BuildEventLogLine(
+        MergeDiagnosticContext context,
+        string eventName,
+        IReadOnlyDictionary<string, object?>? properties = null)
+    {
+        return BuildEventLogLine(eventName, BuildEventJson(context, eventName, properties));
     }
 
     public static string BuildEventJson(
@@ -175,6 +190,11 @@ public static class MergeDiagnostics
         }
 
         return JsonSerializer.Serialize(payload, JsonOptions);
+    }
+
+    private static string BuildEventLogLine(string eventName, string json)
+    {
+        return $"[MERGE_DIAG] {eventName} {json}";
     }
 
     public static IReadOnlyDictionary<string, double> FormatPoint(Point3d point)
