@@ -40,8 +40,6 @@ src/
     Logging/
   AutoBIMFusion.Infrastructure/
     Logging/
-tests/
-  AutoBIMFusion.Tests/
 docs/
 ```
 
@@ -53,7 +51,6 @@ docs/
 | `AutoBIMFusion.Merge` | Class library | Pipeline объединения DWG, layout projection, dimensions, raster path fixing, optimizer |
 | `AutoBIMFusion.Common` | Class library | Общие AutoCAD helpers, file/layout helpers, system-variable scopes |
 | `AutoBIMFusion.Infrastructure` | Class library | Serilog wiring и инфраструктурные сервисы |
-| `AutoBIMFusion.Tests` | Executable | Smoke-test для алгоритмов без запуска AutoCAD UI |
 
 ## 3. Зависимости
 
@@ -67,9 +64,6 @@ AutoBIMFusion.Plugin
 
 AutoBIMFusion.Merge
   -> AutoBIMFusion.Common
-
-AutoBIMFusion.Tests
-  -> AutoBIMFusion.Merge
 ```
 
 `MERGEDWG` остается в `AutoBIMFusion.Plugin`, чтобы AutoCAD стабильно обнаруживал команду в основном plugin assembly.

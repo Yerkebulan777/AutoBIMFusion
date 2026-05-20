@@ -16,12 +16,6 @@ dotnet clean AutoBIMFusion.slnx -c DebugA26
 
 # Headless/core-console build (strips Ribbon/WPF for accoreconsole.exe)
 dotnet build AutoBIMFusion.slnx -c DebugA26 /p:CoreConsoleDiagnostics=true
-
-# Smoke test
-dotnet run --project tests/AutoBIMFusion.Tests/AutoBIMFusion.Tests.csproj -c DebugA26
-
-# Unit tests
-dotnet test tests/AutoBIMFusion.Tests/AutoBIMFusion.Tests.csproj -c DebugA26
 ```
 
 Only `src/AutoBIMFusion.Plugin` creates and deploys the `.bundle` to `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`.
@@ -45,10 +39,6 @@ NuGet versions are centrally managed in `Directory.Packages.props`. `AutoCAD.NET
 
 - **Auto-load:** After build, launch AutoCAD — the plugin loads automatically from `%AppData%\Autodesk\ApplicationPlugins\`.
 - **Manual load:** AutoCAD command line → `NETLOAD` → select `AutoBIMFusion.dll`.
-- **Unit Tests:**
-  - Projects: `tests/AutoBIMFusion.Tests` targets `xUnit`.
-  - Execution: `dotnet test tests/AutoBIMFusion.Tests/AutoBIMFusion.Tests.csproj -c DebugA26`.
-  - Adding tests: Follow `xUnit` patterns. Tests for `AutoBIMFusion.Merge` internals are supported via `InternalsVisibleTo` in `src/AutoBIMFusion.Merge/AssemblyInfo.cs`.
 - **Headless diagnostic test:**
 
 ```powershell
@@ -97,9 +87,6 @@ src/
 └── AutoBIMFusion.Infrastructure/
     └── Logging/                       ← Serilog wiring
 
-tests/
-└── AutoBIMFusion.Tests/               ← xUnit tests & executable smoke-test
-
 docs/                                  ← repo-level documentation
 ```
 
@@ -109,7 +96,6 @@ Dependency direction:
 AutoBIMFusion.Plugin -> AutoBIMFusion.Merge -> AutoBIMFusion.Common
 AutoBIMFusion.Plugin -> AutoBIMFusion.Infrastructure
 AutoBIMFusion.Merge  -> AutoBIMFusion.Common
-AutoBIMFusion.Tests  -> AutoBIMFusion.Merge
 ```
 
 High-blast-radius classes by project:
@@ -141,7 +127,7 @@ Keep public surface area narrow. Intended cross-project entry points are:
 - `AutoBIMFusion.Infrastructure.Logging.LoggerFactory`
 - required helpers in `AutoBIMFusion.Common`
 
-Layout internals should remain `internal` unless plugin orchestration requires a public diagnostic hook. `AutoBIMFusion.Merge` exposes internals to `AutoBIMFusion.Tests`.
+Layout internals should remain `internal` unless plugin orchestration requires a public diagnostic hook.
 
 ---
 

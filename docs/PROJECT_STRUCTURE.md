@@ -85,8 +85,6 @@ src/
         └── LoggerFactory.cs
   AutoBIMFusion.Infrastructure/
     Logging/
-tests/
-  AutoBIMFusion.Tests/
 docs/
 ```
 
@@ -96,7 +94,6 @@ docs/
 | `src/AutoBIMFusion.Merge` | `AutoBIMFusion.Merge.dll` | DWG merge pipeline and layout algorithms |
 | `src/AutoBIMFusion.Common` | `AutoBIMFusion.Common.dll` | Shared AutoCAD helpers and scopes |
 | `src/AutoBIMFusion.Infrastructure` | `AutoBIMFusion.Infrastructure.dll` | Logging and infrastructure code |
-| `tests/AutoBIMFusion.Tests` | `AutoBIMFusion.Tests.exe` | Smoke-test executable |
 
 ## Dependency graph
 
@@ -106,7 +103,6 @@ flowchart TD
     Merge["AutoBIMFusion.Merge"]
     AutoCAD["AutoBIMFusion.Common"]
     Infrastructure["AutoBIMFusion.Infrastructure"]
-    Tests["AutoBIMFusion.Tests"]
     AutoCADHost["AutoCAD host DLLs<br/>ExcludeAssets=runtime"]
 
     Plugin --> Merge
@@ -115,7 +111,6 @@ flowchart TD
     Plugin -. compile only .-> AutoCADHost
     Merge -. compile only .-> AutoCADHost
     AutoCAD -. compile only .-> AutoCADHost
-    Tests --> Merge
 ```
 
 ## Bundle ownership
@@ -146,14 +141,13 @@ Keep only cross-project entry points public:
 - `AutoBIMFusion.Infrastructure.Logging.LoggerFactory`
 - required helpers under `AutoBIMFusion.Common`
 
-Layout algorithms remain internal where possible. `AutoBIMFusion.Merge` exposes internals to `AutoBIMFusion.Tests` for focused smoke testing.
+Layout algorithms remain internal where possible.
 
 ## Build commands
 
 ```powershell
 dotnet build AutoBIMFusion.slnx -c DebugA26
 dotnet build AutoBIMFusion.slnx -c DebugA26 /p:CoreConsoleDiagnostics=true
-dotnet run --project tests/AutoBIMFusion.Tests/AutoBIMFusion.Tests.csproj -c DebugA26
 ```
 
 С `Directory.Build.props` включены Roslyn анализаторы (`AnalysisLevel=latest`, `EnableNETAnalyzers=true`) для обнаружения неиспользуемого кода.

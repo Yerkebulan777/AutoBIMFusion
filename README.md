@@ -16,8 +16,6 @@ src/
   AutoBIMFusion.Merge/          # DWG merge pipeline: layouts, extents, dimensions, optimizer
   AutoBIMFusion.Common/         # Общие AutoCAD helpers и scope-обертки
   AutoBIMFusion.Infrastructure/ # Logging и инфраструктурные сервисы
-tests/
-  AutoBIMFusion.Tests/          # Executable smoke tests
 docs/
   TECHNICAL_DOCUMENTATION.md
   ALGORITHM.md
@@ -40,9 +38,6 @@ AutoBIMFusion.Plugin
 
 AutoBIMFusion.Plugin
   -> AutoBIMFusion.Infrastructure
-
-AutoBIMFusion.Tests
-  -> AutoBIMFusion.Merge
 ```
 
 Архивные команды `SMART_MERGE_TEXT`, `MERGE_TEXT_STYLES`, `JOIN_LINES` и `CREATE_ETRANSMIT_ZIP` находятся в `src/AutoBIMFusion.Plugin/Commands/Archive` и исключены из компиляции. AutoCAD их не регистрирует.
@@ -186,13 +181,6 @@ dotnet build AutoBIMFusion.slnx -c DebugA26 /p:CoreConsoleDiagnostics=true
 
 `CoreConsoleDiagnostics=true` исключает `AutoBIMFusionExtension.cs`, весь `Ribbon/` и WPF framework reference.
 
-## Smoke test
-
-```powershell
-dotnet run --project tests/AutoBIMFusion.Tests/AutoBIMFusion.Tests.csproj -c DebugA26
-```
-
-Тестовый проект сейчас является executable smoke-test и ссылается на `AutoBIMFusion.Merge`. Для внутренних алгоритмов `AutoBIMFusion.Merge` открыт friend access через `InternalsVisibleTo("AutoBIMFusion.Tests")`.
 
 ## Версии пакетов
 
