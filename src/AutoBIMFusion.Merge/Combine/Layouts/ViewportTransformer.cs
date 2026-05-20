@@ -80,8 +80,7 @@ internal static class ViewportTransformer
         Matrix3d matrix,
         double ratio,
         Logger log,
-        MergeDiagnosticContext? diagnosticContext = null,
-        HashSet<ObjectId>? clonedIds = null)
+        MergeDiagnosticContext? diagnosticContext = null)
     {
         Dictionary<string, int> errorTypes = [];
         List<Dictionary<string, object?>> anomalySamples = [];
@@ -97,26 +96,17 @@ internal static class ViewportTransformer
 
         foreach (var id in modelSpace)
         {
+            if (id.IsErased) continue;
+
             // Открываем в ForRead — большинство объектов будут пропущены (Viewport, клоны).
             if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
+            if (ent.IsErased) continue;
 
             total++;
 
             if (ent is Viewport)
             {
                 viewportSkipped++;
-                continue;
-            }
-
-            if (clonedIds != null && clonedIds.Contains(id))
-            {
-                if (log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
-                {
-                    log.Debug(
-                        "[МАСШТАБ-ПРОПУСК] Clone Handle={Handle}, Type={EntityType} — уже масштабирован через BuildMatrix",
-                        ent.Handle.ToString(), ent.GetType().Name);
-                }
-
                 continue;
             }
 
@@ -205,9 +195,12 @@ internal static class ViewportTransformer
 
         foreach (var id in modelSpace)
         {
-            total++;
+            if (id.IsErased) continue;
 
             if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
+            if (ent.IsErased) continue;
+
+            total++;
 
             if (ent is Viewport) continue;
 
@@ -427,15 +420,12 @@ internal static class ViewportTransformer
     ///     Без этого шага объекты aux VP, чьи модельные координаты попадают в пределы листа,
     ///     не удаляются очисткой малых объектов за рамкой и остаются как «мусор» в результирующем файле.
     /// </summary>
-    internal static void EraseEntitiesOutsideMainWindow(Database db, ObjectIdCollection auxEntities,
-        IReadOnlySet<ObjectId> mainWindowEntityIds)
+    internal static void EraseEntitiesOutsideMainWindow(Database db, IEnumerable<ObjectId> entitiesToErase)
     {
         using var trx = db.TransactionManager.StartTransaction();
 
-        foreach (ObjectId id in auxEntities)
+        foreach (ObjectId id in entitiesToErase)
         {
-            if (mainWindowEntityIds.Contains(id)) continue;
-
             if (id.IsErased) continue;
 
             if (trx.GetObject(id, OpenMode.ForWrite) is Entity e && !e.IsErased) e.Erase();
