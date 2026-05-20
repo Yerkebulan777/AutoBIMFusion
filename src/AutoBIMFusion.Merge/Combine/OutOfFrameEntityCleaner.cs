@@ -33,7 +33,6 @@ internal static class OutOfFrameEntityCleaner
     {
         var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
         HashSet<ObjectId> erasedBlockDefinitions = [];
-        var erasedCount = 0;
 
         using var trx = db.TransactionManager.StartTransaction();
 
@@ -48,13 +47,12 @@ internal static class OutOfFrameEntityCleaner
             if (trx.GetObject(candidate.EntityId, OpenMode.ForWrite) is Entity entity && !entity.IsErased)
             {
                 entity.Erase();
-                erasedCount++;
             }
         }
 
         trx.Commit();
 
-        return new CleanResult(erasedCount, erasedBlockDefinitions);
+        return new CleanResult(erasedBlockDefinitions);
     }
 
     private static List<EntityCandidate> FindEntitiesOutsideFrame(Transaction trx, BlockTableRecord modelSpace,
@@ -160,5 +158,5 @@ internal static class OutOfFrameEntityCleaner
 
     private sealed record EntityCandidate(ObjectId EntityId, ObjectId? BlockDefinitionId);
 
-    private sealed record CleanResult(int ErasedCount, HashSet<ObjectId> BlockDefinitionIds);
+    private sealed record CleanResult(HashSet<ObjectId> BlockDefinitionIds);
 }

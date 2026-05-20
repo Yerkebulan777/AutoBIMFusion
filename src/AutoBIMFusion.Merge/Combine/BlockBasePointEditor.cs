@@ -91,7 +91,7 @@ public static class BlockBasePointEditor
 
     private static void MoveBlockReferences(BlockTableRecord blockDef, Transaction trx, Vector3d offset)
     {
-        var blockReferenceIds = blockDef.GetBlockReferenceIds(true, true);
+        using var blockReferenceIds = blockDef.GetBlockReferenceIds(true, true);
         foreach (ObjectId blockReferenceId in blockReferenceIds)
         {
             if (trx.GetObject(blockReferenceId, OpenMode.ForWrite) is not BlockReference blockReference) continue;

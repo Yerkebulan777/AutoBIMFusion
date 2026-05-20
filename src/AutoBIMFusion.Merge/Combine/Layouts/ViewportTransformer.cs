@@ -108,14 +108,15 @@ internal static class ViewportTransformer
                 continue;
             }
 
-            var entType = ent.GetType().Name;
-            var handle = ent.Handle.ToString();
-
             if (clonedIds != null && clonedIds.Contains(id))
             {
-                log.Debug(
-                    "[МАСШТАБ-ПРОПУСК] Clone Handle={Handle}, Type={EntityType} — уже масштабирован через BuildMatrix",
-                    handle, entType);
+                if (log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+                {
+                    log.Debug(
+                        "[МАСШТАБ-ПРОПУСК] Clone Handle={Handle}, Type={EntityType} — уже масштабирован через BuildMatrix",
+                        ent.Handle.ToString(), ent.GetType().Name);
+                }
+
                 continue;
             }
 
@@ -141,6 +142,8 @@ internal static class ViewportTransformer
                 if (ExtentsUtils.TryGetScaleRatio(oldExt, newExt, out var oldDig, out var newDig,
                         out var digRatio) && digRatio > ratio * 5.0)
                 {
+                    var entType = ent.GetType().Name;
+                    var handle = ent.Handle.ToString();
                     log.Warning(
                         "[АНОМАЛИЯ МАСШТАБА] Тип: {EntityType}, Handle: {Handle}. Диагональ ДО: {OldDiag:F2}, ПОСЛЕ: {NewDiag:F2}",
                         entType, handle, oldDig, newDig);
@@ -157,6 +160,8 @@ internal static class ViewportTransformer
             }
             catch (Exception ex)
             {
+                var entType = ent.GetType().Name;
+                var handle = ent.Handle.ToString();
                 log.Error(ex, "[ОШИБКА ТРАНСФОРМАЦИИ] Тип: {EntityType}, Handle: {Handle}. Сообщение: {Message}",
                     entType, handle, ex.Message);
 
@@ -423,19 +428,13 @@ internal static class ViewportTransformer
     ///     не удаляются очисткой малых объектов за рамкой и остаются как «мусор» в результирующем файле.
     /// </summary>
     internal static void EraseEntitiesOutsideMainWindow(Database db, ObjectIdCollection auxEntities,
-        IReadOnlyList<ModelEntitySnapshot> modelSnapshots, Extents3d mainWindow)
+        IReadOnlySet<ObjectId> mainWindowEntityIds)
     {
-        HashSet<ObjectId> inMain = [];
-
-        foreach (var s in modelSnapshots)
-            if (ExtentsUtils.AabbIntersect(mainWindow, s.Extents))
-                _ = inMain.Add(s.Id);
-
         using var trx = db.TransactionManager.StartTransaction();
 
         foreach (ObjectId id in auxEntities)
         {
-            if (inMain.Contains(id)) continue;
+            if (mainWindowEntityIds.Contains(id)) continue;
 
             if (id.IsErased) continue;
 

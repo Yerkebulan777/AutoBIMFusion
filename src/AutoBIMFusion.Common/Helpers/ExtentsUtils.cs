@@ -361,6 +361,7 @@ public static class ExtentsUtils
 
         ObjectId msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
         var ms = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
+        HashSet<ObjectId> activeBlockDefinitions = [];
 
         foreach (ObjectId id in ms)
         {
@@ -374,7 +375,8 @@ public static class ExtentsUtils
                 continue;
             }
 
-            Extents3d? ext = TryGetLiveExtents(ent, trx);
+            Extents3d? ext = TryGetLiveExtents(ent, trx, activeBlockDefinitions);
+            activeBlockDefinitions.Clear();
             if (ext is null)
             {
                 continue;
@@ -399,6 +401,7 @@ public static class ExtentsUtils
 
         Extents3d? acc = null;
         using Transaction trx = db.TransactionManager.StartTransaction();
+        HashSet<ObjectId> activeBlockDefinitions = [];
 
         foreach (ObjectId id in entityIds)
         {
@@ -412,7 +415,8 @@ public static class ExtentsUtils
                 continue;
             }
 
-            Extents3d? ext = TryGetLiveExtents(ent, trx);
+            Extents3d? ext = TryGetLiveExtents(ent, trx, activeBlockDefinitions);
+            activeBlockDefinitions.Clear();
             if (!ext.HasValue)
             {
                 continue;

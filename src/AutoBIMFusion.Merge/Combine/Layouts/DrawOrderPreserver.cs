@@ -54,7 +54,7 @@ internal static class DrawOrderPreserver
             if (pair.IsCloned && pair.IsPrimary)
                 sourceToTarget[pair.Key] = pair.Value;
 
-        ObjectIdCollection orderedTargets = [];
+        using ObjectIdCollection orderedTargets = [];
         var missingMapping = 0;
         foreach (var sourceId in sourceOrder)
             if (sourceToTarget.TryGetValue(sourceId, out var targetId))

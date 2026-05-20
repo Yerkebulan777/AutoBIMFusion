@@ -82,12 +82,14 @@ internal static class LayoutProjectionProcessor
 
         HashSet<ObjectId> claimedSourceIds = [];
         HashSet<ObjectId> allClonedIds = [];
+        var mainWindowEntityIds = CollectEntityIdsInsideWindow(modelEntities, mainOriginal.ModelWindow);
 
         foreach (var aux in viewports)
         {
             if (aux.VpId == mainOriginal.VpId) continue;
 
-            ProjectAuxViewport(db, msId, mainOriginal, geometryScale, aux, modelEntities, claimedSourceIds, allClonedIds, log, diagnosticContext);
+            ProjectAuxViewport(db, msId, mainOriginal, geometryScale, aux, modelEntities, mainWindowEntityIds,
+                claimedSourceIds, allClonedIds, log, diagnosticContext);
         }
 
         using var countTrx = db.TransactionManager.StartTransaction();
@@ -109,6 +111,7 @@ internal static class LayoutProjectionProcessor
         double geometryScale,
         ViewportInfo aux,
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities,
+        IReadOnlySet<ObjectId> mainWindowEntityIds,
         HashSet<ObjectId> claimedSourceIds,
         HashSet<ObjectId> allClonedIds,
         Logger log,
@@ -166,7 +169,20 @@ internal static class LayoutProjectionProcessor
         foreach (ObjectId clonedId in cloneResult.ClonedIds)
             _ = allClonedIds.Add(clonedId);
 
-        ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, modelEntities, mainOriginal.ModelWindow);
+        ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, mainWindowEntityIds);
+    }
+
+    private static HashSet<ObjectId> CollectEntityIdsInsideWindow(
+        IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities,
+        Extents3d window)
+    {
+        HashSet<ObjectId> result = [];
+
+        foreach (var entity in modelEntities)
+            if (ExtentsUtils.AabbIntersect(window, entity.Extents))
+                _ = result.Add(entity.Id);
+
+        return result;
     }
 
     private static ObjectIdCollection CollectUnclaimedObjectIds(
