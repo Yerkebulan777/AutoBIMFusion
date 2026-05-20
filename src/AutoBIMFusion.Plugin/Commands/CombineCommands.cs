@@ -24,7 +24,7 @@ public sealed class CombineCommands
     private static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
 
     [CommandMethod("MERGEDWG", CommandFlags.Modal | CommandFlags.Session)]
-    public void MergeDwgFolderCommand()
+    public static void MergeDwgFolderCommand()
     {
         Logger log = LoggerFactory.GetSharedLogger();
         ExecutionResult result = ExecuteMerge(null, true, "MERGEDWG");
@@ -36,14 +36,14 @@ public sealed class CombineCommands
     }
 
     [CommandMethod("MERGEDWG_BATCH", CommandFlags.Modal | CommandFlags.Session)]
-    public void MergeDwgBatchCommand()
+    public static void MergeDwgBatchCommand()
     {
         string? statusPath = null;
         string? sourceFolder = null;
 
         DateTimeOffset startedAt = DateTimeOffset.Now;
 
-        ExecutionResult result = ExecutionResult.Fail(null, "Пакетная команда не была выполнена.");
+        ExecutionResult result;
 
         Logger log = LoggerFactory.GetSharedLogger();
 
