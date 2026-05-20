@@ -98,7 +98,7 @@ public sealed class CombineCommands
 
         try
         {
-            string? sourceFolder = folderPath ?? (UiDialogService.TrySelectFolder("Выберите папку с файлами DWG", out var selectedFolder) ? selectedFolder : null);
+            string? sourceFolder = folderPath ?? (UiDialogService.TrySelectFolder("Выберите папку с файлами DWG", out string? selectedFolder) ? selectedFolder : null);
 
             if (sourceFolder is null)
             {
@@ -110,7 +110,11 @@ public sealed class CombineCommands
 
             if (dwgFiles.Length == 0)
             {
-                if (showDialogs) UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
+                if (showDialogs)
+                {
+                    UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
+                }
+
                 return ExecutionResult.Fail(savePath, "DWG файлы не найдены.");
             }
 
@@ -134,10 +138,12 @@ public sealed class CombineCommands
 
             sw.Stop();
 
-            log.Information("{Command}: завершено, {Stats}, save=\"{SavePath}\", elapsed={Elapsed}",
-                commandName, stats, savePath, sw.Elapsed);
+            log.Information("{Command}: завершено, {Stats}, save=\"{SavePath}\", elapsed={Elapsed}", commandName, stats, savePath, sw.Elapsed);
 
-            if (showDialogs) ShowSummary(stats, sw.Elapsed, savePath, commandName);
+            if (showDialogs)
+            {
+                ShowSummary(stats, sw.Elapsed, savePath, commandName);
+            }
 
             return new ExecutionResult(stats.Failed == 0, savePath,
                 stats.Failed == 0 ? "Завершено успешно." : $"Завершено с ошибками. {stats}");
@@ -241,7 +247,9 @@ public sealed class CombineCommands
         BlockTable blockTable = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
 
         if (!IsBlockRecordEmpty(blockTable[BlockTableRecord.ModelSpace], tr))
+        {
             return false;
+        }
 
         DBDictionary layoutDictionary = (DBDictionary)tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
@@ -250,7 +258,9 @@ public sealed class CombineCommands
             Layout layout = (Layout)tr.GetObject(entry.Value, OpenMode.ForRead);
 
             if (!layout.ModelType && !IsBlockRecordEmpty(layout.BlockTableRecordId, tr))
+            {
                 return false;
+            }
         }
 
         return true;
@@ -263,7 +273,9 @@ public sealed class CombineCommands
         foreach (ObjectId entityId in blockRecord)
         {
             if (tr.GetObject(entityId, OpenMode.ForRead) is not Viewport)
+            {
                 return false;
+            }
         }
 
         return true;
@@ -324,9 +336,15 @@ public sealed class CombineCommands
     private static void SaveMerged(Database db, string savePath, Logger log)
     {
         string? dir = Path.GetDirectoryName(savePath);
-        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+        if (!string.IsNullOrEmpty(dir))
+        {
+            _ = Directory.CreateDirectory(dir);
+        }
 
-        if (File.Exists(savePath)) File.Delete(savePath);
+        if (File.Exists(savePath))
+        {
+            File.Delete(savePath);
+        }
 
         using (new AcadWarningSuppressScope())
         {

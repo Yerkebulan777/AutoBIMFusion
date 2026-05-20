@@ -35,8 +35,17 @@ internal static class LayoutProjectionProcessor
         });
 
         var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
+        using ObjectIdCollection allClonedIds = [];
 
-        using var allClonedIds = ProjectAuxViewports(db, msId, mainOriginal, viewports, log, diagnosticContext);
+        if (viewports.Count > 1)
+        {
+            var originalModelSnapshot = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
+            log.Debug("[AUX-VP] ModelSpace snapshot: {Count} entities captured before aux processing",
+                originalModelSnapshot.Count);
+
+            ProjectAuxViewports(db, msId, mainOriginal, scale.GeometryScale, viewports, originalModelSnapshot,
+                allClonedIds, log, diagnosticContext);
+        }
 
         NormalizeModelSpaceScale(db, scale.GeometryScale, mainOriginal.ViewCenter, log, diagnosticContext, allClonedIds);
 
@@ -64,40 +73,45 @@ internal static class LayoutProjectionProcessor
         }
     }
 
-    private static ObjectIdCollection ProjectAuxViewports(
+    /// <summary>
+    ///     Обрабатывает все вспомогательные Viewport'ы, проецируя содержимое их окон в Model Space
+    ///     относительно главного Viewport'а.
+    ///     <para>
+    ///         КРИТИЧНО: Слепок сущностей модели (modelEntities) снимается ОДИН РАЗ до начала цикла.
+    ///         Это предотвращает «feedback loop» — ситуацию, когда клоны, созданные на первой итерации,
+    ///         попадают в выборку второй итерации и подвергаются повторной трансформации (масштаб × масштаб).
+    ///         Все итерации работают с одним и тем же снимком исходных объектов.
+    ///     </para>
+    ///     <para>
+    ///         allClonedIds накапливает ID всех созданных клонов и передаётся в финальный
+    ///         ScaleModelSpaceObjects, чтобы главный масштаб не применился к уже трансформированным клонам.
+    ///     </para>
+    /// </summary>
+    private static void ProjectAuxViewports(
         Database db,
         ObjectId msId,
         ViewportInfo mainOriginal,
+        double geometryScale,
         IReadOnlyList<ViewportInfo> viewports,
+        IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> originalModelSnapshot,
+        ObjectIdCollection allClonedIds,
         Logger log,
         MergeDiagnosticContext? diagnosticContext)
     {
-        ObjectIdCollection allClonedIds = new();
-        if (viewports.Count <= 1) return allClonedIds;
+        if (viewports.Count <= 1) return;
 
-        var modelEntities =
-            ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
-
-        log.Debug("[AUX-VP] ModelSpace snapshot: {Count} entities captured before aux processing", modelEntities.Count);
-
-        using ObjectIdCollection entitiesToErase = new();
-        using var mainWindowEntityIds = CollectEntityIdsInsideWindow(modelEntities, mainOriginal.ModelWindow);
+        // НАКОПИТЕЛЬНЫЙ ФИЛЬТР: единый набор для всех итераций.
+        // claimedSourceIds — исходные объекты, которые уже были клонированы (защита от двойного клонирования).
+        // allClonedIds — ID всех созданных клонов (защита от финального масштабирования).
+        HashSet<ObjectId> claimedSourceIds = [];
+        using var mainWindowEntityIds = CollectEntityIdsInsideWindow(originalModelSnapshot, mainOriginal.ModelWindow);
 
         foreach (var aux in viewports)
         {
             if (aux.VpId == mainOriginal.VpId) continue;
 
-            using var clonedIds = ProjectAuxViewport(db, msId, mainOriginal, aux, modelEntities, mainWindowEntityIds,
-                entitiesToErase, log, diagnosticContext);
-            foreach (ObjectId id in clonedIds)
-            {
-                _ = allClonedIds.Add(id);
-            }
-        }
-
-        if (entitiesToErase.Count > 0)
-        {
-            ViewportTransformer.EraseEntitiesOutsideMainWindow(db, entitiesToErase);
+            ProjectAuxViewport(db, msId, mainOriginal, geometryScale, aux, originalModelSnapshot, mainWindowEntityIds,
+                claimedSourceIds, allClonedIds, log, diagnosticContext);
         }
 
         using var countTrx = db.TransactionManager.StartTransaction();
@@ -106,39 +120,44 @@ internal static class LayoutProjectionProcessor
         countTrx.Commit();
 
         log.Debug(
-            "[AUX-VP] Processing complete: entitiesToEraseCount={ToEraseCount}, ModelSpace total after={TotalAfter}",
-            entitiesToErase.Count, countAfter);
-
-        return allClonedIds;
+            "[AUX-VP] Processing complete: sources={Sources}, clones={Clones}, ModelSpace total after={TotalAfter}",
+            claimedSourceIds.Count, allClonedIds.Count, countAfter);
     }
 
-    private static ObjectIdCollection ProjectAuxViewport(
+    private static void ProjectAuxViewport(
         Database db,
         ObjectId msId,
         ViewportInfo mainOriginal,
+        double geometryScale,
         ViewportInfo aux,
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities,
         ObjectIdCollection mainWindowEntityIds,
-        ObjectIdCollection entitiesToErase,
+        HashSet<ObjectId> claimedSourceIds,
+        ObjectIdCollection allClonedIds,
         Logger log,
         MergeDiagnosticContext? diagnosticContext)
     {
-        // Компонуем Aux→Main матрицу (перенос в пространство главного экрана) БЕЗ scaleMatrix.
-        var matrix = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
+        // Компонуем Aux→Main матрицу с матрицей нормализации масштаба.
+        var auxToMain = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
+        var scaleMatrix = Matrix3d.Scaling(geometryScale, mainOriginal.ViewCenter);
+        var matrix = scaleMatrix * auxToMain;
 
         log.Debug(
-            "[AUX-VP-MATRIX] Aux#{AuxNumber}: composedMatrix=true",
-            aux.Number);
+            "[AUX-VP-MATRIX] Aux#{AuxNumber}: geometryScale={GeometryScale:F6}, scaleCenter={ScaleCenter}, composedMatrix=true",
+            aux.Number, geometryScale, ExtentsUtils.FormatPoint(mainOriginal.ViewCenter));
 
         using var selection =
             ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, mainOriginal.ModelWindow, log);
+
+        using var toClone = CollectUnclaimedObjectIds(selection.SelectedIds, claimedSourceIds, out var duplicateSkipped);
 
         MergeDiagnostics.WriteEvent(diagnosticContext, "aux.selected", new Dictionary<string, object?>
         {
             ["auxViewportNumber"] = aux.Number,
             ["cached"] = modelEntities.Count,
             ["selected"] = selection.SelectedIds.Count,
-            ["toClone"] = selection.SelectedIds.Count,
+            ["toClone"] = toClone.Count,
+            ["duplicateSkipped"] = duplicateSkipped,
             ["outsideWindow"] = selection.OutsideWindow,
             ["smallPartialOutsideWindow"] = selection.SmallPartialOutsideWindow,
             ["skippedHuge"] = selection.SkippedHugeObjects,
@@ -151,44 +170,56 @@ internal static class LayoutProjectionProcessor
             ["window"] = MergeDiagnostics.FormatExtents(aux.ModelWindow)
         });
 
-        if (selection.SelectedIds.Count == 0)
+        if (toClone.Count == 0)
         {
             log.Debug(
-                $"Aux#{aux.Number}: candidates={selection.SelectedIds.Count}, nothing to clone");
-            return [];
+                $"Aux#{aux.Number}: candidates={selection.SelectedIds.Count}, duplicateSkipped={duplicateSkipped}, nothing to clone");
+            return;
         }
 
         log.Debug(
-            $"Aux#{aux.Number}: candidates={selection.SelectedIds.Count}, toClone={selection.SelectedIds.Count}");
+            $"Aux#{aux.Number}: candidates={selection.SelectedIds.Count}, toClone={toClone.Count}, duplicateSkipped={duplicateSkipped}");
 
         using var cloneResult =
-            ViewportTransformer.DeepCloneAndTransform(db, selection.SelectedIds, msId, msId, matrix, log);
+            ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log);
 
-        foreach (ObjectId id in selection.SelectedIds)
-        {
-            if (!mainWindowEntityIds.Contains(id) && !entitiesToErase.Contains(id))
-            {
-                _ = entitiesToErase.Add(id);
-            }
-        }
+        foreach (ObjectId clonedId in cloneResult.ClonedIds)
+            _ = allClonedIds.Add(clonedId);
 
-        ObjectIdCollection cloned = new();
-        foreach (ObjectId id in cloneResult.ClonedIds)
-        {
-            cloned.Add(id);
-        }
-        return cloned;
+        ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, mainWindowEntityIds);
     }
 
+    /// <summary>
+    ///     Собирает ID сущностей из снимка модели, чьи extents пересекаются с окном главного VP.
+    ///     Возвращает ObjectIdCollection — нативную коллекцию AutoCAD, которая корректно работает
+    ///     с API удаления (Erase) и гарантирует правильную обработку ObjectId в транзакциях.
+    /// </summary>
     private static ObjectIdCollection CollectEntityIdsInsideWindow(
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities,
         Extents3d window)
     {
-        ObjectIdCollection result = new();
+        ObjectIdCollection result = [];
 
         foreach (var entity in modelEntities)
             if (ExtentsUtils.AabbIntersect(window, entity.Extents))
                 _ = result.Add(entity.Id);
+
+        return result;
+    }
+
+    private static ObjectIdCollection CollectUnclaimedObjectIds(
+        ObjectIdCollection candidates,
+        HashSet<ObjectId> claimedSourceIds,
+        out int duplicateSkipped)
+    {
+        ObjectIdCollection result = [];
+        duplicateSkipped = 0;
+
+        foreach (ObjectId id in candidates)
+            if (claimedSourceIds.Add(id))
+                _ = result.Add(id);
+            else
+                duplicateSkipped++;
 
         return result;
     }

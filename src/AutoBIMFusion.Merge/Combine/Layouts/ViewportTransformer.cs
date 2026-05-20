@@ -419,14 +419,30 @@ internal static class ViewportTransformer
     }
 
     /// <summary>
-    ///     Удаляет оригиналы вспомогательного VP, которые не входят в окно главного VP.
+    ///     Удаляет из модели оригинальные объекты вспомогательного VP, которые НЕ входят в окно
+    ///     главного VP. Вызывается после DeepCloneAndTransform для каждого aux VP.
+    ///     Логика: если объект виден в главном VP — оставляем (нужен для его плоского представления).
+    ///     Если объект только в aux VP — удаляем, так как его клон уже создан на правильной позиции.
+    ///     Без этого шага объекты aux VP, чьи модельные координаты попадают в пределы листа,
+    ///     не удаляются очисткой малых объектов за рамкой и остаются как «мусор» в результирующем файле.
+    ///     <para>
+    ///         ВАЖНО: mainWindowEntityIds передаётся как ObjectIdCollection (нативная коллекция AutoCAD),
+    ///         а не как HashSet или IReadOnlySet. ObjectIdCollection — это обёртка вокруг нативного
+    ///         ObjectARX AcDbObjectIdArray, которая гарантирует корректную работу с ObjectId:
+    ///         правильная сериализация, валидность handle'ов и совместимость с транзакциями AutoCAD.
+    ///         Использование managed-коллекций (HashSet, List) для ObjectId может привести к subtle bug'ам
+    ///         при удалении сущностей, особенно в контексте deep clone и WblockCloneObjects.
+    ///     </para>
     /// </summary>
-    internal static void EraseEntitiesOutsideMainWindow(Database db, ObjectIdCollection entitiesToErase)
+    internal static void EraseEntitiesOutsideMainWindow(Database db, ObjectIdCollection auxEntities,
+        ObjectIdCollection mainWindowEntityIds)
     {
         using var trx = db.TransactionManager.StartTransaction();
 
-        foreach (ObjectId id in entitiesToErase)
+        foreach (ObjectId id in auxEntities)
         {
+            if (mainWindowEntityIds.Contains(id)) continue;
+
             if (id.IsErased) continue;
 
             if (trx.GetObject(id, OpenMode.ForWrite) is Entity entity && !entity.IsErased) entity.Erase();
