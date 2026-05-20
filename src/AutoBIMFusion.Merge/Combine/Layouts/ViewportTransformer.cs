@@ -80,7 +80,8 @@ internal static class ViewportTransformer
         Matrix3d matrix,
         double ratio,
         Logger log,
-        MergeDiagnosticContext? diagnosticContext = null)
+        MergeDiagnosticContext? diagnosticContext = null,
+        HashSet<ObjectId>? clonedIds = null)
     {
         Dictionary<string, int> errorTypes = [];
         List<Dictionary<string, object?>> anomalySamples = [];
@@ -90,9 +91,13 @@ internal static class ViewportTransformer
         var transformed = 0;
         var viewportSkipped = 0;
         var associativeHatchSkipped = 0;
+        var clonedScaled = 0;
+        var originalScaled = 0;
 
         using var trx = db.TransactionManager.StartTransaction();
         var modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
+
+        log.Debug("[МАСШТАБ] ModelSpace objects BEFORE scaling: {Count}", modelSpace.Cast<ObjectId>().Count());
 
         foreach (var id in modelSpace)
             if (trx.GetObject(id, OpenMode.ForWrite) is Entity ent)
@@ -107,6 +112,15 @@ internal static class ViewportTransformer
 
                 var entType = ent.GetType().Name;
                 var handle = ent.Handle.ToString();
+                var isClone = clonedIds != null && clonedIds.Contains(id);
+
+                if (isClone)
+                {
+                    log.Debug(
+                        "[МАСШТАБ-ПРОПУСК] Clone Handle={Handle}, Type={EntityType} — уже масштабирован через BuildMatrix",
+                        handle, entType);
+                    continue;
+                }
 
                 try
                 {
@@ -121,20 +135,32 @@ internal static class ViewportTransformer
                     }
 
                     transformed++;
+                    if (isClone) clonedScaled++; else originalScaled++;
 
                     var newExt = ExtentsUtils.TryGetExtents(ent);
+
+                    if (isClone)
+                    {
+                        log.Debug(
+                            "[МАСШТАБ-КЛОН] Handle={Handle}, Type={EntityType}, DiagonalBefore={BeforeDiag:F2}, DiagonalAfter={AfterDiag:F2}, ScaleRatio={Ratio:F4}",
+                            handle, entType,
+                            oldExt?.MinPoint.DistanceTo(oldExt?.MaxPoint ?? Point3d.Origin) ?? 0,
+                            newExt?.MinPoint.DistanceTo(newExt?.MaxPoint ?? Point3d.Origin) ?? 0,
+                            ratio);
+                    }
 
                     if (ExtentsUtils.TryGetScaleRatio(oldExt, newExt, out var oldDig, out var newDig,
                             out var digRatio) && digRatio > ratio * 5.0)
                     {
                         log.Warning(
-                            "[АНОМАЛИЯ МАСШТАБА] Тип: {EntityType}, Handle: {Handle}. Диагональ ДО: {OldDiag:F2}, ПОСЛЕ: {NewDiag:F2}",
-                            entType, handle, oldDig, newDig);
+                            "[АНОМАЛИЯ МАСШТАБА] Тип: {EntityType}, Handle: {Handle}, IsClone: {IsClone}. Диагональ ДО: {OldDiag:F2}, ПОСЛЕ: {NewDiag:F2}",
+                            entType, handle, isClone, oldDig, newDig);
 
                         _ = MergeDiagnostics.TryAddSample(anomalySamples, new Dictionary<string, object?>
                         {
                             ["entityType"] = entType,
                             ["handle"] = handle,
+                            ["isClone"] = isClone,
                             ["oldDiagonal"] = oldDig,
                             ["newDiagonal"] = newDig,
                             ["diagonalRatio"] = digRatio
@@ -143,7 +169,7 @@ internal static class ViewportTransformer
                 }
                 catch (Exception ex)
                 {
-                    log.Error(ex, "[ОШИБКА ТРАНСФОРМАЦИИ] Тип: {EntityType}, Handle: {Handle}. Сообщение: {Message}", entType, handle, ex.Message);
+                    log.Error(ex, "[ОШИБКА ТРАНСФОРМАЦИИ] Тип: {EntityType}, Handle: {Handle}, IsClone: {IsClone}. Сообщение: {Message}", entType, handle, isClone, ex.Message);
 
                     if (!errorTypes.TryGetValue(entType, out var value))
                     {
@@ -157,11 +183,17 @@ internal static class ViewportTransformer
 
         trx.Commit();
 
+        log.Debug(
+            "[МАСШТАБ] Итого: {Total}, transformed={Transformed}, originalScaled={OriginalScaled}, clonedScaled={ClonedScaled}, viewportSkipped={ViewportSkipped}, hatchSkipped={HatchSkipped}",
+            total, transformed, originalScaled, clonedScaled, viewportSkipped, associativeHatchSkipped);
+
         MergeDiagnostics.WriteEvent(diagnosticContext, "model.scaled", new Dictionary<string, object?>
         {
             ["ratio"] = ratio,
             ["total"] = total,
             ["transformed"] = transformed,
+            ["originalScaled"] = originalScaled,
+            ["clonedScaled"] = clonedScaled,
             ["viewportSkipped"] = viewportSkipped,
             ["associativeHatchSkipped"] = associativeHatchSkipped,
             ["errorTypes"] = errorTypes,
@@ -265,7 +297,17 @@ internal static class ViewportTransformer
 
             try
             {
+                var oldExt = ExtentsUtils.TryGetExtents(entity);
+
                 _ = EntityTransformUtils.TransformEntity(entity, matrix, trx);
+
+                var newExt = ExtentsUtils.TryGetExtents(entity);
+
+                log.Debug(
+                    "[КЛОН] SourceHandle={SourceHandle} -> ClonedHandle={ClonedHandle}, Type={EntityType}, ExtentsBefore={Before}, ExtentsAfter={After}",
+                    pair.Key, entity.Handle, entity.GetType().Name,
+                    FormatExtentsNullable(oldExt), FormatExtentsNullable(newExt));
+
                 _ = result.ClonedIds.Add(pair.Value);
             }
             catch (Exception ex)
@@ -273,6 +315,11 @@ internal static class ViewportTransformer
                 log.Warning("[ОШИБКА КЛОНА] {EntityType} {Handle}: {Message}", entity.GetType().Name, entity.Handle, ex.Message);
             }
         }
+    }
+
+    private static string FormatExtentsNullable(Extents3d? ext)
+    {
+        return ext.HasValue ? ExtentsUtils.FormatExtents(ext.Value) : "<null>";
     }
 
     /// <param name="mainWindow">
