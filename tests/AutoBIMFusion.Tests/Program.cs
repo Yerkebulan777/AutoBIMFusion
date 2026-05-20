@@ -1,6 +1,45 @@
 using AutoBIMFusion.Merge.Combine.Layouts;
+using AutoBIMFusion.Merge.Diagnostics;
+using System.Text.Json;
 
 return TestRunner.Run(
+    ("Diagnostics are enabled by debug level or explicit flag", (Action)(() =>
+    {
+        TestRunner.AssertTrue(MergeDiagnostics.IsEnabledFor("DEBUG", null));
+        TestRunner.AssertTrue(MergeDiagnostics.IsEnabledFor("Information", "1"));
+        TestRunner.AssertTrue(MergeDiagnostics.IsEnabledFor("Information", "true"));
+        TestRunner.AssertFalse(MergeDiagnostics.IsEnabledFor("Information", null));
+    })),
+    ("Diagnostics cap samples to default limit", (Action)(() =>
+    {
+        var sample = MergeDiagnostics.TakeSample(Enumerable.Range(1, 25).Select(i => $"H{i}"));
+
+        TestRunner.AssertEqual(20, sample.Count);
+        TestRunner.AssertEqual("H1", sample[0]);
+        TestRunner.AssertEqual("H20", sample[^1]);
+    })),
+    ("Diagnostics JSONL event contains required envelope fields", (Action)(() =>
+    {
+        MergeDiagnosticContext context = MergeDiagnostics.CreateFileContext(@"C:\dwg\a.dwg");
+
+        string json = MergeDiagnostics.BuildEventJson(
+            context,
+            "file.start",
+            new Dictionary<string, object?>
+            {
+                ["fileName"] = "a.dwg",
+                ["entityCount"] = 3
+            });
+
+        using JsonDocument document = JsonDocument.Parse(json);
+        JsonElement root = document.RootElement;
+
+        TestRunner.AssertEqual("file.start", root.GetProperty("eventName").GetString()!);
+        TestRunner.AssertEqual(context.MergeFileId, root.GetProperty("mergeFileId").GetString()!);
+        TestRunner.AssertEqual("a.dwg", root.GetProperty("fileName").GetString()!);
+        TestRunner.AssertEqual(3, root.GetProperty("entityCount").GetInt32());
+        TestRunner.AssertTrue(root.TryGetProperty("timestamp", out _));
+    })),
     ("Small object fully inside aux window is selected", (Action)(() =>
     {
         var window = Bounds(0, 0, 100, 100);
@@ -66,6 +105,22 @@ internal static class TestRunner
         if (!EqualityComparer<T>.Default.Equals(expected, actual))
         {
             throw new InvalidOperationException($"Expected {expected}, actual {actual}.");
+        }
+    }
+
+    internal static void AssertTrue(bool condition)
+    {
+        if (!condition)
+        {
+            throw new InvalidOperationException("Expected true.");
+        }
+    }
+
+    internal static void AssertFalse(bool condition)
+    {
+        if (condition)
+        {
+            throw new InvalidOperationException("Expected false.");
         }
     }
 }

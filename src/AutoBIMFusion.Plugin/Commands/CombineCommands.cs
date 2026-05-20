@@ -4,6 +4,7 @@ using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Common.Logging;
 using AutoBIMFusion.Merge.Combine;
 using AutoBIMFusion.Merge.Combine.Layouts;
+using AutoBIMFusion.Merge.Diagnostics;
 using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
 using System.Diagnostics;
@@ -234,6 +235,7 @@ public sealed class CombineCommands
             savePath = result.SavePath,
             message = result.Message,
             logPath = LoggerFactory.GetCurrentLogFilePath(),
+            diagnosticPath = MergeDiagnostics.GetCurrentDiagnosticFilePath(),
             startedAt,
             finishedAt
         };

@@ -1,5 +1,6 @@
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Helpers;
+using AutoBIMFusion.Merge.Diagnostics;
 using Serilog.Core;
 using Exception = System.Exception;
 
@@ -74,11 +75,21 @@ internal static class ViewportTransformer
     ///     Viewport'ы пропускаются; особенности конкретных типов сущностей обрабатывает
     ///     <see cref="EntityTransformUtils" />.
     /// </summary>
-    internal static void ScaleModelSpaceObjects(Database db, Matrix3d matrix, double ratio, Logger log)
+    internal static void ScaleModelSpaceObjects(
+        Database db,
+        Matrix3d matrix,
+        double ratio,
+        Logger log,
+        MergeDiagnosticContext? diagnosticContext = null)
     {
         Dictionary<string, int> errorTypes = [];
+        List<Dictionary<string, object?>> anomalySamples = [];
 
         var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
+        var total = 0;
+        var transformed = 0;
+        var viewportSkipped = 0;
+        var associativeHatchSkipped = 0;
 
         using var trx = db.TransactionManager.StartTransaction();
         var modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
@@ -86,7 +97,13 @@ internal static class ViewportTransformer
         foreach (var id in modelSpace)
             if (trx.GetObject(id, OpenMode.ForWrite) is Entity ent)
             {
-                if (ent is Viewport) continue;
+                total++;
+
+                if (ent is Viewport)
+                {
+                    viewportSkipped++;
+                    continue;
+                }
 
                 var entType = ent.GetType().Name;
                 var handle = ent.Handle.ToString();
@@ -97,15 +114,32 @@ internal static class ViewportTransformer
 
                     var transformResult = EntityTransformUtils.TransformEntity(ent, matrix, trx);
 
-                    if (transformResult.SkippedAssociativeHatch) continue;
+                    if (transformResult.SkippedAssociativeHatch)
+                    {
+                        associativeHatchSkipped++;
+                        continue;
+                    }
+
+                    transformed++;
 
                     var newExt = ExtentsUtils.TryGetExtents(ent);
 
                     if (ExtentsUtils.TryGetScaleRatio(oldExt, newExt, out var oldDig, out var newDig,
                             out var digRatio) && digRatio > ratio * 5.0)
+                    {
                         log.Warning(
                             "[АНОМАЛИЯ МАСШТАБА] Тип: {EntityType}, Handle: {Handle}. Диагональ ДО: {OldDiag:F2}, ПОСЛЕ: {NewDiag:F2}",
                             entType, handle, oldDig, newDig);
+
+                        _ = MergeDiagnostics.TryAddSample(anomalySamples, new Dictionary<string, object?>
+                        {
+                            ["entityType"] = entType,
+                            ["handle"] = handle,
+                            ["oldDiagonal"] = oldDig,
+                            ["newDiagonal"] = newDig,
+                            ["diagonalRatio"] = digRatio
+                        });
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -122,6 +156,17 @@ internal static class ViewportTransformer
             }
 
         trx.Commit();
+
+        MergeDiagnostics.WriteEvent(diagnosticContext, "model.scaled", new Dictionary<string, object?>
+        {
+            ["ratio"] = ratio,
+            ["total"] = total,
+            ["transformed"] = transformed,
+            ["viewportSkipped"] = viewportSkipped,
+            ["associativeHatchSkipped"] = associativeHatchSkipped,
+            ["errorTypes"] = errorTypes,
+            ["anomalySamples"] = anomalySamples
+        });
 
         if (errorTypes.Count > 0)
         {
@@ -151,7 +196,7 @@ internal static class ViewportTransformer
             var ext = ExtentsUtils.TryGetExtents(ent);
             if (ext is null) continue;
 
-            result.Add(new ModelEntitySnapshot(id, ext.Value));
+            result.Add(new ModelEntitySnapshot(id, ext.Value, ent.Handle.ToString(), ent.GetType().Name));
         }
 
         trx.Commit();
@@ -235,13 +280,13 @@ internal static class ViewportTransformer
     ///     только если она огромна И при этом принадлежит главному VP (пересекает mainWindow).
     ///     Большие сущности, не пересекающие mainWindow, — легитимный контент вспомогательного VP.
     /// </param>
-    internal static ObjectIdCollection SelectModelInside(IReadOnlyList<ModelEntitySnapshot> modelEntities,
+    internal static ModelSelectionResult SelectModelInside(IReadOnlyList<ModelEntitySnapshot> modelEntities,
         Extents3d window, Extents3d mainWindow, Logger log)
     {
         var outsideWindow = 0;
         var smallPartialOutsideWindow = 0;
         var skippedHugeObjects = 0;
-        ObjectIdCollection result = [];
+        ModelSelectionResult result = new();
 
         foreach (var entity in modelEntities)
         {
@@ -250,27 +295,35 @@ internal static class ViewportTransformer
             if (decision == ModelEntitySelection.OutsideWindow)
             {
                 outsideWindow++;
+                _ = MergeDiagnostics.TryAddSample(result.OutsideHandleSamples, entity.Handle);
                 continue;
             }
 
             if (decision == ModelEntitySelection.SmallPartialOutsideWindow)
             {
                 smallPartialOutsideWindow++;
+                _ = MergeDiagnostics.TryAddSample(result.SmallPartialHandleSamples, entity.Handle);
                 continue;
             }
 
             if (decision == ModelEntitySelection.HugeInMainWindow)
             {
                 skippedHugeObjects++;
+                _ = MergeDiagnostics.TryAddSample(result.HugeHandleSamples, entity.Handle);
                 continue;
             }
 
-            _ = result.Add(entity.Id);
+            _ = result.SelectedIds.Add(entity.Id);
+            _ = MergeDiagnostics.TryAddSample(result.SelectedHandleSamples, entity.Handle);
         }
+
+        result.OutsideWindow = outsideWindow;
+        result.SmallPartialOutsideWindow = smallPartialOutsideWindow;
+        result.SkippedHugeObjects = skippedHugeObjects;
 
         log.Debug(
             "SelectModelInside cached={Cached}, selected={Selected}, skippedHuge={SkippedHuge}, smallPartialOutside={SmallPartialOutside}, outsideWindow={OutsideWindow}, window={Window}",
-            modelEntities.Count, result.Count, skippedHugeObjects, smallPartialOutsideWindow, outsideWindow, ExtentsUtils.FormatExtents(window));
+            modelEntities.Count, result.SelectedIds.Count, skippedHugeObjects, smallPartialOutsideWindow, outsideWindow, ExtentsUtils.FormatExtents(window));
         return result;
     }
 
@@ -347,7 +400,31 @@ internal static class ViewportTransformer
     /// <summary>
     ///     Снимок состояния сущности модели, включая её идентификатор и границы.
     /// </summary>
-    internal sealed record ModelEntitySnapshot(ObjectId Id, Extents3d Extents);
+    internal sealed record ModelEntitySnapshot(ObjectId Id, Extents3d Extents, string Handle, string EntityType);
+
+    internal sealed class ModelSelectionResult : IDisposable
+    {
+        internal ObjectIdCollection SelectedIds { get; } = [];
+
+        internal int OutsideWindow { get; set; }
+
+        internal int SmallPartialOutsideWindow { get; set; }
+
+        internal int SkippedHugeObjects { get; set; }
+
+        internal List<string> SelectedHandleSamples { get; } = [];
+
+        internal List<string> OutsideHandleSamples { get; } = [];
+
+        internal List<string> SmallPartialHandleSamples { get; } = [];
+
+        internal List<string> HugeHandleSamples { get; } = [];
+
+        public void Dispose()
+        {
+            SelectedIds.Dispose();
+        }
+    }
 
     internal enum ModelEntitySelection
     {

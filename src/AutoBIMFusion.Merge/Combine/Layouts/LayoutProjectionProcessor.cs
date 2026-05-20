@@ -1,5 +1,6 @@
 using AutoBIMFusion.Common.Drawing;
 using AutoBIMFusion.Common.Helpers;
+using AutoBIMFusion.Merge.Diagnostics;
 using Serilog.Core;
 
 namespace AutoBIMFusion.Merge.Combine.Layouts;
@@ -7,34 +8,57 @@ namespace AutoBIMFusion.Merge.Combine.Layouts;
 internal static class LayoutProjectionProcessor
 {
     internal static LayoutProjectionResult ProjectLayoutToModelSpace(Database db, string layoutName,
-        IReadOnlyList<ViewportInfo> viewports, Logger log)
+        IReadOnlyList<ViewportInfo> viewports, Logger log, MergeDiagnosticContext? diagnosticContext = null)
     {
         return viewports.Count == 0
-            ? ProjectNoViewport(db, layoutName, log)
-            : ProjectWithViewports(db, layoutName, viewports, log);
+            ? ProjectNoViewport(db, layoutName, log, diagnosticContext)
+            : ProjectWithViewports(db, layoutName, viewports, log, diagnosticContext);
     }
 
     private static LayoutProjectionResult ProjectWithViewports(Database db, string layoutName,
-        IReadOnlyList<ViewportInfo> viewports, Logger log)
+        IReadOnlyList<ViewportInfo> viewports, Logger log, MergeDiagnosticContext? diagnosticContext)
     {
         var mainOriginal = ViewportInfo.PickMainViewport(viewports);
         var scale = ViewportScaleNormalizer.Normalize(mainOriginal.CustomScale);
         var mainNormalized = mainOriginal with { CustomScale = scale.WorkingCustomScale };
 
+        MergeDiagnostics.WriteEvent(diagnosticContext, "scale.normalized", new Dictionary<string, object?>
+        {
+            ["layoutName"] = layoutName,
+            ["mainViewportNumber"] = mainOriginal.Number,
+            ["originalCustomScale"] = mainOriginal.CustomScale,
+            ["workingCustomScale"] = scale.WorkingCustomScale,
+            ["geometryScale"] = scale.GeometryScale,
+            ["targetVisualScale"] = scale.TargetVisualScale,
+            ["linearScaleMultiplier"] = scale.LinearScaleMultiplier,
+            ["mainModelWindow"] = MergeDiagnostics.FormatExtents(mainOriginal.ModelWindow)
+        });
+
         var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
-        ProjectAuxViewports(db, msId, mainOriginal, viewports, log);
+        ProjectAuxViewports(db, msId, mainOriginal, viewports, log, diagnosticContext);
 
-        NormalizeModelSpaceScale(db, scale.GeometryScale, mainOriginal.ViewCenter, log);
+        NormalizeModelSpaceScale(db, scale.GeometryScale, mainOriginal.ViewCenter, log, diagnosticContext);
 
         // Одна транзакция: сбор paper-сущностей + поиск рамки + фильтрация
         var layoutData = CollectAndFilterLayoutData(db, layoutName);
+
+        MergeDiagnostics.WriteEvent(diagnosticContext, "scale.normalized", new Dictionary<string, object?>
+        {
+            ["layoutName"] = layoutName,
+            ["hasViewport"] = false,
+            ["workingCustomScale"] = 1.0 / ViewportScaleNormalizer.WorkingScaleMultiplier,
+            ["geometryScale"] = ViewportScaleNormalizer.WorkingScaleMultiplier,
+            ["targetVisualScale"] = ViewportScaleNormalizer.WorkingScaleMultiplier,
+            ["linearScaleMultiplier"] = 1.0
+        });
 
         using (layoutData.FilteredPaperIds)
         {
             var matrix = ViewportTransformer.BuildPaperToMainMatrix(mainNormalized, log);
             var frameBounds = TransformFrameBounds(layoutData.FrameBounds, matrix);
-            MovePaperToModelSpace(db, layoutData.BtrId, layoutData.FilteredPaperIds, matrix, log);
+            MovePaperToModelSpace(db, layoutData.BtrId, layoutData.FilteredPaperIds, matrix, log, diagnosticContext,
+                frameBounds);
 
             return new LayoutProjectionResult(frameBounds, scale.TargetVisualScale, scale.LinearScaleMultiplier);
         }
@@ -45,7 +69,8 @@ internal static class LayoutProjectionProcessor
         ObjectId msId,
         ViewportInfo mainOriginal,
         IReadOnlyList<ViewportInfo> viewports,
-        Logger log)
+        Logger log,
+        MergeDiagnosticContext? diagnosticContext)
     {
         if (viewports.Count <= 1) return;
 
@@ -58,7 +83,7 @@ internal static class LayoutProjectionProcessor
         {
             if (aux.VpId == mainOriginal.VpId) continue;
 
-            ProjectAuxViewport(db, msId, mainOriginal, aux, modelEntities, claimedSourceIds, log);
+            ProjectAuxViewport(db, msId, mainOriginal, aux, modelEntities, claimedSourceIds, log, diagnosticContext);
         }
     }
 
@@ -69,24 +94,42 @@ internal static class LayoutProjectionProcessor
         ViewportInfo aux,
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities,
         HashSet<ObjectId> claimedSourceIds,
-        Logger log)
+        Logger log,
+        MergeDiagnosticContext? diagnosticContext)
     {
         var matrix = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
 
-        using var candidates =
+        using var selection =
             ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, mainOriginal.ModelWindow, log);
 
-        using var toClone = CollectUnclaimedObjectIds(candidates, claimedSourceIds, out var duplicateSkipped);
+        using var toClone = CollectUnclaimedObjectIds(selection.SelectedIds, claimedSourceIds, out var duplicateSkipped);
+
+        MergeDiagnostics.WriteEvent(diagnosticContext, "aux.selected", new Dictionary<string, object?>
+        {
+            ["auxViewportNumber"] = aux.Number,
+            ["cached"] = modelEntities.Count,
+            ["selected"] = selection.SelectedIds.Count,
+            ["toClone"] = toClone.Count,
+            ["duplicateSkipped"] = duplicateSkipped,
+            ["outsideWindow"] = selection.OutsideWindow,
+            ["smallPartialOutsideWindow"] = selection.SmallPartialOutsideWindow,
+            ["skippedHuge"] = selection.SkippedHugeObjects,
+            ["selectedHandleSamples"] = selection.SelectedHandleSamples,
+            ["outsideHandleSamples"] = selection.OutsideHandleSamples,
+            ["smallPartialHandleSamples"] = selection.SmallPartialHandleSamples,
+            ["hugeHandleSamples"] = selection.HugeHandleSamples,
+            ["window"] = MergeDiagnostics.FormatExtents(aux.ModelWindow)
+        });
 
         if (toClone.Count == 0)
         {
             log.Debug(
-                $"Aux#{aux.Number}: candidates={candidates.Count}, duplicateSkipped={duplicateSkipped}, nothing to clone");
+                $"Aux#{aux.Number}: candidates={selection.SelectedIds.Count}, duplicateSkipped={duplicateSkipped}, nothing to clone");
             return;
         }
 
         log.Debug(
-            $"Aux#{aux.Number}: candidates={candidates.Count}, toClone={toClone.Count}, duplicateSkipped={duplicateSkipped}");
+            $"Aux#{aux.Number}: candidates={selection.SelectedIds.Count}, toClone={toClone.Count}, duplicateSkipped={duplicateSkipped}");
 
         using var cloneResult =
             ViewportTransformer.DeepCloneAndTransform(db, toClone, msId, msId, matrix, log);
@@ -111,7 +154,11 @@ internal static class LayoutProjectionProcessor
         return result;
     }
 
-    private static LayoutProjectionResult ProjectNoViewport(Database db, string layoutName, Logger log)
+    private static LayoutProjectionResult ProjectNoViewport(
+        Database db,
+        string layoutName,
+        Logger log,
+        MergeDiagnosticContext? diagnosticContext)
     {
         // Одна транзакция: сбор paper-сущностей + поиск рамки + фильтрация
         var layoutData = CollectAndFilterLayoutData(db, layoutName);
@@ -119,12 +166,30 @@ internal static class LayoutProjectionProcessor
         using (layoutData.FilteredPaperIds)
         {
             if (layoutData.FilteredPaperIds.Count == 0 || layoutData.BtrId.IsNull)
+            {
+                MergeDiagnostics.WriteEvent(diagnosticContext, "paper.moved", new Dictionary<string, object?>
+                {
+                    ["layoutName"] = layoutName,
+                    ["paperEntityCount"] = layoutData.FilteredPaperIds.Count,
+                    ["frameBounds"] = null,
+                    ["resultBounds"] = null
+                });
                 return new LayoutProjectionResult(null, ViewportScaleNormalizer.WorkingScaleMultiplier, 1.0);
+            }
 
             var paperBounds = ComputeBounds(db, layoutData.FilteredPaperIds, log);
 
             if (!paperBounds.HasValue)
+            {
+                MergeDiagnostics.WriteEvent(diagnosticContext, "paper.moved", new Dictionary<string, object?>
+                {
+                    ["layoutName"] = layoutName,
+                    ["paperEntityCount"] = layoutData.FilteredPaperIds.Count,
+                    ["frameBounds"] = null,
+                    ["resultBounds"] = null
+                });
                 return new LayoutProjectionResult(null, ViewportScaleNormalizer.WorkingScaleMultiplier, 1.0);
+            }
 
             var minPt = paperBounds.Value.MinPoint;
 
@@ -132,7 +197,8 @@ internal static class LayoutProjectionProcessor
                          Matrix3d.Displacement(Point3d.Origin - minPt);
 
             var frameBounds = TransformFrameBounds(layoutData.FrameBounds, matrix);
-            MovePaperToModelSpace(db, layoutData.BtrId, layoutData.FilteredPaperIds, matrix, log);
+            MovePaperToModelSpace(db, layoutData.BtrId, layoutData.FilteredPaperIds, matrix, log, diagnosticContext,
+                frameBounds);
 
             return new LayoutProjectionResult(frameBounds, ViewportScaleNormalizer.WorkingScaleMultiplier, 1.0);
         }
@@ -256,13 +322,26 @@ internal static class LayoutProjectionProcessor
     /// <summary>
     ///     Масштабирует объекты Model Space вокруг указанного центра до рабочего масштаба 1:100.
     /// </summary>
-    private static void NormalizeModelSpaceScale(Database db, double geometryScale, Point3d center, Logger log)
+    private static void NormalizeModelSpaceScale(
+        Database db,
+        double geometryScale,
+        Point3d center,
+        Logger log,
+        MergeDiagnosticContext? diagnosticContext)
     {
         if (Abs(geometryScale - 1.0) > 1e-9)
         {
             var scaleMatrix = Matrix3d.Scaling(geometryScale, center);
-            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, geometryScale, log);
+            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, geometryScale, log, diagnosticContext);
+            return;
         }
+
+        MergeDiagnostics.WriteEvent(diagnosticContext, "model.scaled", new Dictionary<string, object?>
+        {
+            ["ratio"] = geometryScale,
+            ["skipped"] = true,
+            ["reason"] = "geometryScale-is-one"
+        });
     }
 
     /// <summary>
@@ -275,9 +354,20 @@ internal static class LayoutProjectionProcessor
         ObjectId paperBtrId,
         ObjectIdCollection filteredIds,
         Matrix3d matrix,
-        Logger log)
+        Logger log,
+        MergeDiagnosticContext? diagnosticContext,
+        Extents3d? frameBounds)
     {
-        if (filteredIds.Count == 0 || paperBtrId.IsNull) return;
+        if (filteredIds.Count == 0 || paperBtrId.IsNull)
+        {
+            MergeDiagnostics.WriteEvent(diagnosticContext, "paper.moved", new Dictionary<string, object?>
+            {
+                ["paperEntityCount"] = filteredIds.Count,
+                ["frameBounds"] = MergeDiagnostics.FormatExtents(frameBounds),
+                ["resultBounds"] = null
+            });
+            return;
+        }
 
         var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
         using var cloneResult =
@@ -285,7 +375,14 @@ internal static class LayoutProjectionProcessor
 
         BlockReferences.EraseBlockContents(db, paperBtrId);
 
-        _ = ComputeBounds(db, cloneResult.ClonedIds, log);
+        var resultBounds = ComputeBounds(db, cloneResult.ClonedIds, log);
+        MergeDiagnostics.WriteEvent(diagnosticContext, "paper.moved", new Dictionary<string, object?>
+        {
+            ["paperEntityCount"] = filteredIds.Count,
+            ["clonedEntityCount"] = cloneResult.ClonedIds.Count,
+            ["frameBounds"] = MergeDiagnostics.FormatExtents(frameBounds),
+            ["resultBounds"] = MergeDiagnostics.FormatExtents(resultBounds)
+        });
     }
 
     private static Extents3d? TransformFrameBounds(Extents3d? frameBounds, Matrix3d matrix)

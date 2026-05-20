@@ -2,6 +2,7 @@ using AutoBIMFusion.Common.AcadSupport;
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Merge.Combine.Layouts;
+using AutoBIMFusion.Merge.Diagnostics;
 using Serilog.Core;
 using Exception = System.Exception;
 
@@ -28,7 +29,8 @@ public sealed class BlockInserter(double gapPercent, Logger log)
         string sourceName,
         Extents3d sourceBounds,
         double targetVisualScale,
-        double linearScaleMultiplier)
+        double linearScaleMultiplier,
+        MergeDiagnosticContext? diagnosticContext = null)
     {
         try
         {
@@ -66,6 +68,9 @@ public sealed class BlockInserter(double gapPercent, Logger log)
             log.Debug("{SourceName}: placement bounds {Bounds}", sourceName, ExtentsUtils.FormatExtents(placementBounds));
 
             var insertPt = CalcInsertionPoint(placementBounds);
+            var width = Max(0, placementBounds.MaxPoint.X - placementBounds.MinPoint.X);
+            var height = Max(0, placementBounds.MaxPoint.Y - placementBounds.MinPoint.Y);
+            var gap = CalcGap(placementBounds);
             var displacement = Matrix3d.Displacement(new Vector3d(insertPt.X, insertPt.Y, insertPt.Z));
 
             Extents3d? worldBounds = null;
@@ -111,6 +116,22 @@ public sealed class BlockInserter(double gapPercent, Logger log)
             _rightMax = worldBounds.Value.MaxPoint.X;
             _hasPlacedObjects = true;
 
+            MergeDiagnostics.WriteEvent(diagnosticContext, "insert.cloned", new Dictionary<string, object?>
+            {
+                ["sourceName"] = sourceName,
+                ["sourceBounds"] = MergeDiagnostics.FormatExtents(sourceBounds),
+                ["placementBounds"] = MergeDiagnostics.FormatExtents(placementBounds),
+                ["insertPoint"] = MergeDiagnostics.FormatPoint(insertPt),
+                ["width"] = width,
+                ["height"] = height,
+                ["gap"] = gap,
+                ["clonedCount"] = clonedCount,
+                ["worldBounds"] = MergeDiagnostics.FormatExtents(worldBounds),
+                ["rightMax"] = _rightMax,
+                ["targetVisualScale"] = targetVisualScale,
+                ["linearScaleMultiplier"] = linearScaleMultiplier
+            });
+
             return worldBounds;
         }
         catch (Exception ex)
@@ -122,14 +143,20 @@ public sealed class BlockInserter(double gapPercent, Logger log)
 
     private Point3d CalcInsertionPoint(Extents3d bounds)
     {
-        var width = Max(0, bounds.MaxPoint.X - bounds.MinPoint.X);
-        var height = Max(0, bounds.MaxPoint.Y - bounds.MinPoint.Y);
-        var gap = Max(1.0, Round(Max(width, height) * gapPercent, 0));
+        var gap = CalcGap(bounds);
 
         var insertX = _hasPlacedObjects
             ? _rightMax + gap - bounds.MinPoint.X
             : -bounds.MinPoint.X;
 
         return new Point3d(insertX, -bounds.MinPoint.Y, 0);
+    }
+
+    private double CalcGap(Extents3d bounds)
+    {
+        var width = Max(0, bounds.MaxPoint.X - bounds.MinPoint.X);
+        var height = Max(0, bounds.MaxPoint.Y - bounds.MinPoint.Y);
+
+        return Max(1.0, Round(Max(width, height) * gapPercent, 0));
     }
 }

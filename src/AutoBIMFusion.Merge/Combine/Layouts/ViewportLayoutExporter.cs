@@ -1,5 +1,6 @@
 using System.Runtime.Versioning;
 using AutoBIMFusion.Common.Helpers;
+using AutoBIMFusion.Merge.Diagnostics;
 using Serilog.Core;
 using Exception = System.Exception;
 
@@ -24,7 +25,11 @@ internal sealed record PreparedSourceDatabase(
 [SupportedOSPlatform("Windows")]
 internal static class ViewportLayoutExporter
 {
-    public static PreparedSourceDatabase? PrepareDatabaseForMerge(string sourceFilePath, string fileName, Logger log)
+    public static PreparedSourceDatabase? PrepareDatabaseForMerge(
+        string sourceFilePath,
+        string fileName,
+        Logger log,
+        MergeDiagnosticContext? diagnosticContext = null)
     {
         ArgumentNullException.ThrowIfNull(sourceFilePath);
 
@@ -58,11 +63,33 @@ internal static class ViewportLayoutExporter
                 return null;
             }
 
+            MergeDiagnostics.WriteEvent(diagnosticContext, "layout.selected", new Dictionary<string, object?>
+            {
+                ["fileName"] = fileName,
+                ["layoutName"] = layoutName
+            });
+
             var vps = ViewportCollector.Collect(db, layoutName);
+
+            MergeDiagnostics.WriteEvent(diagnosticContext, "viewport.collected", new Dictionary<string, object?>
+            {
+                ["fileName"] = fileName,
+                ["layoutName"] = layoutName,
+                ["viewportCount"] = vps.Count,
+                ["viewports"] = vps.Select(vp => new Dictionary<string, object?>(StringComparer.Ordinal)
+                {
+                    ["number"] = vp.Number,
+                    ["customScale"] = vp.CustomScale,
+                    ["viewTwist"] = vp.ViewTwist,
+                    ["centerPaper"] = MergeDiagnostics.FormatPoint(vp.CenterPaper),
+                    ["viewCenter"] = MergeDiagnostics.FormatPoint(vp.ViewCenter),
+                    ["modelWindow"] = MergeDiagnostics.FormatExtents(vp.ModelWindow)
+                }).ToArray()
+            });
 
             DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "source-before-normalize");
 
-            var projection = LayoutProjectionProcessor.ProjectLayoutToModelSpace(db, layoutName, vps, log);
+            var projection = LayoutProjectionProcessor.ProjectLayoutToModelSpace(db, layoutName, vps, log, diagnosticContext);
 
             if (projection.FrameBounds.HasValue) OutOfFrameEntityCleaner.Clean(db, projection.FrameBounds.Value, log);
 
