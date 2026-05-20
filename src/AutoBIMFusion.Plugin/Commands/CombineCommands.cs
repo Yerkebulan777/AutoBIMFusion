@@ -43,7 +43,7 @@ public sealed class CombineCommands
 
         DateTimeOffset startedAt = DateTimeOffset.Now;
 
-        ExecutionResult result;
+        ExecutionResult result = default;
 
         Logger log = LoggerFactory.GetSharedLogger();
 
