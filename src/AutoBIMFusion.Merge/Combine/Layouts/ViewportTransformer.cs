@@ -81,7 +81,7 @@ internal static class ViewportTransformer
         double ratio,
         Logger log,
         MergeDiagnosticContext? diagnosticContext = null,
-        IReadOnlySet<ObjectId>? clonedIdsToSkip = null)
+        ObjectIdCollection? clonedIdsToSkip = null)
     {
         Dictionary<string, int> errorTypes = [];
         List<Dictionary<string, object?>> anomalySamples = [];
@@ -416,28 +416,6 @@ internal static class ViewportTransformer
                && inner.MaxPoint.X <= outer.MaxPoint.X + tolerance
                && inner.MinPoint.Y >= outer.MinPoint.Y - tolerance
                && inner.MaxPoint.Y <= outer.MaxPoint.Y + tolerance;
-    }
-
-    /// <summary>
-    ///     Удаляет из модели оригинальные объекты вспомогательного VP, которые НЕ входят в окно
-    ///     главного VP. Вызывается после DeepCloneAndTransform для каждого aux VP.
-    ///     Логика: если объект виден в главном VP — оставляем (нужен для его плоского представления).
-    ///     Если объект только в aux VP — удаляем, так как его клон уже создан на правильной позиции.
-    ///     Без этого шага объекты aux VP, чьи модельные координаты попадают в пределы листа,
-    ///     не удаляются очисткой малых объектов за рамкой и остаются как «мусор» в результирующем файле.
-    /// </summary>
-    internal static void EraseEntitiesOutsideMainWindow(Database db, IEnumerable<ObjectId> entitiesToErase)
-    {
-        using var trx = db.TransactionManager.StartTransaction();
-
-        foreach (ObjectId id in entitiesToErase)
-        {
-            if (id.IsErased) continue;
-
-            if (trx.GetObject(id, OpenMode.ForWrite) is Entity e && !e.IsErased) e.Erase();
-        }
-
-        trx.Commit();
     }
 
     /// <summary>

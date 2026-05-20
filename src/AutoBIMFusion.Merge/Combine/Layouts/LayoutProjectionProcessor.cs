@@ -64,7 +64,7 @@ internal static class LayoutProjectionProcessor
         }
     }
 
-    private static HashSet<ObjectId> ProjectAuxViewports(
+    private static ObjectIdCollection ProjectAuxViewports(
         Database db,
         ObjectId msId,
         ViewportInfo mainOriginal,
@@ -72,7 +72,7 @@ internal static class LayoutProjectionProcessor
         Logger log,
         MergeDiagnosticContext? diagnosticContext)
     {
-        HashSet<ObjectId> allClonedIds = [];
+        ObjectIdCollection allClonedIds = new();
         if (viewports.Count <= 1) return allClonedIds;
 
         var modelEntities =
@@ -80,25 +80,33 @@ internal static class LayoutProjectionProcessor
 
         log.Debug("[AUX-VP] ModelSpace snapshot: {Count} entities captured before aux processing", modelEntities.Count);
 
-        HashSet<ObjectId> entitiesToErase = [];
-        var mainWindowEntityIds = CollectEntityIdsInsideWindow(modelEntities, mainOriginal.ModelWindow);
-
         foreach (var aux in viewports)
         {
             if (aux.VpId == mainOriginal.VpId) continue;
 
-            var clonedIds = ProjectAuxViewport(db, msId, mainOriginal, aux, modelEntities, mainWindowEntityIds,
-                entitiesToErase, log, diagnosticContext);
-            foreach (var id in clonedIds)
+            var clonedIds = ProjectAuxViewport(db, msId, mainOriginal, aux, modelEntities, log, diagnosticContext);
+            foreach (ObjectId id in clonedIds)
             {
                 _ = allClonedIds.Add(id);
             }
         }
 
-        if (entitiesToErase.Count > 0)
+        // Глобальная очистка оригиналов: удаляем всё, что не попадает в Main VP, 
+        // чтобы NormalizeModelSpaceScale не масштабировал мусор от удаленного центра.
+        int erasedCount = 0;
+        using var cleanupTrx = db.TransactionManager.StartTransaction();
+        foreach (var entitySnapshot in modelEntities)
         {
-            ViewportTransformer.EraseEntitiesOutsideMainWindow(db, entitiesToErase);
+            if (!ExtentsUtils.AabbIntersect(mainOriginal.ModelWindow, entitySnapshot.Extents))
+            {
+                if (cleanupTrx.GetObject(entitySnapshot.Id, OpenMode.ForWrite, false, true) is Entity ent && !ent.IsErased)
+                {
+                    ent.Erase();
+                    erasedCount++;
+                }
+            }
         }
+        cleanupTrx.Commit();
 
         using var countTrx = db.TransactionManager.StartTransaction();
         var msForCount = (BlockTableRecord)countTrx.GetObject(msId, OpenMode.ForRead);
@@ -107,19 +115,17 @@ internal static class LayoutProjectionProcessor
 
         log.Debug(
             "[AUX-VP] Processing complete: entitiesToEraseCount={ToEraseCount}, ModelSpace total after={TotalAfter}",
-            entitiesToErase.Count, countAfter);
+            erasedCount, countAfter);
 
         return allClonedIds;
     }
 
-    private static List<ObjectId> ProjectAuxViewport(
+    private static ObjectIdCollection ProjectAuxViewport(
         Database db,
         ObjectId msId,
         ViewportInfo mainOriginal,
         ViewportInfo aux,
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities,
-        IReadOnlySet<ObjectId> mainWindowEntityIds,
-        HashSet<ObjectId> entitiesToErase,
         Logger log,
         MergeDiagnosticContext? diagnosticContext)
     {
@@ -164,33 +170,12 @@ internal static class LayoutProjectionProcessor
         using var cloneResult =
             ViewportTransformer.DeepCloneAndTransform(db, selection.SelectedIds, msId, msId, matrix, log);
 
-        foreach (ObjectId id in selection.SelectedIds)
-        {
-            if (!mainWindowEntityIds.Contains(id))
-            {
-                _ = entitiesToErase.Add(id);
-            }
-        }
-
-        List<ObjectId> cloned = new(cloneResult.ClonedIds.Count);
+        ObjectIdCollection cloned = new();
         foreach (ObjectId id in cloneResult.ClonedIds)
         {
             cloned.Add(id);
         }
         return cloned;
-    }
-
-    private static HashSet<ObjectId> CollectEntityIdsInsideWindow(
-        IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities,
-        Extents3d window)
-    {
-        HashSet<ObjectId> result = [];
-
-        foreach (var entity in modelEntities)
-            if (ExtentsUtils.AabbIntersect(window, entity.Extents))
-                _ = result.Add(entity.Id);
-
-        return result;
     }
 
     private static LayoutProjectionResult ProjectNoViewport(
@@ -271,21 +256,21 @@ internal static class LayoutProjectionProcessor
         var paperIdsList = CollectPaperEntityIds(btr, viewportClass, clipEntityIds);
 
         // Поиск рамки-штампа и фильтрация в той же транзакции
-        var titleBlockBounds = BlockReferences.FindLargestBlockReferenceBoundsByArea(trx, paperIdsList);
+        var titleBlockBounds = BlockReferences.FindLargestBlockReferenceBoundsByArea(trx, paperIdsList.Cast<ObjectId>());
         var filteredIds = FilterEntitiesByBounds(trx, paperIdsList, titleBlockBounds);
 
         trx.Commit();
         return new LayoutData(btrId, filteredIds, titleBlockBounds);
     }
 
-    private static HashSet<ObjectId> CollectViewportClipEntityIds(
+    private static ObjectIdCollection CollectViewportClipEntityIds(
         Transaction trx,
         BlockTableRecord btr,
         RXClass viewportClass)
     {
-        HashSet<ObjectId> clipEntityIds = [];
+        ObjectIdCollection clipEntityIds = new();
 
-        foreach (var id in btr)
+        foreach (ObjectId id in btr)
         {
             if (!id.ObjectClass.IsDerivedFrom(viewportClass)) continue;
 
@@ -296,14 +281,14 @@ internal static class LayoutProjectionProcessor
         return clipEntityIds;
     }
 
-    private static List<ObjectId> CollectPaperEntityIds(
+    private static ObjectIdCollection CollectPaperEntityIds(
         BlockTableRecord btr,
         RXClass viewportClass,
-        HashSet<ObjectId> clipEntityIds)
+        ObjectIdCollection clipEntityIds)
     {
-        List<ObjectId> paperIds = [];
+        ObjectIdCollection paperIds = new();
 
-        foreach (var id in btr)
+        foreach (ObjectId id in btr)
             if (!id.ObjectClass.IsDerivedFrom(viewportClass) && !clipEntityIds.Contains(id))
                 paperIds.Add(id);
 
@@ -315,22 +300,22 @@ internal static class LayoutProjectionProcessor
     ///     Работает в рамках переданной транзакции, не открывая новых.
     ///     Всегда возвращает новую коллекцию — владение передаётся вызывающей стороне.
     /// </summary>
-    private static ObjectIdCollection FilterEntitiesByBounds(Transaction trx, List<ObjectId> paperIds,
+    private static ObjectIdCollection FilterEntitiesByBounds(Transaction trx, ObjectIdCollection paperIds,
         Extents3d? boundingBox)
     {
-        ObjectIdCollection filtered = [];
+        ObjectIdCollection filtered = new();
 
         if (!boundingBox.HasValue)
         {
             // Рамка не найдена — включаем все объекты
-            foreach (var id in paperIds) _ = filtered.Add(id);
+            foreach (ObjectId id in paperIds) _ = filtered.Add(id);
 
             return filtered;
         }
 
         var bounds = boundingBox.Value;
 
-        foreach (var id in paperIds)
+        foreach (ObjectId id in paperIds)
         {
             if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
 
@@ -367,7 +352,7 @@ internal static class LayoutProjectionProcessor
         Point3d center,
         Logger log,
         MergeDiagnosticContext? diagnosticContext,
-        IReadOnlySet<ObjectId>? clonedIdsToSkip = null)
+        ObjectIdCollection? clonedIdsToSkip = null)
     {
         if (Abs(geometryScale - 1.0) > 1e-9)
         {
