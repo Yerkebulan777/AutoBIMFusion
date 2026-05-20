@@ -35,8 +35,17 @@ internal static class LayoutProjectionProcessor
         });
 
         var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
+        HashSet<ObjectId> allClonedIds = [];
 
-        var allClonedIds = ProjectAuxViewports(db, msId, mainOriginal, scale.GeometryScale, viewports, log, diagnosticContext);
+        if (viewports.Count > 1)
+        {
+            var originalModelSnapshot = ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
+            log.Debug("[AUX-VP] ModelSpace snapshot: {Count} entities captured before aux processing",
+                originalModelSnapshot.Count);
+
+            ProjectAuxViewports(db, msId, mainOriginal, scale.GeometryScale, viewports, originalModelSnapshot,
+                allClonedIds, log, diagnosticContext);
+        }
 
         NormalizeModelSpaceScale(db, scale.GeometryScale, mainOriginal.ViewCenter, log, diagnosticContext, allClonedIds);
 
@@ -78,37 +87,30 @@ internal static class LayoutProjectionProcessor
     ///         ScaleModelSpaceObjects, чтобы главный масштаб не применился к уже трансформированным клонам.
     ///     </para>
     /// </summary>
-    private static HashSet<ObjectId> ProjectAuxViewports(
+    private static void ProjectAuxViewports(
         Database db,
         ObjectId msId,
         ViewportInfo mainOriginal,
         double geometryScale,
         IReadOnlyList<ViewportInfo> viewports,
+        IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> originalModelSnapshot,
+        HashSet<ObjectId> allClonedIds,
         Logger log,
         MergeDiagnosticContext? diagnosticContext)
     {
-        if (viewports.Count <= 1) return [];
-
-        // ЕДИНОМОМЕНТНЫЙ СЛЕПОК: сканируем ModelSpace строго один раз до цикла.
-        // Все последующие итерации работают только с этим снимком — новые клоны
-        // физически появляются в ModelSpace, но никогда не попадают в выборку.
-        var modelEntities =
-            ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
-
-        log.Debug("[AUX-VP] ModelSpace snapshot: {Count} entities captured before aux processing", modelEntities.Count);
+        if (viewports.Count <= 1) return;
 
         // НАКОПИТЕЛЬНЫЙ ФИЛЬТР: единый набор для всех итераций.
         // claimedSourceIds — исходные объекты, которые уже были клонированы (защита от двойного клонирования).
         // allClonedIds — ID всех созданных клонов (защита от финального масштабирования).
         HashSet<ObjectId> claimedSourceIds = [];
-        HashSet<ObjectId> allClonedIds = [];
-        ObjectIdCollection mainWindowEntityIds = CollectEntityIdsInsideWindow(modelEntities, mainOriginal.ModelWindow);
+        using var mainWindowEntityIds = CollectEntityIdsInsideWindow(originalModelSnapshot, mainOriginal.ModelWindow);
 
         foreach (var aux in viewports)
         {
             if (aux.VpId == mainOriginal.VpId) continue;
 
-            ProjectAuxViewport(db, msId, mainOriginal, geometryScale, aux, modelEntities, mainWindowEntityIds,
+            ProjectAuxViewport(db, msId, mainOriginal, geometryScale, aux, originalModelSnapshot, mainWindowEntityIds,
                 claimedSourceIds, allClonedIds, log, diagnosticContext);
         }
 
@@ -120,8 +122,6 @@ internal static class LayoutProjectionProcessor
         log.Debug(
             "[AUX-VP] Processing complete: sources={Sources}, clones={Clones}, ModelSpace total after={TotalAfter}",
             claimedSourceIds.Count, allClonedIds.Count, countAfter);
-
-        return allClonedIds;
     }
 
     private static void ProjectAuxViewport(
