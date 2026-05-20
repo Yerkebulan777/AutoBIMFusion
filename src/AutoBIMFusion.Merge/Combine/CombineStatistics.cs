@@ -10,28 +10,13 @@ public sealed class CombineStatistics
     public int Failed { get; private set; }
     public int Skipped { get; private set; }
 
-    public void AddTotal()
+    public void Update(CombineResult result)
     {
         TotalFiles++;
+        if (result.Success) Successful++;
+        else if (result.IsSkipped) Skipped++;
+        else Failed++;
     }
 
-    public void AddSuccess()
-    {
-        Successful++;
-    }
-
-    public void AddFailed()
-    {
-        Failed++;
-    }
-
-    public void AddSkipped()
-    {
-        Skipped++;
-    }
-
-    public override string ToString()
-    {
-        return $"Всего: {TotalFiles}, Успешно: {Successful}, Пропущено: {Skipped}, Ошибок: {Failed}";
-    }
+    public override string ToString() => $"Всего: {TotalFiles}, Успешно: {Successful}, Пропущено: {Skipped}, Ошибок: {Failed}";
 }

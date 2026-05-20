@@ -62,22 +62,7 @@ public sealed class CombineCommands
 
             result = ExecuteMerge(sourceFolder, false, "MERGEDWG_BATCH");
         }
-        catch (Autodesk.AutoCAD.Runtime.Exception ex)
-        {
-            log.Error(ex, "MERGEDWG_BATCH");
-            result = ExecutionResult.Fail(null, ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            log.Error(ex, "MERGEDWG_BATCH");
-            result = ExecutionResult.Fail(null, ex.Message);
-        }
-        catch (IOException ex)
-        {
-            log.Error(ex, "MERGEDWG_BATCH");
-            result = ExecutionResult.Fail(null, ex.Message);
-        }
-        catch (UnauthorizedAccessException ex)
+        catch (Exception ex)
         {
             log.Error(ex, "MERGEDWG_BATCH");
             result = ExecutionResult.Fail(null, ex.Message);
@@ -113,81 +98,49 @@ public sealed class CombineCommands
 
         try
         {
-            string? sourceFolder;
+            string? sourceFolder = folderPath ?? (UiDialogService.TrySelectFolder("Выберите папку с файлами DWG", out var selectedFolder) ? selectedFolder : null);
 
-            if (folderPath is null)
+            if (sourceFolder is null)
             {
-                if (!UiDialogService.TrySelectFolder("Выберите папку с файлами DWG", out sourceFolder))
-                {
-                    const string cancelMessage = "Выбор папки отменён.";
-                    return ExecutionResult.Fail(null, cancelMessage);
-                }
-            }
-            else
-            {
-                sourceFolder = folderPath;
+                return ExecutionResult.Fail(null, "Выбор папки отменён.");
             }
 
-            string savePath = BuildSavePath(sourceFolder!);
-
-            string[] dwgFiles = FileUtil.GetFiles(sourceFolder!);
+            string savePath = BuildSavePath(sourceFolder);
+            string[] dwgFiles = FileUtil.GetFiles(sourceFolder);
 
             if (dwgFiles.Length == 0)
             {
-                if (showDialogs)
-                {
-                    UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
-                }
-
+                if (showDialogs) UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
                 return ExecutionResult.Fail(savePath, "DWG файлы не найдены.");
             }
-
 
             CombineStatistics stats = new();
             Stopwatch sw = Stopwatch.StartNew();
 
-            DocumentCollection docMgr = AcadApp.DocumentManager;
-
-            MergeDocumentSelection target = SelectMergeDocument(docMgr, log);
-
+            MergeDocumentSelection target = SelectMergeDocument(AcadApp.DocumentManager, log);
             Document mergeDoc = target.Document;
 
             BlockInserter inserter = new(gapPercent, log);
-
             MergeFiles(dwgFiles, inserter, mergeDoc, stats, savePath, log);
 
             using (mergeDoc.LockDocument())
             {
                 RasterImagePathFixer.CopyImagesToTargetFolder(mergeDoc.Database, savePath, log);
-
                 DimensionStyleDiagnosticUtils.LogStyleSnapshot(mergeDoc.Database, log, "target-after-merge");
-
                 DrawingPurger.Optimize(mergeDoc.Database, log);
-
                 SaveMerged(mergeDoc.Database, savePath, log);
-
                 TryRunPostMergeViewCommands(mergeDoc, log);
             }
 
             sw.Stop();
 
-            log.Information(
-                "{Command}: завершено, {Stats}, save=\"{SavePath}\", elapsed={Elapsed}",
-                commandName,
-                stats,
-                savePath,
-                sw.Elapsed);
+            log.Information("{Command}: завершено, {Stats}, save=\"{SavePath}\", elapsed={Elapsed}",
+                commandName, stats, savePath, sw.Elapsed);
 
-            if (showDialogs)
-            {
-                ShowSummary(stats, sw.Elapsed, savePath, commandName);
-            }
+            if (showDialogs) ShowSummary(stats, sw.Elapsed, savePath, commandName);
 
-            string message = stats.Failed == 0
-                ? "Завершено успешно."
-                : $"Завершено с ошибками. Успешно: {stats.Successful}, пропущено: {stats.Skipped}, ошибок: {stats.Failed}.";
-
-            return new ExecutionResult(stats.Failed == 0, savePath, message);
+            return new ExecutionResult(stats.Failed == 0, savePath,
+                stats.Failed == 0 ? "Завершено успешно." : $"Завершено с ошибками. {stats}");
         }
         catch (Exception ex)
         {
@@ -288,10 +241,7 @@ public sealed class CombineCommands
         BlockTable blockTable = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
 
         if (!IsBlockRecordEmpty(blockTable[BlockTableRecord.ModelSpace], tr))
-        {
-            tr.Commit();
             return false;
-        }
 
         DBDictionary layoutDictionary = (DBDictionary)tr.GetObject(db.LayoutDictionaryId, OpenMode.ForRead);
 
@@ -300,13 +250,9 @@ public sealed class CombineCommands
             Layout layout = (Layout)tr.GetObject(entry.Value, OpenMode.ForRead);
 
             if (!layout.ModelType && !IsBlockRecordEmpty(layout.BlockTableRecordId, tr))
-            {
-                tr.Commit();
                 return false;
-            }
         }
 
-        tr.Commit();
         return true;
     }
 
@@ -316,12 +262,8 @@ public sealed class CombineCommands
 
         foreach (ObjectId entityId in blockRecord)
         {
-            Entity entity = (Entity)tr.GetObject(entityId, OpenMode.ForRead);
-
-            if (entity is not Viewport)
-            {
+            if (tr.GetObject(entityId, OpenMode.ForRead) is not Viewport)
                 return false;
-            }
         }
 
         return true;
@@ -354,23 +296,8 @@ public sealed class CombineCommands
         {
             for (int idx = 0; idx < files.Length; idx++)
             {
-                stats.AddTotal();
-
                 CombineResult result = CombineOrchestrator.MergeSingleFile(files[idx], inserter, doc, log, savePath);
-
-                if (result.Success)
-                {
-                    stats.AddSuccess();
-                }
-                else if (result.IsSkipped)
-                {
-                    stats.AddSkipped();
-                }
-                else
-                {
-                    stats.AddFailed();
-                }
-
+                stats.Update(result);
                 pm.MeterProgress();
             }
         }
@@ -397,21 +324,13 @@ public sealed class CombineCommands
     private static void SaveMerged(Database db, string savePath, Logger log)
     {
         string? dir = Path.GetDirectoryName(savePath);
+        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 
-        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-        {
-            _ = Directory.CreateDirectory(dir);
-        }
-
-        if (File.Exists(savePath))
-        {
-            File.Delete(savePath);
-        }
+        if (File.Exists(savePath)) File.Delete(savePath);
 
         using (new AcadWarningSuppressScope())
         {
             DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "target-before-save");
-            // AC1032 = AutoCAD 2018 format — самый стабильный и широко поддерживаемый формат DWG
             db.SaveAs(savePath, DwgVersion.AC1032);
         }
     }
