@@ -91,97 +91,90 @@ internal static class ViewportTransformer
         var transformed = 0;
         var viewportSkipped = 0;
         var associativeHatchSkipped = 0;
-        var originalScaled = 0;
 
         using var trx = db.TransactionManager.StartTransaction();
         var modelSpace = (BlockTableRecord)trx.GetObject(msId, OpenMode.ForRead);
 
-        log.Debug("[МАСШТАБ] ModelSpace objects BEFORE scaling: {Count}", modelSpace.Cast<ObjectId>().Count());
-
         foreach (var id in modelSpace)
-            if (trx.GetObject(id, OpenMode.ForWrite) is Entity ent)
+        {
+            // Открываем в ForRead — большинство объектов будут пропущены (Viewport, клоны).
+            if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;
+
+            total++;
+
+            if (ent is Viewport)
             {
-                total++;
+                viewportSkipped++;
+                continue;
+            }
 
-                if (ent is Viewport)
+            var entType = ent.GetType().Name;
+            var handle = ent.Handle.ToString();
+
+            if (clonedIds != null && clonedIds.Contains(id))
+            {
+                log.Debug(
+                    "[МАСШТАБ-ПРОПУСК] Clone Handle={Handle}, Type={EntityType} — уже масштабирован через BuildMatrix",
+                    handle, entType);
+                continue;
+            }
+
+            // Переводим в ForWrite только для объектов, которые будем трансформировать.
+            ent.UpgradeOpen();
+
+            try
+            {
+                var oldExt = ExtentsUtils.TryGetExtents(ent);
+
+                var transformResult = EntityTransformUtils.TransformEntity(ent, matrix, trx);
+
+                if (transformResult.SkippedAssociativeHatch)
                 {
-                    viewportSkipped++;
+                    associativeHatchSkipped++;
                     continue;
                 }
 
-                var entType = ent.GetType().Name;
-                var handle = ent.Handle.ToString();
-                var isClone = clonedIds != null && clonedIds.Contains(id);
+                transformed++;
 
-                if (isClone)
+                var newExt = ExtentsUtils.TryGetExtents(ent);
+
+                if (ExtentsUtils.TryGetScaleRatio(oldExt, newExt, out var oldDig, out var newDig,
+                        out var digRatio) && digRatio > ratio * 5.0)
                 {
-                    log.Debug(
-                        "[МАСШТАБ-ПРОПУСК] Clone Handle={Handle}, Type={EntityType} — уже масштабирован через BuildMatrix",
-                        handle, entType);
-                    continue;
-                }
+                    log.Warning(
+                        "[АНОМАЛИЯ МАСШТАБА] Тип: {EntityType}, Handle: {Handle}. Диагональ ДО: {OldDiag:F2}, ПОСЛЕ: {NewDiag:F2}",
+                        entType, handle, oldDig, newDig);
 
-                try
-                {
-                    var oldExt = ExtentsUtils.TryGetExtents(ent);
-
-                    var transformResult = EntityTransformUtils.TransformEntity(ent, matrix, trx);
-
-                    if (transformResult.SkippedAssociativeHatch)
+                    _ = MergeDiagnostics.TryAddSample(anomalySamples, new Dictionary<string, object?>
                     {
-                        associativeHatchSkipped++;
-                        continue;
-                    }
-
-                    transformed++;
-                    originalScaled++;
-
-                    var newExt = ExtentsUtils.TryGetExtents(ent);
-
-                    if (ExtentsUtils.TryGetScaleRatio(oldExt, newExt, out var oldDig, out var newDig,
-                            out var digRatio) && digRatio > ratio * 5.0)
-                    {
-                        log.Warning(
-                            "[АНОМАЛИЯ МАСШТАБА] Тип: {EntityType}, Handle: {Handle}, IsClone: {IsClone}. Диагональ ДО: {OldDiag:F2}, ПОСЛЕ: {NewDiag:F2}",
-                            entType, handle, isClone, oldDig, newDig);
-
-                        _ = MergeDiagnostics.TryAddSample(anomalySamples, new Dictionary<string, object?>
-                        {
-                            ["entityType"] = entType,
-                            ["handle"] = handle,
-                            ["isClone"] = isClone,
-                            ["oldDiagonal"] = oldDig,
-                            ["newDiagonal"] = newDig,
-                            ["diagonalRatio"] = digRatio
-                        });
-                    }
-                }
-                catch (Exception ex)
-                {
-                    log.Error(ex, "[ОШИБКА ТРАНСФОРМАЦИИ] Тип: {EntityType}, Handle: {Handle}, IsClone: {IsClone}. Сообщение: {Message}", entType, handle, isClone, ex.Message);
-
-                    if (!errorTypes.TryGetValue(entType, out var value))
-                    {
-                        value = 0;
-                        errorTypes[entType] = value;
-                    }
-
-                    errorTypes[entType] = ++value;
+                        ["entityType"] = entType,
+                        ["handle"] = handle,
+                        ["oldDiagonal"] = oldDig,
+                        ["newDiagonal"] = newDig,
+                        ["diagonalRatio"] = digRatio
+                    });
                 }
             }
+            catch (Exception ex)
+            {
+                log.Error(ex, "[ОШИБКА ТРАНСФОРМАЦИИ] Тип: {EntityType}, Handle: {Handle}. Сообщение: {Message}",
+                    entType, handle, ex.Message);
+
+                errorTypes[entType] = errorTypes.GetValueOrDefault(entType) + 1;
+            }
+        }
 
         trx.Commit();
 
         log.Debug(
-            "[МАСШТАБ] Итого: {Total}, transformed={Transformed}, originalScaled={OriginalScaled}, viewportSkipped={ViewportSkipped}, hatchSkipped={HatchSkipped}",
-            total, transformed, originalScaled, viewportSkipped, associativeHatchSkipped);
+            "[МАСШТАБ] Итого: {Total}, transformed={Transformed}, viewportSkipped={ViewportSkipped}, hatchSkipped={HatchSkipped}",
+            total, transformed, viewportSkipped, associativeHatchSkipped);
 
         MergeDiagnostics.WriteEvent(diagnosticContext, "model.scaled", new Dictionary<string, object?>
         {
             ["ratio"] = ratio,
             ["total"] = total,
             ["transformed"] = transformed,
-            ["originalScaled"] = originalScaled,
             ["viewportSkipped"] = viewportSkipped,
             ["associativeHatchSkipped"] = associativeHatchSkipped,
             ["errorTypes"] = errorTypes,

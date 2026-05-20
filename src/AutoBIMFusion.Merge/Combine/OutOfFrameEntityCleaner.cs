@@ -111,7 +111,11 @@ internal static class OutOfFrameEntityCleaner
         if (trx.GetObject(blockDefinitionId, OpenMode.ForRead) is not BlockTableRecord btr) return 0;
 
         var count = 0;
-        foreach (var _ in btr) count++;
+        foreach (var _ in btr)
+        {
+            count++;
+            if (count >= MaxEntityCount) break;
+        }
 
         return count;
     }
