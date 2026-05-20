@@ -51,6 +51,21 @@ public static class ExtentsUtils
                 : TryGetExtents(ent);
     }
 
+    private static Extents3d? TryGetLiveExtentsAndReset(
+        Entity ent,
+        Transaction trx,
+        HashSet<ObjectId> activeBlockDefinitions)
+    {
+        try
+        {
+            return TryGetLiveExtents(ent, trx, activeBlockDefinitions);
+        }
+        finally
+        {
+            activeBlockDefinitions.Clear();
+        }
+    }
+
     private static Extents3d? TryGetBlockReferenceLiveExtents(
         BlockReference blockRef,
         Transaction trx,
@@ -375,8 +390,7 @@ public static class ExtentsUtils
                 continue;
             }
 
-            Extents3d? ext = TryGetLiveExtents(ent, trx, activeBlockDefinitions);
-            activeBlockDefinitions.Clear();
+            Extents3d? ext = TryGetLiveExtentsAndReset(ent, trx, activeBlockDefinitions);
             if (ext is null)
             {
                 continue;
@@ -415,8 +429,7 @@ public static class ExtentsUtils
                 continue;
             }
 
-            Extents3d? ext = TryGetLiveExtents(ent, trx, activeBlockDefinitions);
-            activeBlockDefinitions.Clear();
+            Extents3d? ext = TryGetLiveExtentsAndReset(ent, trx, activeBlockDefinitions);
             if (!ext.HasValue)
             {
                 continue;
