@@ -64,6 +64,20 @@ internal static class LayoutProjectionProcessor
         }
     }
 
+    /// <summary>
+    ///     Обрабатывает все вспомогательные Viewport'ы, проецируя содержимое их окон в Model Space
+    ///     относительно главного Viewport'а.
+    ///     <para>
+    ///         КРИТИЧНО: Слепок сущностей модели (modelEntities) снимается ОДИН РАЗ до начала цикла.
+    ///         Это предотвращает «feedback loop» — ситуацию, когда клоны, созданные на первой итерации,
+    ///         попадают в выборку второй итерации и подвергаются повторной трансформации (масштаб × масштаб).
+    ///         Все итерации работают с одним и тем же снимком исходных объектов.
+    ///     </para>
+    ///     <para>
+    ///         allClonedIds накапливает ID всех созданных клонов и передаётся в финальный
+    ///         ScaleModelSpaceObjects, чтобы главный масштаб не применился к уже трансформированным клонам.
+    ///     </para>
+    /// </summary>
     private static HashSet<ObjectId> ProjectAuxViewports(
         Database db,
         ObjectId msId,
@@ -75,14 +89,20 @@ internal static class LayoutProjectionProcessor
     {
         if (viewports.Count <= 1) return [];
 
+        // ЕДИНОМОМЕНТНЫЙ СЛЕПОК: сканируем ModelSpace строго один раз до цикла.
+        // Все последующие итерации работают только с этим снимком — новые клоны
+        // физически появляются в ModelSpace, но никогда не попадают в выборку.
         var modelEntities =
             ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
 
         log.Debug("[AUX-VP] ModelSpace snapshot: {Count} entities captured before aux processing", modelEntities.Count);
 
+        // НАКОПИТЕЛЬНЫЙ ФИЛЬТР: единый набор для всех итераций.
+        // claimedSourceIds — исходные объекты, которые уже были клонированы (защита от двойного клонирования).
+        // allClonedIds — ID всех созданных клонов (защита от финального масштабирования).
         HashSet<ObjectId> claimedSourceIds = [];
         HashSet<ObjectId> allClonedIds = [];
-        var mainWindowEntityIds = CollectEntityIdsInsideWindow(modelEntities, mainOriginal.ModelWindow);
+        ObjectIdCollection mainWindowEntityIds = CollectEntityIdsInsideWindow(modelEntities, mainOriginal.ModelWindow);
 
         foreach (var aux in viewports)
         {
@@ -111,7 +131,7 @@ internal static class LayoutProjectionProcessor
         double geometryScale,
         ViewportInfo aux,
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities,
-        IReadOnlySet<ObjectId> mainWindowEntityIds,
+        ObjectIdCollection mainWindowEntityIds,
         HashSet<ObjectId> claimedSourceIds,
         HashSet<ObjectId> allClonedIds,
         Logger log,
@@ -172,11 +192,16 @@ internal static class LayoutProjectionProcessor
         ViewportTransformer.EraseEntitiesOutsideMainWindow(db, toClone, mainWindowEntityIds);
     }
 
-    private static HashSet<ObjectId> CollectEntityIdsInsideWindow(
+    /// <summary>
+    ///     Собирает ID сущностей из снимка модели, чьи extents пересекаются с окном главного VP.
+    ///     Возвращает ObjectIdCollection — нативную коллекцию AutoCAD, которая корректно работает
+    ///     с API удаления (Erase) и гарантирует правильную обработку ObjectId в транзакциях.
+    /// </summary>
+    private static ObjectIdCollection CollectEntityIdsInsideWindow(
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities,
         Extents3d window)
     {
-        HashSet<ObjectId> result = [];
+        ObjectIdCollection result = [];
 
         foreach (var entity in modelEntities)
             if (ExtentsUtils.AabbIntersect(window, entity.Extents))

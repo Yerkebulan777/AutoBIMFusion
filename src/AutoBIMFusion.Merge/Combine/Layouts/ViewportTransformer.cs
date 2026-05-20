@@ -426,9 +426,17 @@ internal static class ViewportTransformer
     ///     Если объект только в aux VP — удаляем, так как его клон уже создан на правильной позиции.
     ///     Без этого шага объекты aux VP, чьи модельные координаты попадают в пределы листа,
     ///     не удаляются очисткой малых объектов за рамкой и остаются как «мусор» в результирующем файле.
+    ///     <para>
+    ///         ВАЖНО: mainWindowEntityIds передаётся как ObjectIdCollection (нативная коллекция AutoCAD),
+    ///         а не как HashSet или IReadOnlySet. ObjectIdCollection — это обёртка вокруг нативного
+    ///         ObjectARX AcDbObjectIdArray, которая гарантирует корректную работу с ObjectId:
+    ///         правильная сериализация, валидность handle'ов и совместимость с транзакциями AutoCAD.
+    ///         Использование managed-коллекций (HashSet, List) для ObjectId может привести к subtle bug'ам
+    ///         при удалении сущностей, особенно в контексте deep clone и WblockCloneObjects.
+    ///     </para>
     /// </summary>
     internal static void EraseEntitiesOutsideMainWindow(Database db, ObjectIdCollection auxEntities,
-        IReadOnlySet<ObjectId> mainWindowEntityIds)
+        ObjectIdCollection mainWindowEntityIds)
     {
         using var trx = db.TransactionManager.StartTransaction();
 
