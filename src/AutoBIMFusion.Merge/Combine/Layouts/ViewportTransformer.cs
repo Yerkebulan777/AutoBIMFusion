@@ -80,7 +80,8 @@ internal static class ViewportTransformer
         Matrix3d matrix,
         double ratio,
         Logger log,
-        MergeDiagnosticContext? diagnosticContext = null)
+        MergeDiagnosticContext? diagnosticContext = null,
+        IReadOnlySet<ObjectId>? clonedIdsToSkip = null)
     {
         Dictionary<string, int> errorTypes = [];
         List<Dictionary<string, object?>> anomalySamples = [];
@@ -97,6 +98,11 @@ internal static class ViewportTransformer
         foreach (var id in modelSpace)
         {
             if (id.IsErased) continue;
+            
+            if (clonedIdsToSkip is not null && clonedIdsToSkip.Contains(id))
+            {
+                continue;
+            }
 
             // Открываем в ForRead — большинство объектов будут пропущены (Viewport, клоны).
             if (trx.GetObject(id, OpenMode.ForRead) is not Entity ent) continue;

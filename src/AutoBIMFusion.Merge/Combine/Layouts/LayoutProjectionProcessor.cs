@@ -36,9 +36,9 @@ internal static class LayoutProjectionProcessor
 
         var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
-        ProjectAuxViewports(db, msId, mainOriginal, viewports, log, diagnosticContext);
+        var allClonedIds = ProjectAuxViewports(db, msId, mainOriginal, viewports, log, diagnosticContext);
 
-        NormalizeModelSpaceScale(db, scale.GeometryScale, mainOriginal.ViewCenter, log, diagnosticContext);
+        NormalizeModelSpaceScale(db, scale.GeometryScale, mainOriginal.ViewCenter, log, diagnosticContext, allClonedIds);
 
         // Одна транзакция: сбор paper-сущностей + поиск рамки + фильтрация
         var layoutData = CollectAndFilterLayoutData(db, layoutName);
@@ -64,7 +64,7 @@ internal static class LayoutProjectionProcessor
         }
     }
 
-    private static void ProjectAuxViewports(
+    private static HashSet<ObjectId> ProjectAuxViewports(
         Database db,
         ObjectId msId,
         ViewportInfo mainOriginal,
@@ -72,7 +72,8 @@ internal static class LayoutProjectionProcessor
         Logger log,
         MergeDiagnosticContext? diagnosticContext)
     {
-        if (viewports.Count <= 1) return;
+        HashSet<ObjectId> allClonedIds = [];
+        if (viewports.Count <= 1) return allClonedIds;
 
         var modelEntities =
             ViewportTransformer.CollectModelEntitiesWithExtents(db, msId, log);
@@ -86,8 +87,12 @@ internal static class LayoutProjectionProcessor
         {
             if (aux.VpId == mainOriginal.VpId) continue;
 
-            ProjectAuxViewport(db, msId, mainOriginal, aux, modelEntities, mainWindowEntityIds,
+            var clonedIds = ProjectAuxViewport(db, msId, mainOriginal, aux, modelEntities, mainWindowEntityIds,
                 entitiesToErase, log, diagnosticContext);
+            foreach (var id in clonedIds)
+            {
+                _ = allClonedIds.Add(id);
+            }
         }
 
         if (entitiesToErase.Count > 0)
@@ -103,9 +108,11 @@ internal static class LayoutProjectionProcessor
         log.Debug(
             "[AUX-VP] Processing complete: entitiesToEraseCount={ToEraseCount}, ModelSpace total after={TotalAfter}",
             entitiesToErase.Count, countAfter);
+
+        return allClonedIds;
     }
 
-    private static void ProjectAuxViewport(
+    private static List<ObjectId> ProjectAuxViewport(
         Database db,
         ObjectId msId,
         ViewportInfo mainOriginal,
@@ -148,7 +155,7 @@ internal static class LayoutProjectionProcessor
         {
             log.Debug(
                 $"Aux#{aux.Number}: candidates={selection.SelectedIds.Count}, nothing to clone");
-            return;
+            return [];
         }
 
         log.Debug(
@@ -164,6 +171,13 @@ internal static class LayoutProjectionProcessor
                 _ = entitiesToErase.Add(id);
             }
         }
+
+        List<ObjectId> cloned = new(cloneResult.ClonedIds.Count);
+        foreach (ObjectId id in cloneResult.ClonedIds)
+        {
+            cloned.Add(id);
+        }
+        return cloned;
     }
 
     private static HashSet<ObjectId> CollectEntityIdsInsideWindow(
@@ -352,12 +366,13 @@ internal static class LayoutProjectionProcessor
         double geometryScale,
         Point3d center,
         Logger log,
-        MergeDiagnosticContext? diagnosticContext)
+        MergeDiagnosticContext? diagnosticContext,
+        IReadOnlySet<ObjectId>? clonedIdsToSkip = null)
     {
         if (Abs(geometryScale - 1.0) > 1e-9)
         {
             var scaleMatrix = Matrix3d.Scaling(geometryScale, center);
-            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, geometryScale, log, diagnosticContext);
+            ViewportTransformer.ScaleModelSpaceObjects(db, scaleMatrix, geometryScale, log, diagnosticContext, clonedIdsToSkip);
             return;
         }
 
