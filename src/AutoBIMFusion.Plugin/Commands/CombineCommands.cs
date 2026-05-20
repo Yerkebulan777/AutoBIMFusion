@@ -166,8 +166,7 @@ public sealed class CombineCommands
 
                 SaveMerged(mergeDoc.Database, savePath, log);
 
-                mergeDoc.Editor.Command("._REGENALL");
-                mergeDoc.Editor.Command("._ZOOM", "_EXTENTS");
+                TryRunPostMergeViewCommands(mergeDoc, log);
             }
 
             sw.Stop();
@@ -326,6 +325,23 @@ public sealed class CombineCommands
         }
 
         return true;
+    }
+
+    private static void TryRunPostMergeViewCommands(Document mergeDoc, Logger log)
+    {
+        try
+        {
+            mergeDoc.Editor.Command("._REGENALL");
+            mergeDoc.Editor.Command("._ZOOM", "_EXTENTS");
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception ex)
+        {
+            log.Warning(ex, "Post-merge view command skipped: {Message}", ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            log.Warning(ex, "Post-merge view command skipped: {Message}", ex.Message);
+        }
     }
 
     private static void MergeFiles(string[] files, BlockInserter inserter, Document doc, CombineStatistics stats, string savePath, Logger log)
