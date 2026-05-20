@@ -419,6 +419,23 @@ internal static class ViewportTransformer
     }
 
     /// <summary>
+    ///     Удаляет оригиналы вспомогательного VP, которые не входят в окно главного VP.
+    /// </summary>
+    internal static void EraseEntitiesOutsideMainWindow(Database db, ObjectIdCollection entitiesToErase)
+    {
+        using var trx = db.TransactionManager.StartTransaction();
+
+        foreach (ObjectId id in entitiesToErase)
+        {
+            if (id.IsErased) continue;
+
+            if (trx.GetObject(id, OpenMode.ForWrite) is Entity entity && !entity.IsErased) entity.Erase();
+        }
+
+        trx.Commit();
+    }
+
+    /// <summary>
     ///     Снимок состояния сущности модели, включая её идентификатор и границы.
     /// </summary>
     internal sealed record ModelEntitySnapshot(ObjectId Id, Extents3d Extents, string Handle, string EntityType);

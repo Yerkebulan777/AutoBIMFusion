@@ -36,7 +36,7 @@ internal static class LayoutProjectionProcessor
 
         var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
-        var allClonedIds = ProjectAuxViewports(db, msId, mainOriginal, viewports, log, diagnosticContext);
+        using var allClonedIds = ProjectAuxViewports(db, msId, mainOriginal, viewports, log, diagnosticContext);
 
         NormalizeModelSpaceScale(db, scale.GeometryScale, mainOriginal.ViewCenter, log, diagnosticContext, allClonedIds);
 
@@ -80,33 +80,25 @@ internal static class LayoutProjectionProcessor
 
         log.Debug("[AUX-VP] ModelSpace snapshot: {Count} entities captured before aux processing", modelEntities.Count);
 
+        using ObjectIdCollection entitiesToErase = new();
+        using var mainWindowEntityIds = CollectEntityIdsInsideWindow(modelEntities, mainOriginal.ModelWindow);
+
         foreach (var aux in viewports)
         {
             if (aux.VpId == mainOriginal.VpId) continue;
 
-            var clonedIds = ProjectAuxViewport(db, msId, mainOriginal, aux, modelEntities, log, diagnosticContext);
+            using var clonedIds = ProjectAuxViewport(db, msId, mainOriginal, aux, modelEntities, mainWindowEntityIds,
+                entitiesToErase, log, diagnosticContext);
             foreach (ObjectId id in clonedIds)
             {
                 _ = allClonedIds.Add(id);
             }
         }
 
-        // Глобальная очистка оригиналов: удаляем всё, что не попадает в Main VP, 
-        // чтобы NormalizeModelSpaceScale не масштабировал мусор от удаленного центра.
-        int erasedCount = 0;
-        using var cleanupTrx = db.TransactionManager.StartTransaction();
-        foreach (var entitySnapshot in modelEntities)
+        if (entitiesToErase.Count > 0)
         {
-            if (!ExtentsUtils.AabbIntersect(mainOriginal.ModelWindow, entitySnapshot.Extents))
-            {
-                if (cleanupTrx.GetObject(entitySnapshot.Id, OpenMode.ForWrite, false, true) is Entity ent && !ent.IsErased)
-                {
-                    ent.Erase();
-                    erasedCount++;
-                }
-            }
+            ViewportTransformer.EraseEntitiesOutsideMainWindow(db, entitiesToErase);
         }
-        cleanupTrx.Commit();
 
         using var countTrx = db.TransactionManager.StartTransaction();
         var msForCount = (BlockTableRecord)countTrx.GetObject(msId, OpenMode.ForRead);
@@ -115,7 +107,7 @@ internal static class LayoutProjectionProcessor
 
         log.Debug(
             "[AUX-VP] Processing complete: entitiesToEraseCount={ToEraseCount}, ModelSpace total after={TotalAfter}",
-            erasedCount, countAfter);
+            entitiesToErase.Count, countAfter);
 
         return allClonedIds;
     }
@@ -126,6 +118,8 @@ internal static class LayoutProjectionProcessor
         ViewportInfo mainOriginal,
         ViewportInfo aux,
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities,
+        ObjectIdCollection mainWindowEntityIds,
+        ObjectIdCollection entitiesToErase,
         Logger log,
         MergeDiagnosticContext? diagnosticContext)
     {
@@ -170,12 +164,33 @@ internal static class LayoutProjectionProcessor
         using var cloneResult =
             ViewportTransformer.DeepCloneAndTransform(db, selection.SelectedIds, msId, msId, matrix, log);
 
+        foreach (ObjectId id in selection.SelectedIds)
+        {
+            if (!mainWindowEntityIds.Contains(id) && !entitiesToErase.Contains(id))
+            {
+                _ = entitiesToErase.Add(id);
+            }
+        }
+
         ObjectIdCollection cloned = new();
         foreach (ObjectId id in cloneResult.ClonedIds)
         {
             cloned.Add(id);
         }
         return cloned;
+    }
+
+    private static ObjectIdCollection CollectEntityIdsInsideWindow(
+        IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities,
+        Extents3d window)
+    {
+        ObjectIdCollection result = new();
+
+        foreach (var entity in modelEntities)
+            if (ExtentsUtils.AabbIntersect(window, entity.Extents))
+                _ = result.Add(entity.Id);
+
+        return result;
     }
 
     private static LayoutProjectionResult ProjectNoViewport(
