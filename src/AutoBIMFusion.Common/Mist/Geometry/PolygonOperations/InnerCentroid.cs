@@ -28,23 +28,25 @@ public static partial class PolygonOperation
             return Extend.MinPoint;
         }
 
-        //a priority queue of cells in order of their "potential" (max distance to polygon)
-        Queue<Cell> cellQueue = new();
+        // a priority queue of cells in order of their "potential" (max distance to polygon)
+        // System.Collections.Generic.PriorityQueue is a min-heap by default, so we negate priority to get max-heap
+        PriorityQueue<Cell, double> cellQueue = new();
 
-        //cover polygon with initial cells
+        // cover polygon with initial cells
         for (var x = Extend.MinPoint.X; x < Extend.MaxPoint.X; x += cellSize)
         {
             for (var y = Extend.MinPoint.Y; y < Extend.MaxPoint.Y; y += cellSize)
             {
                 Point3d CellCenter = new(x + h, y + h, 0);
-                cellQueue.Enqueue(new Cell(CellCenter, h, PolylinePolygon, PolygonPtnsCollection, null));
+                var cell = new Cell(CellCenter, h, PolylinePolygon, PolygonPtnsCollection, null);
+                cellQueue.Enqueue(cell, -cell.MaxDistanceToPolygonWithingACell);
             }
         }
 
-        //take centroid as the first best guess
+        // take centroid as the first best guess
         Cell bestCell = GetCentroidCell(PolylinePolygon, PolygonPtnsCollection);
 
-        //special case for rectangular polygons
+        // special case for rectangular polygons
         Point3d bboxCellPoint = new(Extend.MinPoint.X + (width / 2), Extend.MinPoint.Y + (height / 2), 0);
         Cell bboxCell = new(bboxCellPoint, 0, PolylinePolygon, PolygonPtnsCollection, null);
         if (bboxCell.DistanceFromCenterToPolygon > bestCell.DistanceFromCenterToPolygon)
@@ -56,32 +58,36 @@ public static partial class PolygonOperation
 
         while (cellQueue.Count > 0)
         {
-            //pick the most promising cell from the queue
-
+            // pick the most promising cell from the queue
             Cell cell = cellQueue.Dequeue();
 
-            //update the best cell if we found a better one
+            // update the best cell if we found a better one
             if (cell.DistanceFromCenterToPolygon > bestCell.DistanceFromCenterToPolygon)
             {
                 bestCell = cell;
             }
 
-            //do not drill down further if there's no chance of a better solution
+            // do not drill down further if there's no chance of a better solution
             if (cell.MaxDistanceToPolygonWithingACell - bestCell.DistanceFromCenterToPolygon <= precision)
             {
-                continue;
+                break; // Since it's a priority queue, no other cell will be better, so we can break early
             }
 
-            //split the cell into four cells
+            // split the cell into four cells
             h = cell.HalfCellSize / 2;
-            cellQueue.Enqueue(new Cell(new Point3d(cell.CenterPoint.X - h, cell.CenterPoint.Y - h, 0), h,
-                PolylinePolygon, PolygonPtnsCollection, cell.IsFullyInside));
-            cellQueue.Enqueue(new Cell(new Point3d(cell.CenterPoint.X + h, cell.CenterPoint.Y - h, 0), h,
-                PolylinePolygon, PolygonPtnsCollection, cell.IsFullyInside));
-            cellQueue.Enqueue(new Cell(new Point3d(cell.CenterPoint.X - h, cell.CenterPoint.Y + h, 0), h,
-                PolylinePolygon, PolygonPtnsCollection, cell.IsFullyInside));
-            cellQueue.Enqueue(new Cell(new Point3d(cell.CenterPoint.X + h, cell.CenterPoint.Y + h, 0), h,
-                PolylinePolygon, PolygonPtnsCollection, cell.IsFullyInside));
+
+            var c1 = new Cell(new Point3d(cell.CenterPoint.X - h, cell.CenterPoint.Y - h, 0), h, PolylinePolygon, PolygonPtnsCollection, cell.IsFullyInside);
+            cellQueue.Enqueue(c1, -c1.MaxDistanceToPolygonWithingACell);
+
+            var c2 = new Cell(new Point3d(cell.CenterPoint.X + h, cell.CenterPoint.Y - h, 0), h, PolylinePolygon, PolygonPtnsCollection, cell.IsFullyInside);
+            cellQueue.Enqueue(c2, -c2.MaxDistanceToPolygonWithingACell);
+
+            var c3 = new Cell(new Point3d(cell.CenterPoint.X - h, cell.CenterPoint.Y + h, 0), h, PolylinePolygon, PolygonPtnsCollection, cell.IsFullyInside);
+            cellQueue.Enqueue(c3, -c3.MaxDistanceToPolygonWithingACell);
+
+            var c4 = new Cell(new Point3d(cell.CenterPoint.X + h, cell.CenterPoint.Y + h, 0), h, PolylinePolygon, PolygonPtnsCollection, cell.IsFullyInside);
+            cellQueue.Enqueue(c4, -c4.MaxDistanceToPolygonWithingACell);
+
             numProbes += 4;
         }
 
@@ -106,9 +112,10 @@ public static partial class PolygonOperation
             area += f * 3;
         }
 
+        // Pass null instead of false for FullyInside to correctly compute whether the centroid is inside the polygon
         return area == 0
-            ? new Cell(PolygonPtnsCollection[0], 0, polygon, PolygonPtnsCollection, false)
-            : new Cell(new Point3d(x / area, y / area, 0), 0, polygon, PolygonPtnsCollection, false);
+            ? new Cell(PolygonPtnsCollection[0], 0, polygon, PolygonPtnsCollection, null)
+            : new Cell(new Point3d(x / area, y / area, 0), 0, polygon, PolygonPtnsCollection, null);
     }
 
     private class Cell
@@ -119,7 +126,7 @@ public static partial class PolygonOperation
             HalfCellSize = h;
             DistanceFromCenterToPolygon = PointToPolygonDist(pt, polygon, PtnsCollection);
             MaxDistanceToPolygonWithingACell = DistanceFromCenterToPolygon + (HalfCellSize * Sqrt(2));
-            IsFullyInside = FullyInside is null ? CheckFullyInside(polygon) : (bool)FullyInside;
+            IsFullyInside = FullyInside ?? CheckFullyInside(polygon);
         }
 
         public bool? IsFullyInside { get; }
@@ -151,23 +158,10 @@ public static partial class PolygonOperation
             return polyline;
         }
 
-        //private void DebugDraw()
-        //{
-        //    Polyline poly = GetBox();
-        //    poly.AddToDrawing();
-        //    MText text = new MText();
-        //    text.Location = CenterPoint;
-        //    text.TextHeight = 0.1;
-        //    text.Contents = DistanceFromCenterToPolygon.ToString();
-        //    text.AddToDrawing();
-        //}
-
-        //distance from point to polygon outline (negative if point is outside)
+        // distance from point to polygon outline (negative if point is outside)
         private double PointToPolygonDist(Point3d Point, Polyline polygon, Point3dCollection PtnsCollection)
         {
-            var inside = IsFullyInside == null
-                ? Point.ToPoint2d().IsPointInsidePolygonMcMartin(PtnsCollection)
-                : (bool)IsFullyInside;
+            var inside = IsFullyInside ?? Point.ToPoint2d().IsPointInsidePolygonMcMartin(PtnsCollection);
             Point3d ClosestPoint = polygon.GetClosestPointTo(Point, false);
             var minDistSq = ClosestPoint.DistanceTo(Point);
             return (inside ? 1 : -1) * minDistSq;
