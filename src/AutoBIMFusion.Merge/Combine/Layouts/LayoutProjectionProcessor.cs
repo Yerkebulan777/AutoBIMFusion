@@ -36,7 +36,7 @@ internal static class LayoutProjectionProcessor
 
         var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
 
-        var allClonedIds = ProjectAuxViewports(db, msId, mainOriginal, viewports, log, diagnosticContext);
+        var allClonedIds = ProjectAuxViewports(db, msId, mainOriginal, scale.GeometryScale, viewports, log, diagnosticContext);
 
         NormalizeModelSpaceScale(db, scale.GeometryScale, mainOriginal.ViewCenter, log, diagnosticContext, allClonedIds);
 
@@ -68,6 +68,7 @@ internal static class LayoutProjectionProcessor
         Database db,
         ObjectId msId,
         ViewportInfo mainOriginal,
+        double geometryScale,
         IReadOnlyList<ViewportInfo> viewports,
         Logger log,
         MergeDiagnosticContext? diagnosticContext)
@@ -86,7 +87,7 @@ internal static class LayoutProjectionProcessor
         {
             if (aux.VpId == mainOriginal.VpId) continue;
 
-            ProjectAuxViewport(db, msId, mainOriginal, aux, modelEntities, claimedSourceIds, allClonedIds, log, diagnosticContext);
+            ProjectAuxViewport(db, msId, mainOriginal, geometryScale, aux, modelEntities, claimedSourceIds, allClonedIds, log, diagnosticContext);
         }
 
         using var countTrx = db.TransactionManager.StartTransaction();
@@ -105,6 +106,7 @@ internal static class LayoutProjectionProcessor
         Database db,
         ObjectId msId,
         ViewportInfo mainOriginal,
+        double geometryScale,
         ViewportInfo aux,
         IReadOnlyList<ViewportTransformer.ModelEntitySnapshot> modelEntities,
         HashSet<ObjectId> claimedSourceIds,
@@ -112,7 +114,17 @@ internal static class LayoutProjectionProcessor
         Logger log,
         MergeDiagnosticContext? diagnosticContext)
     {
-        var matrix = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
+        // Компонуем Aux→Main матрицу с матрицей нормализации масштаба.
+        // BuildMatrix позиционирует клоны в "до-нормированном" пространстве main VP.
+        // Домножение на scaleMatrix переводит их сразу в финальное нормированное пространство,
+        // чтобы NormalizeModelSpaceScale мог безопасно пропустить эти клоны без потери масштаба.
+        var auxToMain = ViewportTransformer.BuildMatrix(mainOriginal, aux, log);
+        var scaleMatrix = Matrix3d.Scaling(geometryScale, mainOriginal.ViewCenter);
+        var matrix = scaleMatrix * auxToMain;
+
+        log.Debug(
+            "[AUX-VP-MATRIX] Aux#{AuxNumber}: geometryScale={GeometryScale:F6}, scaleCenter={ScaleCenter}, composedMatrix=true",
+            aux.Number, geometryScale, ExtentsUtils.FormatPoint(mainOriginal.ViewCenter));
 
         using var selection =
             ViewportTransformer.SelectModelInside(modelEntities, aux.ModelWindow, mainOriginal.ModelWindow, log);

@@ -91,7 +91,6 @@ internal static class ViewportTransformer
         var transformed = 0;
         var viewportSkipped = 0;
         var associativeHatchSkipped = 0;
-        var clonedScaled = 0;
         var originalScaled = 0;
 
         using var trx = db.TransactionManager.StartTransaction();
@@ -135,19 +134,9 @@ internal static class ViewportTransformer
                     }
 
                     transformed++;
-                    if (isClone) clonedScaled++; else originalScaled++;
+                    originalScaled++;
 
                     var newExt = ExtentsUtils.TryGetExtents(ent);
-
-                    if (isClone)
-                    {
-                        log.Debug(
-                            "[МАСШТАБ-КЛОН] Handle={Handle}, Type={EntityType}, DiagonalBefore={BeforeDiag:F2}, DiagonalAfter={AfterDiag:F2}, ScaleRatio={Ratio:F4}",
-                            handle, entType,
-                            oldExt?.MinPoint.DistanceTo(oldExt?.MaxPoint ?? Point3d.Origin) ?? 0,
-                            newExt?.MinPoint.DistanceTo(newExt?.MaxPoint ?? Point3d.Origin) ?? 0,
-                            ratio);
-                    }
 
                     if (ExtentsUtils.TryGetScaleRatio(oldExt, newExt, out var oldDig, out var newDig,
                             out var digRatio) && digRatio > ratio * 5.0)
@@ -184,8 +173,8 @@ internal static class ViewportTransformer
         trx.Commit();
 
         log.Debug(
-            "[МАСШТАБ] Итого: {Total}, transformed={Transformed}, originalScaled={OriginalScaled}, clonedScaled={ClonedScaled}, viewportSkipped={ViewportSkipped}, hatchSkipped={HatchSkipped}",
-            total, transformed, originalScaled, clonedScaled, viewportSkipped, associativeHatchSkipped);
+            "[МАСШТАБ] Итого: {Total}, transformed={Transformed}, originalScaled={OriginalScaled}, viewportSkipped={ViewportSkipped}, hatchSkipped={HatchSkipped}",
+            total, transformed, originalScaled, viewportSkipped, associativeHatchSkipped);
 
         MergeDiagnostics.WriteEvent(diagnosticContext, "model.scaled", new Dictionary<string, object?>
         {
@@ -193,7 +182,6 @@ internal static class ViewportTransformer
             ["total"] = total,
             ["transformed"] = transformed,
             ["originalScaled"] = originalScaled,
-            ["clonedScaled"] = clonedScaled,
             ["viewportSkipped"] = viewportSkipped,
             ["associativeHatchSkipped"] = associativeHatchSkipped,
             ["errorTypes"] = errorTypes,
