@@ -27,7 +27,7 @@ jobs:
 
     - name: Fix Code Style
       env:
-        EnableWindowsTargeting: "true"
+        EnableWindowsTargeting: true
         AutoCADUserPluginsDir: "./TestDeploy"
       run: |
         dotnet format AutoBIMFusion.slnx --verbosity diagnostic || \

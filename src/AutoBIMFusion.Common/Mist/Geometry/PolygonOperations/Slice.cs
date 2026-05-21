@@ -243,25 +243,29 @@ public static partial class PolygonOperation
             }
         }
         //InsideCutLines.AddToDrawing(3, true);
-        //Fix splitted lines
+        // Join cut lines
 
         bool SuccessfulllyJoinACutLine = true;
         while (SuccessfulllyJoinACutLine)
         {
             SuccessfulllyJoinACutLine = false;
-            foreach (Polyline InsideCutLine_A in InsideCutLines.ToList().Cast<Polyline>())
+            var currentLines = InsideCutLines.Cast<Polyline>().ToList();
+            for (int i = 0; i < currentLines.Count; i++)
             {
-                foreach (Polyline InsideCutLine_B in InsideCutLines.ToList().Cast<Polyline>())
+                Polyline InsideCutLine_A = currentLines[i];
+                if (!InsideCutLines.Contains(InsideCutLine_A)) continue;
+
+                for (int j = i + 1; j < currentLines.Count; j++)
                 {
-                    if (InsideCutLines.Contains(InsideCutLine_A) && InsideCutLines.Contains(InsideCutLine_B))
+                    Polyline InsideCutLine_B = currentLines[j];
+                    if (!InsideCutLines.Contains(InsideCutLine_B)) continue;
+
+                    if (InsideCutLine_A.CanBeJoinWith(InsideCutLine_B))
                     {
-                        if (InsideCutLine_A.CanBeJoinWith(InsideCutLine_B))
-                        {
-                            SuccessfulllyJoinACutLine = true;
-                            InsideCutLine_A.JoinEntity(InsideCutLine_B);
-                            InsideCutLines.Remove(InsideCutLine_B);
-                            InsideCutLine_B.Dispose();
-                        }
+                        SuccessfulllyJoinACutLine = true;
+                        InsideCutLine_A.JoinEntity(InsideCutLine_B);
+                        InsideCutLines.Remove(InsideCutLine_B);
+                        InsideCutLine_B.Dispose();
                     }
                 }
             }

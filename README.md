@@ -141,9 +141,9 @@ powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoB
 8. `DimensionStyleNormalizer`: назначает скопированным размерам чистый AutoBIM-стиль, очищает DSTYLE overrides и сохраняет визуальный масштаб размеров.
 9. `BlockInserter`: клонирует объекты через `WblockCloneObjects` и раскладывает листы по оси X с зазором 10%.
 10. Финализация: копирование растров, `DrawingPurger.Optimize`, `SaveAs(DwgVersion.AC1032)`, `REGENALL`, `ZOOM EXTENTS`.
-   Подробные снимки размерных стилей включаются только при `LOG_LEVEL=DEBUG`.
+   Подробные снимки размерных стилей включаются в Debug-сборках или при `LOG_LEVEL=DEBUG`.
 
-Лог пишется в `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle\Contents\Logs\merge-YYYY-MM-DD.log`.
+Лог пишется в `%LOCALAPPDATA%\AutoBIMFusion\Logs\merge-YYYY-MM-DD.log`.
 
 ## Сборка
 

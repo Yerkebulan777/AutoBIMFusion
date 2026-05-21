@@ -32,6 +32,10 @@
     <PropertyGroup Condition="'$(Configuration)' == 'DebugA25' Or '$(Configuration)' == 'DebugA26' Or '$(Configuration)' == 'DebugA27'">
         <StartAction>Program</StartAction>
         <StartProgram>C:\Program Files\Autodesk\AutoCAD $(AcadVersion)\acad.exe</StartProgram>
+        <DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
+        <DebugSymbols>true</DebugSymbols>
+        <DebugType>portable</DebugType>
+        <Optimize>false</Optimize>
     </PropertyGroup>
 
     <!-- Enable Roslyn analyzers for dead code detection -->
