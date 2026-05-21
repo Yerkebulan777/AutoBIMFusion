@@ -53,10 +53,14 @@ public sealed class TextStyleCommands
                 foreach (List<TextStyleData> group in duplicateGroups)
                 {
                     ObjectId masterStyleId = ChooseMasterStyle(group, currentStyleId);
-                    HashSet<ObjectId> duplicateIds = group
-                        .Select(x => x.StyleId)
-                        .Where(id => id != masterStyleId)
-                        .ToHashSet();
+                    using ObjectIdCollection duplicateIds = [];
+                    foreach (var id in group.Select(x => x.StyleId).Where(id => id != masterStyleId))
+                    {
+                        if (!duplicateIds.Contains(id))
+                        {
+                            _ = duplicateIds.Add(id);
+                        }
+                    }
 
                     if (duplicateIds.Count == 0)
                     {
@@ -135,7 +139,7 @@ public sealed class TextStyleCommands
         BlockTable blockTable,
         Transaction trx,
         ObjectId masterStyleId,
-        HashSet<ObjectId> duplicateStyleIds)
+        ObjectIdCollection duplicateStyleIds)
     {
         int updated = 0;
         HashSet<ObjectId> visitedBtr = [];
@@ -152,7 +156,7 @@ public sealed class TextStyleCommands
         ObjectId btrId,
         Transaction trx,
         ObjectId masterStyleId,
-        HashSet<ObjectId> duplicateStyleIds,
+        ObjectIdCollection duplicateStyleIds,
         HashSet<ObjectId> visitedBtr)
     {
         if (!visitedBtr.Add(btrId))
@@ -211,7 +215,7 @@ public sealed class TextStyleCommands
         BlockReference blockRef,
         Transaction trx,
         ObjectId masterStyleId,
-        HashSet<ObjectId> duplicateStyleIds)
+        ObjectIdCollection duplicateStyleIds)
     {
         int updated = 0;
 
@@ -235,7 +239,7 @@ public sealed class TextStyleCommands
         return updated;
     }
 
-    private static int DeleteStyles(Transaction trx, HashSet<ObjectId> duplicateStyleIds, Logger log)
+    private static int DeleteStyles(Transaction trx, ObjectIdCollection duplicateStyleIds, Logger log)
     {
         int deleted = 0;
 

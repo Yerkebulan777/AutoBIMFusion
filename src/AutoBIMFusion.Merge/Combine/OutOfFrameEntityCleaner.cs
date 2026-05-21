@@ -24,7 +24,7 @@ internal static class OutOfFrameEntityCleaner
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(log);
 
-        var result = EraseEntitiesOutsideFrame(db, frameBounds, log);
+        using var result = EraseEntitiesOutsideFrame(db, frameBounds, log);
 
         if (result.BlockDefinitionIds.Count > 0) PurgeUnusedBlockDefinitions(db, result.BlockDefinitionIds);
     }
@@ -32,7 +32,7 @@ internal static class OutOfFrameEntityCleaner
     private static CleanResult EraseEntitiesOutsideFrame(Database db, Extents3d frameBounds, Logger log)
     {
         var msId = SymbolUtilityServices.GetBlockModelSpaceId(db);
-        HashSet<ObjectId> erasedBlockDefinitions = [];
+        ObjectIdCollection erasedBlockDefinitions = [];
 
         using var trx = db.TransactionManager.StartTransaction();
 
@@ -42,7 +42,7 @@ internal static class OutOfFrameEntityCleaner
 
         foreach (var candidate in candidates)
         {
-            if (candidate.BlockDefinitionId.HasValue) _ = erasedBlockDefinitions.Add(candidate.BlockDefinitionId.Value);
+            if (candidate.BlockDefinitionId.HasValue && !erasedBlockDefinitions.Contains(candidate.BlockDefinitionId.Value)) _ = erasedBlockDefinitions.Add(candidate.BlockDefinitionId.Value);
 
             if (trx.GetObject(candidate.EntityId, OpenMode.ForWrite) is Entity entity && !entity.IsErased)
             {
@@ -146,9 +146,17 @@ internal static class OutOfFrameEntityCleaner
                && point.Y <= frameBounds.MaxPoint.Y;
     }
 
-    private static void PurgeUnusedBlockDefinitions(Database db, HashSet<ObjectId> blockDefinitionIds)
+    private static void PurgeUnusedBlockDefinitions(Database db, ObjectIdCollection blockDefinitionIds)
     {
-        using ObjectIdCollection ids = new(blockDefinitionIds.Where(id => id.IsValid && !id.IsErased).ToArray());
+        // ObjectIdCollection может содержать невалидные/удалённые ID, поэтому почистим их
+        using ObjectIdCollection ids = [];
+        foreach (ObjectId id in blockDefinitionIds)
+        {
+            if (id.IsValid && !id.IsErased)
+            {
+                _ = ids.Add(id);
+            }
+        }
 
         if (ids.Count == 0) return;
 
@@ -170,5 +178,11 @@ internal static class OutOfFrameEntityCleaner
 
     private sealed record EntityCandidate(ObjectId EntityId, ObjectId? BlockDefinitionId);
 
-    private sealed record CleanResult(HashSet<ObjectId> BlockDefinitionIds);
+    private sealed record CleanResult(ObjectIdCollection BlockDefinitionIds) : IDisposable
+    {
+        public void Dispose()
+        {
+            BlockDefinitionIds.Dispose();
+        }
+    }
 }

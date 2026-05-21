@@ -430,7 +430,7 @@ internal static class ViewportTransformer
     ///         а не как HashSet или IReadOnlySet. ObjectIdCollection — это обёртка вокруг нативного
     ///         ObjectARX AcDbObjectIdArray, которая гарантирует корректную работу с ObjectId:
     ///         правильная сериализация, валидность handle'ов и совместимость с транзакциями AutoCAD.
-    ///         Использование managed-коллекций (HashSet, List) для ObjectId может привести к subtle bug'ам
+    ///         Использование managed-коллекций (HashSet, List) для ObjectId может привести к проблемам
     ///         при удалении сущностей, особенно в контексте deep clone и WblockCloneObjects.
     ///     </para>
     /// </summary>
