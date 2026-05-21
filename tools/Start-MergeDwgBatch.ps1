@@ -65,6 +65,11 @@ function New-AutoCadScript {
         [string]$StatusPath
     )
 
+    # Sanitize inputs by removing newlines to prevent script injection
+    $safePluginPath = $PluginPath -replace "[\r\n]", ""
+    $safeFolderPath = $FolderPath -replace "[\r\n]", ""
+    $safeStatusPath = $StatusPath -replace "[\r\n]", ""
+
     $lines = @(
         "FILEDIA",
         "0",
@@ -73,10 +78,10 @@ function New-AutoCadScript {
         "SECURELOAD",
         "0",
         "NETLOAD",
-        $PluginPath,
+        $safePluginPath,
         "MERGEDWG_BATCH",
-        $FolderPath,
-        $StatusPath,
+        $safeFolderPath,
+        $safeStatusPath,
         "._QUIT",
         "_Y"
     )

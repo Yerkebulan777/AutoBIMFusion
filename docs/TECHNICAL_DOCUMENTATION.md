@@ -88,7 +88,7 @@ AutoBIMFusion.Merge
 | `LayoutProjectionProcessor` | `AutoBIMFusion.Merge` | Перенос Paper Space в Model Space, main/aux vpt projection, scale clamp |
 | `ViewportTransformer` | `AutoBIMFusion.Merge` | Матрицы трансформации, clone/transform, erase outside main VP, draw order |
 | `DimensionStyleNormalizer` | `AutoBIMFusion.Merge` | Очистка DSTYLE overrides и назначение чистого AutoBIM-стиля скопированным размерам |
-| `DimensionStyleDiagnosticUtils` | `AutoBIMFusion.Merge` | Диагностические снимки размерных стилей, включаются при `LOG_LEVEL=DEBUG` |
+| `DimensionStyleDiagnosticUtils` | `AutoBIMFusion.Merge` | Диагностические снимки размерных стилей, включаются в Debug-сборках или при `LOG_LEVEL=DEBUG` |
 | `BlockInserter` | `AutoBIMFusion.Merge` | `WblockCloneObjects` + расстановка по оси X |
 | `OutOfFrameEntityCleaner` | `AutoBIMFusion.Merge` | Удаление малых объектов, центр bbox которых находится за рамкой листа |
 | `BlockBasePointEditor` | `AutoBIMFusion.Merge` | Нормализация базовых точек блоков в левый нижний угол (offset compensation) |
@@ -157,9 +157,9 @@ CombineCommands
 ## 10. Логирование
 
 - Основной логгер: `LoggerFactory.GetSharedLogger()`.
-- Активная команда пишет в `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle\Contents\Logs\merge-YYYY-MM-DD.log`.
+- Активная команда пишет в `%LOCALAPPDATA%\AutoBIMFusion\Logs\merge-YYYY-MM-DD.log`.
 - `DiagnosticSink` дублирует сообщения в `Debug.WriteLine` или `Trace.WriteLine`.
-- Размерные стили диагностируются стадиями `source-after-normalize-before-clone`, `target-after-clone` и `target-after-merge` только при `LOG_LEVEL=DEBUG`.
+- Размерные стили диагностируются стадиями `source-after-normalize-before-clone`, `target-after-clone` и `target-after-merge` в Debug-сборках или при `LOG_LEVEL=DEBUG`.
 
 ## 11. Extensions
 
