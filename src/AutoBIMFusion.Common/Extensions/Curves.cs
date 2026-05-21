@@ -168,8 +168,8 @@ public static class CurvesExtensions
 
                 foreach (Point3d point in points)
                 {
-            // Делаем проверку для пропуска начальных/конечных точек
-            // так как это соединённые вершины
+                    // Делаем проверку для пропуска начальных/конечных точек
+                    // так как это соединённые вершины
                     if (point == curve1.StartPoint || point == curve1.EndPoint)
                     {
                         if (point == curve2.StartPoint || point == curve2.EndPoint)
