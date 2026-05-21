@@ -19,7 +19,7 @@ internal static class LayoutProjectionProcessor
         IReadOnlyList<ViewportInfo> viewports, Logger log, MergeDiagnosticContext? diagnosticContext)
     {
         var mainOriginal = ViewportInfo.PickMainViewport(viewports);
-        var scale = ViewportScaleNormalizer.Normalize(mainOriginal.CustomScale);
+        var scale = ViewportScaleNormalizer.Normalize(mainOriginal.CustomScale, log);
         var mainNormalized = mainOriginal with { CustomScale = scale.WorkingCustomScale };
 
         MergeDiagnostics.WriteEvent(diagnosticContext, "scale.normalized", new Dictionary<string, object?>
