@@ -27,6 +27,7 @@ jobs:
 
     - name: Fix Code Style
       run: |
+        export EnableWindowsTargeting=true
         dotnet format AutoBIMFusion.slnx --verbosity diagnostic || \
         dotnet format src/AutoBIMFusion.Plugin/AutoBIMFusion.Plugin.csproj --verbosity diagnostic
 
