@@ -1,6 +1,6 @@
 namespace AutoBIMFusion.Common.Extensions;
 
-public static class LinesExtentions
+public static class LineExtensions
 {
     /// <summary>
     ///     Определяет, пересекаются ли два отрезка.

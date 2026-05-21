@@ -1,6 +1,5 @@
 using AutoBIMFusion.Common.Extensions;
-using AutoBIMFusion.Common.Mist;
-using AutoBIMFusion.Common.Mist.AutoCAD;
+using AutoBIMFusion.Common.AcadSupport;
 using Autodesk.AutoCAD.GraphicsInterface;
 using Serilog.Core;
 
@@ -23,15 +22,15 @@ public static class DrawingPurger
         // Выводим отчёт пользователю.
         if (TotalDeletedCount == 0)
         {
-            Generic.WriteMessage("Чертёж уже очищен.");
+            AcadContext.WriteMessage("Чертёж уже очищен.");
         }
         else
         {
             var maxLength = purgeReport.Max(p => p.Key.Length);
             foreach (var entry in purgeReport)
-                Generic.WriteMessage($" - {entry.Key.PadRight(maxLength)} : удалено {entry.Value}");
+                AcadContext.WriteMessage($" - {entry.Key.PadRight(maxLength)} : удалено {entry.Value}");
 
-            Generic.WriteMessage($"Итого: {TotalDeletedCount} элементов удалено из чертежа");
+            AcadContext.WriteMessage($"Итого: {TotalDeletedCount} элементов удалено из чертежа");
         }
 
         ViewportLock.DoLockUnlock(true);

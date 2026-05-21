@@ -1,5 +1,5 @@
 using AutoBIMFusion.Common.Drawing;
-using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.AcadSupport;
 using Autodesk.AutoCAD.ApplicationServices;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
@@ -165,7 +165,7 @@ internal static class BlockReferenceExtensions
     /// <param name="attribs">Коллекция пар Тег/Значение.</param>
     public static void SetAttributeValues(this BlockReference target, Dictionary<string, string> attribs)
     {
-        Transaction trx = Generic.GetDatabase().TransactionManager.TopTransaction;
+        Transaction trx = AcadContext.GetDatabase().TransactionManager.TopTransaction;
         foreach (AttributeReference attRef in target.AttributeCollection.GetObjects())
         {
             if (attribs.TryGetValue(attRef.Tag, out var value))
@@ -256,7 +256,7 @@ internal static class BlockReferenceExtensions
 
     public static void RegenAllBlkDefinition(this BlockReference BlockRef)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
         BlockTableRecord BlkDef = BlockRef.GetBlocDefinition();
 

@@ -1,4 +1,4 @@
-using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.AcadSupport;
 
 namespace AutoBIMFusion.Common.Extensions;
 
@@ -15,7 +15,7 @@ public static class AttributeCollectionExtensions
     public static IEnumerable<AttributeReference> GetObjects(this AttributeCollection source,
         OpenMode mode = OpenMode.ForRead, bool openErased = false, bool forceOpenOnLockedLayers = false)
     {
-        Transaction trx = Generic.GetDatabase().TransactionManager.TopTransaction;
+        Transaction trx = AcadContext.GetDatabase().TransactionManager.TopTransaction;
         if (source.Count > 0)
         {
             foreach (ObjectId id in source)

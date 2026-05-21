@@ -1,4 +1,4 @@
-using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.AcadSupport;
 using Autodesk.AutoCAD.GraphicsInterface;
 using Polyline = Autodesk.AutoCAD.DatabaseServices.Polyline;
 using Viewport = Autodesk.AutoCAD.DatabaseServices.Viewport;
@@ -10,8 +10,8 @@ public static class ViewportsExtensions
     public static IntegerCollection GetViewPortsNumbers(this TransientManager _)
     {
         //https://www.keanw.com/2011/03/drawing-transient-graphics-appropriately-in-autocad-within-multiple-paperspace-viewports-using-net.html
-        Database db = Generic.GetDatabase();
-        Editor ed = Generic.GetEditor();
+        Database db = AcadContext.GetDatabase();
+        Editor ed = AcadContext.GetEditor();
         // Находимся в пространстве модели вне плавающих видовых экранов?
         // Тогда инициализируем пустую IntegerCollection
 
@@ -97,7 +97,7 @@ public static class ViewportsExtensions
 
     public static bool IsInModel(this Editor _)
     {
-        return Generic.GetDatabase().TileMode;
+        return AcadContext.GetDatabase().TileMode;
     }
 
     public static bool IsInLayout(this Editor ed)
@@ -122,7 +122,7 @@ public static class ViewportsExtensions
 
     public static List<ObjectId> GetAllViewportsInPaperSpace(this Editor _, BlockTableRecord btr)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
 
         List<ObjectId> ListOfViewPorts = [];
 
@@ -140,7 +140,7 @@ public static class ViewportsExtensions
 
     public static Polyline GetBoundary(this Viewport viewport)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
 
         using Transaction trx = db.TransactionManager.StartTransaction();
         try

@@ -1,5 +1,5 @@
 using AutoBIMFusion.Common.Drawing;
-using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.AcadSupport;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
 using System.Diagnostics;
@@ -24,7 +24,7 @@ public static class EntityExtensions
 
     public static void EraseObject(this Entity ObjectToErase)
     {
-        Document doc = Generic.GetDocument();
+        Document doc = AcadContext.GetDocument();
         using Transaction trx = doc.TransactionManager.StartTransaction();
         if (ObjectToErase.IsErased)
         {
@@ -163,7 +163,7 @@ public static class EntityExtensions
                     //double newX = x * cos - y * sin;
                     //double newY = x * sin + y * cos;
                     ////TargetHatch.Origin = new Point2d(newX, newY);
-                    //Generic.WriteMessage(TargetHatch.Origin);
+                    //AcadContext.WriteMessage(TargetHatch.Origin);
                 }
             }
 
@@ -212,9 +212,9 @@ public static class EntityExtensions
 
     public static void CopyDrawOrderTo(this Entity Origin, Entity Target)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         Transaction trx = db.TransactionManager.TopTransaction;
-        BlockTableRecord btr = Generic.GetCurrentSpaceBlockTableRecord(trx);
+        BlockTableRecord btr = AcadContext.GetCurrentSpaceBlockTableRecord(trx);
         DrawOrderTable? orderTable = trx.GetObject(btr.DrawOrderTableId, OpenMode.ForWrite) as DrawOrderTable;
 
         ObjectIdCollection DrawOrderCollection = [];
@@ -571,7 +571,7 @@ public static class EntityExtensions
 
     public static List<object> ReadXData(this Entity ent)
     {
-        var AppName = Generic.GetExtensionDLLName();
+        var AppName = AcadContext.GetExtensionDLLName();
         List<object> list = [];
         //using (Transaction trx = db.TransactionManager.StartTransaction())
         //{
@@ -601,12 +601,12 @@ public static class EntityExtensions
 
     public static void AddXData(this Entity ent, TypedValue typedValue)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
         ent.TryUpgradeOpen();
 
         RegAppTable regTable = (RegAppTable)trx.GetObject(db.RegAppTableId, OpenMode.ForRead);
-        var AppName = Generic.GetExtensionDLLName();
+        var AppName = AcadContext.GetExtensionDLLName();
         if (!regTable.Has(AppName))
         {
             regTable.UpgradeOpen();

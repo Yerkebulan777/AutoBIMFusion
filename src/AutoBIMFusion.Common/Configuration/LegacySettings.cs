@@ -1,6 +1,6 @@
 using System.Resources;
 
-namespace AutoBIMFusion.Common.Compatibility;
+namespace AutoBIMFusion.Common.Configuration;
 
 public static class Settings
 {

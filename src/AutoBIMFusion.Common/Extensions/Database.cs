@@ -1,4 +1,4 @@
-using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.AcadSupport;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Runtime;
 using System.Diagnostics;
@@ -60,7 +60,7 @@ public static class DatabaseExtensions
     {
         // Autodesk.AutoCAD.Internal.Utils.EntLast();
         using Transaction trx = db.TransactionManager.StartTransaction();
-        BlockTableRecord btr = Generic.GetCurrentSpaceBlockTableRecord(trx);
+        BlockTableRecord btr = AcadContext.GetCurrentSpaceBlockTableRecord(trx);
         RXClass? RXClassType = type == null ? null : RXObject.GetClass(type);
         ObjectId EntLastObjectId = ObjectId.Null;
         foreach (ObjectId objId in btr)
@@ -77,7 +77,7 @@ public static class DatabaseExtensions
 
     public static void SetAnnotativeScale(this Database db, string Name, double PaperUnits, double DrawingUnits)
     {
-        Editor ed = Generic.GetEditor();
+        Editor ed = AcadContext.GetEditor();
         if (db.Cannoscale.Name != Name)
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
@@ -108,11 +108,11 @@ public static class DatabaseExtensions
                 }
 
                 db.Cannoscale = scale;
-                Generic.WriteMessage($"Аннотативный масштаб установлен на {Name}.");
+                AcadContext.WriteMessage($"Аннотативный масштаб установлен на {Name}.");
             }
             else
             {
-                Generic.WriteMessage("Невозможно получить доступ к аннотативным масштабам.");
+                AcadContext.WriteMessage("Невозможно получить доступ к аннотативным масштабам.");
             }
 
             ed.Regen();

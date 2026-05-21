@@ -1,5 +1,4 @@
-using AutoBIMFusion.Common.Mist;
-using AutoBIMFusion.Common.Mist.AutoCAD;
+using AutoBIMFusion.Common.AcadSupport;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.Runtime;
@@ -22,7 +21,7 @@ public static class ObjectIdExtensions
             return null;
         }
 
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         return db.TransactionManager.GetObject(objectId, openMode, false, true);
     }
 
@@ -39,7 +38,7 @@ public static class ObjectIdExtensions
 
     public static DBObject GetNoTransactionDBObject(this ObjectId objectId, OpenMode openMode = OpenMode.ForRead)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         if (db.TransactionManager.NumberOfActiveTransactions == 0)
         {
             using (db.TransactionManager.StartTransaction())
@@ -130,7 +129,7 @@ public static class ObjectIdExtensions
 
     public static void EraseObject(this ObjectId ObjectToErase)
     {
-        Document doc = Generic.GetDocument();
+        Document doc = AcadContext.GetDocument();
         using Transaction trx = doc.TransactionManager.StartTransaction();
         if (ObjectToErase.IsErased)
         {

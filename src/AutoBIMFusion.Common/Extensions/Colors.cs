@@ -1,6 +1,6 @@
-using AutoBIMFusion.Common.Compatibility;
+using AutoBIMFusion.Common.AcadSupport;
+using AutoBIMFusion.Common.Configuration;
 using AutoBIMFusion.Common.Helpers;
-using AutoBIMFusion.Common.Mist.AutoCAD;
 using Autodesk.AutoCAD.Colors;
 using Color = System.Drawing.Color;
 

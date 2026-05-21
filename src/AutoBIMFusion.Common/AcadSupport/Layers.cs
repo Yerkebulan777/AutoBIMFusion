@@ -5,7 +5,7 @@ using Autodesk.AutoCAD.Windows.Data;
 using System.Diagnostics;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
-namespace AutoBIMFusion.Common.Mist.AutoCAD;
+namespace AutoBIMFusion.Common.AcadSupport;
 
 public static class Layers
 {
@@ -16,7 +16,7 @@ public static class Layers
 
     public static void SetCurrentLayerName(string LayerName)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
         LayerTable ltb = (LayerTable)db.LayerTableId.GetDBObject();
         db.Clayer = ltb[LayerName];
@@ -41,7 +41,7 @@ public static class Layers
 
     public static bool IsLayerLocked(string Name)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trans = db.TransactionManager.StartTransaction();
         LayerTable? layerTable = trans.GetObject(db.LayerTableId, OpenMode.ForRead) as LayerTable;
         ObjectId layerId = layerTable[Name];
@@ -52,7 +52,7 @@ public static class Layers
 
     public static Transparency GetTransparency(string Name)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trans = db.TransactionManager.StartTransaction();
         LayerTable? layerTable = trans.GetObject(db.LayerTableId, OpenMode.ForRead) as LayerTable;
         ObjectId layerId = layerTable[Name];
@@ -63,7 +63,7 @@ public static class Layers
 
     public static void SetTransparency(string Name, Transparency transparency)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trans = db.TransactionManager.StartTransaction();
         LayerTable? layerTable = trans.GetObject(db.LayerTableId, OpenMode.ForRead) as LayerTable;
         ObjectId layerId = layerTable[Name];
@@ -74,7 +74,7 @@ public static class Layers
 
     public static void SetLock(string Name, bool Lock)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trans = db.TransactionManager.StartTransaction();
         LayerTable? layerTable = trans.GetObject(db.LayerTableId, OpenMode.ForRead) as LayerTable;
         ObjectId layerId = layerTable[Name];
@@ -87,7 +87,7 @@ public static class Layers
     {
         if (db == null)
         {
-            db = Generic.GetDatabase();
+            db = AcadContext.GetDatabase();
         }
 
         using Transaction trans = db.TransactionManager.StartTransaction();
@@ -105,8 +105,8 @@ public static class Layers
 
     public static bool CheckIfLayerExist(string layername)
     {
-        Document doc = Generic.GetDocument();
-        Database db = Generic.GetDatabase();
+        Document doc = AcadContext.GetDocument();
+        Database db = AcadContext.GetDatabase();
         using Transaction acTrans = doc.TransactionManager.StartTransaction();
         LayerTable? acLyrTbl = acTrans.GetObject(db.LayerTableId, OpenMode.ForRead) as LayerTable;
         acTrans.Commit();
@@ -116,7 +116,7 @@ public static class Layers
     public static void CreateLayer(string Name, Color Color, LineWeight LineWeight, Transparency Transparence,
         bool IsPlottable)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction acTrans = db.TransactionManager.StartTransaction();
         LayerTable? acLyrTbl = acTrans.GetObject(db.LayerTableId, OpenMode.ForRead) as LayerTable;
 
@@ -143,7 +143,7 @@ public static class Layers
 
     public static bool Rename(string OldName, string NewName)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
 
         using Transaction trans = db.TransactionManager.StartTransaction();
         try
@@ -170,7 +170,7 @@ public static class Layers
 
     public static void SetLayerColor(string LayerName, Color color)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
 
         using Transaction trans = db.TransactionManager.StartTransaction();
         // Переименовать слой
@@ -186,7 +186,7 @@ public static class Layers
 
     public static void Merge(string sourceLayerName, string targetLayerName)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trans = db.TransactionManager.StartTransaction();
         BlockTable? bt = trans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
         BlockTableRecord? btr = trans.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
@@ -272,7 +272,7 @@ public static class Layers
         }
         catch (Autodesk.AutoCAD.Runtime.Exception ex)
         {
-            Generic.WriteMessage($"Impossible de supprimer le calque {sourceLayerName}: {ex.Message}");
+            AcadContext.WriteMessage($"Impossible de supprimer le calque {sourceLayerName}: {ex.Message}");
         }
     }
 
@@ -284,7 +284,7 @@ public static class Layers
 
     public static Color GetLayerColor(ObjectId LayerTableRecordObjId)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trans = db.TransactionManager.StartTransaction();
         LayerTableRecord? layerTableRecord = LayerTableRecordObjId.GetDBObject() as LayerTableRecord;
         trans.Commit();

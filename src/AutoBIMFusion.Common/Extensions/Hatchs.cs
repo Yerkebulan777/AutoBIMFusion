@@ -1,6 +1,5 @@
-using AutoBIMFusion.Common.Mist;
-using AutoBIMFusion.Common.Mist.AutoCAD;
-using AutoBIMFusion.Common.Mist.Geometry.PolygonOperations;
+using AutoBIMFusion.Common.AcadSupport;
+using AutoBIMFusion.Common.Geometry.PolygonOperations;
 
 namespace AutoBIMFusion.Common.Extensions;
 
@@ -30,20 +29,20 @@ public static class HatchsExtensions
 
             if (Hachure is null || ExternalMergedCurves is null || ExternalMergedCurves.Count == 0)
             {
-                Generic.WriteMessage("Невозможно разрезать эту штриховку.");
+                AcadContext.WriteMessage("Невозможно разрезать эту штриховку.");
                 return false;
             }
 
             if (ExternalMergedCurves.Count > 1)
             {
-                Generic.WriteMessage("Невозможно разрезать комбинированную штриховку.");
+                AcadContext.WriteMessage("Невозможно разрезать комбинированную штриховку.");
                 return false;
             }
 
             Polyline Boundary = ExternalMergedCurves[0].ToPolyline();
             if (Boundary.TryGetArea() == 0)
             {
-                Generic.WriteMessage(
+                AcadContext.WriteMessage(
                     "Ошибка: невозможно разрезать эту штриховку в данный момент. Повторное открытие чертежа может помочь решить проблему");
                 Boundary.Dispose();
                 return false;
@@ -139,7 +138,7 @@ public static class HatchsExtensions
     {
         // Создаём штриховку и задаём её свойства
         Hatch hatch = new();
-        _ = Generic.GetCurrentSpaceBlockTableRecord(trx).AppendEntity(hatch);
+        _ = AcadContext.GetCurrentSpaceBlockTableRecord(trx).AppendEntity(hatch);
         trx.AddNewlyCreatedDBObject(hatch, true);
 
         hatch.Associative = Associative;

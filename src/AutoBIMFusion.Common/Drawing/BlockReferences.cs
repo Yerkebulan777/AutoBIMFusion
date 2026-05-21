@@ -1,8 +1,7 @@
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Helpers;
-using AutoBIMFusion.Common.Mist;
-using AutoBIMFusion.Common.Mist.AutoCAD;
-using AutoBIMFusion.Common.Mist.Geometry;
+using AutoBIMFusion.Common.AcadSupport;
+using AutoBIMFusion.Common.Geometry;
 using Autodesk.AutoCAD.ApplicationServices;
 using System.Diagnostics;
 using Exception = System.Exception;
@@ -13,7 +12,7 @@ public static class BlockReferences
 {
     public static void ReplaceAllBlockReference(string OldBlockName, string NewBlockName, bool KeepScale = true, bool KeepRotation = true, bool PreserveProperties = true)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
 
         using Transaction trx = db.TransactionManager.StartTransaction();
         BlockTable? bt = trx.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
@@ -47,8 +46,8 @@ public static class BlockReferences
 
     public static void ReplaceAllBlockReference(ObjectIdCollection objectIdCollection, string NewBlockName, bool KeepScale = true, bool KeepRotation = true, bool PreserveProperties = true)
     {
-        Editor ed = Generic.GetEditor();
-        Database db = Generic.GetDatabase();
+        Editor ed = AcadContext.GetEditor();
+        Database db = AcadContext.GetDatabase();
 
         using Transaction trx = db.TransactionManager.StartTransaction();
         foreach (ObjectId entid in objectIdCollection)
@@ -112,7 +111,7 @@ public static class BlockReferences
 
     public static ObjectId Create(string Name, string Description, DBObjectCollection EntitiesDbObjectCollection, Points Origin, bool IsExplodable = true, BlockScaling BlockScaling = BlockScaling.Any)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
         BlockTable? bt = db.BlockTableId.GetDBObject(OpenMode.ForWrite) as BlockTable;
         string BlockName = Name;
@@ -124,7 +123,7 @@ public static class BlockReferences
 
         if (bt.Has(BlockName))
         {
-            Generic.WriteMessage($"Блок {Name} уже существует в чертеже");
+            AcadContext.WriteMessage($"Блок {Name} уже существует в чертеже");
         }
 
         BlockTableRecord btr = new()
@@ -156,8 +155,8 @@ public static class BlockReferences
     public static ObjectId CreateFromExistingEnts(string Name, string Description, ObjectIdCollection SelectedIds, Points Origin, bool IsExplodable = true, BlockScaling BlockScaling = BlockScaling.Any, bool EraseOld = false)
     {
         // Этот метод даёт преимущество сохранения ассоциативных штриховок
-        Editor ed = Generic.GetEditor();
-        Database db = Generic.GetDatabase();
+        Editor ed = AcadContext.GetEditor();
+        Database db = AcadContext.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
         BlockTable? bt = db.BlockTableId.GetDBObject(OpenMode.ForWrite) as BlockTable;
         string BlockName = Name;
@@ -174,7 +173,7 @@ public static class BlockReferences
 
         if (bt.Has(BlockName))
         {
-            Generic.WriteMessage($"Блок {Name} уже существует в чертеже");
+            AcadContext.WriteMessage($"Блок {Name} уже существует в чертеже");
         }
 
         IdMapping acIdMap = [];
@@ -238,7 +237,7 @@ public static class BlockReferences
 
         ObjectIdCollection acObjIdColl = [BlockReferenceObjectId];
 
-        Document ActualDocument = Generic.GetDocument();
+        Document ActualDocument = AcadContext.GetDocument();
         Database ActualDatabase = ActualDocument.Database;
 
         Database MemoryDatabase = new(true, false);
@@ -289,12 +288,12 @@ public static class BlockReferences
         ObjectIdCollection acObjIdColl2 = [newBlocRefenceId];
         IdMapping acIdMap2 = [];
 
-        using (Generic.GetLock())
+        using (AcadContext.GetLock())
         using (Transaction ActualTransaction = ActualDatabase.TransactionManager.StartTransaction())
         {
             BlockTable? acBlkTblNewDoc2 =
                 ActualTransaction.GetObject(ActualDatabase.BlockTableId, OpenMode.ForRead) as BlockTable;
-            BlockTableRecord acBlkTblRecNewDoc2 = Generic.GetCurrentSpaceBlockTableRecord(ActualTransaction);
+            BlockTableRecord acBlkTblRecNewDoc2 = AcadContext.GetCurrentSpaceBlockTableRecord(ActualTransaction);
 
             ActualDatabase.WblockCloneObjects(acObjIdColl2, acBlkTblRecNewDoc2.ObjectId, acIdMap2,
                 DuplicateRecordCloning.Replace, false);
@@ -306,7 +305,7 @@ public static class BlockReferences
 
     public static string GetUniqueBlockName(string oldName)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
         BlockTable? bt = trx.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
         string newName = oldName;
@@ -323,7 +322,7 @@ public static class BlockReferences
 
     public static bool IsBlockExist(string BlocName)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
         BlockTable? bt = db.BlockTableId.GetObject(OpenMode.ForRead) as BlockTable;
         return bt.Has(BlocName);
@@ -337,7 +336,7 @@ public static class BlockReferences
             return [];
         }
 
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         ObjectIdCollection result = [];
 
         using (Transaction trx = db.TransactionManager.StartTransaction())
@@ -369,7 +368,7 @@ public static class BlockReferences
 
     public static BlockReference GetBlockReference(string BlocName, Point3d PositionSCG)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
         BlockTable? bt = db.BlockTableId.GetObject(OpenMode.ForRead) as BlockTable;
 
@@ -385,13 +384,13 @@ public static class BlockReferences
 
     public static ObjectId InsertFromName(string BlocName, Points BlocLocation, double Angle = 0, Dictionary<string, string> AttributesValues = null, string Layer = null, BlockTableRecord targetSpace = null)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
 
         using Transaction trx = db.TransactionManager.StartTransaction();
 
         if (targetSpace == null)
         {
-            targetSpace = Generic.GetCurrentSpaceBlockTableRecord(trx);
+            targetSpace = AcadContext.GetCurrentSpaceBlockTableRecord(trx);
         }
 
         BlockTable? bt = db.BlockTableId.GetObject(OpenMode.ForRead) as BlockTable;
@@ -534,7 +533,7 @@ public static class BlockReferences
     public static ObjectId InsertFromNameImportIfNotExist(string BlocName, Points BlocLocation, double Angle = 0,
         Dictionary<string, string> AttributesValues = null, string Layer = null)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
         ImportBlocFromBlocNameIfMissing(BlocName);
         ObjectId blockRefObjectId = InsertFromName(BlocName, BlocLocation, Angle, AttributesValues, Layer);
@@ -544,7 +543,7 @@ public static class BlockReferences
 
     public static void Purge(string BlocName)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trans = db.TransactionManager.StartTransaction();
         BlockTable? bt = trans.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
 
@@ -569,8 +568,8 @@ public static class BlockReferences
     public static DBObjectCollection InitForTransient(string BlocName, Dictionary<string, string> InitAttributesValues,
         string Layer = null)
     {
-        Database db = Generic.GetDatabase();
-        Editor ed = Generic.GetEditor();
+        Database db = AcadContext.GetDatabase();
+        Editor ed = AcadContext.GetEditor();
         DBObjectCollection ents = [];
         using (Transaction trx = db.TransactionManager.StartTransaction())
         {
@@ -593,7 +592,7 @@ public static class BlockReferences
 
     public static void ImportBlocFromBlocNameIfMissing(string BlocName)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
         BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
 
@@ -601,7 +600,7 @@ public static class BlockReferences
         {
             string TempFolderPath = Path.GetTempPath();
             string TempFolderFilePath = Path.Combine(TempFolderPath, $"{BlocName}.dwg");
-            Generic.ReadWriteToFileResource(BlocName, TempFolderFilePath);
+            AcadContext.ReadWriteToFileResource(BlocName, TempFolderFilePath);
 
             Database sourceDb = new(false, true); // Временная база данных для хранения данных импортируемого блока
             try
@@ -612,7 +611,7 @@ public static class BlockReferences
             }
             catch (Autodesk.AutoCAD.Runtime.Exception ex)
             {
-                Generic.WriteMessage("\nОшибка: " + ex.Message);
+                AcadContext.WriteMessage("\nОшибка: " + ex.Message);
             }
             finally
             {

@@ -1,7 +1,7 @@
 using AutoBIMFusion.Common.Extensions;
 using System.Diagnostics;
 
-namespace AutoBIMFusion.Common.Mist.Geometry.PolygonOperations;
+namespace AutoBIMFusion.Common.Geometry.PolygonOperations;
 
 public static partial class PolygonOperation
 {

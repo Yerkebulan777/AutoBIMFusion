@@ -1,4 +1,4 @@
-using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.AcadSupport;
 
 namespace AutoBIMFusion.Common.Extensions;
 
@@ -141,7 +141,7 @@ public static class Extends3dExtensions
 
     public static Extents3d GetVisualExtents(this Entity ent, out Point3dCollection entPts)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
 
         using Transaction trx = db.TransactionManager.StartTransaction();
         var btr = (BlockTableRecord)trx.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
@@ -277,7 +277,7 @@ public static class Extends3dExtensions
     public static List<Extents3d> GetExplodedExtents(this Entity ent)
     {
         List<Extents3d> ext;
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
 
         using Transaction trx = db.TransactionManager.StartTransaction();
         var btr = (BlockTableRecord)trx.GetObject(db.CurrentSpaceId, OpenMode.ForWrite);
@@ -394,7 +394,7 @@ public static class Extends3dExtensions
             }
 
             if (StartPoint.DistanceTo(EndPoint) / 2 >
-                Generic.MediumTolerance.EqualPoint)
+                AcadContext.MediumTolerance.EqualPoint)
             {
                 if (!extents.IsPointIn(MiddlePoint))
                 {
@@ -432,7 +432,7 @@ public static class Extends3dExtensions
     // http://docs.autodesk.com/ACD/2010/ENU/AutoCAD%20.NET%20Developer%27s%20Guide/files/WS1a9193826455f5ff2566ffd511ff6f8c7ca-4363.htm
     public static void ZoomExtents(this Extents3d extents)
     {
-        Editor ed = Generic.GetEditor();
+        Editor ed = AcadContext.GetEditor();
         // Получаем текущий вид
         using ViewTableRecord acView = ed.GetCurrentView();
         // Преобразуем WCS-координаты в DCS

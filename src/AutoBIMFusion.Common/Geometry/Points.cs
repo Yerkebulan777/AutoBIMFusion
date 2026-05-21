@@ -1,6 +1,7 @@
+using AutoBIMFusion.Common.AcadSupport;
 using AutoBIMFusion.Common.Extensions;
 
-namespace AutoBIMFusion.Common.Mist.Geometry;
+namespace AutoBIMFusion.Common.Geometry;
 
 public class Points(Point3d SCG)
 {
@@ -11,13 +12,13 @@ public class Points(Point3d SCG)
 
     public static Point3d ToCurrentSCU(Point3d OriginalPoint)
     {
-        Editor ed = Generic.GetEditor();
+        Editor ed = AcadContext.GetEditor();
         return OriginalPoint.TransformBy(ed.CurrentUserCoordinateSystem.Inverse());
     }
 
     public static Point3d ToSCGFromCurentSCU(Point3d OriginalPoint)
     {
-        Editor ed = Generic.GetEditor();
+        Editor ed = AcadContext.GetEditor();
         Point3d ConvertedPoint = OriginalPoint.TransformBy(ed.CurrentUserCoordinateSystem);
         return ConvertedPoint;
     }
@@ -36,7 +37,7 @@ public class Points(Point3d SCG)
 
     public static bool GetPoint(out Points Points, string Message, Points BasePoint = Null)
     {
-        Editor ed = Generic.GetEditor();
+        Editor ed = AcadContext.GetEditor();
 
         PromptPointOptions promptPointOptions = new(Message)
         {

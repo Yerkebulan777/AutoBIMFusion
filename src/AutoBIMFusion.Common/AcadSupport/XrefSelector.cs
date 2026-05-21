@@ -1,14 +1,14 @@
 using AutoBIMFusion.Common.Extensions;
-using AutoBIMFusion.Common.Mist.Geometry;
+using AutoBIMFusion.Common.Geometry;
 
-namespace AutoBIMFusion.Common.Mist.AutoCAD;
+namespace AutoBIMFusion.Common.AcadSupport;
 
 public static class SelectInXref
 {
     public static (ObjectId[] XrefObjectId, ObjectId SelectedObjectId, PromptStatus PromptStatus) Select(string Message,
         Point3d? NonInterractivePickedPoint = null)
     {
-        Editor ed = Generic.GetEditor();
+        Editor ed = AcadContext.GetEditor();
 
         PromptNestedEntityOptions nestedEntOpt = new(Message);
         if (NonInterractivePickedPoint != null)

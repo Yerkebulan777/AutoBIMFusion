@@ -1,7 +1,7 @@
 using AutoBIMFusion.Common.Drawing;
 using AutoBIMFusion.Common.Helpers;
-using AutoBIMFusion.Common.Mist;
-using AutoBIMFusion.Common.Mist.Geometry;
+using AutoBIMFusion.Common.AcadSupport;
+using AutoBIMFusion.Common.Geometry;
 using System.Diagnostics;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
@@ -224,7 +224,7 @@ public static class Point3dExtensions
 
             if (seg != null)
             {
-                isOn = seg.IsOn(pt, Generic.MediumTolerance);
+                isOn = seg.IsOn(pt, AcadContext.MediumTolerance);
 
                 if (isOn)
                 {

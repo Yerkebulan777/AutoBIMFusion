@@ -1,6 +1,6 @@
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Logging;
-using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.AcadSupport;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
 namespace AutoBIMFusion.Merge.Combine;
@@ -45,13 +45,13 @@ public static class BlockScaleApplier
         }
 
         var refScale = Abs(blockRef.ScaleFactors.X);
-        if (refScale < Generic.LowTolerance.EqualVector)
+        if (refScale < AcadContext.LowTolerance.EqualVector)
         {
             log.Warning("BlockScaleApplier: блок \"{BlockName}\" имеет нулевой масштаб, нормализация пропущена.", blockName);
             return;
         }
 
-        if (Abs(refScale - 1.0) < Generic.LowTolerance.EqualVector && btr.Units == db.Insunits) return;
+        if (Abs(refScale - 1.0) < AcadContext.LowTolerance.EqualVector && btr.Units == db.Insunits) return;
 
         if (btr.Units != db.Insunits) btr.Units = db.Insunits;
 
@@ -92,8 +92,8 @@ public static class BlockScaleApplier
     /// </summary>
     private static bool IsUniformScaleAllowNegative(BlockReference br)
     {
-        return Abs(Abs(br.ScaleFactors.X) - Abs(br.ScaleFactors.Y)) < Generic.LowTolerance.EqualVector &&
-               Abs(Abs(br.ScaleFactors.X) - Abs(br.ScaleFactors.Z)) < Generic.LowTolerance.EqualVector;
+        return Abs(Abs(br.ScaleFactors.X) - Abs(br.ScaleFactors.Y)) < AcadContext.LowTolerance.EqualVector &&
+               Abs(Abs(br.ScaleFactors.X) - Abs(br.ScaleFactors.Z)) < AcadContext.LowTolerance.EqualVector;
     }
 
     private static ObjectId GetBlockDefinitionId(BlockReference blockRef)

@@ -1,9 +1,9 @@
 using AutoBIMFusion.Common.Extensions;
 using System.Diagnostics;
 
-namespace AutoBIMFusion.Common.Mist.AutoCAD;
+namespace AutoBIMFusion.Common.AcadSupport;
 
-internal static class HightLighter
+internal static class EntityHighlighter
 {
     private static readonly List<ObjectId> HightLightedObject = [];
 

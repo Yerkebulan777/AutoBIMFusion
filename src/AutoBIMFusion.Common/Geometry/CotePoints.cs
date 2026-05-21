@@ -1,12 +1,12 @@
-using AutoBIMFusion.Common.Compatibility;
+using AutoBIMFusion.Common.AcadSupport;
+using AutoBIMFusion.Common.Configuration;
 using AutoBIMFusion.Common.Extensions;
-using AutoBIMFusion.Common.Mist.AutoCAD;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Runtime;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
-namespace AutoBIMFusion.Common.Mist.Geometry;
+namespace AutoBIMFusion.Common.Geometry;
 
 public class CotePoints
 {
@@ -59,7 +59,7 @@ public class CotePoints
         if (cotePoints is null)
         {
             using Transaction trx = db.TransactionManager.StartTransaction();
-            HightLighter.UnhighlightAll();
+            EntityHighlighter.UnhighlightAll();
             trx.Commit();
             return true;
         }
@@ -69,8 +69,8 @@ public class CotePoints
 
     private static double GetCote(Points Origin)
     {
-        Database db = Generic.GetDatabase();
-        Editor ed = Generic.GetEditor();
+        Database db = AcadContext.GetDatabase();
+        Editor ed = AcadContext.GetEditor();
 
         // Укажите место, где требуется указать точку
         DBPoint PointDrawingEntity = new(Origin.SCG);
@@ -80,7 +80,7 @@ public class CotePoints
         using (Transaction trx = db.TransactionManager.StartTransaction())
         {
             var acBlkTbl = trx.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-            BlockTableRecord acBlkTblRec = Generic.GetCurrentSpaceBlockTableRecord(trx);
+            BlockTableRecord acBlkTblRec = AcadContext.GetCurrentSpaceBlockTableRecord(trx);
 
             _ = acBlkTblRec.AppendEntity(PointDrawingEntity);
             trx.AddNewlyCreatedDBObject(PointDrawingEntity, true);
@@ -110,7 +110,7 @@ public class CotePoints
 
     public static double? GetAltitudeFromBloc(ObjectId BlocObjectId)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         Autodesk.AutoCAD.DatabaseServices.TransactionManager trx = db.TransactionManager;
         DBObject BlocObject = trx.GetObject(BlocObjectId, OpenMode.ForRead);
         return BlocObject is BlockReference blkRef ? GetAltitudeFromBloc(blkRef) : null;
@@ -118,7 +118,7 @@ public class CotePoints
 
     public static double? GetAltitudeFromBloc(BlockReference blkRef)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         Autodesk.AutoCAD.DatabaseServices.TransactionManager trx = db.TransactionManager;
 
         foreach (ObjectId AttributeObjectId in blkRef.AttributeCollection)
@@ -131,7 +131,7 @@ public class CotePoints
             {
                 if (double.TryParse(textString, out double Altimetrie))
                 {
-                    Generic.WriteMessage($"Выбрана отметка: {FormatAltitude(Altimetrie)}");
+                    AcadContext.WriteMessage($"Выбрана отметка: {FormatAltitude(Altimetrie)}");
                     blkRef.RegisterHighlight();
                     return Altimetrie;
                 }
@@ -156,7 +156,7 @@ public class CotePoints
 
         if (OriginalString.Contains('%'))
         {
-            Generic.WriteMessage(
+            AcadContext.WriteMessage(
                 "В целях безопасности тексты, содержащие %, не могут быть преобразованы в отметки.");
             return null;
         }
@@ -206,7 +206,7 @@ public class CotePoints
     public static CotePoints GetBlockInXref(string Message, Point3d? NonInterractivePickedPoint,
         out PromptStatus PromptStatus)
     {
-        Editor ed = Generic.GetEditor();
+        Editor ed = AcadContext.GetEditor();
         BlockReference blkRef = null;
         List<ObjectId> XrefObjectId;
 
@@ -223,7 +223,7 @@ public class CotePoints
             return Null;
         }
 
-        HightLighter.UnhighlightAll();
+        EntityHighlighter.UnhighlightAll();
         XrefSelection.SelectedObjectId.RegisterHighlight();
         DBObject XrefObject = XrefSelection.SelectedObjectId.GetDBObject();
 
@@ -284,8 +284,8 @@ public class CotePoints
 
     private static CotePoints GetBloc(string Message)
     {
-        Database db = Generic.GetDatabase();
-        Editor ed = Generic.GetEditor();
+        Database db = AcadContext.GetDatabase();
+        Editor ed = AcadContext.GetEditor();
 
         while (true)
         {
@@ -352,7 +352,7 @@ public class CotePoints
 
             if (Altitude == null)
             {
-                Generic.WriteMessage("Отметка не обнаружена");
+                AcadContext.WriteMessage("Отметка не обнаружена");
                 trx.Commit();
                 continue;
             }
@@ -364,7 +364,7 @@ public class CotePoints
 
     public static CotePoints GetCotePoints(string Message, Points Origin)
     {
-        Editor ed = Generic.GetEditor();
+        Editor ed = AcadContext.GetEditor();
         PromptPointOptions PromptPointOptions =
             new($"{Message} [{SelectionPointsType.Bloc}]\n", nameof(SelectionPointsType.Bloc));
 
