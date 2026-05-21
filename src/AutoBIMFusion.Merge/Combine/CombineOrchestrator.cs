@@ -67,9 +67,6 @@ public static class CombineOrchestrator
             return LogFileFailedAndReturnWarn(diagnosticContext, fileName, "Листы не найдены", true);
         }
 
-        // Очистка мелких объектов за рамкой выполняется внутри PrepareDatabaseForMerge до нормализации базовых точек.
-        BlockBasePointEditor.NormalizeAllBlocksBasePoints(prepared.Db);
-
         // ComputeModelSpaceBounds: прямой scan сущностей, не зависит от кэша db.Extmin/Extmax.
         var bounds = ExtentsUtils.ComputeModelSpaceBounds(prepared.Db);
 

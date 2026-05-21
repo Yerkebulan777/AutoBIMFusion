@@ -1,6 +1,8 @@
 using Autodesk.AutoCAD.GraphicsInterface;
 using System.Globalization;
+using System.Diagnostics;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
+using AcadException = Autodesk.AutoCAD.Runtime.Exception;
 
 namespace AutoBIMFusion.Common.Helpers;
 
@@ -97,28 +99,43 @@ public static class StyleUtils
 
         var obj = Application.GetSystemVariable("DIMBLK");
 
-        if (obj is string oldArrName && !string.IsNullOrEmpty(oldArrName))
+        if (obj is not string oldArrName || string.IsNullOrEmpty(oldArrName))
         {
-            try
-            {
-                Application.SetSystemVariable("DIMBLK", arrowName);
-            }
-            catch
-            {
-                return arrObjId;
-            }
+            return arrObjId;
+        }
 
-            if (!string.IsNullOrEmpty(oldArrName))
-            {
-                Application.SetSystemVariable("DIMBLK", oldArrName);
-            }
+        var dimblkChanged = false;
 
-            BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
-
-            if (bt.Has(arrowName))
+        try
+        {
+            Application.SetSystemVariable("DIMBLK", arrowName);
+            dimblkChanged = true;
+        }
+        catch (AcadException ex)
+        {
+            Debug.WriteLine($"Не удалось установить DIMBLK: {ex.Message}");
+            return arrObjId;
+        }
+        finally
+        {
+            if (dimblkChanged)
             {
-                arrObjId = bt[arrowName];
+                try
+                {
+                    Application.SetSystemVariable("DIMBLK", oldArrName);
+                }
+                catch (AcadException ex)
+                {
+                    Debug.WriteLine($"Не удалось восстановить DIMBLK: {ex.Message}");
+                }
             }
+        }
+
+        BlockTable bt = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
+
+        if (bt.Has(arrowName))
+        {
+            arrObjId = bt[arrowName];
         }
 
         return arrObjId;

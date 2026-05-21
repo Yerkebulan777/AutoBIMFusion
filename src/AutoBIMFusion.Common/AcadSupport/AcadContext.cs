@@ -197,9 +197,15 @@ public static class AcadContext
     {
         short cmdecho = (short)Application.GetSystemVariable("CMDECHO");
         Application.SetSystemVariable("CMDECHO", 0);
-        Editor ed = GetEditor();
-        ed.Command(args);
-        Application.SetSystemVariable("CMDECHO", cmdecho);
+        try
+        {
+            Editor ed = GetEditor();
+            ed.Command(args);
+        }
+        finally
+        {
+            Application.SetSystemVariable("CMDECHO", cmdecho);
+        }
     }
 
     public static void Regen()
@@ -228,9 +234,15 @@ public static class AcadContext
     {
         short cmdecho = (short)Application.GetSystemVariable("CMDECHO");
         Application.SetSystemVariable("CMDECHO", 0);
-        Editor ed = GetEditor();
-        await ed.CommandAsync(args);
-        Application.SetSystemVariable("CMDECHO", cmdecho);
+        try
+        {
+            Editor ed = GetEditor();
+            await ed.CommandAsync(args);
+        }
+        finally
+        {
+            Application.SetSystemVariable("CMDECHO", cmdecho);
+        }
     }
 
     public static void CommandInApplicationContext(params object[] args)
