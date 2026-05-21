@@ -11,11 +11,12 @@ namespace AutoBIMFusion.Common.Logging;
 
 public static class LoggerFactory
 {
+    private static readonly Lazy<Logger> SharedLogger = new(CreateFileLogger);
+
     private const string BootstrapFailureFileName = "logger-bootstrap-failure.log";
     private const long MaxFileSizeBytes = 10L * 1024 * 1024; // 10 MB
     private const string LogLevelEnvVar = "LOG_LEVEL";
     private const int MaxRetainedFiles = 5;
-    private static readonly Lazy<Logger> SharedLogger = new(CreateFileLogger);
 
     public static Logger GetSharedLogger()
     {
