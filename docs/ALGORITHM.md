@@ -1,6 +1,6 @@
 # Алгоритм работы AutoBIMFusion
 
-**Последнее обновление:** 2026-05-19
+**Последнее обновление:** 2026-05-21
 
 ## 1. Запуск и выбор файлов
 
@@ -37,19 +37,72 @@
 
 ### С видовыми экранами
 
-1. Главный vpt выбирается через `ViewportInfo.PickMainViewport`.
-2. Рабочий масштаб main vpt нормализуется до `1:100` для всех масштабов; `geometryScale = originalScale / (1/100)`, а `Dimlfac = 1 / geometryScale` сохраняет числовые значения размеров.
+1. Главный vpt выбирается через `ViewportInfo.PickMainViewport` (см. **Алгоритм выбора главного VP** ниже).
+2. Рабочий масштаб main vpt нормализуется до `1:100` через `ViewportScaleNormalizer.Normalize` (см. **Алгоритм нормализации масштаба** ниже).
 3. `ViewportTransformer.CollectModelEntitiesWithExtents` снимает снимок объектов Model Space.
 4. Для каждого aux viewport: строится матрица `BuildMatrix(main, aux)`, отбираются объекты внутри его модельного окна, выполняется `DeepCloneAndTransform` (с capture/restore draw order через `DrawOrderPreserver`), удаляются исходные объекты за пределами main window (`EraseEntitiesOutsideMainWindow`).
-5. Если `geometryScale != 1`: `ScaleModelSpaceObjects` масштабирует Model Space вокруг `ViewCenter` main vpt к рабочему масштабу `1:100`.
+5. Если `geometryScale != 1`: `ScaleModelSpaceObjects` масштабирует Model Space вокруг `ViewCenter` main vpt к рабочему масштабу `1:100`. Клоны aux-VP пропускаются (`clonedIdsToSkip`) — они уже учли масштаб через матрицу в шаге 4.
 6. Paper Space переносится в Model Space через матрицу `BuildPaperToMainMatrix(mainNormalized)`.
+
+---
+
+### Алгоритм выбора главного VP (`ViewportInfo.PickMainViewport`)
+
+Главный VP определяет масштаб нормализации и `Dimlfac` для всего листа.
+
+**Шаг 1 — модальный масштаб.**
+VP группируются по `CustomScale` (округление до 4 знаков, чтобы исключить плавающую точку). Выбирается группа с наибольшим числом VP. Тай-брейк по суммарной `PaperArea` группы.
+
+**Шаг 2 — максимальная площадь внутри группы.**
+Среди VP модального масштаба выбирается тот, у которого `PaperArea = Width × Height` максимальна.
+
+**Пример:** лист с VP 1:25 × 3 шт. + VP 1:100 × 1 шт.
+→ модальный масштаб = 0.04 → выбирается самый большой 1:25-VP.
+
+> **Почему не `PaperArea / CustomScale` (до 2026-05-21):**
+> Деление на малый `CustomScale` (0.01 для 1:100) давало обзорному VP score в 4× выше,
+> чем рабочим VP при 1:25. Обзорный VP выигрывал как «главный», что приводило к
+> `geometryScale = 1` и `Dimlfac = 1.0`. Контент 1:25-VP масштабировался ×4 через
+> `auxToMain`, но `Dimlfac` это не компенсировал → размеры показывали значения
+> в 4 раза больше реальных.
+
+---
+
+### Алгоритм нормализации масштаба (`ViewportScaleNormalizer.Normalize`)
+
+Цель: привести геометрию и размеры к рабочему масштабу `1:100` (`workingCustomScale = 0.01`).
+
+| Величина | Формула | Пример (customScale = 0.04) |
+|---|---|---|
+| `workingCustomScale` | `1 / 100` = константа | `0.01` |
+| `geometryScale` | `customScale / workingCustomScale` | `0.04 / 0.01 = 4` |
+| `Dimlfac` (linearScaleMultiplier) | `1 / geometryScale` | `1 / 4 = 0.25` |
+| `Dimscale` (targetVisualScale) | `100` = константа | `100` |
+
+**Смысл каждой величины:**
+
+- `geometryScale` — во сколько раз растягивается Model Space, чтобы контент выглядел так же через viewport 1:100, как через оригинальный viewport 1:25. Применяется в `ScaleModelSpaceObjects`.
+- `Dimlfac` — компенсирует растяжение геометрии для числового значения размеров. Если линия 1000 мм стала 4000 мм (×4), `Dimlfac = 0.25` отображает `4000 × 0.25 = 1000` — исходное значение.
+- `Dimscale` — масштабирует визуальные атрибуты (стрелки, высоту текста) под рабочий масштаб 1:100. Не влияет на отображаемое число.
+
+**Полная цепочка для aux-VP:**
+
+Контент вспомогательного VP масштабируется дважды:
+1. `auxToMain` net scale = `auxScale / mainScale` (из `BuildMatrix`)
+2. Дополнительный `geometryScale` через `scaleMatrix` в `ProjectAuxViewport`
+
+Итоговый масштаб aux-контента = `geometryScale × (auxScale / mainScale)` = `auxScale / workingCustomScale`.
+
+Корректный `Dimlfac` для такого контента = `workingCustomScale / auxScale`.
+
+При aux ≠ main масштабе применяется один глобальный `Dimlfac` от главного VP. Aux-VP другого масштаба получают неточный `Dimlfac` — **known limitation** (требует per-VP tracking).
 
 ## 4. Тримминг и размеры
 
 *Выполняется внутри `ViewportLayoutExporter.PrepareDatabaseForMerge`.*
 
 1. Если рассчитана рамка листа (`projection.FrameBounds.HasValue`), `OutOfFrameEntityCleaner.Clean` удаляет только малые объекты, центр bbox которых находится за рамкой.
-2. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `source-after-normalize-before-clone` только при `LOG_LEVEL=DEBUG`.
+2. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `source-after-normalize-before-clone` в Debug-сборках или при `LOG_LEVEL=DEBUG`.
 3. После вставки в target `DimensionStyleNormalizer` удаляет DSTYLE overrides из XData/ExtensionDictionary и пересчитывает скопированные размеры.
 
 ## 5. Вставка в целевой чертеж
@@ -65,12 +118,12 @@
 5. К каждому клонированному объекту применяется displacement.
 6. Скопированные размеры приводятся к чистому GOST-стилю, DSTYLE overrides удаляются, dimension blocks пересчитываются.
 7. Следующий лист размещается справа от предыдущего; зазор равен `Max(1.0, Round(Max(width, height) * gapPercent, 0))`.
-8. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `target-after-clone` только при `LOG_LEVEL=DEBUG`.
+8. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `target-after-clone` в Debug-сборках или при `LOG_LEVEL=DEBUG`.
 
 ## 6. Финализация
 
 1. `RasterImagePathFixer.CopyImagesToTargetFolder` копирует растры рядом с итоговым DWG и обновляет пути.
-2. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `target-after-merge` только при `LOG_LEVEL=DEBUG`.
+2. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `target-after-merge` в Debug-сборках или при `LOG_LEVEL=DEBUG`.
 3. `DrawingPurger.Optimize` выполняет до 10 проходов `Purge`.
 4. Итоговый файл сохраняется через `SaveAs(savePath, DwgVersion.AC1032)`.
 5. AutoCAD получает команды `REGENALL` и `ZOOM EXTENTS`.

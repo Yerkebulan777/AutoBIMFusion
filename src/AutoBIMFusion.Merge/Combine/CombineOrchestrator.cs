@@ -20,7 +20,6 @@ public static class CombineOrchestrator
     {
         MergeDiagnosticContext diagnosticContext = MergeDiagnostics.CreateFileContext(filePath);
         var fileName = Path.GetFileName(filePath);
-
         var layoutName = Path.GetFileNameWithoutExtension(filePath);
 
         MergeDiagnostics.WriteEvent(diagnosticContext, "file.start", new Dictionary<string, object?>
@@ -31,13 +30,7 @@ public static class CombineOrchestrator
 
         if (!FileUtil.TryValidateDwg(filePath, out var warn))
         {
-            MergeDiagnostics.WriteEvent(diagnosticContext, "file.failed", new Dictionary<string, object?>
-            {
-                ["fileName"] = fileName,
-                ["reason"] = warn,
-                ["isSkipped"] = true
-            });
-            return CombineResult.Warn(fileName, warn);
+            return LogFileFailedAndReturnWarn(diagnosticContext, fileName, warn, true);
         }
 
         MergeDiagnostics.WriteEvent(diagnosticContext, "file.validated", new Dictionary<string, object?>
@@ -47,69 +40,7 @@ public static class CombineOrchestrator
 
         try
         {
-            using var prepared = ViewportLayoutExporter.PrepareDatabaseForMerge(filePath, fileName, log, diagnosticContext);
-
-            if (prepared == null)
-            {
-                MergeDiagnostics.WriteEvent(diagnosticContext, "file.failed", new Dictionary<string, object?>
-                {
-                    ["fileName"] = fileName,
-                    ["reason"] = "Листы не найдены",
-                    ["isSkipped"] = true
-                });
-                return CombineResult.Warn(fileName, "Листы не найдены");
-            }
-
-            // Очистка мелких объектов за рамкой выполняется внутри PrepareDatabaseForMerge до нормализации базовых точек.
-            BlockBasePointEditor.NormalizeAllBlocksBasePoints(prepared.Db);
-
-            // ComputeModelSpaceBounds: прямой scan сущностей, не зависит от кэша db.Extmin/Extmax.
-            var bounds = ExtentsUtils.ComputeModelSpaceBounds(prepared.Db);
-
-            if (!bounds.HasValue)
-            {
-                MergeDiagnostics.WriteEvent(diagnosticContext, "file.failed", new Dictionary<string, object?>
-                {
-                    ["fileName"] = fileName,
-                    ["reason"] = "Пустой файл",
-                    ["isSkipped"] = true
-                });
-                return CombineResult.Warn(fileName, "Пустой файл");
-            }
-
-            log.Debug("{FileName}: source bounds before insert {Bounds}", fileName, ExtentsUtils.FormatExtents(bounds.Value));
-
-            RasterImagePathFixer.CopyImagesToTargetFolder(prepared.Db, targetSavePath, log);
-
-            Extents3d? worldBounds;
-
-            using (targetDoc.LockDocument())
-            {
-                DimensionStyleDiagnosticUtils.LogStyleSnapshot(targetDoc.Database, log, "target-before-clone");
-
-                worldBounds = inserter.InsertNativeObjects(
-                    targetDoc.Database,
-                    prepared.Db,
-                    layoutName,
-                    bounds.Value,
-                    prepared.TargetVisualScale,
-                    prepared.LinearScaleMultiplier,
-                    diagnosticContext);
-
-                if (worldBounds is not null)
-                    DimensionStyleDiagnosticUtils.LogStyleSnapshot(targetDoc.Database, log, "target-after-clone");
-            }
-
-            MergeDiagnostics.WriteEvent(diagnosticContext, "file.done", new Dictionary<string, object?>
-            {
-                ["fileName"] = fileName,
-                ["sourceBounds"] = MergeDiagnostics.FormatExtents(bounds.Value),
-                ["worldBounds"] = MergeDiagnostics.FormatExtents(worldBounds),
-                ["targetVisualScale"] = prepared.TargetVisualScale,
-                ["linearScaleMultiplier"] = prepared.LinearScaleMultiplier
-            });
-
-            return CombineResult.Ok(fileName);
+            return ProcessPreparedDatabase(filePath, fileName, layoutName, inserter, targetDoc, log, targetSavePath, diagnosticContext);
         }
         catch (Exception ex)
         {
@@ -123,5 +54,84 @@ public static class CombineOrchestrator
             log.Error(ex, "Ошибка: {FileName}", fileName);
             return CombineResult.Fail(fileName, ex.Message, "Ошибка обработки");
         }
+    }
+
+    private static CombineResult ProcessPreparedDatabase(string filePath, string fileName, string layoutName,
+        BlockInserter inserter, Document targetDoc, Logger log, string targetSavePath,
+        MergeDiagnosticContext diagnosticContext)
+    {
+        using var prepared = ViewportLayoutExporter.PrepareDatabaseForMerge(filePath, fileName, log, diagnosticContext);
+
+        if (prepared == null)
+        {
+            return LogFileFailedAndReturnWarn(diagnosticContext, fileName, "Листы не найдены", true);
+        }
+
+        // Очистка мелких объектов за рамкой выполняется внутри PrepareDatabaseForMerge до нормализации базовых точек.
+        BlockBasePointEditor.NormalizeAllBlocksBasePoints(prepared.Db);
+
+        // ComputeModelSpaceBounds: прямой scan сущностей, не зависит от кэша db.Extmin/Extmax.
+        var bounds = ExtentsUtils.ComputeModelSpaceBounds(prepared.Db);
+
+        if (!bounds.HasValue)
+        {
+            return LogFileFailedAndReturnWarn(diagnosticContext, fileName, "Пустой файл", true);
+        }
+
+        log.Debug("{FileName}: source bounds before insert {Bounds}", fileName, ExtentsUtils.FormatExtents(bounds.Value));
+
+        RasterImagePathFixer.CopyImagesToTargetFolder(prepared.Db, targetSavePath, log);
+
+        var worldBounds = InsertIntoTarget(inserter, targetDoc, prepared, layoutName, bounds.Value, log, diagnosticContext);
+
+        MergeDiagnostics.WriteEvent(diagnosticContext, "file.done", new Dictionary<string, object?>
+        {
+            ["fileName"] = fileName,
+            ["sourceBounds"] = MergeDiagnostics.FormatExtents(bounds.Value),
+            ["worldBounds"] = MergeDiagnostics.FormatExtents(worldBounds),
+            ["targetVisualScale"] = prepared.TargetVisualScale,
+            ["linearScaleMultiplier"] = prepared.LinearScaleMultiplier
+        });
+
+        return CombineResult.Ok(fileName);
+    }
+
+    private static Extents3d? InsertIntoTarget(BlockInserter inserter, Document targetDoc,
+        PreparedSourceDatabase prepared, string layoutName, Extents3d bounds, Logger log,
+        MergeDiagnosticContext diagnosticContext)
+    {
+        Extents3d? worldBounds;
+
+        using (targetDoc.LockDocument())
+        {
+            DimensionStyleDiagnosticUtils.LogStyleSnapshot(targetDoc.Database, log, "target-before-clone");
+
+            worldBounds = inserter.InsertNativeObjects(
+                targetDoc.Database,
+                prepared.Db,
+                layoutName,
+                bounds,
+                prepared.TargetVisualScale,
+                prepared.LinearScaleMultiplier,
+                diagnosticContext);
+
+            if (worldBounds is not null)
+            {
+                DimensionStyleDiagnosticUtils.LogStyleSnapshot(targetDoc.Database, log, "target-after-clone");
+            }
+        }
+
+        return worldBounds;
+    }
+
+    private static CombineResult LogFileFailedAndReturnWarn(MergeDiagnosticContext diagnosticContext, string fileName, string reason, bool isSkipped)
+    {
+        MergeDiagnostics.WriteEvent(diagnosticContext, "file.failed", new Dictionary<string, object?>
+        {
+            ["fileName"] = fileName,
+            ["reason"] = reason,
+            ["isSkipped"] = isSkipped
+        });
+        return CombineResult.Warn(fileName, reason);
     }
 }
