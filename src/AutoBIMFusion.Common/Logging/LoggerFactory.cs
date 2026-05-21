@@ -12,6 +12,7 @@ namespace AutoBIMFusion.Common.Logging;
 public static class LoggerFactory
 {
     private static readonly Lazy<Logger> SharedLogger = new(CreateFileLogger);
+    private static string? currentLogFilePath;
 
     private const string BootstrapFailureFileName = "logger-bootstrap-failure.log";
     private const long MaxFileSizeBytes = 10L * 1024 * 1024; // 10 MB
@@ -25,7 +26,7 @@ public static class LoggerFactory
 
     public static string GetCurrentLogFilePath()
     {
-        return Path.Combine(GetLogsDirectory(), BuildLogFileName());
+        return currentLogFilePath ?? Path.Combine(GetLogsDirectory(), BuildLogFileName());
     }
 
     private static string GetLogsDirectory()
@@ -51,6 +52,7 @@ public static class LoggerFactory
             Directory.CreateDirectory(logsDir);
 
             logFile = Path.Combine(logsDir, BuildLogFileName());
+            currentLogFilePath = logFile;
             return CreateFileLoggerCore(logFile, minimumLevel);
         }
         catch (Exception ex) when (IsExpectedBootstrapException(ex))
@@ -77,7 +79,7 @@ public static class LoggerFactory
                 .Enrich.With<ThreadIdEnricher>()
                 .WriteTo.File(
                     logFile,
-                    rollingInterval: RollingInterval.Day,
+                    rollingInterval: RollingInterval.Infinite,
                     rollOnFileSizeLimit: true,
                     fileSizeLimitBytes: MaxFileSizeBytes,
                     retainedFileCountLimit: MaxRetainedFiles,
@@ -209,9 +211,16 @@ public static class LoggerFactory
     {
         string? envValue = Environment.GetEnvironmentVariable(LogLevelEnvVar);
 
-        return string.IsNullOrWhiteSpace(envValue)
-            ? LogEventLevel.Information
-            : envValue.Trim().ToUpperInvariant() switch
+        if (string.IsNullOrWhiteSpace(envValue))
+        {
+#if DEBUG
+            return LogEventLevel.Debug;
+#else
+            return LogEventLevel.Information;
+#endif
+        }
+
+        return envValue.Trim().ToUpperInvariant() switch
             {
                 "VERBOSE" => LogEventLevel.Verbose,
                 "DEBUG" => LogEventLevel.Debug,
