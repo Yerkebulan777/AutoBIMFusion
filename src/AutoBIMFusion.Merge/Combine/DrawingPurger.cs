@@ -203,7 +203,10 @@ public static class DrawingPurger
             {
                 if (objectId2.IsErased) continue;
 
-                foreach (var objectId3 in (BlockTableRecord)trx.GetObject(objectId2, OpenMode.ForRead))
+                var btr = (BlockTableRecord)trx.GetObject(objectId2, OpenMode.ForRead);
+                if (btr.IsFromExternalReference || btr.IsDependent) continue;
+
+                foreach (var objectId3 in btr)
                     if (objectId3.ObjectClass.IsDerivedFrom(CurveRXClass))
                     {
                         var curve = (Curve)trx.GetObject(objectId3, OpenMode.ForRead);
@@ -237,7 +240,10 @@ public static class DrawingPurger
             {
                 if (objectId2.IsErased) continue;
 
-                foreach (var objectId3 in (BlockTableRecord)trx.GetObject(objectId2, OpenMode.ForRead))
+                var btr = (BlockTableRecord)trx.GetObject(objectId2, OpenMode.ForRead);
+                if (btr.IsFromExternalReference || btr.IsDependent) continue;
+
+                foreach (var objectId3 in btr)
                     if (objectId3.ObjectClass == DBTextRXClass)
                     {
                         var dbtext = (DBText)trx.GetObject(objectId3, OpenMode.ForRead);
