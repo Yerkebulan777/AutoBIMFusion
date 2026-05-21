@@ -40,27 +40,7 @@ public sealed class BlockInserter(double gapPercent, Logger log)
             var targetMsId = SymbolUtilityServices.GetBlockModelSpaceId(targetDb);
 
             using ObjectIdCollection sourceIds = [];
-
-            using (var srcTrx = sourceDb.TransactionManager.StartTransaction())
-            {
-                StyleUnificationService.NormalizeTextStyleNames(sourceDb, srcTrx);
-                StyleUnificationService.ApplyGostToAllStyles(sourceDb, srcTrx);
-
-                var ms = (BlockTableRecord)srcTrx.GetObject(sourceMsId, OpenMode.ForRead);
-
-                HashSet<string> processedBlocks = [];
-
-                foreach (var id in ms)
-                    if (id.IsValidForOperation())
-                    {
-                        if (srcTrx.GetObject(id, OpenMode.ForWrite) is BlockReference blockRef)
-                            BlockScaleApplier.NormalizeBlockScale(sourceDb, srcTrx, blockRef, processedBlocks);
-
-                        _ = sourceIds.Add(id);
-                    }
-
-                srcTrx.Commit();
-            }
+            CollectSourceEntities(sourceDb, sourceMsId, sourceIds);
 
             if (sourceIds.Count == 0) return null;
 
@@ -68,42 +48,10 @@ public sealed class BlockInserter(double gapPercent, Logger log)
             log.Debug("{SourceName}: placement bounds {Bounds}", sourceName, ExtentsUtils.FormatExtents(placementBounds));
 
             var insertPt = CalcInsertionPoint(placementBounds);
-            var width = Max(0, placementBounds.MaxPoint.X - placementBounds.MinPoint.X);
-            var height = Max(0, placementBounds.MaxPoint.Y - placementBounds.MinPoint.Y);
-            var gap = CalcGap(placementBounds);
             var displacement = Matrix3d.Displacement(new Vector3d(insertPt.X, insertPt.Y, insertPt.Z));
 
-            Extents3d? worldBounds = null;
-            var clonedCount = 0;
-
-            using var targetTr = targetDb.TransactionManager.StartTransaction();
-
-            using IdMapping map = new();
-            using (new DatabaseUnitSyncScope(sourceDb, targetDb))
-            {
-                targetDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Ignore, false);
-            }
-
-            foreach (IdPair pair in map)
-            {
-                if (!pair.IsCloned || !pair.IsPrimary) continue;
-
-                if (targetTr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
-                {
-                    ent.TransformBy(displacement);
-                    clonedCount++;
-
-                    var ext = ExtentsUtils.TryGetLiveExtents(ent, targetTr);
-                    if (ext.HasValue)
-                        worldBounds = worldBounds.HasValue
-                            ? ExtentsUtils.Union(worldBounds.Value, ext.Value)
-                            : ext.Value;
-                }
-            }
-
-            DimensionStyleNormalizer.NormalizeClonedStyles(map, targetTr, targetVisualScale, linearScaleMultiplier);
-
-            targetTr.Commit();
+            var (worldBounds, clonedCount) = CloneAndProcessEntities(
+                targetDb, sourceDb, sourceIds, targetMsId, displacement, targetVisualScale, linearScaleMultiplier);
 
             if (clonedCount == 0)
             {
@@ -116,21 +64,9 @@ public sealed class BlockInserter(double gapPercent, Logger log)
             _rightMax = worldBounds.Value.MaxPoint.X;
             _hasPlacedObjects = true;
 
-            MergeDiagnostics.WriteEvent(diagnosticContext, "insert.cloned", new Dictionary<string, object?>
-            {
-                ["sourceName"] = sourceName,
-                ["sourceBounds"] = MergeDiagnostics.FormatExtents(sourceBounds),
-                ["placementBounds"] = MergeDiagnostics.FormatExtents(placementBounds),
-                ["insertPoint"] = MergeDiagnostics.FormatPoint(insertPt),
-                ["width"] = width,
-                ["height"] = height,
-                ["gap"] = gap,
-                ["clonedCount"] = clonedCount,
-                ["worldBounds"] = MergeDiagnostics.FormatExtents(worldBounds),
-                ["rightMax"] = _rightMax,
-                ["targetVisualScale"] = targetVisualScale,
-                ["linearScaleMultiplier"] = linearScaleMultiplier
-            });
+            RecordDiagnostics(
+                sourceName, sourceBounds, placementBounds, insertPt, clonedCount,
+                worldBounds.Value, targetVisualScale, linearScaleMultiplier, diagnosticContext);
 
             return worldBounds;
         }
@@ -139,6 +75,105 @@ public sealed class BlockInserter(double gapPercent, Logger log)
             log.Error(ex, "Ошибка вставки: {SourceName}", sourceName);
             return null;
         }
+    }
+
+    private void CollectSourceEntities(Database sourceDb, ObjectId sourceMsId, ObjectIdCollection sourceIds)
+    {
+        using var srcTrx = sourceDb.TransactionManager.StartTransaction();
+
+        StyleUnificationService.NormalizeTextStyleNames(sourceDb, srcTrx);
+        StyleUnificationService.ApplyGostToAllStyles(sourceDb, srcTrx);
+
+        var ms = (BlockTableRecord)srcTrx.GetObject(sourceMsId, OpenMode.ForRead);
+
+        HashSet<string> processedBlocks = [];
+
+        foreach (var id in ms)
+            if (id.IsValidForOperation())
+            {
+                if (srcTrx.GetObject(id, OpenMode.ForWrite) is BlockReference blockRef)
+                    BlockScaleApplier.NormalizeBlockScale(sourceDb, srcTrx, blockRef, processedBlocks);
+
+                _ = sourceIds.Add(id);
+            }
+
+        srcTrx.Commit();
+    }
+
+    private (Extents3d? worldBounds, int clonedCount) CloneAndProcessEntities(
+        Database targetDb,
+        Database sourceDb,
+        ObjectIdCollection sourceIds,
+        ObjectId targetMsId,
+        Matrix3d displacement,
+        double targetVisualScale,
+        double linearScaleMultiplier)
+    {
+        Extents3d? worldBounds = null;
+        var clonedCount = 0;
+
+        using var targetTr = targetDb.TransactionManager.StartTransaction();
+
+        using IdMapping map = new();
+        using (new DatabaseUnitSyncScope(sourceDb, targetDb))
+        {
+            targetDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Ignore, false);
+        }
+
+        foreach (IdPair pair in map)
+        {
+            if (!pair.IsCloned || !pair.IsPrimary) continue;
+
+            if (targetTr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
+            {
+                ent.TransformBy(displacement);
+                clonedCount++;
+
+                var ext = ExtentsUtils.TryGetLiveExtents(ent, targetTr);
+                if (ext.HasValue)
+                    worldBounds = worldBounds.HasValue
+                        ? ExtentsUtils.Union(worldBounds.Value, ext.Value)
+                        : ext.Value;
+            }
+        }
+
+        DimensionStyleNormalizer.NormalizeClonedStyles(map, targetTr, targetVisualScale, linearScaleMultiplier);
+
+        targetTr.Commit();
+
+        return (worldBounds, clonedCount);
+    }
+
+    private void RecordDiagnostics(
+        string sourceName,
+        Extents3d sourceBounds,
+        Extents3d placementBounds,
+        Point3d insertPt,
+        int clonedCount,
+        Extents3d worldBounds,
+        double targetVisualScale,
+        double linearScaleMultiplier,
+        MergeDiagnosticContext? diagnosticContext)
+    {
+        var width = Max(0, placementBounds.MaxPoint.X - placementBounds.MinPoint.X);
+        var height = Max(0, placementBounds.MaxPoint.Y - placementBounds.MinPoint.Y);
+        var gap = CalcGap(placementBounds);
+
+        MergeDiagnostics.WriteEvent(diagnosticContext, "insert.cloned", new Dictionary<string, object?>
+        {
+            ["sourceName"] = sourceName,
+            ["sourceBounds"] = MergeDiagnostics.FormatExtents(sourceBounds),
+            ["placementBounds"] = MergeDiagnostics.FormatExtents(placementBounds),
+            ["insertPoint"] = MergeDiagnostics.FormatPoint(insertPt),
+            ["width"] = width,
+            ["height"] = height,
+            ["gap"] = gap,
+            ["clonedCount"] = clonedCount,
+            ["worldBounds"] = MergeDiagnostics.FormatExtents(worldBounds),
+            ["rightMax"] = _rightMax,
+            ["targetVisualScale"] = targetVisualScale,
+            ["linearScaleMultiplier"] = linearScaleMultiplier
+        });
     }
 
     private Point3d CalcInsertionPoint(Extents3d bounds)

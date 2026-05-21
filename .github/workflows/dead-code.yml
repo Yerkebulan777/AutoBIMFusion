@@ -19,4 +19,7 @@ jobs:
     - name: Build with warnings as errors
       env:
         DisableAutoCADDeployment: 'true'
+        ProgramData: /tmp/ProgramData
+        APPDATA: /tmp/APPDATA
+        AutoCADUserPluginsDir: "./TestDeploy"
       run: dotnet build AutoBIMFusion.slnx -c ReleaseA25 -warnaserror /p:EnableWindowsTargeting=true

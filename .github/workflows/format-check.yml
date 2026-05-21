@@ -25,6 +25,8 @@ jobs:
     - name: Check formatting
       env:
         EnableWindowsTargeting: 'true'
+        AutoCADUserPluginsDir: "./TestDeploy"
       run: |
+        export EnableWindowsTargeting=true
         dotnet format AutoBIMFusion.slnx --verify-no-changes --verbosity diagnostic || \
         dotnet format src/AutoBIMFusion.Plugin/AutoBIMFusion.Plugin.csproj --verify-no-changes --verbosity diagnostic

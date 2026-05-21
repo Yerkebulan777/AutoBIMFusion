@@ -52,16 +52,6 @@ internal static class LayoutProjectionProcessor
         // Одна транзакция: сбор paper-сущностей + поиск рамки + фильтрация
         var layoutData = CollectAndFilterLayoutData(db, layoutName);
 
-        MergeDiagnostics.WriteEvent(diagnosticContext, "scale.normalized", new Dictionary<string, object?>
-        {
-            ["layoutName"] = layoutName,
-            ["hasViewport"] = false,
-            ["workingCustomScale"] = 1.0 / ViewportScaleNormalizer.WorkingScaleMultiplier,
-            ["geometryScale"] = ViewportScaleNormalizer.WorkingScaleMultiplier,
-            ["targetVisualScale"] = ViewportScaleNormalizer.WorkingScaleMultiplier,
-            ["linearScaleMultiplier"] = 1.0
-        });
-
         using (layoutData.FilteredPaperIds)
         {
             var matrix = ViewportTransformer.BuildPaperToMainMatrix(mainNormalized, log);
