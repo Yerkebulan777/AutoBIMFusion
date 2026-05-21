@@ -1,6 +1,5 @@
 using AutoBIMFusion.Common.Mist;
 using AutoBIMFusion.Common.Mist.Geometry;
-using AutoBIMFusion.Common.Mist.Geometry.PolygonOperations;
 using System.Diagnostics;
 
 namespace AutoBIMFusion.Common.Extensions;
@@ -651,18 +650,6 @@ public static class PolylinesExtensions
 
             return ReturnOffsetMergedPolylineResult;
         }
-    }
-
-    public static Point3d GetInnerCentroid(this Polyline poly)
-    {
-        Polyline polygon = poly.ToPolygon(10);
-        Point3d pt = PolygonOperation.GetInnerCentroid(polygon);
-        if (polygon != poly)
-        {
-            polygon?.Dispose();
-        }
-
-        return pt;
     }
 
     public static Point3d GetCentroid(this Polyline pl)

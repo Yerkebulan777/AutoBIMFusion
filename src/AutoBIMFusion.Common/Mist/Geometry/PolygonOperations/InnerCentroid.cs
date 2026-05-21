@@ -11,7 +11,7 @@ public static partial class PolygonOperation
     ///     From : https://github.com/eqmiller/polylabel-csharp
     ///     Original : https://github.com/mapbox/polylabel
     /// </summary>
-    public static Point3d GetInnerCentroid(Polyline PolylinePolygon, double precision = 1.0)
+    public static Point3d GetInnerCentroid(this Polyline PolylinePolygon, double precision = 1.0)
     {
         Point3dCollection PolygonPtnsCollection = PolylinePolygon.GetPoints().ToPoint3dCollection();
         _ = PolygonPtnsCollection.Add(PolygonPtnsCollection[0]);
