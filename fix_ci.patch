@@ -1,5 +1,10 @@
 <<<<<<< SEARCH
-      run: dotnet build AutoBIMFusion.slnx -c Release -warnaserror
+    <Target Name="CreateAutoCADBundle" AfterTargets="Build">
 =======
-      run: dotnet build AutoBIMFusion.slnx -c ReleaseA25 -warnaserror /p:EnableWindowsTargeting=true
+    <Target Name="CreateAutoCADBundle" AfterTargets="Build" Condition="'$(DisableAutoCADDeployment)' != 'true'">
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    <Target Name="CleanAutoCADBundle" AfterTargets="Clean">
+=======
+    <Target Name="CleanAutoCADBundle" AfterTargets="Clean" Condition="'$(DisableAutoCADDeployment)' != 'true'">
 >>>>>>> REPLACE

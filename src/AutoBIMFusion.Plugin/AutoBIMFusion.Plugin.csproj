@@ -86,7 +86,7 @@
         <Copy SourceFiles="@(PluginRuntimeDependency)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" Condition="'@(PluginRuntimeDependency)' != ''" />
     </Target>
 
-    <Target Name="CreateAutoCADBundle" AfterTargets="Build">
+    <Target Name="CreateAutoCADBundle" AfterTargets="Build" Condition="'$(DisableAutoCADDeployment)' != 'true'">
         <PropertyGroup>
             <GeneratedPackageContentsPath>$(IntermediateOutputPath)PackageContents.xml</GeneratedPackageContentsPath>
             <BundleOutputDir>$(TargetDir)$(BundleName)</BundleOutputDir>
@@ -129,7 +129,7 @@
         <Message Importance="high" Text="AutoCAD autoload bundle deployed: $(DeployBundleDir)" />
     </Target>
 
-    <Target Name="CleanAutoCADBundle" AfterTargets="Clean">
+    <Target Name="CleanAutoCADBundle" AfterTargets="Clean" Condition="'$(DisableAutoCADDeployment)' != 'true'">
         <PropertyGroup>
             <AutoCADDeployRootDir Condition="'$(DeployForAllUsers)' == 'true'">$(AutoCADAllUsersPluginsDir)</AutoCADDeployRootDir>
             <AutoCADDeployRootDir Condition="'$(DeployForAllUsers)' != 'true'">$(AutoCADUserPluginsDir)</AutoCADDeployRootDir>
