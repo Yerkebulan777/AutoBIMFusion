@@ -231,7 +231,7 @@ public static class DrawingPurger
             var DBTextRXClass = RXObject.GetClass(typeof(DBText));
             var MTextRXClass = RXObject.GetClass(typeof(MText));
             using var trx = db.TransactionManager.StartTransaction();
-            using ObjectIdCollection candidates = [];
+            var deletedCount = 0;
 
             foreach (var objectId2 in (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead))
             {
@@ -241,19 +241,25 @@ public static class DrawingPurger
                     if (objectId3.ObjectClass == DBTextRXClass)
                     {
                         var dbtext = (DBText)trx.GetObject(objectId3, OpenMode.ForRead);
-                        if (dbtext.TextString.Trim().Length == 0) _ = candidates.Add(objectId3);
+                        if (dbtext.TextString.Trim().Length == 0)
+                        {
+                            dbtext.UpgradeOpen();
+                            dbtext.Erase();
+                            deletedCount++;
+                        }
                     }
                     else if (objectId3.ObjectClass == MTextRXClass
                              && trx.GetObject(objectId3, OpenMode.ForRead) is MText { Text: not null } mtext
                              && mtext.Text.Trim().Length == 0)
                     {
-                        _ = candidates.Add(objectId3);
+                        mtext.UpgradeOpen();
+                        mtext.Erase();
+                        deletedCount++;
                     }
             }
 
-            candidates.EraseObjects(trx);
             trx.Commit();
-            return candidates.Count;
+            return deletedCount;
         }
 
         /// <summary>
