@@ -1,6 +1,6 @@
 # Алгоритм работы AutoBIMFusion
 
-**Последнее обновление:** 2026-05-21
+**Последнее обновление:** 2026-05-22
 
 ## 1. Запуск и выбор файлов
 
@@ -43,6 +43,24 @@
 4. Для каждого aux viewport: строится матрица `BuildMatrix(main, aux)`, отбираются объекты внутри его модельного окна, выполняется `DeepCloneAndTransform` (с capture/restore draw order через `DrawOrderPreserver`), удаляются исходные объекты за пределами main window (`EraseEntitiesOutsideMainWindow`).
 5. Если `geometryScale != 1`: `ScaleModelSpaceObjects` масштабирует Model Space вокруг `ViewCenter` main vpt к рабочему масштабу `1:100`. Клоны aux-VP пропускаются (`clonedIdsToSkip`) — они уже учли масштаб через матрицу в шаге 4.
 6. Paper Space переносится в Model Space через матрицу `BuildPaperToMainMatrix(mainNormalized)`.
+
+---
+
+### Выбор объектов aux viewport
+
+`ViewportTransformer.SelectModelInside` использует пересечение AABB объекта с модельным окном aux viewport как основной критерий принадлежности.
+
+Критичное правило: крупный объект, который пересекает окно aux viewport только краем и выходит за грань листа, должен оставаться выбранным. Нельзя отбрасывать его только потому, что центр его bbox находится вне окна. Такой объект должен попасть в `DeepCloneAndTransform`, где к нему применяется актуальная матрица `scaleMatrix * auxToMain`.
+
+Если отфильтровать такие объекты по центру bbox, они остаются в исходных координатах Model Space и после вставки дают регрессию: смещаются только крупногабаритные блоки/объекты, выходящие за рамку листа, тогда как обычные объекты выглядят корректно.
+
+Сохраняемые фильтры:
+
+- `OutsideWindow`: AABB не пересекает окно aux viewport.
+- `SmallPartialOutsideWindow`: малый объект частично пересекает окно, но не помещается целиком.
+- `HugeInMainWindow`: большой объект главного VP не должен стать контентом aux VP.
+
+Запрещенный фильтр: `CenterOutsideWindow` для крупных частично пересекающихся объектов.
 
 ---
 
@@ -119,6 +137,8 @@ VP группируются по `CustomScale` (округление до 4 зн
 6. Скопированные размеры приводятся к чистому GOST-стилю, DSTYLE overrides удаляются, dimension blocks пересчитываются.
 7. Следующий лист размещается справа от предыдущего; зазор равен `Max(1.0, Round(Max(width, height) * gapPercent, 0))`.
 8. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `target-after-clone` в Debug-сборках или при `LOG_LEVEL=DEBUG`.
+
+`insertX`/`insertY` рассчитываются из `placementBounds`, которые вычисляются через `ExtentsUtils.ComputeLiveBounds(sourceDb, sourceIds)` после подготовки source DB, нормализации базовых точек блоков и нормализации масштаба block references. Это гарантирует, что вектор сдвига строится по актуальной геометрии, а не по устаревшему `Database.Extmin/Extmax` или cached extents. После clone+displacement `worldBounds` пересчитывается по уже вставленным объектам и используется как `_rightMax` для следующего листа.
 
 ## 6. Финализация
 

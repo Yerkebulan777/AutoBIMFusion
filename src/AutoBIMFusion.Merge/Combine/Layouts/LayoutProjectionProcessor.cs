@@ -151,12 +151,10 @@ internal static class LayoutProjectionProcessor
             ["outsideWindow"] = selection.OutsideWindow,
             ["smallPartialOutsideWindow"] = selection.SmallPartialOutsideWindow,
             ["skippedHuge"] = selection.SkippedHugeObjects,
-            ["centerOutsideWindow"] = selection.CenterOutsideWindow,
             ["selectedHandleSamples"] = selection.SelectedHandleSamples,
             ["outsideHandleSamples"] = selection.OutsideHandleSamples,
             ["smallPartialHandleSamples"] = selection.SmallPartialHandleSamples,
             ["hugeHandleSamples"] = selection.HugeHandleSamples,
-            ["centerOutsideHandleSamples"] = selection.CenterOutsideHandleSamples,
             ["window"] = MergeDiagnostics.FormatExtents(aux.ModelWindow)
         });
 
