@@ -27,26 +27,10 @@ public static class LoggerFactory
         return Path.Combine(GetLogsDirectory(), BuildLogFileName());
     }
 
-    /// <summary>
-    ///     Возвращает путь к директории логов. Использует текущую директорию,
-    ///     если расположение сборки не может быть определено (например, сборка загружена из памяти).
-    /// </summary>
     private static string GetLogsDirectory()
     {
-        string assemblyLocation = typeof(LoggerFactory).Assembly.Location;
-
-        if (!string.IsNullOrEmpty(assemblyLocation))
-        {
-            string? baseDir = Path.GetDirectoryName(assemblyLocation);
-
-            if (baseDir is not null)
-            {
-                return Path.Combine(baseDir, "Logs");
-            }
-        }
-
-        // Резервный вариант: используем базовую директорию приложения (например, C:\Program Files\Autodesk\...)
-        return Path.Combine(AppContext.BaseDirectory, "Logs");
+        string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        return Path.Combine(localAppData, "AutoBIMFusion", "Logs");
     }
 
     private static string BuildLogFileName()
