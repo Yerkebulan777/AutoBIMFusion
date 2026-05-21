@@ -1,0 +1,5 @@
+<<<<<<< SEARCH
+      run: dotnet build AutoBIMFusion.slnx -c Release -warnaserror
+=======
+      run: dotnet build AutoBIMFusion.slnx -c ReleaseA25 -warnaserror /p:EnableWindowsTargeting=true
+>>>>>>> REPLACE
