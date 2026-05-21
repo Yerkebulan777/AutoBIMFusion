@@ -40,15 +40,15 @@ public static class DBTextExtensions
             if (txt2.Bounds.HasValue)
             {
                 Point3d maxPt = txt2.Bounds.Value.MaxPoint;
-            // Размещаем все четыре угла ограничивающей рамки
-            // в массиве
+                // Размещаем все четыре угла ограничивающей рамки
+                // в массиве
                 Point2d[] bounds = new[]
                 {
                     Point2d.Origin, new Point2d(0.0, maxPt.Y), new Point2d(maxPt.X, maxPt.Y), new Point2d(maxPt.X, 0.0)
                 };
 
-            // Будем получать WCS-координаты каждой точки
-            // используя плоскость, на которой находится текст
+                // Будем получать WCS-координаты каждой точки
+                // используя плоскость, на которой находится текст
                 Plane pl = new(txt.Position, txt.Normal);
 
                 // Поворачиваем каждую точку и добавляем её WCS-расположение в коллекцию

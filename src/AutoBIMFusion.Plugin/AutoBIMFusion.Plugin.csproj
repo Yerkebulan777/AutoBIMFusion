@@ -107,6 +107,7 @@
             <PackageContentsLines Include="  &lt;/Components&gt;" />
             <PackageContentsLines Include="&lt;/ApplicationPackage&gt;" />
             <ResourceIcons Include="Resources\*.png" />
+            <PluginPdb Include="$(TargetDir)$(AssemblyName).pdb" Condition="'$(DebugSymbols)' == 'true' And Exists('$(TargetDir)$(AssemblyName).pdb')" />
         </ItemGroup>
 
         <MakeDir Directories="$(BundleOutputContentsDir);$(DeployBundleContentsDir);$(BundleOutputContentsDir)\Resources;$(DeployBundleContentsDir)\Resources" />
@@ -118,6 +119,8 @@
 
         <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BundleOutputContentsDir)" Retries="5" RetryDelayMilliseconds="200" />
         <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(DeployBundleContentsDir)" Retries="5" RetryDelayMilliseconds="200" />
+        <Copy SourceFiles="@(PluginPdb)" DestinationFolder="$(BundleOutputContentsDir)" Retries="5" RetryDelayMilliseconds="200" Condition="'@(PluginPdb)' != ''" />
+        <Copy SourceFiles="@(PluginPdb)" DestinationFolder="$(DeployBundleContentsDir)" Retries="5" RetryDelayMilliseconds="200" Condition="'@(PluginPdb)' != ''" />
         <Copy SourceFiles="@(PluginRuntimeDependency)" DestinationFolder="$(BundleOutputContentsDir)" SkipUnchangedFiles="true" Retries="5" RetryDelayMilliseconds="200" Condition="'@(PluginRuntimeDependency)' != ''" />
         <Copy SourceFiles="@(PluginRuntimeDependency)" DestinationFolder="$(DeployBundleContentsDir)" SkipUnchangedFiles="true" Retries="5" RetryDelayMilliseconds="200" Condition="'@(PluginRuntimeDependency)' != ''" />
         <Copy SourceFiles="@(ReferenceCopyLocalPaths)" DestinationFolder="$(BundleOutputContentsDir)" SkipUnchangedFiles="true" Retries="5" RetryDelayMilliseconds="200" />
