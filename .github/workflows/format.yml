@@ -26,6 +26,8 @@ jobs:
       run: dotnet tool install -g dotnet-format
 
     - name: Fix Code Style
+      env:
+        EnableWindowsTargeting: true
       run: |
         dotnet format AutoBIMFusion.slnx --verbosity diagnostic || \
         dotnet format src/AutoBIMFusion.Plugin/AutoBIMFusion.Plugin.csproj --verbosity diagnostic
