@@ -67,6 +67,9 @@ public static class CombineOrchestrator
             return LogFileFailedAndReturnWarn(diagnosticContext, fileName, "Листы не найдены", true);
         }
 
+        // Нормализуем source DB до расчета габаритов, как в рабочей ветке TEST.
+        BlockBasePointEditor.NormalizeAllBlocksBasePoints(prepared.Db);
+
         // ComputeModelSpaceBounds: прямой scan сущностей, не зависит от кэша db.Extmin/Extmax.
         var bounds = ExtentsUtils.ComputeModelSpaceBounds(prepared.Db);
 
