@@ -578,7 +578,7 @@ public static class PolylinesExtensions
 
         IEnumerable<Polyline> InternalSmartOffset(Polyline InternalPoly)
         {
-            // UseOffsetGapTypeCurrentValue должен быть 0, чтобы избежать скруглённых углов
+                // UseOffsetGapTypeCurrentValue должен быть 0, чтобы избежать скруглённых углов
             var OffsetPolylineResult = InternalPoly.OffsetPolyline(ShrinkDistance, false).Cast<Polyline>().ToList();
 
             if (OffsetPolylineResult.Count == 0)
@@ -635,7 +635,7 @@ public static class PolylinesExtensions
 
                 // Очистка линии (ОБЯЗАТЕЛЬНО! если не нужно в будущем, объясните почему)
                 InternalPoly.Cleanup();
-                // UseOffsetGapTypeCurrentValue должен быть 0, чтобы избежать скруглённых углов
+            // UseOffsetGapTypeCurrentValue должен быть 0, чтобы избежать скруглённых углов
                 OffsetPolylineResult = InternalPoly.OffsetPolyline(ShrinkDistance, false).Cast<Polyline>().ToList();
             }
 
