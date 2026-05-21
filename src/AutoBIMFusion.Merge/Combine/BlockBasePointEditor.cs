@@ -115,18 +115,25 @@ public static class BlockBasePointEditor
         {
             if (trx.GetObject(blockReferenceId, OpenMode.ForWrite) is not BlockReference blockReference) continue;
 
-            var compensation = TransformVector(offset, blockReference.BlockTransform);
+            var compensation = offset.TransformBy(GetMatrixWithoutTranslation(blockReference.BlockTransform));
             blockReference.TransformBy(Matrix3d.Displacement(compensation));
             blockReference.RecordGraphicsModified(true);
         }
     }
 
-    private static Vector3d TransformVector(Vector3d vector, Matrix3d matrix)
+    private static Matrix3d GetMatrixWithoutTranslation(Matrix3d matrix)
     {
-        Point3d transformedOrigin = Point3d.Origin.TransformBy(matrix);
-        Point3d transformedVectorEnd = new Point3d(vector.X, vector.Y, vector.Z).TransformBy(matrix);
+        var coordinateSystem = matrix.CoordinateSystem3d;
 
-        return transformedOrigin.GetVectorTo(transformedVectorEnd);
+        return Matrix3d.AlignCoordinateSystem(
+            Point3d.Origin,
+            Vector3d.XAxis,
+            Vector3d.YAxis,
+            Vector3d.ZAxis,
+            Point3d.Origin,
+            coordinateSystem.Xaxis,
+            coordinateSystem.Yaxis,
+            coordinateSystem.Zaxis);
     }
 
     private static IReadOnlyList<ObjectId> OrderNestedDefinitionsFirst(Transaction trx,
