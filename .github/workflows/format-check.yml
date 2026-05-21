@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       EnableWindowsTargeting: "true"
+      DisableAutoCADDeployment: "true"
     permissions:
       contents: read
 
@@ -26,5 +27,5 @@ jobs:
 
     - name: Check formatting
       run: |
-        dotnet format AutoBIMFusion.slnx --verify-no-changes --verbosity diagnostic || \
-        dotnet format src/AutoBIMFusion.Plugin/AutoBIMFusion.Plugin.csproj --verify-no-changes --verbosity diagnostic
+        dotnet format AutoBIMFusion.slnx --verify-no-changes --verbosity diagnostic /p:AutoCADUserPluginsDir=/tmp/ /p:AutoCADAllUsersPluginsDir=/tmp/ || \
+        dotnet format src/AutoBIMFusion.Plugin/AutoBIMFusion.Plugin.csproj --verify-no-changes --verbosity diagnostic /p:AutoCADUserPluginsDir=/tmp/ /p:AutoCADAllUsersPluginsDir=/tmp/

@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       EnableWindowsTargeting: "true"
+      DisableAutoCADDeployment: "true"
     permissions:
       contents: write
 
@@ -29,8 +30,8 @@ jobs:
 
     - name: Fix Code Style
       run: |
-        dotnet format AutoBIMFusion.slnx --verbosity diagnostic || \
-        dotnet format src/AutoBIMFusion.Plugin/AutoBIMFusion.Plugin.csproj --verbosity diagnostic
+        dotnet format AutoBIMFusion.slnx --verbosity diagnostic /p:AutoCADUserPluginsDir=/tmp/ /p:AutoCADAllUsersPluginsDir=/tmp/ || \
+        dotnet format src/AutoBIMFusion.Plugin/AutoBIMFusion.Plugin.csproj --verbosity diagnostic /p:AutoCADUserPluginsDir=/tmp/ /p:AutoCADAllUsersPluginsDir=/tmp/
 
     - name: Commit and Push changes
       uses: stefanzweifel/git-auto-commit-action@v5
