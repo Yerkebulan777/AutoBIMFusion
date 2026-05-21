@@ -1,4 +1,4 @@
-﻿namespace AutoBIMFusion.Common.Extensions;
+namespace AutoBIMFusion.Common.Extensions;
 
 public static class CircularArc3dExtension
 {
