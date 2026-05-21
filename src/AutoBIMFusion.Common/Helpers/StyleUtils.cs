@@ -175,9 +175,16 @@ public static class StyleUtils
             return candidate;
         }
 
+        int len = candidate.Length;
+        // Allocate a few extra characters just in case the loop bound increases in the future
+        Span<char> buffer = stackalloc char[len + 16];
+        candidate.AsSpan().CopyTo(buffer);
+        buffer[len] = '_';
+
         for (var i = 2; i < 1000; i++)
         {
-            var suffixed = $"{candidate}_{i}";
+            i.TryFormat(buffer.Slice(len + 1), out int charsWritten);
+            var suffixed = new string(buffer.Slice(0, len + 1 + charsWritten));
             if (!existing.Contains(suffixed))
             {
                 return suffixed;
