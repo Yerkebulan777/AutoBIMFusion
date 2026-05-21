@@ -9,66 +9,53 @@ namespace AutoBIMFusion.Common.Logging;
 
 public static class LoggerFactory
 {
-    private static string? _currentLogFilePath;
-
     private static readonly Lazy<Logger> SharedLogger = new(CreateLogger);
 
+    private const LogEventLevel Level = LogEventLevel.Debug;
     private const long MaxFileSizeBytes = 10L * 1024 * 1024;
     private const int MaxRetainedFiles = 5;
-    private const string LogLevelEnvVar = "LOG_LEVEL";
 
-    public static Logger GetSharedLogger() => SharedLogger.Value;
+    public static Logger GetSharedLogger()
+    {
+        return SharedLogger.Value;
+    }
 
     public static string GetCurrentLogFilePath()
     {
-        return _currentLogFilePath ?? Path.Combine(GetLogsDirectory(), BuildLogFileName());
+        return Path.Combine(GetLogsDirectory(), BuildLogFileName());
     }
 
     private static string GetLogsDirectory()
     {
-        string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        return Path.Combine(localAppData, "AutoBIMFusion", "Logs");
-    }
+        string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
-    private static string BuildLogFileName() => $"merge-{DateTime.Today:yyyy-MM-dd}.log";
+        string logsDir = Path.Combine(documentsPath, "AutoBIMFusion", "Logs");
 
-    private static LogEventLevel ResolveMinimumLevel()
-    {
-        string? env = Environment.GetEnvironmentVariable(LogLevelEnvVar);
+        Console.WriteLine(logsDir);
 
-        if (!string.IsNullOrWhiteSpace(env))
+        if (!Directory.Exists(logsDir))
         {
-            return env.Trim().ToUpperInvariant() switch
-            {
-                "VERBOSE" => LogEventLevel.Verbose,
-                "DEBUG" => LogEventLevel.Debug,
-                "INFORMATION" or "INFO" => LogEventLevel.Information,
-                "WARNING" or "WARN" => LogEventLevel.Warning,
-                "ERROR" => LogEventLevel.Error,
-                "FATAL" => LogEventLevel.Fatal,
-                _ => LogEventLevel.Information
-            };
+            Directory.CreateDirectory(logsDir);
         }
 
-#if DEBUG
-        return LogEventLevel.Debug;
-#else
-        return LogEventLevel.Information;
-#endif
+        return logsDir;
+    }
+
+    private static string BuildLogFileName()
+    {
+        return $"merge-{DateTime.Today:yyyy-MM-dd}.log";
     }
 
     private static Logger CreateLogger()
     {
-        LogEventLevel level = ResolveMinimumLevel();
         try
         {
             string logsDir = GetLogsDirectory();
-            Directory.CreateDirectory(logsDir);
+
             string logFile = Path.Combine(logsDir, BuildLogFileName());
-            _currentLogFilePath = logFile;
 
             return new LoggerConfiguration()
-                .MinimumLevel.Is(level)
+                .MinimumLevel.Is(Level)
                 .Enrich.WithProperty("ProcessId", Environment.ProcessId)
                 .Enrich.With<ThreadIdEnricher>()
                 .WriteTo.File(
@@ -88,7 +75,7 @@ public static class LoggerFactory
             Debug.WriteLine($"[AutoBIMFusion] Logger init failed: {ex}");
 
             return new LoggerConfiguration()
-                .MinimumLevel.Is(level)
+                .MinimumLevel.Is(Level)
                 .WriteTo.Sink(new DiagnosticSink())
                 .CreateLogger();
         }
@@ -102,7 +89,7 @@ public static class LoggerFactory
             try { logsDir = GetLogsDirectory(); }
             catch { logsDir = Path.Combine(AppContext.BaseDirectory, "Logs"); }
 
-            Directory.CreateDirectory(logsDir);
+            _ = Directory.CreateDirectory(logsDir);
 
             string message = new StringBuilder()
                 .AppendLine("==== AutoBIMFusion logger bootstrap failure ====")
@@ -122,9 +109,12 @@ public static class LoggerFactory
 
     private sealed class ThreadIdEnricher : ILogEventEnricher
     {
-        [ThreadStatic]
-        private static LogEventProperty? _cached;
+        private LogEventProperty? _cached;
 
+        /// <summary>
+        /// Enriches log events with the current thread ID.
+        /// Caches the property for reuse since thread ID doesn't change within the same thread.
+        /// </summary>
         public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
         {
             _cached ??= propertyFactory.CreateProperty("ThreadId", Environment.CurrentManagedThreadId);
@@ -141,9 +131,13 @@ public static class LoggerFactory
                 : $"{logEvent.Timestamp:HH:mm:ss.fff} [{logEvent.Level}] {logEvent.RenderMessage()}{Environment.NewLine}{logEvent.Exception}";
 
             if (Debugger.IsAttached)
+            {
                 Debug.WriteLine(msg);
+            }
             else
+            {
                 DiagnosticsTrace.WriteLine(msg);
+            }
         }
     }
 }
