@@ -549,7 +549,7 @@ public static partial class PolygonOperation
 
             if (GlobalIntersectionPointsFounds.Count > 0)
             {
-                //Make sure all points are on the line because IntersectWith give not egnouht precise value (0.0001). This fix some cut
+                // Realign points to the line to handle precision issues from IntersectWith (which gives ~0.0001 precision). This fixes some cutting operations.
                 Point3dCollection OnLineIntersectionPointsFounds = [.. GlobalIntersectionPointsFounds.ToArray()];
                 foreach (Point3d item in GlobalIntersectionPointsFounds)
                 {
