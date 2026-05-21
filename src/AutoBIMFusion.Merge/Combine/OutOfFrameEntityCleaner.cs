@@ -148,7 +148,6 @@ internal static class OutOfFrameEntityCleaner
 
     private static void PurgeUnusedBlockDefinitions(Database db, ObjectIdCollection blockDefinitionIds)
     {
-        // ObjectIdCollection может содержать невалидные/удалённые ID, поэтому почистим их
         using ObjectIdCollection ids = [];
         foreach (ObjectId id in blockDefinitionIds)
         {

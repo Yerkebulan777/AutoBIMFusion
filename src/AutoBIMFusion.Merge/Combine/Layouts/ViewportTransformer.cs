@@ -98,7 +98,7 @@ internal static class ViewportTransformer
         foreach (var id in modelSpace)
         {
             if (id.IsErased) continue;
-            
+
             if (clonedIdsToSkip is not null && clonedIdsToSkip.Contains(id))
             {
                 continue;
