@@ -60,6 +60,9 @@ internal static class OutOfFrameEntityCleaner
     {
         List<EntityCandidate> result = [];
 
+        var frameCenter = GetCenter(frameBounds);
+        var frameDiagonal = frameBounds.MaxPoint.DistanceTo(frameBounds.MinPoint);
+
         foreach (var id in modelSpace)
         {
             if (!id.IsValid || id.IsErased) continue;
@@ -71,22 +74,31 @@ internal static class OutOfFrameEntityCleaner
                 if (extents.HasValue)
                 {
                     var bounds = extents.Value;
-                    var center = GetCenter(bounds);
+                    var entityCenter = GetCenter(bounds);
 
-                    if (IsPointInFrameXY(frameBounds, center)) continue;
+                    if (IsPointInFrameXY(frameBounds, entityCenter)) continue;
 
-                    if (entity is BlockReference br)
+                    var distance = frameCenter.DistanceTo(entityCenter);
+
+                    if (distance > frameDiagonal)
+                    {
+                        var blockDefinitionId = entity is BlockReference br ? br.BlockTableRecord : (ObjectId?)null;
+                        result.Add(new EntityCandidate(id, blockDefinitionId));
+                        continue;
+                    }
+
+                    if (entity is BlockReference blockReference)
                     {
                         // Проверяем диагональ габаритов, чтобы не удалять крупные блоки
                         var diagonal = bounds.MaxPoint.DistanceTo(bounds.MinPoint);
 
                         // Дополнительно проверяем количество прямых дочерних объектов
-                        var entityCount = CountDirectChildren(trx, br.BlockTableRecord);
+                        var entityCount = CountDirectChildren(trx, blockReference.BlockTableRecord);
 
                         if (entityCount < MaxEntityCount && diagonal < MaxBlockDiagonal)
-                            result.Add(new EntityCandidate(id, br.BlockTableRecord));
+                            result.Add(new EntityCandidate(id, blockReference.BlockTableRecord));
                     }
-                    else if (entity != null)
+                    else
                     {
                         // Для обычных сущностей достаточно что они за рамкой
                         result.Add(new EntityCandidate(id, null));
