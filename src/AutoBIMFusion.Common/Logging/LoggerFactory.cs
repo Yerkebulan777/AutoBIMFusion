@@ -48,7 +48,7 @@ public static class LoggerFactory
         {
             minimumLevel = ResolveMinimumLevel();
             string logsDir = GetLogsDirectory();
-            _ = Directory.CreateDirectory(logsDir);
+            Directory.CreateDirectory(logsDir);
 
             logFile = Path.Combine(logsDir, BuildLogFileName());
             return CreateFileLoggerCore(logFile, minimumLevel);
