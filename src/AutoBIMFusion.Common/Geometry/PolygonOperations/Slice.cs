@@ -1,7 +1,8 @@
+using AutoBIMFusion.Common.AcadSupport;
 using AutoBIMFusion.Common.Extensions;
 using System.Diagnostics;
 
-namespace AutoBIMFusion.Common.Mist.Geometry.PolygonOperations;
+namespace AutoBIMFusion.Common.Geometry.PolygonOperations;
 
 public static partial class PolygonOperation
 {
@@ -99,7 +100,7 @@ public static partial class PolygonOperation
             //Cleanned.Add(item);
         }
 
-        //using (Transaction trx = Generic.GetDatabase().TransactionManager.StartTransaction())
+        //using (Transaction trx = AcadContext.GetDatabase().TransactionManager.StartTransaction())
         //{
         //    Cleanned.AddToDrawing(2, true);
         //    trx.Commit();
@@ -110,7 +111,7 @@ public static partial class PolygonOperation
         {
             int itineration = 0;
             while (itineration <= SubPolylines.Count &&
-                   Origin.DistanceTo(SubCutLine) > Generic.MediumTolerance.EqualPoint)
+                   Origin.DistanceTo(SubCutLine) > AcadContext.MediumTolerance.EqualPoint)
             {
                 itineration++;
                 foreach (Polyline item1 in SubPolylines.ToArray())
@@ -337,7 +338,7 @@ public static partial class PolygonOperation
     {
         foreach (double item in doubles)
         {
-            if (Abs(item - Value) < Generic.MediumTolerance.EqualPoint)
+            if (Abs(item - Value) < AcadContext.MediumTolerance.EqualPoint)
             {
                 return true;
             }

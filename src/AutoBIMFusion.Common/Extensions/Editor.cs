@@ -1,4 +1,4 @@
-using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.AcadSupport;
 using System.Drawing;
 
 namespace AutoBIMFusion.Common.Extensions;
@@ -57,7 +57,7 @@ public static class EditorExtensions
 
     public static List<Layout> GetAllLayout(this Editor _)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         List<Layout> AllLayout = [];
 
         using (Transaction trx = db.TransactionManager.StartTransaction())
@@ -85,7 +85,7 @@ public static class EditorExtensions
 
     public static Layout GetModelLayout(this Editor _)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
         try
         {
@@ -128,7 +128,7 @@ public static class EditorExtensions
 
     public static Viewport GetViewport(this Editor ed)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
 
         using Transaction trx = db.TransactionManager.StartTransaction();
         try
@@ -152,7 +152,7 @@ public static class EditorExtensions
                 }
 
                 // Get the BlockTableRecord for the current layout
-                var btr = trx.GetObject(Generic.GetDatabase().CurrentSpaceId, OpenMode.ForRead) as BlockTableRecord;
+                var btr = trx.GetObject(AcadContext.GetDatabase().CurrentSpaceId, OpenMode.ForRead) as BlockTableRecord;
                 List<ObjectId> Viewports = ed.GetAllViewportsInPaperSpace(btr);
                 if (Viewports.Count == 1)
                 {
@@ -407,7 +407,7 @@ public static class EditorExtensions
                     return (selectResult.Status, selectResult.Value);
                 }
 
-                Generic.WriteMessage("Неверный выбор.");
+                AcadContext.WriteMessage("Неверный выбор.");
             }
         }
         catch (PromptSelectionKeywordEntered ex)
@@ -460,7 +460,7 @@ public static class EditorExtensions
                 }
             }
 
-            Generic.WriteMessage("Выбранный объект не является полилинией. \n");
+            AcadContext.WriteMessage("Выбранный объект не является полилинией. \n");
         }
     }
 
@@ -512,7 +512,7 @@ public static class EditorExtensions
     public static bool GetHatch(this Editor ed, out Hatch Hachure, string AskText = null)
     {
         Hachure = null;
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction trx = db.TransactionManager.StartTransaction();
         try
         {
@@ -540,7 +540,7 @@ public static class EditorExtensions
 
     public static bool IsInLockedViewport(this Editor ed)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
 
         using Transaction trx = db.TransactionManager.StartTransaction();
         var viewport = ed.ActiveViewportId.GetDBObject() as Viewport;
@@ -550,7 +550,7 @@ public static class EditorExtensions
 
     public static bool IsInPaperSpace(this Editor ed)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
 
         using Transaction trx = db.TransactionManager.StartTransaction();
         var viewport = ed.ActiveViewportId.GetDBObject() as Viewport;

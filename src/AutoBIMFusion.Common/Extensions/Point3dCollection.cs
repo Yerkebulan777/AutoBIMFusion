@@ -1,5 +1,5 @@
 using AutoBIMFusion.Common.Drawing;
-using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.AcadSupport;
 
 namespace AutoBIMFusion.Common.Extensions;
 
@@ -41,7 +41,7 @@ public static class Point3dCollectionExtensions
 
     public static Point3dCollection ConvertToUCS(this Point3dCollection SCGPoint3DCollection)
     {
-        Editor ed = Generic.GetEditor();
+        Editor ed = AcadContext.GetEditor();
         Matrix3d SCGToUCS = ed.CurrentUserCoordinateSystem.Inverse();
 
         Point3dCollection UCSPoint3dCollection = [];
@@ -88,7 +88,7 @@ public static class Point3dCollectionExtensions
     public static bool ContainsTolerance(this Point3dCollection collection, Point3d Point,
         Tolerance? CustomTolerance = null)
     {
-        CustomTolerance ??= Generic.MediumTolerance;
+        CustomTolerance ??= AcadContext.MediumTolerance;
         foreach (Point3d CollectionPoint in collection)
         {
             if (CollectionPoint.IsEqualTo(Point, (Tolerance)CustomTolerance))

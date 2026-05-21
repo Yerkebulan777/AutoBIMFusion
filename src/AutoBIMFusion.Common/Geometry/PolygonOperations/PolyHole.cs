@@ -1,6 +1,6 @@
 using AutoBIMFusion.Common.Extensions;
 
-namespace AutoBIMFusion.Common.Mist.Geometry.PolygonOperations;
+namespace AutoBIMFusion.Common.Geometry.PolygonOperations;
 
 public class PolyHole : IDisposable
 {

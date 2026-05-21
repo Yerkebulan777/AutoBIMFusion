@@ -1,9 +1,10 @@
-using AutoBIMFusion.Common.Compatibility;
+using AutoBIMFusion.Common.AcadSupport;
+using AutoBIMFusion.Common.Configuration;
 using AutoBIMFusion.Common.Extensions;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
-namespace AutoBIMFusion.Common.Mist.Geometry.PolygonOperations;
+namespace AutoBIMFusion.Common.Geometry.PolygonOperations;
 
 public static partial class PolygonOperation
 {
@@ -148,8 +149,8 @@ public static partial class PolygonOperation
         ExtentsSize ExtendAfterUnionSize = ExtendAfterUnion.Size();
 
         //If size of the extend is different, that mean the union failled at some point
-        return Abs(ExtendBeforeUnionSize.Width - ExtendAfterUnionSize.Width) < Generic.LowTolerance.EqualPoint
-               && Abs(ExtendBeforeUnionSize.Height - ExtendAfterUnionSize.Height) < Generic.LowTolerance.EqualPoint;
+        return Abs(ExtendBeforeUnionSize.Width - ExtendAfterUnionSize.Width) < AcadContext.LowTolerance.EqualPoint
+               && Abs(ExtendBeforeUnionSize.Height - ExtendAfterUnionSize.Height) < AcadContext.LowTolerance.EqualPoint;
     }
 
 
@@ -171,7 +172,7 @@ public static partial class PolygonOperation
             Vector2d dir0 = seg0.EndPoint - seg0.StartPoint;
             Vector2d dir1 = seg1.EndPoint - seg1.StartPoint;
 
-            bool IsParallelTo = dir0.IsParallelTo(dir1, Generic.MediumTolerance);
+            bool IsParallelTo = dir0.IsParallelTo(dir1, AcadContext.MediumTolerance);
             if (IsParallelTo)
             {
                 pline.RemoveVertexAt(0);
@@ -194,7 +195,7 @@ public static partial class PolygonOperation
             Vector2d dirA = segA.EndPoint - segA.StartPoint;
             Vector2d dirB = segB.EndPoint - segB.StartPoint;
 
-            bool IsParallelTo = dirA.IsParallelTo(dirB, Generic.MediumTolerance);
+            bool IsParallelTo = dirA.IsParallelTo(dirB, AcadContext.MediumTolerance);
             if (IsParallelTo)
             {
                 pline.RemoveVertexAt(count - 1);
@@ -341,7 +342,7 @@ public static partial class PolygonOperation
             PolyHole.Boundary.Cleanup();
             if (PolyHole.Boundary.IsSelfIntersecting(out _))
             {
-                Generic.WriteMessage("Обнаружено самопересечение. AllowMarginError отключен");
+                AcadContext.WriteMessage("Обнаружено самопересечение. AllowMarginError отключен");
                 return false;
             }
         }
@@ -483,7 +484,7 @@ public static partial class PolygonOperation
     {
         List<PolyHole> polyHoles = [];
         List<Polyline> OffsetCurve;
-        if (polyHole.Boundary.Area <= Generic.MediumTolerance.EqualPoint)
+        if (polyHole.Boundary.Area <= AcadContext.MediumTolerance.EqualPoint)
         {
             //degenrated geometry
             return polyHoles;
@@ -494,7 +495,7 @@ public static partial class PolygonOperation
             : polyHole.Boundary.SmartOffset(OffsetDistance).ToList();
         if (OffsetCurve.Count == 0)
         {
-            Generic.WriteMessage(
+            AcadContext.WriteMessage(
                 $"Невозможно объединить кривые (ошибка при смещении контуров). Значение смещения: {OffsetDistance}.");
             return polyHoles;
             throw new Exception("Невозможно объединить кривые (ошибка при смещении контуров).");
@@ -566,7 +567,7 @@ public static partial class PolygonOperation
                 //Remove zero length line
                 foreach (Polyline? curv in Splitted.ToList())
                 {
-                    if (curv.Length <= Generic.LowTolerance.EqualPoint)
+                    if (curv.Length <= AcadContext.LowTolerance.EqualPoint)
                     {
                         _ = Splitted.Remove(curv);
                         curv.Dispose();

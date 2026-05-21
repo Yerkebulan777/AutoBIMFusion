@@ -1,6 +1,5 @@
 using AutoBIMFusion.Common.Extensions;
-using AutoBIMFusion.Common.Mist;
-using AutoBIMFusion.Common.Mist.AutoCAD;
+using AutoBIMFusion.Common.AcadSupport;
 using Autodesk.AutoCAD.GraphicsInterface;
 using Serilog.Core;
 
@@ -23,15 +22,15 @@ public static class DrawingPurger
         // Выводим отчёт пользователю.
         if (TotalDeletedCount == 0)
         {
-            Generic.WriteMessage("Чертёж уже очищен.");
+            AcadContext.WriteMessage("Чертёж уже очищен.");
         }
         else
         {
             var maxLength = purgeReport.Max(p => p.Key.Length);
             foreach (var entry in purgeReport)
-                Generic.WriteMessage($" - {entry.Key.PadRight(maxLength)} : удалено {entry.Value}");
+                AcadContext.WriteMessage($" - {entry.Key.PadRight(maxLength)} : удалено {entry.Value}");
 
-            Generic.WriteMessage($"Итого: {TotalDeletedCount} элементов удалено из чертежа");
+            AcadContext.WriteMessage($"Итого: {TotalDeletedCount} элементов удалено из чертежа");
         }
 
         ViewportLock.DoLockUnlock(true);
@@ -231,7 +230,7 @@ public static class DrawingPurger
             var DBTextRXClass = RXObject.GetClass(typeof(DBText));
             var MTextRXClass = RXObject.GetClass(typeof(MText));
             using var trx = db.TransactionManager.StartTransaction();
-            using ObjectIdCollection candidates = [];
+            var deletedCount = 0;
 
             foreach (var objectId2 in (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead))
             {
@@ -241,19 +240,25 @@ public static class DrawingPurger
                     if (objectId3.ObjectClass == DBTextRXClass)
                     {
                         var dbtext = (DBText)trx.GetObject(objectId3, OpenMode.ForRead);
-                        if (dbtext.TextString.Trim().Length == 0) _ = candidates.Add(objectId3);
+                        if (dbtext.TextString.Trim().Length == 0)
+                        {
+                            dbtext.UpgradeOpen();
+                            dbtext.Erase();
+                            deletedCount++;
+                        }
                     }
                     else if (objectId3.ObjectClass == MTextRXClass
                              && trx.GetObject(objectId3, OpenMode.ForRead) is MText { Text: not null } mtext
                              && mtext.Text.Trim().Length == 0)
                     {
-                        _ = candidates.Add(objectId3);
+                        mtext.UpgradeOpen();
+                        mtext.Erase();
+                        deletedCount++;
                     }
             }
 
-            candidates.EraseObjects(trx);
             trx.Commit();
-            return candidates.Count;
+            return deletedCount;
         }
 
         /// <summary>

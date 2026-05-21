@@ -1,5 +1,5 @@
 using AutoBIMFusion.Common.Extensions;
-using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.AcadSupport;
 
 namespace AutoBIMFusion.Common.Drawing;
 
@@ -36,9 +36,9 @@ public static class Entities
 
     public static ObjectId AddToDrawing(this Entity entity, int? ColorIndex = null, bool Clone = false)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction acTrans = db.TransactionManager.StartTransaction();
-        BlockTableRecord acBlkTblRec = Generic.GetCurrentSpaceBlockTableRecord(acTrans);
+        BlockTableRecord acBlkTblRec = AcadContext.GetCurrentSpaceBlockTableRecord(acTrans);
 
         // Проверяем, находится ли сущность уже в базе данных
         if (entity?.IsErased != false)
@@ -72,7 +72,7 @@ public static class Entities
 
     public static ObjectId ReplaceInDrawing(this Entity OriginalEntity, Entity ReplaceEntity)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         using Transaction acTrans = db.TransactionManager.StartTransaction();
         if (ReplaceEntity?.IsErased != false ||
             acTrans.GetObject(OriginalEntity.OwnerId, OpenMode.ForWrite) is not BlockTableRecord ownerBtr)
@@ -94,9 +94,9 @@ public static class Entities
 
     public static ObjectId AddToDrawingCurrentTransaction(this Entity entity)
     {
-        Database db = Generic.GetDatabase();
+        Database db = AcadContext.GetDatabase();
         Transaction acTrans = db.TransactionManager.TopTransaction;
-        BlockTableRecord acBlkTblRec = Generic.GetCurrentSpaceBlockTableRecord(acTrans);
+        BlockTableRecord acBlkTblRec = AcadContext.GetCurrentSpaceBlockTableRecord(acTrans);
 
         ObjectId objid = acBlkTblRec.AppendEntity(entity);
         acTrans.AddNewlyCreatedDBObject(entity, true);

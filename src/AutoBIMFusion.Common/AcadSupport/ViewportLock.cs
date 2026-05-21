@@ -1,14 +1,14 @@
 using AutoBIMFusion.Common.Extensions;
 using System.Diagnostics;
 
-namespace AutoBIMFusion.Common.Mist.AutoCAD;
+namespace AutoBIMFusion.Common.AcadSupport;
 
 public static class ViewportLock
 {
     public static void DoLockUnlock(bool @lock)
     {
-        Database db = Generic.GetDatabase();
-        Editor ed = Generic.GetEditor();
+        Database db = AcadContext.GetDatabase();
+        Editor ed = AcadContext.GetEditor();
 
         TypedValue[] viewportFilter = [new((int)DxfCode.Start, "Viewport")];
 

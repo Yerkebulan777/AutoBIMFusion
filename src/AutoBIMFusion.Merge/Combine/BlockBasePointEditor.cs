@@ -27,27 +27,46 @@ public static class BlockBasePointEditor
             return;
         }
 
-        foreach (var blockRecordId in blockTable)
-        {
-            if (trx.GetObject(blockRecordId, OpenMode.ForRead) is not BlockTableRecord blockDef) continue;
-
-            if (ShouldSkipBlockDefinition(blockDef)) continue;
-
-            var blockExtents = GetBlockDefinitionExtents(blockDef, trx, minEntityDiagonal);
-            if (!blockExtents.HasValue) continue;
-
-            var blockDiagonal = blockExtents.Value.MaxPoint.DistanceTo(blockExtents.Value.MinPoint);
-            if (blockDiagonal < minBlockDiagonal) continue;
-
-            Point3d bottomLeft = new(blockExtents.Value.MinPoint.X, blockExtents.Value.MinPoint.Y, 0);
-            var offset = Point3d.Origin.GetVectorTo(bottomLeft);
-            if (offset.Length < BasePointTolerance) continue;
-
-            MoveBlockDefinitionGeometry(blockDef, trx, -offset);
-            MoveBlockReferences(blockDef, trx, offset);
-        }
+        NormalizeBlockBasePoints(trx, blockTable.Cast<ObjectId>(), minEntityDiagonal, minBlockDiagonal);
 
         trx.Commit();
+    }
+
+    internal static void NormalizeBlockBasePoints(Transaction trx, IEnumerable<ObjectId> blockDefinitionIds,
+        double minEntityDiagonal = 25, double minBlockDiagonal = 50)
+    {
+        ArgumentNullException.ThrowIfNull(trx);
+        ArgumentNullException.ThrowIfNull(blockDefinitionIds);
+
+        HashSet<ObjectId> normalized = [];
+
+        foreach (ObjectId blockRecordId in OrderNestedDefinitionsFirst(trx, blockDefinitionIds))
+        {
+            if (!normalized.Add(blockRecordId)) continue;
+
+            if (trx.GetObject(blockRecordId, OpenMode.ForRead, false, true) is not BlockTableRecord blockDef) continue;
+
+            NormalizeBlockDefinition(blockDef, trx, minEntityDiagonal, minBlockDiagonal);
+        }
+    }
+
+    private static void NormalizeBlockDefinition(BlockTableRecord blockDef, Transaction trx,
+        double minEntityDiagonal, double minBlockDiagonal)
+    {
+        if (ShouldSkipBlockDefinition(blockDef)) return;
+
+        var blockExtents = GetBlockDefinitionExtents(blockDef, trx, minEntityDiagonal);
+        if (!blockExtents.HasValue) return;
+
+        var blockDiagonal = blockExtents.Value.MaxPoint.DistanceTo(blockExtents.Value.MinPoint);
+        if (blockDiagonal < minBlockDiagonal) return;
+
+        Point3d bottomLeft = new(blockExtents.Value.MinPoint.X, blockExtents.Value.MinPoint.Y, 0);
+        var offset = Point3d.Origin.GetVectorTo(bottomLeft);
+        if (offset.Length < BasePointTolerance) return;
+
+        MoveBlockDefinitionGeometry(blockDef, trx, -offset);
+        MoveBlockReferences(blockDef, trx, offset);
     }
 
     private static bool ShouldSkipBlockDefinition(BlockTableRecord blockDef)
@@ -96,24 +115,63 @@ public static class BlockBasePointEditor
         {
             if (trx.GetObject(blockReferenceId, OpenMode.ForWrite) is not BlockReference blockReference) continue;
 
-            var compensation = offset.TransformBy(GetMatrixWithoutTranslation(blockReference.BlockTransform));
+            var compensation = TransformVector(offset, blockReference.BlockTransform);
             blockReference.TransformBy(Matrix3d.Displacement(compensation));
             blockReference.RecordGraphicsModified(true);
         }
     }
 
-    private static Matrix3d GetMatrixWithoutTranslation(Matrix3d matrix)
+    private static Vector3d TransformVector(Vector3d vector, Matrix3d matrix)
     {
-        var coordinateSystem = matrix.CoordinateSystem3d;
+        Point3d transformedOrigin = Point3d.Origin.TransformBy(matrix);
+        Point3d transformedVectorEnd = new Point3d(vector.X, vector.Y, vector.Z).TransformBy(matrix);
 
-        return Matrix3d.AlignCoordinateSystem(
-            Point3d.Origin,
-            Vector3d.XAxis,
-            Vector3d.YAxis,
-            Vector3d.ZAxis,
-            Point3d.Origin,
-            coordinateSystem.Xaxis,
-            coordinateSystem.Yaxis,
-            coordinateSystem.Zaxis);
+        return transformedOrigin.GetVectorTo(transformedVectorEnd);
+    }
+
+    private static IReadOnlyList<ObjectId> OrderNestedDefinitionsFirst(Transaction trx,
+        IEnumerable<ObjectId> blockDefinitionIds)
+    {
+        HashSet<ObjectId> candidates = blockDefinitionIds
+            .Where(id => id.IsValid && !id.IsNull && !id.IsErased)
+            .ToHashSet();
+
+        List<ObjectId> result = [];
+        HashSet<ObjectId> visited = [];
+        HashSet<ObjectId> visiting = [];
+
+        foreach (ObjectId blockDefinitionId in candidates)
+        {
+            VisitBlockDefinition(trx, blockDefinitionId, candidates, visited, visiting, result);
+        }
+
+        return result;
+    }
+
+    private static void VisitBlockDefinition(Transaction trx, ObjectId blockDefinitionId, HashSet<ObjectId> candidates,
+        HashSet<ObjectId> visited, HashSet<ObjectId> visiting, List<ObjectId> result)
+    {
+        if (visited.Contains(blockDefinitionId) || !visiting.Add(blockDefinitionId)) return;
+
+        if (trx.GetObject(blockDefinitionId, OpenMode.ForRead, false, true) is BlockTableRecord blockDef)
+        {
+            foreach (ObjectId entityId in blockDef)
+            {
+                if (trx.GetObject(entityId, OpenMode.ForRead, false, true) is not BlockReference blockReference)
+                {
+                    continue;
+                }
+
+                ObjectId nestedDefinitionId = blockReference.BlockTableRecord;
+                if (candidates.Contains(nestedDefinitionId))
+                {
+                    VisitBlockDefinition(trx, nestedDefinitionId, candidates, visited, visiting, result);
+                }
+            }
+        }
+
+        _ = visiting.Remove(blockDefinitionId);
+        _ = visited.Add(blockDefinitionId);
+        result.Add(blockDefinitionId);
     }
 }

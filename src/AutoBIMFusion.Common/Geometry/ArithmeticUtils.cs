@@ -1,8 +1,8 @@
 using AutoBIMFusion.Common.Extensions;
 
-namespace AutoBIMFusion.Common.Mist.Geometry;
+namespace AutoBIMFusion.Common.Geometry;
 
-public static class Arythmetique
+public static class ArithmeticUtils
 {
     public static (double Altitude, double Slope) ComputeSlopeAndIntermediate(CotePoints First, CotePoints Second,
         Points Intermediaire)

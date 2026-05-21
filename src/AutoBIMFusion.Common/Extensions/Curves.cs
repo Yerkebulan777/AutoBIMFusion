@@ -1,4 +1,4 @@
-using AutoBIMFusion.Common.Mist;
+using AutoBIMFusion.Common.AcadSupport;
 using System.Diagnostics;
 
 namespace AutoBIMFusion.Common.Extensions;
@@ -13,12 +13,12 @@ public static class CurvesExtensions
     /// <returns>Параметр.</returns>
     public static double GetParamAtPointX(this Curve cv, Point3d point)
     {
-        if (point.DistanceTo(cv.StartPoint) < Generic.MediumTolerance.EqualPoint)
+        if (point.DistanceTo(cv.StartPoint) < AcadContext.MediumTolerance.EqualPoint)
         {
             return 0.0;
         }
 
-        if (point.DistanceTo(cv.EndPoint) < Generic.MediumTolerance.EqualPoint)
+        if (point.DistanceTo(cv.EndPoint) < AcadContext.MediumTolerance.EqualPoint)
         {
             return cv.GetParameterAtPoint(cv.EndPoint);
         }
@@ -125,11 +125,11 @@ public static class CurvesExtensions
         bool UseOffsetGapTypeCurrentValue = true)
     {
         object OffsetGapType =
-            Generic.GetSystemVariable(
+            AcadContext.GetSystemVariable(
                 "OFFSETGAPTYPE"); //Controls how potential gaps between segments are treated when polylines are offset. 
         if (!UseOffsetGapTypeCurrentValue)
         {
-            Generic.SetSystemVariable("OFFSETGAPTYPE", 0,
+            AcadContext.SetSystemVariable("OFFSETGAPTYPE", 0,
                 false); //Extends line segments to their projected intersections.
         }
 
@@ -148,7 +148,7 @@ public static class CurvesExtensions
         }
         finally
         {
-            Generic.SetSystemVariable("OFFSETGAPTYPE", OffsetGapType, false);
+            AcadContext.SetSystemVariable("OFFSETGAPTYPE", OffsetGapType, false);
         }
     }
 
@@ -184,8 +184,8 @@ public static class CurvesExtensions
                         continue;
                     }
 
-                    if (curve1.GetClosestPointTo(point, false).DistanceTo(point) < Generic.MediumTolerance.EqualPoint &&
-                        curve2.GetClosestPointTo(point, false).DistanceTo(point) < Generic.MediumTolerance.EqualPoint)
+                    if (curve1.GetClosestPointTo(point, false).DistanceTo(point) < AcadContext.MediumTolerance.EqualPoint &&
+                        curve2.GetClosestPointTo(point, false).DistanceTo(point) < AcadContext.MediumTolerance.EqualPoint)
                     {
                         _ = IntersectionFound.Add(point);
                     }
@@ -217,7 +217,7 @@ public static class CurvesExtensions
             // Проверяем, уже ли соединена полилиния
             var PAPoint = A.GetPoints();
             List<Point3d> PAPointList = PAPoint.ToList();
-            if (A.StartPoint.DistanceTo(A.EndPoint) > Generic.MediumTolerance.EqualPoint)
+            if (A.StartPoint.DistanceTo(A.EndPoint) > AcadContext.MediumTolerance.EqualPoint)
             {
                 _ = PAPointList.Remove(A.StartPoint);
                 _ = PAPointList.Remove(A.EndPoint);
@@ -241,18 +241,18 @@ public static class CurvesExtensions
 
         var StartPointB = PolyB.StartPoint.Flatten();
         var EndPointB = PolyB.EndPoint.Flatten();
-        return (StartPointA.IsEqualTo(StartPointB, Generic.LowTolerance) &&
-                EndPointA.IsEqualTo(EndPointB, Generic.LowTolerance)) ||
-               (StartPointA.IsEqualTo(EndPointB, Generic.LowTolerance) &&
-                EndPointA.IsEqualTo(StartPointB, Generic.LowTolerance));
+        return (StartPointA.IsEqualTo(StartPointB, AcadContext.LowTolerance) &&
+                EndPointA.IsEqualTo(EndPointB, AcadContext.LowTolerance)) ||
+               (StartPointA.IsEqualTo(EndPointB, AcadContext.LowTolerance) &&
+                EndPointA.IsEqualTo(StartPointB, AcadContext.LowTolerance));
     }
 
     public static bool HasEndPointOrStartPointInCommun(this Curve A, Curve B)
     {
-        return A != null && B != null && (A.EndPoint.IsEqualTo(B.EndPoint, Generic.LowTolerance) ||
-                                          A.EndPoint.IsEqualTo(B.StartPoint, Generic.LowTolerance) ||
-                                          A.StartPoint.IsEqualTo(B.EndPoint, Generic.LowTolerance) ||
-                                          A.StartPoint.IsEqualTo(B.StartPoint, Generic.LowTolerance));
+        return A != null && B != null && (A.EndPoint.IsEqualTo(B.EndPoint, AcadContext.LowTolerance) ||
+                                          A.EndPoint.IsEqualTo(B.StartPoint, AcadContext.LowTolerance) ||
+                                          A.StartPoint.IsEqualTo(B.EndPoint, AcadContext.LowTolerance) ||
+                                          A.StartPoint.IsEqualTo(B.StartPoint, AcadContext.LowTolerance));
     }
 
     public static Polyline ToPolyline(this Curve curve)
@@ -467,7 +467,7 @@ public static class CurvesExtensions
             {
                 if (ent is Polyline polyline && polyline.IsSelfIntersecting(out var IntersectionFound))
                 {
-                    Generic.WriteMessage(
+                    AcadContext.WriteMessage(
                         "Неверный набор выбора: одна или несколько полилиний пересекают сами себя");
                 }
             }
@@ -476,7 +476,7 @@ public static class CurvesExtensions
         }
         catch (Exception e)
         {
-            Generic.WriteMessage("Невозможно объединить штриховки");
+            AcadContext.WriteMessage("Невозможно объединить штриховки");
             Debug.WriteLine(e);
             return [];
         }

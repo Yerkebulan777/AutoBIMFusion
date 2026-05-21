@@ -113,12 +113,15 @@ public sealed class BlockInserter(double gapPercent, Logger log)
         var clonedCount = 0;
 
         using var targetTr = targetDb.TransactionManager.StartTransaction();
+        using ObjectIdCollection clonedEntityIds = [];
 
         using IdMapping map = new();
         using (new DatabaseUnitSyncScope(sourceDb, targetDb))
         {
             targetDb.WblockCloneObjects(sourceIds, targetMsId, map, DuplicateRecordCloning.Ignore, false);
         }
+
+        HashSet<ObjectId> clonedBlockDefinitionIds = CollectClonedBlockDefinitionIds(map, targetTr);
 
         foreach (IdPair pair in map)
         {
@@ -127,21 +130,56 @@ public sealed class BlockInserter(double gapPercent, Logger log)
             if (targetTr.GetObject(pair.Value, OpenMode.ForWrite) is Entity ent)
             {
                 ent.TransformBy(displacement);
+                _ = clonedEntityIds.Add(pair.Value);
                 clonedCount++;
-
-                var ext = ExtentsUtils.TryGetLiveExtents(ent, targetTr);
-                if (ext.HasValue)
-                    worldBounds = worldBounds.HasValue
-                        ? ExtentsUtils.Union(worldBounds.Value, ext.Value)
-                        : ext.Value;
             }
         }
 
+        BlockBasePointEditor.NormalizeBlockBasePoints(targetTr, clonedBlockDefinitionIds);
         DimensionStyleNormalizer.NormalizeClonedStyles(map, targetTr, targetVisualScale, linearScaleMultiplier);
+
+        worldBounds = ComputeLiveBounds(targetTr, clonedEntityIds);
 
         targetTr.Commit();
 
         return (worldBounds, clonedCount);
+    }
+
+    private static HashSet<ObjectId> CollectClonedBlockDefinitionIds(IdMapping map, Transaction trx)
+    {
+        HashSet<ObjectId> blockDefinitionIds = [];
+
+        foreach (IdPair pair in map)
+        {
+            if (!pair.IsCloned || !pair.Value.IsValidForOperation()) continue;
+
+            if (trx.GetObject(pair.Value, OpenMode.ForRead, false, true) is BlockTableRecord)
+            {
+                _ = blockDefinitionIds.Add(pair.Value);
+            }
+        }
+
+        return blockDefinitionIds;
+    }
+
+    private static Extents3d? ComputeLiveBounds(Transaction trx, ObjectIdCollection entityIds)
+    {
+        Extents3d? worldBounds = null;
+
+        foreach (ObjectId entityId in entityIds)
+        {
+            if (trx.GetObject(entityId, OpenMode.ForRead, false, true) is not Entity ent) continue;
+
+            var ext = ExtentsUtils.TryGetLiveExtents(ent, trx);
+            if (ext.HasValue)
+            {
+                worldBounds = worldBounds.HasValue
+                    ? ExtentsUtils.Union(worldBounds.Value, ext.Value)
+                    : ext.Value;
+            }
+        }
+
+        return worldBounds;
     }
 
     private void RecordDiagnostics(

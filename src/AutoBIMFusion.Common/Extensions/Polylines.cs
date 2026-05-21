@@ -1,6 +1,5 @@
-using AutoBIMFusion.Common.Mist;
-using AutoBIMFusion.Common.Mist.Geometry;
-using AutoBIMFusion.Common.Mist.Geometry.PolygonOperations;
+using AutoBIMFusion.Common.AcadSupport;
+using AutoBIMFusion.Common.Geometry;
 using System.Diagnostics;
 
 namespace AutoBIMFusion.Common.Extensions;
@@ -242,17 +241,17 @@ public static class PolylinesExtensions
                 var vector1 = currentPoint.GetVectorTo(lastPoint).ToVector2d();
                 var vector2 = nextPoint.GetVectorTo(currentPoint).ToVector2d();
 
-                bool IsColinear = vector1.IsColinear(vector2, Generic.MediumTolerance) && vector1.Length > 0;
+                bool IsColinear = vector1.IsColinear(vector2, AcadContext.MediumTolerance) && vector1.Length > 0;
                 bool HasBulgeLast = polyline.GetSegmentType(index - 1) == SegmentType.Arc;
                 bool HasBulge = polyline.GetSegmentType(index) == SegmentType.Arc;
-                bool IsDuplicateVertex = currentPoint.IsEqualTo(nextPoint, Generic.LowTolerance);
+                bool IsDuplicateVertex = currentPoint.IsEqualTo(nextPoint, AcadContext.LowTolerance);
                 if (IsColinear || IsDuplicateVertex)
                 {
                     if (HasBulge && HasBulgeLast)
                     {
                         double lastBulge = polyline.GetBulgeAt(index - 1);
                         double curBulge = polyline.GetBulgeAt(index);
-                        if (Abs(Abs(lastBulge) - Abs(curBulge)) < Generic.MediumTolerance.EqualVector)
+                        if (Abs(Abs(lastBulge) - Abs(curBulge)) < AcadContext.MediumTolerance.EqualVector)
                         {
                             if (index == 1 && IsColinear && Abs(vector1.Angle - vector2.Angle) >= PI)
                             {
@@ -288,7 +287,7 @@ public static class PolylinesExtensions
                 try
                 {
                     (Point3d StartPoint, Point3d EndPoint, double Bulge) = polyline.GetSegmentAt(index);
-                    if (StartPoint.IsEqualTo(EndPoint, Generic.LowTolerance))
+                    if (StartPoint.IsEqualTo(EndPoint, AcadContext.LowTolerance))
                     {
                         polyline.RemoveVertexAt(index);
                         HasAVertexRemoved = true;
@@ -310,7 +309,7 @@ public static class PolylinesExtensions
             InversePoly();
         }
 
-        if (!polyline.Closed && polyline.StartPoint.IsEqualTo(polyline.EndPoint, Generic.LowTolerance))
+        if (!polyline.Closed && polyline.StartPoint.IsEqualTo(polyline.EndPoint, AcadContext.LowTolerance))
         {
             if (polyline.NumberOfVertices > 3)
             {
@@ -557,7 +556,7 @@ public static class PolylinesExtensions
     public static IEnumerable<Polyline> SmartOffset(this Polyline ArgPoly, double ShrinkDistance)
     {
         using var poly = ArgPoly.Clone() as Polyline;
-        if (poly.Area <= Generic.MediumTolerance.EqualPoint)
+        if (poly.Area <= AcadContext.MediumTolerance.EqualPoint)
         {
             return Array.Empty<Polyline>();
         }
@@ -653,18 +652,6 @@ public static class PolylinesExtensions
         }
     }
 
-    public static Point3d GetInnerCentroid(this Polyline poly)
-    {
-        Polyline polygon = poly.ToPolygon(10);
-        Point3d pt = PolygonOperation.GetInnerCentroid(polygon);
-        if (polygon != poly)
-        {
-            polygon?.Dispose();
-        }
-
-        return pt;
-    }
-
     public static Point3d GetCentroid(this Polyline pl)
     {
         int count = pl.NumberOfVertices;
@@ -694,7 +681,7 @@ public static class PolylinesExtensions
             Point3d MiddlePoint = StartPoint.GetMiddlePoint(EndPoint);
 
             if (StartPoint.DistanceTo(EndPoint) / 2 >
-                Generic.MediumTolerance.EqualPoint)
+                AcadContext.MediumTolerance.EqualPoint)
             {
                 if (MiddlePoint.IsOnPolyline(LineB))
                 {
@@ -719,7 +706,7 @@ public static class PolylinesExtensions
         {
             (Point3d StartPoint, Point3d EndPoint, double _) = LineA.GetSegmentAt(PolylineSegmentIndex);
             if (StartPoint.DistanceTo(EndPoint) / 2 >
-                Generic.MediumTolerance.EqualPoint)
+                AcadContext.MediumTolerance.EqualPoint)
             {
                 Point3d MiddlePoint;
                 if (LineA.GetSegmentType(PolylineSegmentIndex) == SegmentType.Arc)
@@ -763,7 +750,7 @@ public static class PolylinesExtensions
             return false;
         }
 
-        Tolerance tol = Generic.MediumTolerance;
+        Tolerance tol = AcadContext.MediumTolerance;
 
         bool IsClockwisePolyA = polylineA.IsClockwise();
         bool IsClockwisePolyB = polylineB.IsClockwise();
@@ -817,7 +804,7 @@ public static class PolylinesExtensions
 
     public static bool ContainsSegment(this Polyline poly, Point3d Start, Point3d End)
     {
-        Tolerance tol = Generic.MediumTolerance;
+        Tolerance tol = AcadContext.MediumTolerance;
         for (int i = 0; i < poly.GetReelNumberOfVertices(); i++)
         {
             (Point3d StartPoint, Point3d EndPoint, double _) = poly.GetSegmentAt(i);

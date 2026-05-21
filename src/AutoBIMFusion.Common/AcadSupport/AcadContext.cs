@@ -1,4 +1,4 @@
-using AutoBIMFusion.Common.Compatibility;
+using AutoBIMFusion.Common.Configuration;
 using AutoBIMFusion.Common.Helpers;
 using Autodesk.AutoCAD.AcInfoCenterConn;
 using Autodesk.AutoCAD.ApplicationServices;
@@ -8,16 +8,15 @@ using System.Diagnostics;
 using System.Reflection;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
-namespace AutoBIMFusion.Common.Mist;
+namespace AutoBIMFusion.Common.AcadSupport;
 
-public static class Generic
+public static class AcadContext
 {
-    public static readonly Tolerance LowTolerance = new(1e-3, 1e-3); //0.001
-    public static readonly Tolerance MediumTolerance = new(1e-5, 1e-5); //0.00001
+    public static readonly Tolerance LowTolerance = new(1e-3, 1e-3);
+    public static readonly Tolerance MediumTolerance = new(1e-5, 1e-5);
 
     public static void ReadWriteToFileResource(string name, string ToFilePath)
     {
-        // Определяем путь
         byte[]? ressource_bytes = Resources.ResourceManager.GetObject(name) as byte[];
         if (!FileUtil.IsFileLockedOrReadOnly(ToFilePath))
         {
@@ -56,7 +55,7 @@ public static class Generic
     public static void WriteMessage(object message)
     {
         Editor ed = GetEditor();
-        ed?.WriteMessage($"\n{message.ToString().Replace('\n', '\u2028').Replace("\r", "")}\n");
+        ed?.WriteMessage("\n" + message.ToString().Replace('\n', ' ').Replace("\r", "") + "\n");
     }
 
     public static void WriteInfoCenterBalloonMessage(object message)
@@ -73,7 +72,7 @@ public static class Generic
     public static void LoadLispFromStringCommand(string lispCode)
     {
         Document doc = GetDocument();
-        string loadCommand = $"(eval '{lispCode})";
+        string loadCommand = "(eval '" + lispCode + ")";
         doc.SendStringToExecute(loadCommand, true, false, false);
     }
 
@@ -96,7 +95,7 @@ public static class Generic
         BlockTableRecord newBlockTableRecord = GetCurrentSpaceBlockTableRecord(newTransaction);
         var newTextStyleTable = newTransaction.GetObject(db.TextStyleTableId, OpenMode.ForRead) as TextStyleTable;
 
-        if (!newTextStyleTable.Has(font.ToUpperInvariant())) //The TextStyle is currently not in the database
+        if (!newTextStyleTable.Has(font.ToUpperInvariant()))
         {
             newTextStyleTable.UpgradeOpen();
             TextStyleTableRecord newTextStyleTableRecord = new()
@@ -131,21 +130,8 @@ public static class Generic
 
     public static DwgVersion GetSaveVersion()
     {
-        // AC1015 = AutoCAD 2000
-        // AC1018 = AutoCAD 2004
-        // AC1021 = AutoCAD 2007
-        // AC1024 = AutoCAD 2010
-        // AC1027 = AutoCAD 2013
-        // AC1032 = AutoCAD 2018
-        // var ucm = AcadApp.UserConfigurationManager;
-        // var profile = ucm.OpenCurrentProfile();
-        // var section = profile.OpenSubsection("General");
-        // var format = section.ReadProperty("DefaultFormatForSave", 0);
-
         Database db = GetDatabase();
         return db.OriginalFileSavedByVersion;
-
-        // return AcadApp.DocumentManager.DefaultFormatForSave;
     }
 
     public static DocumentLock GetLock()
@@ -156,11 +142,6 @@ public static class Generic
 
     public static DocumentLock GetLock(this Document doc)
     {
-        //if (doc.LockMode() == DocumentLockMode.None || doc.LockMode() == DocumentLockMode.NotLocked)
-        //{
-        //    return doc.LockDocument();
-        //}
-        //return null;
         return doc?.LockDocument();
     }
 
@@ -172,8 +153,6 @@ public static class Generic
     public static BlockTableRecord GetCurrentSpaceBlockTableRecord(Transaction acTrans,
         OpenMode openMode = OpenMode.ForWrite)
     {
-        //https://spiderinnet1.typepad.com/blog/2012/03/autocad-net-api-modelspacepaperspacecurrentspace-and-entity-creation.html
-        //Use db.CurrentSpaceId instead of bt[BlockTableRecord.ModelSpace
         Database db = GetDatabase();
         return acTrans.GetObject(db.CurrentSpaceId, openMode) as BlockTableRecord;
     }
@@ -194,7 +173,7 @@ public static class Generic
         object? OldValue = GetSystemVariable(Name);
         if (OldValue is null)
         {
-            Debug.WriteLine($"La variable {Name} n'existe pas !");
+            Debug.WriteLine("La variable " + Name + " n'existe pas !");
             return;
         }
 
@@ -202,7 +181,7 @@ public static class Generic
         {
             if (EchoChanges)
             {
-                WriteMessage($"Changement de la variable {Name} de {OldValue} à {Value}.");
+                WriteMessage("Changement de la variable " + Name + " de " + OldValue + " a " + Value + ".");
             }
 
             Application.SetSystemVariable(Name, Value);
@@ -218,9 +197,15 @@ public static class Generic
     {
         short cmdecho = (short)Application.GetSystemVariable("CMDECHO");
         Application.SetSystemVariable("CMDECHO", 0);
-        Editor ed = GetEditor();
-        ed.Command(args);
-        Application.SetSystemVariable("CMDECHO", cmdecho);
+        try
+        {
+            Editor ed = GetEditor();
+            ed.Command(args);
+        }
+        finally
+        {
+            Application.SetSystemVariable("CMDECHO", cmdecho);
+        }
     }
 
     public static void Regen()
@@ -249,9 +234,15 @@ public static class Generic
     {
         short cmdecho = (short)Application.GetSystemVariable("CMDECHO");
         Application.SetSystemVariable("CMDECHO", 0);
-        Editor ed = GetEditor();
-        await ed.CommandAsync(args);
-        Application.SetSystemVariable("CMDECHO", cmdecho);
+        try
+        {
+            Editor ed = GetEditor();
+            await ed.CommandAsync(args);
+        }
+        finally
+        {
+            Application.SetSystemVariable("CMDECHO", cmdecho);
+        }
     }
 
     public static void CommandInApplicationContext(params object[] args)
@@ -262,22 +253,19 @@ public static class Generic
         }
         catch (Exception ex)
         {
-            WriteMessage($"Exception: {ex.Message}");
+            WriteMessage("Exception: " + ex.Message);
         }
     }
 
     public static async Task CommandAsyncInCommandContext(params object[] args)
     {
-        //Method from https://through-the-interface.typepad.com/through_the_interface/2015/03/autocad-2016-calling-commands-from-autocad-events-using-net.html
-        //Replace Document.SendStringToExecute()
         try
         {
-            // Ask AutoCAD to execute our command in the right context
             await Application.DocumentManager.ExecuteInCommandContextAsync(async _ => await CommandAsync(args), null);
         }
         catch (Exception ex)
         {
-            WriteMessage($"Exception: {ex.Message}");
+            WriteMessage("Exception: " + ex.Message);
         }
     }
 }
