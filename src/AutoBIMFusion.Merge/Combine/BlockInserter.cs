@@ -138,6 +138,7 @@ public sealed class BlockInserter(double gapPercent, Logger log)
         }
 
         DimensionStyleNormalizer.NormalizeClonedStyles(map, targetTr, targetVisualScale, linearScaleMultiplier);
+        RasterImagePathFixer.MoveRasterImagesToBack(targetDb, targetTr);
 
         targetTr.Commit();
 
