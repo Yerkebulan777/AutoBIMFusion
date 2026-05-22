@@ -138,10 +138,32 @@ public sealed class BlockInserter(double gapPercent, Logger log)
         }
 
         DimensionStyleNormalizer.NormalizeClonedStyles(map, targetTr, targetVisualScale, linearScaleMultiplier);
+        MoveRasterImagesToBack(targetDb, targetTr);
 
         targetTr.Commit();
 
         return (worldBounds, clonedCount);
+    }
+
+    private static void MoveRasterImagesToBack(Database targetDb, Transaction trx)
+    {
+        var blockTable = (BlockTable)trx.GetObject(targetDb.BlockTableId, OpenMode.ForRead);
+
+        foreach (ObjectId btrId in blockTable)
+        {
+            var btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
+            if (btr.IsFromExternalReference || btr.DrawOrderTableId.IsNull) continue;
+
+            using ObjectIdCollection imageIds = [];
+            foreach (ObjectId id in btr)
+                if (trx.GetObject(id, OpenMode.ForRead) is RasterImage)
+                    _ = imageIds.Add(id);
+
+            if (imageIds.Count == 0) continue;
+
+            var drawOrder = (DrawOrderTable)trx.GetObject(btr.DrawOrderTableId, OpenMode.ForWrite);
+            drawOrder.MoveToBottom(imageIds);
+        }
     }
 
     private void RecordDiagnostics(
