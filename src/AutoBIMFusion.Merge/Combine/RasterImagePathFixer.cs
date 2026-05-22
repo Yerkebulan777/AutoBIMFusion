@@ -11,6 +11,27 @@ namespace AutoBIMFusion.Merge.Combine;
 /// </summary>
 public static class RasterImagePathFixer
 {
+    internal static void MoveRasterImagesToBack(Database db, Transaction trx)
+    {
+        var blockTable = (BlockTable)trx.GetObject(db.BlockTableId, OpenMode.ForRead);
+
+        foreach (ObjectId btrId in blockTable)
+        {
+            var btr = (BlockTableRecord)trx.GetObject(btrId, OpenMode.ForRead);
+            if (btr.IsFromExternalReference || btr.DrawOrderTableId.IsNull) continue;
+
+            using ObjectIdCollection imageIds = [];
+            foreach (ObjectId id in btr)
+                if (trx.GetObject(id, OpenMode.ForRead) is RasterImage)
+                    _ = imageIds.Add(id);
+
+            if (imageIds.Count == 0) continue;
+
+            var drawOrder = (DrawOrderTable)trx.GetObject(btr.DrawOrderTableId, OpenMode.ForWrite);
+            drawOrder.MoveToBottom(imageIds);
+        }
+    }
+
     public static void CopyImagesToTargetFolder(Database db, string targetFilePath, Logger log)
     {
         var targetDir = Path.GetDirectoryName(targetFilePath);
