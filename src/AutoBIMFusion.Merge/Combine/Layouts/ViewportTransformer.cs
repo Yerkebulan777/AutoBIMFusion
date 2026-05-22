@@ -345,13 +345,6 @@ internal static class ViewportTransformer
                 continue;
             }
 
-            if (decision == ModelEntitySelection.CenterOutsideWindow)
-            {
-                result.CenterOutsideWindow++;
-                _ = MergeDiagnostics.TryAddSample(result.CenterOutsideHandleSamples, entity.Handle);
-                continue;
-            }
-
             _ = result.SelectedIds.Add(entity.Id);
             _ = MergeDiagnostics.TryAddSample(result.SelectedHandleSamples, entity.Handle);
         }
@@ -361,8 +354,8 @@ internal static class ViewportTransformer
         result.SkippedHugeObjects = skippedHugeObjects;
 
         log.Debug(
-            "SelectModelInside cached={Cached}, selected={Selected}, skippedHuge={SkippedHuge}, smallPartialOutside={SmallPartialOutside}, centerOutside={CenterOutside}, outsideWindow={OutsideWindow}, window={Window}",
-            modelEntities.Count, result.SelectedIds.Count, skippedHugeObjects, smallPartialOutsideWindow, result.CenterOutsideWindow, outsideWindow, ExtentsUtils.FormatExtents(window));
+            "SelectModelInside cached={Cached}, selected={Selected}, skippedHuge={SkippedHuge}, smallPartialOutside={SmallPartialOutside}, outsideWindow={OutsideWindow}, window={Window}",
+            modelEntities.Count, result.SelectedIds.Count, skippedHugeObjects, smallPartialOutsideWindow, outsideWindow, ExtentsUtils.FormatExtents(window));
         return result;
     }
 
@@ -392,19 +385,6 @@ internal static class ViewportTransformer
             && ExtentsUtils.AabbIntersect(mainWindow, entityExtents))
         {
             return ModelEntitySelection.HugeInMainWindow;
-        }
-
-        // Объект пересекает окно краем, но его геометрический центр снаружи —
-        // значит меньше половины объекта попадает в VP, он принадлежит другому VP.
-        // Без этой проверки большие объекты (длинные линии, штриховки, выноски)
-        // клонируются целиком и после scaleMatrix * auxToMain выходят за рамку листа.
-        var centerX = (entityExtents.MinPoint.X + entityExtents.MaxPoint.X) * 0.5;
-        var centerY = (entityExtents.MinPoint.Y + entityExtents.MaxPoint.Y) * 0.5;
-
-        if (centerX < window.MinPoint.X || centerX > window.MaxPoint.X ||
-            centerY < window.MinPoint.Y || centerY > window.MaxPoint.Y)
-        {
-            return ModelEntitySelection.CenterOutsideWindow;
         }
 
         return ModelEntitySelection.Selected;
@@ -474,10 +454,6 @@ internal static class ViewportTransformer
 
         internal List<string> HugeHandleSamples { get; } = [];
 
-        internal int CenterOutsideWindow { get; set; }
-
-        internal List<string> CenterOutsideHandleSamples { get; } = [];
-
         public void Dispose()
         {
             SelectedIds.Dispose();
@@ -489,8 +465,7 @@ internal static class ViewportTransformer
         Selected,
         OutsideWindow,
         SmallPartialOutsideWindow,
-        HugeInMainWindow,
-        CenterOutsideWindow
+        HugeInMainWindow
     }
 
     /// <summary>
