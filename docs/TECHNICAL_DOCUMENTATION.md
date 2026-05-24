@@ -1,6 +1,6 @@
 # Техническая документация AutoBIMFusion
 
-**Последнее обновление:** 2026-05-19
+**Последнее обновление:** 2026-05-24
 
 ## 1. Обзор
 
@@ -27,18 +27,24 @@ src/
     Resources/
   AutoBIMFusion.Merge/
     Combine/
+      BlockBasePointEditor.cs
+      BlockInserter.cs
+      BlockScaleApplier.cs
+      CombineOrchestrator.cs
+      CombineResult.cs
+      CombineStatistics.cs
+      DrawingPurger.cs
       OutOfFrameEntityCleaner.cs
+      RasterImagePathFixer.cs
       Layouts/
+    Diagnostics/
   AutoBIMFusion.Common/
     AcadSupport/
-    Compatibility/
+    Configuration/
     Drawing/
     Extensions/
+    Geometry/
     Helpers/
-    Mist/
-    UiDialogService.cs
-    Logging/
-  AutoBIMFusion.Infrastructure/
     Logging/
 docs/
 ```
@@ -49,21 +55,12 @@ docs/
 |---|---|---|
 | `AutoBIMFusion.Plugin` | AutoCAD plugin | Entry point, `[CommandMethod]`, Ribbon, Resources, bundle/deploy MSBuild targets |
 | `AutoBIMFusion.Merge` | Class library | Pipeline объединения DWG, layout projection, dimensions, raster path fixing, optimizer |
-| `AutoBIMFusion.Common` | Class library | Общие AutoCAD helpers, file/layout helpers, system-variable scopes |
-| `AutoBIMFusion.Infrastructure` | Class library | Serilog wiring и инфраструктурные сервисы |
+| `AutoBIMFusion.Common` | Class library | Общие AutoCAD helpers, geometry, extensions, system-variable scopes, logging |
 
 ## 3. Зависимости
 
 ```text
-AutoBIMFusion.Plugin
-  -> AutoBIMFusion.Merge
-  -> AutoBIMFusion.Common
-
-AutoBIMFusion.Plugin
-  -> AutoBIMFusion.Infrastructure
-
-AutoBIMFusion.Merge
-  -> AutoBIMFusion.Common
+AutoBIMFusion.Plugin -> AutoBIMFusion.Merge -> AutoBIMFusion.Common
 ```
 
 `MERGEDWG` остается в `AutoBIMFusion.Plugin`, чтобы AutoCAD стабильно обнаруживал команду в основном plugin assembly.
@@ -100,7 +97,10 @@ AutoBIMFusion.Merge
 | `DrawingPurger` | `AutoBIMFusion.Merge` | Многопроходный `Database.Purge` |
 | `FileUtil` | `AutoBIMFusion.Common` | DWG enumeration, natural sort, file validation |
 | `LayoutUtil` | `AutoBIMFusion.Common` | Поиск Paper Space layouts и layout helpers |
-| `LoggerFactory` | `AutoBIMFusion.Infrastructure` | Общий Serilog logger для plugin runtime |
+| `LoggerFactory` | `AutoBIMFusion.Common` | Общий Serilog logger для plugin runtime |
+| `MergeDiagnostics` | `AutoBIMFusion.Merge` | Headless-диагностика объединения |
+| `AcadContext` | `AutoBIMFusion.Common` | Контекст активного документа AutoCAD |
+| `EntityHighlighter` | `AutoBIMFusion.Common` | Подсветка сущностей через transient graphics |
 
 ## 6. Merge pipeline
 
@@ -195,10 +195,11 @@ CombineCommands
 | `AttributeCollectionExtensions` | Методы для AttributeCollection |
 | `BitmapExtensions` | Методы для Bitmap (image file size, rotation) |
 | `ConcurrentBagExtensions` | Методы для ConcurrentBag |
+| `EditorExtensions` | Методы для Editor (команды, prompts, selection) |
 
 Extensions централизуют повторяющуюся логику и обеспечивают единообразную обработку ошибок across the codebase.
 
-## 13. Roslyn анализаторы и CI
+## 12. Roslyn анализаторы и CI
 
 С мая 2026 включены Roslyn анализаторы через `Directory.Build.props`:
 
@@ -212,13 +213,13 @@ GitHub Actions workflows:
 - `.github/workflows/format.yml` — автоформатирование
 - `.github/workflows/dead-code.yml` — поиск неиспользуемого кода
 
-## 14. Drawing & Mist helpers
+## 13. Drawing & Geometry helpers
 
 - `BlockReferences.cs` (694 строки) — comprehensive block utilities: создание, копирование, трансформация block references; работа с dynamic block properties; поиск и фильтрация блоков по имени/слою.
 - `Entities.cs` — утилиты для создания и модификации AutoCAD entities (lines, polylines, circles, text, dimensions).
 
-### Mist
+### Geometry (`AutoBIMFusion.Common/Geometry/`)
 
-- `Generic.cs` (281 строка) — central utility class: tolerances (`LowTolerance`, `HighTolerance`), system variable management, type conversion helpers, math utilities.
-- `AutoCAD/` — AutoCAD-specific helpers (system variables, unit conversion, command invocation).
-- `Geometry/` — geometric utilities (point/line/plane calculations, intersection tests, bounding box operations).
+- `ArithmeticUtils.cs` — tolerances (`LowTolerance`, `HighTolerance`), system variable management, type conversion helpers, math utilities.
+- `Points.cs`, `CotePoints.cs` — geometric point utilities (intersection tests, polyline point analysis).
+- `PolygonOperations/` — polygonal geometry (intersection, union, subtraction, slice, inner centroid).

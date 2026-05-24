@@ -83,9 +83,9 @@ src/
 │   └── Combine/                       ← CombineOrchestrator, BlockInserter, layouts, dimensions, optimizer
 ├── AutoBIMFusion.Common/
 │   ├── AcadSupport/                   ← AutoCAD system-variable and unit scopes
-│   └── LayoutUtil, FileUtil, UiDialogService
-└── AutoBIMFusion.Infrastructure/
-    └── Logging/                       ← Serilog wiring
+│   ├── Geometry/                      ← Geometric utilities
+│   ├── Extensions/                    ← AutoCAD API extension methods
+│   └── Logging/                       ← Serilog wiring (including LoggerFactory)
 
 docs/                                  ← repo-level documentation
 ```
@@ -94,8 +94,6 @@ Dependency direction:
 
 ```text
 AutoBIMFusion.Plugin -> AutoBIMFusion.Merge -> AutoBIMFusion.Common
-AutoBIMFusion.Plugin -> AutoBIMFusion.Infrastructure
-AutoBIMFusion.Merge  -> AutoBIMFusion.Common
 ```
 
 High-blast-radius classes by project:
@@ -107,8 +105,8 @@ High-blast-radius classes by project:
 - `src/AutoBIMFusion.Merge/Combine/Layouts/ViewportTransformer.cs`
 - `src/AutoBIMFusion.Merge/Combine/Layouts/DimensionStyleNormalizer.cs`
 - `src/AutoBIMFusion.Merge/Combine/Layouts/DimensionStyleDiagnosticUtils.cs`
-- `src/AutoBIMFusion.Merge/Combine/Layouts/ExtentsUtils.cs`
-- `src/AutoBIMFusion.Infrastructure/Logging/LoggerFactory.cs`
+- `src/AutoBIMFusion.Common/Helpers/ExtentsUtils.cs`
+- `src/AutoBIMFusion.Common/Logging/LoggerFactory.cs`
 
 Archived command classes are excluded from builds but remain under `src/AutoBIMFusion.Plugin/Commands/Archive`.
 
@@ -124,7 +122,7 @@ Keep public surface area narrow. Intended cross-project entry points are:
 - `AutoBIMFusion.Merge.CombineResult`
 - `AutoBIMFusion.Merge.RasterImagePathFixer`
 - `AutoBIMFusion.Merge.DrawingPurger`
-- `AutoBIMFusion.Infrastructure.Logging.LoggerFactory`
+- `AutoBIMFusion.Common.Logging.LoggerFactory`
 - required helpers in `AutoBIMFusion.Common`
 
 Layout internals should remain `internal` unless plugin orchestration requires a public diagnostic hook.

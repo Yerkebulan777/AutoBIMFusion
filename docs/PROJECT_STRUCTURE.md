@@ -1,6 +1,6 @@
 # Структура проекта AutoBIMFusion
 
-**Последнее обновление:** 2026-05-19
+**Последнее обновление:** 2026-05-24
 
 ## Цель структуры
 
@@ -18,6 +18,9 @@ src/
       CombineCommands.cs
       Archive/
     Ribbon/
+      RibbonBuilder.cs
+      ButtonCommandHandler.cs
+      RibbonIconLoader.cs
     Resources/
   AutoBIMFusion.Merge/
     Combine/
@@ -41,33 +44,34 @@ src/
           ├── ViewportLayoutExporter.cs
           ├── ViewportScaleNormalizer.cs
           └── ViewportTransformer.cs
+    Diagnostics/
+      └── MergeDiagnostics.cs
   AutoBIMFusion.Common/
     ├── AcadSupport/
+    │   ├── AcadContext.cs
     │   ├── AcadWarningSuppressScope.cs
-    │   └── DatabaseUnitSyncScope.cs
-    ├── Compatibility/
+    │   ├── DatabaseUnitSyncScope.cs
+    │   ├── EntityHighlighter.cs
+    │   ├── Layers.cs
+    │   ├── ViewportLock.cs
+    │   └── XrefSelector.cs
+    ├── Configuration/
     │   └── LegacySettings.cs
-    ├── Extensions/          (30 файлов extension methods)
     ├── Drawing/
     │   ├── BlockReferences.cs
     │   └── Entities.cs
-    ├── Mist/
-    │   ├── Generic.cs
-    │   ├── AutoCAD/
-    │   │   ├── Layers.cs
-    │   │   ├── SelectInXref.cs
-    │   │   └── ViewportLock.cs
-    │   └── Geometry/
-    │       ├── Arythmetique.cs
-    │       ├── Points.cs
-    │       ├── CotePoints.cs
-    │       └── PolygonOperations/
-    │           ├── InnerCentroid.cs
-    │           ├── Intersection.cs
-    │           ├── PolyHole.cs
-    │           ├── Slice.cs
-    │           ├── Substraction.cs
-    │           └── Union.cs
+    ├── Extensions/          (30 файлов extension methods)
+    ├── Geometry/
+    │   ├── ArithmeticUtils.cs
+    │   ├── Points.cs
+    │   ├── CotePoints.cs
+    │   └── PolygonOperations/
+    │       ├── InnerCentroid.cs
+    │       ├── Intersection.cs
+    │       ├── PolyHole.cs
+    │       ├── Slice.cs
+    │       ├── Substraction.cs
+    │       └── Union.cs
     ├── Helpers/
     │   ├── AlgorithmUtils.cs
     │   ├── EntityTransformUtils.cs
@@ -79,12 +83,11 @@ src/
     │   ├── NumericUtils.cs
     │   ├── ReflectionHelper.cs
     │   ├── StringUtils.cs
+    │   ├── StyleUtils.cs
     │   └── WindowsNaturalComparer.cs
+    ├── Logging/
+    │   └── LoggerFactory.cs
     ├── UiDialogService.cs
-    └── Logging/
-        └── LoggerFactory.cs
-  AutoBIMFusion.Infrastructure/
-    Logging/
 docs/
 ```
 
@@ -92,8 +95,7 @@ docs/
 |---|---|---|
 | `src/AutoBIMFusion.Plugin` | `AutoBIMFusion.dll` | AutoCAD plugin assembly: extension application, command classes, Ribbon, bundle packaging |
 | `src/AutoBIMFusion.Merge` | `AutoBIMFusion.Merge.dll` | DWG merge pipeline and layout algorithms |
-| `src/AutoBIMFusion.Common` | `AutoBIMFusion.Common.dll` | Shared AutoCAD helpers and scopes |
-| `src/AutoBIMFusion.Infrastructure` | `AutoBIMFusion.Infrastructure.dll` | Logging and infrastructure code |
+| `src/AutoBIMFusion.Common` | `AutoBIMFusion.Common.dll` | Shared AutoCAD helpers, geometry, extensions, scopes, logging |
 
 ## Dependency graph
 
@@ -101,16 +103,14 @@ docs/
 flowchart TD
     Plugin["AutoBIMFusion.Plugin<br/>AutoBIMFusion.dll"]
     Merge["AutoBIMFusion.Merge"]
-    AutoCAD["AutoBIMFusion.Common"]
-    Infrastructure["AutoBIMFusion.Infrastructure"]
+    Common["AutoBIMFusion.Common"]
     AutoCADHost["AutoCAD host DLLs<br/>ExcludeAssets=runtime"]
 
     Plugin --> Merge
-    Plugin --> Infrastructure
-    Merge --> AutoCAD
+    Merge --> Common
     Plugin -. compile only .-> AutoCADHost
     Merge -. compile only .-> AutoCADHost
-    AutoCAD -. compile only .-> AutoCADHost
+    Common -. compile only .-> AutoCADHost
 ```
 
 ## Bundle ownership
@@ -138,7 +138,7 @@ Keep only cross-project entry points public:
 - `AutoBIMFusion.Merge.DrawingPurger`
 - `AutoBIMFusion.Merge.BlockBasePointEditor`
 - `AutoBIMFusion.Merge.BlockScaleApplier`
-- `AutoBIMFusion.Infrastructure.Logging.LoggerFactory`
+- `AutoBIMFusion.Common.Logging.LoggerFactory`
 - required helpers under `AutoBIMFusion.Common`
 
 Layout algorithms remain internal where possible.

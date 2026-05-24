@@ -14,8 +14,7 @@ AutoBIMFusion — плагин AutoCAD .NET для AutoCAD 2025-2027.
 src/
   AutoBIMFusion.Plugin/         # AutoCAD entrypoint, MERGEDWG, Ribbon, Resources, bundle/deploy targets
   AutoBIMFusion.Merge/          # DWG merge pipeline: layouts, extents, dimensions, optimizer
-  AutoBIMFusion.Common/         # Общие AutoCAD helpers и scope-обертки
-  AutoBIMFusion.Infrastructure/ # Logging и инфраструктурные сервисы
+  AutoBIMFusion.Common/         # Общие AutoCAD helpers, scopes, geometry, extensions, logging
 docs/
   TECHNICAL_DOCUMENTATION.md
   ALGORITHM.md
@@ -32,12 +31,7 @@ CI/CD:
 Зависимости идут в одну сторону:
 
 ```text
-AutoBIMFusion.Plugin
-  -> AutoBIMFusion.Merge
-  -> AutoBIMFusion.Common
-
-AutoBIMFusion.Plugin
-  -> AutoBIMFusion.Infrastructure
+AutoBIMFusion.Plugin -> AutoBIMFusion.Merge -> AutoBIMFusion.Common
 ```
 
 Архивные команды `SMART_MERGE_TEXT`, `MERGE_TEXT_STYLES`, `JOIN_LINES` и `CREATE_ETRANSMIT_ZIP` находятся в `src/AutoBIMFusion.Plugin/Commands/Archive` и исключены из компиляции. AutoCAD их не регистрирует.
@@ -132,7 +126,7 @@ powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoB
 ## Процесс слияния
 
 1. `CombineCommands`: запускает `MERGEDWG`, выбирает папку, блокирует параллельный запуск, показывает прогресс и сохраняет результат.
-2. `FileUtil`: собирает `.dwg` до 3 уровней вложенности, пропускает файлы с префиксом `#` и файлы больше 15 МБ, сортирует естественным порядком.
+2. `FileUtil`: собирает `.dwg` (только текущая папка), пропускает файлы с префиксом `#` и файлы больше 15 МБ, сортирует естественным порядком.
 3. `CombineOrchestrator`: проверяет DWG, готовит фоновую базу и вставляет результат в целевой чертеж.
 4. `ViewportLayoutExporter` / `LayoutProjectionProcessor`: открывают исходный DWG через `Database(false, true)`, переводят базу в millimeters/metric и переносят первый Paper Space Layout в Model Space.
 5. `OutOfFrameEntityCleaner`: удаление малых объектов (`diagonal <= 15.0`), центр bbox которых находится за рамкой листа (критичный порядок: ДО нормализации).

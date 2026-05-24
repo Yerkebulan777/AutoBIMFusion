@@ -1,6 +1,6 @@
 # Известные проблемы и решения
 
-**Последнее обновление:** 2026-05-22
+**Последнее обновление:** 2026-05-24
 
 Файл содержит актуальные риски и спорные архитектурные решения. Активная AutoCAD-команда: `MERGEDWG`. Команды `SMART_MERGE_TEXT`, `MERGE_TEXT_STYLES`, `JOIN_LINES` и `CREATE_ETRANSMIT_ZIP` находятся в `src/AutoBIMFusion.Plugin/Commands/Archive` и исключены из сборки.
 
@@ -33,7 +33,7 @@
 | Ограничение | Значение | Место |
 |---|---|---|
 | Максимальный размер файла | 15 МБ | `FileUtil.GetFiles` |
-| Глубина рекурсии в папках | 3 | `FileUtil.GetFiles` |
+| Глубина рекурсии в папках | 1 (без рекурсии) | `FileUtil.GetFiles` |
 | Рабочая нормализация масштаба VP | 1:100 | `LayoutProjectionProcessor` |
 | Purge passes | 10 | `DrawingPurger.Optimize` |
 | Зазор между вставленными листами | 10%, минимум 1.0 | `BlockInserter` |
