@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
-using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
 namespace AutoBIMFusion.Common.AcadSupport;
 
@@ -35,7 +34,7 @@ public sealed class AcadWarningSuppressScope : IDisposable
                 _originalValues[name] = AcadApp.GetSystemVariable(name);
                 AcadApp.SetSystemVariable(name, suppressedValue);
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 Debug.WriteLine($"Не удалось установить системную переменную {name}: {ex.Message}");
             }
@@ -50,7 +49,7 @@ public sealed class AcadWarningSuppressScope : IDisposable
             {
                 AcadApp.SetSystemVariable(name, originalValue);
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 Debug.WriteLine($"Не удалось восстановить системную переменную {name}: {ex.Message}");
             }
