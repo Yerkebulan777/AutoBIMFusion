@@ -94,10 +94,10 @@ public sealed class CombineCommands
             return ExecutionResult.Fail(null, busyMessage);
         }
 
-        using AcadWarningSuppressScope warningSuppress = new();
-
         try
         {
+            using AcadWarningSuppressScope warningSuppress = new();
+
             string? sourceFolder = folderPath ?? (UiDialogService.TrySelectFolder("Выберите папку с файлами DWG", out string? selectedFolder) ? selectedFolder : null);
 
             if (sourceFolder is null)
@@ -346,11 +346,8 @@ public sealed class CombineCommands
             File.Delete(savePath);
         }
 
-        using (new AcadWarningSuppressScope())
-        {
-            DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "target-before-save");
-            db.SaveAs(savePath, DwgVersion.AC1032);
-        }
+        DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "target-before-save");
+        db.SaveAs(savePath, DwgVersion.AC1032);
     }
 
     private static void ShowSummary(CombineStatistics stats, TimeSpan elapsed, string savePath, string commandName)
