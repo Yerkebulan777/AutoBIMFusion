@@ -38,7 +38,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Remove="Commands\Archive\**\*.cs" />
         <Compile Remove="Properties\**" />
         <Compile Remove="AutoBIMFusionExtension.cs" Condition="'$(CoreConsoleDiagnostics)' == 'true'" />
         <Compile Remove="Ribbon\**\*.cs" Condition="'$(CoreConsoleDiagnostics)' == 'true'" />
