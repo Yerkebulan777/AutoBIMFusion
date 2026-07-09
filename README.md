@@ -14,12 +14,17 @@ D:\DWG-Batch\
   Object-02\      ← содержит source.dwg
 ```
 
-**Запуск:**
+**Запуск (из PowerShell):**
 
 ```powershell
 cd D:\DWG-Batch
-powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoBIMFusion\tools\Start-MergeDwgBatch.ps1"
+C:\Users\y.zhumabayev\Repository\AutoBIMFusion\tools\Start-MergeDwgBatch.ps1
 ```
+
+> Если запуск из **cmd.exe**, используйте:
+> ```cmd
+> powershell -ExecutionPolicy Bypass -File "C:\Users\y.zhumabayev\Repository\AutoBIMFusion\tools\Start-MergeDwgBatch.ps1"
+> ```
 
 Скрипт сам собирает плагин (`dotnet build`), запускает AutoCAD для каждой папки и создаёт рядом папку с суффиксом `-сборка` с итоговым DWG.
 
