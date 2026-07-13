@@ -4,6 +4,7 @@ param(
     [int]$MaxParallel = 1,
     [int]$StartDelaySeconds = 3,
     [int]$TimeoutMinutes = 120,
+    [int]$AutoCloseDelaySeconds = 5,
     [switch]$SkipBuild,
     [switch]$WhatIf
 )
@@ -86,7 +87,12 @@ function New-AutoCadScript {
         "_Y"
     )
 
-    Set-Content -LiteralPath $ScriptPath -Value $lines -Encoding Default
+    # AutoCAD читает .scr в системной ANSI (cp1251). Файл в UTF-8 без BOM
+    # ломает кириллицу в путях (mojibake) -> MERGEDWG_BATCH падает с
+    # DirectoryNotFoundException на реально существующей папке.
+    # UTF-8 с BOM корректно распознаётся AutoCAD 2025-2027.
+    $utf8WithBom = New-Object System.Text.UTF8Encoding $true
+    [System.IO.File]::WriteAllLines($ScriptPath, $lines, $utf8WithBom)
 }
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -106,6 +112,19 @@ if ($StartDelaySeconds -lt 0) {
 
 if ($TimeoutMinutes -lt 1) {
     throw "TimeoutMinutes must be greater than 0."
+}
+
+if ($AutoCloseDelaySeconds -lt 0) {
+    throw "AutoCloseDelaySeconds cannot be negative."
+}
+
+function Wait-BeforeExit {
+    param([int]$DelaySeconds)
+
+    if ($DelaySeconds -gt 0) {
+        Write-Host ("Auto-close in {0} second(s)..." -f $DelaySeconds)
+        Start-Sleep -Seconds $DelaySeconds
+    }
 }
 
 if (-not (Test-Path -LiteralPath $acadExe -PathType Leaf)) {
@@ -264,6 +283,7 @@ foreach ($item in $completed) {
 
 if ($failures.Count -eq 0) {
     Write-Host $successMessage
+    Wait-BeforeExit -DelaySeconds $AutoCloseDelaySeconds
     exit 0
 }
 
@@ -279,4 +299,5 @@ foreach ($failure in $failures) {
     }
 }
 
+Wait-BeforeExit -DelaySeconds $AutoCloseDelaySeconds
 exit 1
