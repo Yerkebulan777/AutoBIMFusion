@@ -6,7 +6,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageVersion Include="AutoCAD.NET" Version="$(AcadPackageVersion).*" Condition="'$(AcadPackageVersion)' != ''" />
+        <!-- AutoCAD 2026 runs plug-ins on .NET 8. AutoCAD.NET 25.1.1 moved to .NET 10,
+             so keep A26 in the last compatible patch line while allowing compatible patches. -->
+        <PackageVersion Include="AutoCAD.NET" Version="[25.1.0, 25.1.1)" Condition="'$(AcadPackageVersion)' == '25.1'" />
+        <PackageVersion Include="AutoCAD.NET" Version="$(AcadPackageVersion).*" Condition="'$(AcadPackageVersion)' != '' And '$(AcadPackageVersion)' != '25.1'" />
         <PackageVersion Include="AutoCAD.NET.Interop" Version="$(AcadInteropPackageVersion).*" Condition="'$(AcadInteropPackageVersion)' != ''" />
         <PackageVersion Include="Serilog" Version="4.0.0" />
         <PackageVersion Include="Serilog.Sinks.File" Version="6.0.0" />
