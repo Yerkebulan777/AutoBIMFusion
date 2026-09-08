@@ -20,7 +20,7 @@ internal static class RibbonBuilder
             Id = "AutoBIMFusion.MainPanel"
         };
 
-        panelSource.Items.Add(CreateLargeButton("AutoBIMFusionBtn1", "Объединить DWG", "MERGEDWG "));
+        panelSource.Items.Add(CreateLargeButton("AutoBIMFusionBtn1", "Merge DWG", "MERGEDWG "));
 
         RibbonTab tab = new() { Id = "AutoBIMFusion.RibbonTab", Title = "AutoBIMFusion" };
         tab.Panels.Add(new RibbonPanel { Source = panelSource });
@@ -32,8 +32,13 @@ internal static class RibbonBuilder
         return new RibbonButton
         {
             Id = id,
-            Text = text,
+            Text = text.Replace(" ", "\n"),
+            ShowText = true,
+            ShowImage = true,
             Size = RibbonItemSize.Large,
+            Orientation = System.Windows.Controls.Orientation.Vertical,
+            Width = 80,
+            Height = 80,
             CommandParameter = command,
             CommandHandler = new ButtonCommandHandler(),
             Image = RibbonIconLoader.Load("icon-merge-dwg-16.png"),
