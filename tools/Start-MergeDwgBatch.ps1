@@ -146,8 +146,8 @@ $runRoot = Join-Path ([System.IO.Path]::GetTempPath()) "AutoBIMFusion-MERGEDWG-$
 $statusRoot = Join-Path $runRoot "status"
 $scriptTempRoot = Join-Path $runRoot "scripts"
 $tempApplicationPluginsRoot = Join-Path $runRoot "ApplicationPlugins"
-$targetFramework = if ($Configuration.EndsWith("A27", [System.StringComparison]::OrdinalIgnoreCase)) { "net10.0-windows" } else { "net8.0-windows" }
-$pluginPath = Join-Path $repoRoot "src\AutoBIMFusion.Plugin\bin\x64\$Configuration\$targetFramework\AutoBIMFusion.dll"
+$buildSettings = & (Join-Path $scriptRoot 'Get-AutoCADBuildSettings.ps1') -Configuration $Configuration
+$pluginPath = $buildSettings.TargetPath
 
 New-Item -ItemType Directory -Path $statusRoot, $scriptTempRoot, $tempApplicationPluginsRoot -Force | Out-Null
 

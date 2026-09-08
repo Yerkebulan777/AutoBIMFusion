@@ -139,9 +139,8 @@ public static class BlockBasePointEditor
     private static IReadOnlyList<ObjectId> OrderNestedDefinitionsFirst(Transaction trx,
         IEnumerable<ObjectId> blockDefinitionIds)
     {
-        HashSet<ObjectId> candidates = blockDefinitionIds
-            .Where(id => id.IsValid && !id.IsNull && !id.IsErased)
-            .ToHashSet();
+        HashSet<ObjectId> candidates = new(blockDefinitionIds
+            .Where(id => id.IsValid && !id.IsNull && !id.IsErased));
 
         List<ObjectId> result = [];
         HashSet<ObjectId> visited = [];

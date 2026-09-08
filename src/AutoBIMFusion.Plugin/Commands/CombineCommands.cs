@@ -210,9 +210,13 @@ public sealed class CombineCommands
             return new MergeDocumentSelection(activeDoc);
         }
 
+#if CORECONSOLE_DIAGNOSTICS
+        throw new InvalidOperationException("Core Console requires an open, empty, unnamed drawing for MERGEDWG_BATCH.");
+#else
         Document mergeDoc = docMgr.Add(string.Empty);
         docMgr.MdiActiveDocument = mergeDoc;
         return new MergeDocumentSelection(mergeDoc);
+#endif
     }
 
     private static bool CanUseActiveDocument(Document doc, Logger log)

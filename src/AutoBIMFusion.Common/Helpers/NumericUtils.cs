@@ -13,7 +13,9 @@ public static class NumericUtils
     /// </summary>
     public static string FormatF6(double value)
     {
-        return double.IsFinite(value) ? value.ToString("F6", CultureInfo.InvariantCulture) : "n/a";
+        return !double.IsNaN(value) && !double.IsInfinity(value)
+            ? value.ToString("F6", CultureInfo.InvariantCulture)
+            : "n/a";
     }
 
     /// <summary>

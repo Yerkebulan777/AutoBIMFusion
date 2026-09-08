@@ -14,12 +14,12 @@ AutoCAD-only reference for this repository. Use it only for desktop AutoCAD plug
 ## AutoBIMFusion repo facts
 
 - Solution format: `AutoBIMFusion.slnx`.
-- Project target: `AutoBIMFusion/AutoBIMFusion.csproj` sets `TargetFramework` to `net8.0` and `PlatformTarget` to `x64`.
-- Shared props: `Directory.Build.props` contains `net10.0-windows`, but the project overrides it.
-- Configurations: `DebugA25`, `DebugA26`, `DebugA27`, `ReleaseA25`, `ReleaseA26`, `ReleaseA27`.
+- Plugin: `src/AutoBIMFusion.Plugin/AutoBIMFusion.Plugin.csproj`, `x64`.
+- `Directory.Build.props` selects the framework for all three projects: A19/A20 `net47`, A21–A24 `net48`, A25/A26 .NET 8, A27 .NET 10. Modern desktop targets add `-windows`.
+- Configurations: `DebugA19`–`DebugA27`, `ReleaseA19`–`ReleaseA27`. Build with .NET SDK 10.0.300+.
 - Package versions are centralized:
-  - `AutoCAD.NET`: `$(AcadPackageVersion).*`
-  - `AutoCAD.NET.Interop`: `$(AcadInteropPackageVersion).*`
+  - `AutoCAD.NET`: `$(AcadPackageVersion).*`, except A26 `[25.1.0, 25.1.1)` for .NET 8 compatibility
+  - `AutoCAD.NET.Interop`: `$(AcadInteropPackageVersion).*` in A25–A27; unused by legacy configurations
   - `Serilog`: `4.0.0`
   - `Serilog.Sinks.File`: `6.0.0`
 - AutoCAD host assemblies must not be copied to output as runtime assets.
@@ -28,7 +28,13 @@ AutoCAD-only reference for this repository. Use it only for desktop AutoCAD plug
 
 | AutoCAD | Config suffix | `AcadPackageVersion` | `AcadInteropPackageVersion` | Preprocessor |
 |---------|---------------|----------------------|-----------------------------|--------------|
-| 2025 | A25 | `25.0` | `2025.0` | `ACAD2025` |
+| 2019 | A19 | `23.0` | not referenced | `ACAD2019` |
+| 2020 | A20 | `23.1` | not referenced | `ACAD2020` |
+| 2021 | A21 | `24.0` | not referenced | `ACAD2021` |
+| 2022 | A22 | `24.1` | not referenced | `ACAD2022` |
+| 2023 | A23 | `24.2` | not referenced | `ACAD2023` |
+| 2024 | A24 | `24.3` | not referenced | `ACAD2024` |
+| 2025 | A25 | `25.0` | `2025` | `ACAD2025` |
 | 2026 | A26 | `25.1` | `2026.0` | `ACAD2026` |
 | 2027 | A27 | `26.0` | `2026.0` | `ACAD2027` |
 

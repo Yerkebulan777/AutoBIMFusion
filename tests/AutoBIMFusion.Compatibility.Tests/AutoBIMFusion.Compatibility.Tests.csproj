@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <PlatformTarget>x64</PlatformTarget>
+        <!-- Match AutoCAD: do not hide dependency mismatches with EXE redirects. -->
+        <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Include="../../src/AutoBIMFusion.Common/Helpers/StringUtils.cs" Link="StringUtils.cs" />
+        <Compile Include="../../src/AutoBIMFusion.Common/Helpers/NumericUtils.cs" Link="NumericUtils.cs" />
+        <Compile Include="../../src/AutoBIMFusion.Common/Compatibility/PriorityQueue.cs" Link="PriorityQueue.cs" />
+        <Compile Include="../../src/AutoBIMFusion.Plugin/LegacyDependencyResolver.cs" Link="LegacyDependencyResolver.cs" />
+        <Using Include="System.Math" Static="true" />
+        <PackageReference Include="Serilog" />
+        <PackageReference Include="Serilog.Sinks.File" />
+        <PackageReference Include="System.Text.Json" Condition="'$(LegacyAutoCAD)' == 'true'" />
+    </ItemGroup>
+</Project>

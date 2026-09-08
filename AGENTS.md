@@ -1,6 +1,6 @@
 # AGENTS.md — AutoBIMFusion
 
-AutoCAD .NET plugin for AutoCAD 2025-2027. The plugin project `src/AutoBIMFusion.Plugin/AutoBIMFusion.Plugin.csproj` targets `x64`; A25/A26 configurations target `net8.0`, while A27 targets `net10.0` because `AutoCAD.NET 26.x` does not support `net8.0`.
+AutoCAD .NET plugin for AutoCAD 2019-2027. The plugin project `src/AutoBIMFusion.Plugin/AutoBIMFusion.Plugin.csproj` targets `x64`; A19/A20 target `net47`, A21–A24 target `net48`; A25/A26 configurations target `net8.0`, while A27 targets `net10.0` because `AutoCAD.NET 26.x` does not support `net8.0`.
 Civil 3D and Plant 3D are verticals on the same base platform.
 
 ---
@@ -10,7 +10,7 @@ Civil 3D and Plant 3D are verticals on the same base platform.
 Solution uses the **new `.slnx` format** (XML, not legacy `.sln`). `dotnet build` supports it directly.
 
 ```powershell
-# Pick a config: DebugA25 / DebugA26 / DebugA27 / ReleaseA25 / ReleaseA26 / ReleaseA27
+# Pick DebugA19–DebugA27 or ReleaseA19–ReleaseA27; use .NET SDK 10.0.300+
 dotnet build AutoBIMFusion.slnx -c DebugA26
 dotnet clean AutoBIMFusion.slnx -c DebugA26
 
@@ -19,7 +19,10 @@ dotnet build AutoBIMFusion.slnx -c DebugA26 /p:CoreConsoleDiagnostics=true
 ```
 
 Only `src/AutoBIMFusion.Plugin` creates and deploys the `.bundle` to `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`.
-`dotnet clean` removes it. No manual copy needed.
+Desktop `dotnet clean` removes it. Headless builds/cleans do not deploy or remove the desktop installation.
+`DisableAutoCADDeployment=true` skips installation but still creates the local bundle.
+Output and intermediate files are separated by desktop/headless mode for every framework.
+Both automatic and manual installation use `tools/Publish-AutoCADBundle.ps1`: stage and verify before replacement, retain a backup for rollback. Do not delete installed contents before copying.
 
 ---
 
@@ -27,11 +30,17 @@ Only `src/AutoBIMFusion.Plugin` creates and deploys the `.bundle` to `%AppData%\
 
 | Config suffix | AutoCAD | `AcadPackageVersion` | `AcadInteropPackageVersion` | Preprocessor |
 |---|---|---|---|---|
-| A25 | 2025 | 25.0 | 2025.0 | `ACAD2025` |
+| A19 | 2019 | 23.0 | not referenced | `ACAD2019` |
+| A20 | 2020 | 23.1 | not referenced | `ACAD2020` |
+| A21 | 2021 | 24.0 | not referenced | `ACAD2021` |
+| A22 | 2022 | 24.1 | not referenced | `ACAD2022` |
+| A23 | 2023 | 24.2 | not referenced | `ACAD2023` |
+| A24 | 2024 | 24.3 | not referenced | `ACAD2024` |
+| A25 | 2025 | 25.0 | 2025 | `ACAD2025` |
 | A26 | 2026 | 25.1 | 2026.0 | `ACAD2026` |
 | A27 | 2027 | 26.0 | 2026.0 | `ACAD2027` |
 
-NuGet versions are centrally managed in `Directory.Packages.props`. `AutoCAD.NET` floats as `$(AcadPackageVersion).*`; `AutoCAD.NET.Interop` floats as `$(AcadInteropPackageVersion).*`; `Serilog` is fixed at `4.0.0`; `Serilog.Sinks.File` is fixed at `6.0.0`. Do not pin AutoCAD package versions manually.
+NuGet versions are centrally managed in `Directory.Packages.props`. `AutoCAD.NET` floats as `$(AcadPackageVersion).*`; `AutoCAD.NET.Interop` floats as `$(AcadInteropPackageVersion).*`; `Serilog` is fixed at `4.0.0`; `Serilog.Sinks.File` is fixed at `6.0.0`. A26 retains the range `[25.1.0, 25.1.1)` because later packages require .NET 10. Legacy builds omit unused COM interop references. Do not pin AutoCAD package versions manually.
 
 ---
 
@@ -50,6 +59,13 @@ NuGet versions are centrally managed in `Directory.Packages.props`. `AutoCAD.NET
 This script builds a local core-console bundle and then tries to run `MERGEDWG_DIAG_TEST` via `accoreconsole.exe`.
 Current code does not register `[CommandMethod("MERGEDWG_DIAG_TEST")]`; treat the script as a known broken diagnostic helper until the command is restored or the script is updated. Do not use it as an acceptance gate.
 
+Compatibility checks: `tools/Test-AutoCADBuildMatrix.ps1` builds all 36 variants and verifies bundles in `out/compatibility`; `dotnet run --project tests/AutoBIMFusion.Compatibility.Tests -c DebugA19` runs host-independent legacy tests. Also test A24, A26 and A27.
+Use `tools/Test-AutoCADHost.ps1 -Configuration DebugA19 -AutoCADRoot $env:ACAD_HOME` for a generated-DWG smoke test in an installed host. Match configuration and host version.
+The host test uses `/isolate` and verifies a log record containing the unique run folder; do not change the real AutoCAD profile for tests.
+`tools/Test-AutoCADBundlePublication.ps1` verifies replacement and installation failure handling in temporary workspace folders.
+Legacy BCL dependency binding uses `LegacyDependencyResolver`; never rely on plugin DLL.config redirects or modify host executable configuration.
+Core Console requires an open, empty, unnamed drawing; never compile `DocumentCollection.Add` into its document-selection path because it loads desktop modules.
+The installed bundle targets one selected year and is replaced by subsequent builds.
 There is **no CI pipeline**.
 
 ---

@@ -1,5 +1,17 @@
 <Solution>
     <Configurations>
+        <BuildType Name="DebugA19"/>
+        <BuildType Name="DebugA20"/>
+        <BuildType Name="DebugA21"/>
+        <BuildType Name="DebugA22"/>
+        <BuildType Name="DebugA23"/>
+        <BuildType Name="DebugA24"/>
+        <BuildType Name="ReleaseA19"/>
+        <BuildType Name="ReleaseA20"/>
+        <BuildType Name="ReleaseA21"/>
+        <BuildType Name="ReleaseA22"/>
+        <BuildType Name="ReleaseA23"/>
+        <BuildType Name="ReleaseA24"/>
         <BuildType Name="DebugA25"/>
         <BuildType Name="DebugA26"/>
         <BuildType Name="DebugA27"/>

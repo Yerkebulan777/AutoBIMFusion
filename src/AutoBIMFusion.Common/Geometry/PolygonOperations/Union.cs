@@ -562,7 +562,7 @@ public static partial class PolygonOperation
                 }
 
                 DoubleCollection SplitDouble = PolyBase.GetSplitPoints(OnLineIntersectionPointsFounds);
-                var Splitted = PolyBase.TryGetSplitCurves(SplitDouble).Cast<Polyline>().ToHashSet();
+                var Splitted = new HashSet<Polyline>(PolyBase.TryGetSplitCurves(SplitDouble).Cast<Polyline>());
 
                 //Remove zero length line
                 foreach (Polyline? curv in Splitted.ToList())

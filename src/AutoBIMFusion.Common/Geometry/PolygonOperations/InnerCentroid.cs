@@ -1,4 +1,7 @@
 using AutoBIMFusion.Common.Extensions;
+#if NETFRAMEWORK
+using AutoBIMFusion.Common.Compatibility;
+#endif
 
 namespace AutoBIMFusion.Common.Geometry.PolygonOperations;
 

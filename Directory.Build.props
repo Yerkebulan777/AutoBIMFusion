@@ -1,13 +1,60 @@
 <Project>
 
     <PropertyGroup>
-        <Configurations>DebugA25;DebugA26;DebugA27;ReleaseA25;ReleaseA26;ReleaseA27</Configurations>
+        <Configurations>DebugA19;DebugA20;DebugA21;DebugA22;DebugA23;DebugA24;DebugA25;DebugA26;DebugA27;ReleaseA19;ReleaseA20;ReleaseA21;ReleaseA22;ReleaseA23;ReleaseA24;ReleaseA25;ReleaseA26;ReleaseA27</Configurations>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(Configuration)' == 'DebugA19' Or '$(Configuration)' == 'ReleaseA19'">
+        <AcadVersion>2019</AcadVersion>
+        <AcadPackageVersion>23.0</AcadPackageVersion>
+        <AcadInteropPackageVersion>2019</AcadInteropPackageVersion>
+        <AutoCADSeries>R23.0</AutoCADSeries>
+        <DefineConstants>$(DefineConstants);ACAD2019</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' == 'DebugA20' Or '$(Configuration)' == 'ReleaseA20'">
+        <AcadVersion>2020</AcadVersion>
+        <AcadPackageVersion>23.1</AcadPackageVersion>
+        <AcadInteropPackageVersion>2020</AcadInteropPackageVersion>
+        <AutoCADSeries>R23.1</AutoCADSeries>
+        <DefineConstants>$(DefineConstants);ACAD2020</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' == 'DebugA21' Or '$(Configuration)' == 'ReleaseA21'">
+        <AcadVersion>2021</AcadVersion>
+        <AcadPackageVersion>24.0</AcadPackageVersion>
+        <AcadInteropPackageVersion>2021</AcadInteropPackageVersion>
+        <AutoCADSeries>R24.0</AutoCADSeries>
+        <DefineConstants>$(DefineConstants);ACAD2021</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' == 'DebugA22' Or '$(Configuration)' == 'ReleaseA22'">
+        <AcadVersion>2022</AcadVersion>
+        <AcadPackageVersion>24.1</AcadPackageVersion>
+        <AcadInteropPackageVersion>2022</AcadInteropPackageVersion>
+        <AutoCADSeries>R24.1</AutoCADSeries>
+        <DefineConstants>$(DefineConstants);ACAD2022</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' == 'DebugA23' Or '$(Configuration)' == 'ReleaseA23'">
+        <AcadVersion>2023</AcadVersion>
+        <AcadPackageVersion>24.2</AcadPackageVersion>
+        <AcadInteropPackageVersion>2023</AcadInteropPackageVersion>
+        <AutoCADSeries>R24.2</AutoCADSeries>
+        <DefineConstants>$(DefineConstants);ACAD2023</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' == 'DebugA24' Or '$(Configuration)' == 'ReleaseA24'">
+        <AcadVersion>2024</AcadVersion>
+        <AcadPackageVersion>24.3</AcadPackageVersion>
+        <AcadInteropPackageVersion>2024</AcadInteropPackageVersion>
+        <AutoCADSeries>R24.3</AutoCADSeries>
+        <DefineConstants>$(DefineConstants);ACAD2024</DefineConstants>
+    </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' == 'DebugA25' Or '$(Configuration)' == 'ReleaseA25'">
         <AcadVersion>2025</AcadVersion>
         <AcadPackageVersion>25.0</AcadPackageVersion>
-        <AcadInteropPackageVersion>2025.0</AcadInteropPackageVersion>
+        <AcadInteropPackageVersion>2025</AcadInteropPackageVersion>
         <AutoCADSeries>R25.0</AutoCADSeries>
         <DefineConstants>$(DefineConstants);ACAD2025</DefineConstants>
     </PropertyGroup>
@@ -28,10 +75,28 @@
         <DefineConstants>$(DefineConstants);ACAD2027</DefineConstants>
     </PropertyGroup>
 
-    <!-- Debug launch: start the matching AutoCAD version for attaching the debugger -->
-    <PropertyGroup Condition="'$(Configuration)' == 'DebugA25' Or '$(Configuration)' == 'DebugA26' Or '$(Configuration)' == 'DebugA27'">
-        <StartAction>Program</StartAction>
-        <StartProgram>C:\Program Files\Autodesk\AutoCAD $(AcadVersion)\acad.exe</StartProgram>
+    <PropertyGroup>
+        <LangVersion>14.0</LangVersion>
+        <PolyArgumentExceptions>true</PolyArgumentExceptions>
+        <PolyUseEmbeddedAttribute>true</PolyUseEmbeddedAttribute>
+        <LegacyAutoCAD Condition="'$(AcadVersion)' != '' And $(AcadVersion) &lt; 2025">true</LegacyAutoCAD>
+        <TargetFramework Condition="'$(AcadVersion)' == '2019' Or '$(AcadVersion)' == '2020'">net47</TargetFramework>
+        <TargetFramework Condition="'$(AcadVersion)' != '' And $(AcadVersion) &gt;= 2021 And $(AcadVersion) &lt;= 2024">net48</TargetFramework>
+        <TargetFramework Condition="'$(AcadVersion)' == '2025' Or '$(AcadVersion)' == '2026'">net8.0</TargetFramework>
+        <TargetFramework Condition="'$(AcadVersion)' == '2027'">net10.0</TargetFramework>
+        <TargetFramework Condition="'$(LegacyAutoCAD)' != 'true' And '$(TargetFramework)' != '' And '$(CoreConsoleDiagnostics)' != 'true'">$(TargetFramework)-windows</TargetFramework>
+    </PropertyGroup>
+    <PropertyGroup>
+        <AutoCADBuildMode Condition="'$(CoreConsoleDiagnostics)' == 'true'">headless</AutoCADBuildMode>
+        <AutoCADBuildMode Condition="'$(CoreConsoleDiagnostics)' != 'true'">desktop</AutoCADBuildMode>
+        <BaseOutputPath>bin\$(AutoCADBuildMode)\</BaseOutputPath>
+        <BaseIntermediateOutputPath>obj\$(Configuration)\$(AutoCADBuildMode)\</BaseIntermediateOutputPath>
+        <DefaultItemExcludes>$(DefaultItemExcludes);obj\**;bin\**</DefaultItemExcludes>
+    </PropertyGroup>
+    <!-- Debug launch: use the matching installed AutoCAD. -->
+    <PropertyGroup Condition="$([System.String]::Copy('$(Configuration)').StartsWith('Debug'))">
+        <StartAction Condition="'$(MSBuildProjectName)' == 'AutoBIMFusion.Plugin'">Program</StartAction>
+        <StartProgram Condition="'$(MSBuildProjectName)' == 'AutoBIMFusion.Plugin' And '$(ACAD_HOME)' != ''">$(ACAD_HOME)\acad.exe</StartProgram>
         <DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
         <DebugSymbols>true</DebugSymbols>
         <DebugType>portable</DebugType>

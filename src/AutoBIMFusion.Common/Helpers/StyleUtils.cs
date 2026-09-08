@@ -201,7 +201,7 @@ public static class StyleUtils
         for (var i = 2; i < 1000; i++)
         {
             i.TryFormat(buffer.Slice(len + 1), out int charsWritten);
-            var suffixed = new string(buffer.Slice(0, len + 1 + charsWritten));
+            var suffixed = buffer.Slice(0, len + 1 + charsWritten).ToString();
             if (!existing.Contains(suffixed))
             {
                 return suffixed;
