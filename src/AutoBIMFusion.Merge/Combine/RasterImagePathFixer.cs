@@ -32,7 +32,8 @@ public static class RasterImagePathFixer
         }
     }
 
-    public static void CopyImagesToTargetFolder(Database db, string targetFilePath, Logger log)
+    public static void CopyImagesToTargetFolder(Database db, string targetFilePath, Logger log,
+        string? sourceSearchDir = null)
     {
         var targetDir = Path.GetDirectoryName(targetFilePath);
         if (string.IsNullOrEmpty(targetDir))
@@ -69,7 +70,8 @@ public static class RasterImagePathFixer
                     continue;
                 }
 
-                if (!FileUtil.TryResolveImagePath(db, path, targetDir, out var resolvedPath, out var resolveError))
+                if (!TryResolveDefinitionPath(db, def, path, targetDir, sourceSearchDir, out var resolvedPath,
+                        out var resolveError))
                 {
                     if (resolveError is not null)
                         log.Warning(resolveError, "RasterImageDef '{Key}': ошибка разрешения пути: {Path}", entry.Key, path);
@@ -109,5 +111,38 @@ public static class RasterImagePathFixer
             }
 
         trx.Commit();
+    }
+
+    private static bool TryResolveDefinitionPath(Database db, RasterImageDef def, string sourceFileName,
+        string targetDir, string? sourceSearchDir, out string resolvedPath, out Exception? resolveError)
+    {
+        if (FileUtil.TryResolveImagePath(db, sourceFileName, targetDir, out resolvedPath, out resolveError,
+                sourceSearchDir))
+        {
+            return true;
+        }
+
+        var activePath = TryGetActiveFileName(def);
+        if (string.IsNullOrWhiteSpace(activePath)
+            || string.Equals(activePath, sourceFileName, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return FileUtil.TryResolveImagePath(db, activePath, targetDir, out resolvedPath, out resolveError,
+            sourceSearchDir);
+    }
+
+    private static string? TryGetActiveFileName(RasterImageDef def)
+    {
+        try
+        {
+            var active = def.ActiveFileName;
+            return string.IsNullOrWhiteSpace(active) ? null : active;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 }

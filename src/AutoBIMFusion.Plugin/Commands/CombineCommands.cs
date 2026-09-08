@@ -134,7 +134,7 @@ public sealed class CombineCommands
 
             using (mergeDoc.LockDocument())
             {
-                RasterImagePathFixer.CopyImagesToTargetFolder(mergeDoc.Database, savePath, log);
+                RasterImagePathFixer.CopyImagesToTargetFolder(mergeDoc.Database, savePath, log, sourceFolder);
                 DimensionStyleDiagnosticUtils.LogStyleSnapshot(mergeDoc.Database, log, "target-after-merge");
                 DrawingPurger.Optimize(mergeDoc.Database, log);
                 SaveMerged(mergeDoc.Database, savePath, log);

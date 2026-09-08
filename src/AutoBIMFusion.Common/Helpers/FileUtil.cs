@@ -222,66 +222,39 @@ public static class FileUtil
     ///     Разрешает путь к файлу изображения через несколько стратегий:
     ///     1. Абсолютный путь на текущей машине
     ///     2. Подстановка текущего пользователя (cross-machine C:\Users\OtherUser\...)
-    ///     3. Поиск по имени файла в searchDir
-    ///     4. AutoCAD FindFile
+    ///     3. Поиск по имени файла в searchDir, папке DWG и одном уровне подпапок
+    ///     4. AutoCAD FindFile по имени файла (не по мёртвому абсолютному пути)
     /// </summary>
     public static bool TryResolveImagePath(Database db, string path, string? searchDir, out string resolvedPath,
-        out Exception? resolveError)
+        out Exception? resolveError, params string?[] additionalSearchDirs)
     {
         resolvedPath = string.Empty;
         resolveError = null;
 
-        // Абсолютный путь на текущей машине
-        if (Path.IsPathRooted(path) && File.Exists(path))
+        List<string?> searchDirs = [searchDir, TryGetDatabaseDirectory(db)];
+        if (additionalSearchDirs is { Length: > 0 })
         {
-            resolvedPath = path;
+            searchDirs.AddRange(additionalSearchDirs);
+        }
+
+        if (TryResolveImagePathOnDisk(path, searchDirs, out resolvedPath))
+        {
             return true;
         }
 
-        // Подстановка текущего пользователя (cross-machine C:\Users\OtherUser\...)
-        if (Path.IsPathRooted(path))
+        string fileName = Path.GetFileName(path);
+        if (string.IsNullOrWhiteSpace(fileName))
         {
-            string userProfileParent = Path.GetDirectoryName(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) ?? string.Empty;
-            if (!string.IsNullOrEmpty(userProfileParent) &&
-                path.StartsWith(userProfileParent, StringComparison.OrdinalIgnoreCase))
-            {
-                string afterUsersDir = path[(userProfileParent.Length + 1)..];
-                int slashIdx = afterUsersDir.IndexOf(Path.DirectorySeparatorChar);
-                if (slashIdx > 0)
-                {
-                    string relativePart = afterUsersDir[(slashIdx + 1)..];
-                    string candidate = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                        relativePart);
-                    if (File.Exists(candidate))
-                    {
-                        resolvedPath = candidate;
-                        return true;
-                    }
-                }
-            }
+            return false;
         }
 
-        // Только имя файла в папке целевого DWG
-        if (!string.IsNullOrEmpty(searchDir))
-        {
-            string candidate = Path.Combine(searchDir, Path.GetFileName(path));
-            if (File.Exists(candidate))
-            {
-                resolvedPath = candidate;
-                return true;
-            }
-        }
-
-        // AutoCAD FindFile
+        // FindFile по полному отсутствующему пути бросает eFilerError и не ищет в support path.
+        // Сначала ищем по имени файла — так AutoCAD смотрит папку чертежа, project paths и embedded images.
         try
         {
-            string foundPath = HostApplicationServices.Current.FindFile(path, db, FindFileHint.EmbeddedImageFile);
-
-            if (!string.IsNullOrEmpty(foundPath) && File.Exists(foundPath))
+            if (TryFindFileWithAcad(db, fileName, FindFileHint.EmbeddedImageFile, out resolvedPath)
+                || TryFindFileWithAcad(db, fileName, FindFileHint.Default, out resolvedPath))
             {
-                resolvedPath = foundPath;
                 return true;
             }
 
@@ -290,6 +263,174 @@ public static class FileUtil
         catch (Exception ex)
         {
             resolveError = ex;
+            return false;
+        }
+    }
+
+    /// <summary>
+    ///     Ищет файл изображения на диске без AutoCAD FindFile.
+    ///     Нужен, когда RasterImageDef указывает на уже удалённый %TEMP%\RBF-* кэш.
+    /// </summary>
+    internal static bool TryResolveImagePathOnDisk(string path, IEnumerable<string?> searchDirs,
+        out string resolvedPath)
+    {
+        resolvedPath = string.Empty;
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+
+        if (Path.IsPathRooted(path) && File.Exists(path))
+        {
+            resolvedPath = path;
+            return true;
+        }
+
+        if (TryRemapUserProfilePath(path, out resolvedPath))
+        {
+            return true;
+        }
+
+        string fileName = Path.GetFileName(path);
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            return false;
+        }
+
+        HashSet<string> seenDirs = new(StringComparer.OrdinalIgnoreCase);
+        foreach (string? searchDir in searchDirs)
+        {
+            if (string.IsNullOrWhiteSpace(searchDir))
+            {
+                continue;
+            }
+
+            string fullDir;
+            try
+            {
+                fullDir = Path.GetFullPath(searchDir);
+            }
+            catch (Exception)
+            {
+                continue;
+            }
+
+            if (!seenDirs.Add(fullDir) || !Directory.Exists(fullDir))
+            {
+                continue;
+            }
+
+            if (TryFindFileByName(fullDir, fileName, out resolvedPath))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryRemapUserProfilePath(string path, out string resolvedPath)
+    {
+        resolvedPath = string.Empty;
+        if (!Path.IsPathRooted(path))
+        {
+            return false;
+        }
+
+        string userProfileParent = Path.GetDirectoryName(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) ?? string.Empty;
+        if (string.IsNullOrEmpty(userProfileParent)
+            || !path.StartsWith(userProfileParent, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        string afterUsersDir = path[(userProfileParent.Length + 1)..];
+        int slashIdx = afterUsersDir.IndexOf(Path.DirectorySeparatorChar);
+        if (slashIdx <= 0)
+        {
+            return false;
+        }
+
+        string relativePart = afterUsersDir[(slashIdx + 1)..];
+        string candidate = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            relativePart);
+        if (!File.Exists(candidate))
+        {
+            return false;
+        }
+
+        resolvedPath = candidate;
+        return true;
+    }
+
+    private static bool TryFindFileByName(string searchDir, string fileName, out string resolvedPath)
+    {
+        resolvedPath = string.Empty;
+        string candidate = Path.Combine(searchDir, fileName);
+        if (File.Exists(candidate))
+        {
+            resolvedPath = candidate;
+            return true;
+        }
+
+        try
+        {
+            foreach (string subDir in Directory.EnumerateDirectories(searchDir))
+            {
+                candidate = Path.Combine(subDir, fileName);
+                if (File.Exists(candidate))
+                {
+                    resolvedPath = candidate;
+                    return true;
+                }
+            }
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+
+        return false;
+    }
+
+    private static string? TryGetDatabaseDirectory(Database db)
+    {
+        try
+        {
+            string? fileName = db.Filename;
+            return string.IsNullOrWhiteSpace(fileName) ? null : Path.GetDirectoryName(fileName);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private static bool TryFindFileWithAcad(Database db, string fileSpec, FindFileHint hint, out string foundPath)
+    {
+        foundPath = string.Empty;
+        try
+        {
+            string result = HostApplicationServices.Current.FindFile(fileSpec, db, hint);
+            if (string.IsNullOrEmpty(result) || !File.Exists(result))
+            {
+                return false;
+            }
+
+            foundPath = result;
+            return true;
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception ex)
+            when (ex.ErrorStatus is Autodesk.AutoCAD.Runtime.ErrorStatus.FilerError
+                or Autodesk.AutoCAD.Runtime.ErrorStatus.FileNotFound
+                or Autodesk.AutoCAD.Runtime.ErrorStatus.FileAccessErr)
+        {
             return false;
         }
     }
