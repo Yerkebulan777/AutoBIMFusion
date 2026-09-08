@@ -41,11 +41,16 @@ function Complete-FinishedProcesses {
         $timedOut = ($now - $item.StartedAt).TotalMinutes -ge $TimeoutMinutes
 
         if ($timedOut -and -not $item.Process.HasExited) {
-            Stop-Process -Id $item.Process.Id -Force -ErrorAction SilentlyContinue
             $item.TimedOut = $true
+            # Never free a parallel slot while a timed-out worker is still alive.
+            try { Stop-Process -Id $item.Process.Id -Force -ErrorAction Stop }
+            catch { if (-not $item.Process.HasExited) { throw } }
+            if (-not $item.Process.WaitForExit(10000)) {
+                throw "Timed-out AutoCAD PID=$($item.Process.Id) did not exit; refusing to start more workers."
+            }
         }
 
-        if ($item.Process.HasExited -or $item.TimedOut) {
+        if ($item.Process.HasExited) {
             [void]$ActiveProcesses.Remove($item)
             [void]$CompletedProcesses.Add($item)
         }
@@ -128,6 +133,7 @@ function Wait-BeforeExit {
 }
 
 . (Join-Path $scriptRoot 'MergeDwgBatchHost.ps1')
+. (Join-Path $scriptRoot 'MergeDwgRecentDocuments.ps1')
 $installations = @(Get-InstalledBatchAutoCAD -AutoCADRoot $AutoCADRoot)
 $pluginRoots = @(
     (Join-Path $env:APPDATA 'Autodesk\ApplicationPlugins'),
@@ -152,7 +158,7 @@ if ($folders.Count -eq 0) {
     exit 0
 }
 
-$runStamp = Get-Date -Format "yyyyMMdd-HHmmss"
+$runStamp = (Get-Date -Format "yyyyMMdd-HHmmss") + '-' + [guid]::NewGuid().ToString('N')
 $runRoot = Join-Path ([System.IO.Path]::GetTempPath()) "AutoBIMFusion-MERGEDWG-$runStamp"
 $statusRoot = Join-Path $runRoot "status"
 $scriptTempRoot = Join-Path $runRoot "scripts"
@@ -231,7 +237,14 @@ foreach ($item in $items) {
 
     try {
         $arguments = '/nologo /b "{0}"' -f $item.ScriptPath
-        $process = Start-Process -FilePath $acadExe -ArgumentList $arguments -WindowStyle Hidden -PassThru
+        $historyGate = Enter-BatchHistoryGate
+        try {
+            $process = Start-Process -FilePath $acadExe -ArgumentList $arguments -WindowStyle Hidden -PassThru
+        }
+        finally {
+            $historyGate.ReleaseMutex()
+            $historyGate.Dispose()
+        }
         $item.Process = $process
         $item.StartedAt = Get-Date
         [void]$active.Add($item)
@@ -256,6 +269,13 @@ while ($active.Count -gt 0) {
     Complete-FinishedProcesses -ActiveProcesses $active -CompletedProcesses $completed -TimeoutMinutes $TimeoutMinutes
     Start-Sleep -Seconds 2
 }
+
+$historyResult = Clear-BatchRecentDocuments -AutoCADExe $acadExe
+Write-Host "Recent documents: $($historyResult.Status). $($historyResult.Message) Removed: $($historyResult.Removed)"
+try {
+    $historyResult | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runRoot 'recent-documents.json') -Encoding UTF8
+}
+catch { Write-Warning "Cannot write history cleanup report: $($_.Exception.Message)" }
 
 $failures = New-Object System.Collections.ArrayList
 
