@@ -1,4 +1,5 @@
 using AutoBIMFusion.Common.Helpers;
+using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
 using Exception = System.Exception;
 
@@ -7,7 +8,6 @@ namespace AutoBIMFusion.Merge.Combine;
 /// <summary>
 ///     Копирует файлы растровых изображений в папку с целевым DWG
 ///     и обновляет пути RasterImageDef на относительные.
-///     Утилитарные операции делегируются к <see cref="FileUtil" />.
 /// </summary>
 public static class RasterImagePathFixer
 {
@@ -44,6 +44,7 @@ public static class RasterImagePathFixer
 
         _ = Directory.CreateDirectory(targetDir);
 
+        var searchDirs = new[] { targetDir, sourceSearchDir, TryGetDatabaseDirectory(db) };
         Dictionary<string, string> copiedBySourcePath = new(StringComparer.OrdinalIgnoreCase);
         HashSet<string> reservedDestinationPaths = new(StringComparer.OrdinalIgnoreCase);
 
@@ -63,31 +64,23 @@ public static class RasterImagePathFixer
             {
                 if (trx.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def) continue;
 
-                var path = def.SourceFileName;
-                if (string.IsNullOrWhiteSpace(path))
+                var storedPath = def.SourceFileName;
+                if (string.IsNullOrWhiteSpace(storedPath))
                 {
                     log.Warning("RasterImageDef '{Key}': путь не задан", entry.Key);
                     continue;
                 }
 
-                if (!TryResolveDefinitionPath(db, def, path, targetDir, sourceSearchDir, out var resolvedPath,
-                        out var resolveError))
+                if (!TryResolve(db, def, searchDirs, out var resolvedPath))
                 {
-                    if (resolveError is not null)
-                        log.Warning(resolveError, "RasterImageDef '{Key}': ошибка разрешения пути: {Path}", entry.Key, path);
-                    else
-                        log.Warning("RasterImageDef '{Key}': файл не найден: {Path}", entry.Key, path);
-
+                    log.Warning("RasterImageDef '{Key}': файл не найден: {Path}", entry.Key, storedPath);
                     continue;
                 }
 
                 if (copiedBySourcePath.TryGetValue(resolvedPath, out var existingRelativePath)
                     && !string.IsNullOrEmpty(existingRelativePath))
                 {
-                    if (def.IsLoaded)
-                        def.Unload(false);
-                    def.SourceFileName = existingRelativePath;
-                    def.Load();
+                    Relink(def, existingRelativePath);
                     continue;
                 }
 
@@ -100,10 +93,7 @@ public static class RasterImagePathFixer
 
                 _ = reservedDestinationPaths.Add(uniqueDestPath);
                 copiedBySourcePath[resolvedPath] = uniqueFileName;
-                if (def.IsLoaded)
-                    def.Unload(false);
-                def.SourceFileName = uniqueFileName; // относительный путь к папке DWG
-                def.Load(); // Правило 2: загружаем определение после смены пути
+                Relink(def, uniqueFileName);
             }
             catch (Exception ex)
             {
@@ -113,24 +103,153 @@ public static class RasterImagePathFixer
         trx.Commit();
     }
 
-    private static bool TryResolveDefinitionPath(Database db, RasterImageDef def, string sourceFileName,
-        string targetDir, string? sourceSearchDir, out string resolvedPath, out Exception? resolveError)
+    /// <summary>
+    ///     Ищет файл на диске по сохранённому пути или по имени рядом с исходным DWG.
+    ///     Нужен, когда RasterImageDef указывает на уже удалённый %TEMP%\RBF-* кэш.
+    /// </summary>
+    internal static bool TryResolveOnDisk(string path, IEnumerable<string?> searchDirs, out string resolvedPath)
     {
-        if (FileUtil.TryResolveImagePath(db, sourceFileName, targetDir, out resolvedPath, out resolveError,
-                sourceSearchDir))
+        resolvedPath = string.Empty;
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+
+        if (Path.IsPathRooted(path) && File.Exists(path))
         {
+            resolvedPath = path;
             return true;
         }
 
-        var activePath = TryGetActiveFileName(def);
-        if (string.IsNullOrWhiteSpace(activePath)
-            || string.Equals(activePath, sourceFileName, StringComparison.OrdinalIgnoreCase))
-        {
+        if (TryRemapUserProfilePath(path, out resolvedPath))
+            return true;
+
+        var fileName = Path.GetFileName(path);
+        if (string.IsNullOrWhiteSpace(fileName))
             return false;
+
+        foreach (var dir in DistinctExistingDirectories(searchDirs))
+        {
+            var direct = Path.Combine(dir, fileName);
+            if (File.Exists(direct))
+            {
+                resolvedPath = direct;
+                return true;
+            }
+
+            try
+            {
+                foreach (var subDir in Directory.EnumerateDirectories(dir))
+                {
+                    var nested = Path.Combine(subDir, fileName);
+                    if (!File.Exists(nested)) continue;
+                    resolvedPath = nested;
+                    return true;
+                }
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
         }
 
-        return FileUtil.TryResolveImagePath(db, activePath, targetDir, out resolvedPath, out resolveError,
-            sourceSearchDir);
+        return false;
+    }
+
+    private static bool TryResolve(Database db, RasterImageDef def, IEnumerable<string?> searchDirs,
+        out string resolvedPath)
+    {
+        string? fileName = null;
+        foreach (var candidate in CandidatePaths(def))
+        {
+            fileName ??= Path.GetFileName(candidate);
+            if (TryResolveOnDisk(candidate, searchDirs, out resolvedPath))
+                return true;
+        }
+
+        resolvedPath = string.Empty;
+        return !string.IsNullOrWhiteSpace(fileName) && TryFindWithAcad(db, fileName, out resolvedPath);
+    }
+
+    private static IEnumerable<string> CandidatePaths(RasterImageDef def)
+    {
+        if (!string.IsNullOrWhiteSpace(def.SourceFileName))
+            yield return def.SourceFileName;
+
+        var active = TryGetActiveFileName(def);
+        if (!string.IsNullOrWhiteSpace(active)
+            && !string.Equals(active, def.SourceFileName, StringComparison.OrdinalIgnoreCase))
+            yield return active;
+    }
+
+    private static IEnumerable<string> DistinctExistingDirectories(IEnumerable<string?> dirs)
+    {
+        HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
+        foreach (var dir in dirs)
+        {
+            if (string.IsNullOrWhiteSpace(dir)) continue;
+
+            string fullDir;
+            try
+            {
+                fullDir = Path.GetFullPath(dir);
+            }
+            catch (Exception)
+            {
+                continue;
+            }
+
+            if (seen.Add(fullDir) && Directory.Exists(fullDir))
+                yield return fullDir;
+        }
+    }
+
+    private static void Relink(RasterImageDef def, string relativePath)
+    {
+        if (def.IsLoaded)
+            def.Unload(false);
+        def.SourceFileName = relativePath;
+        def.Load();
+    }
+
+    private static bool TryRemapUserProfilePath(string path, out string resolvedPath)
+    {
+        resolvedPath = string.Empty;
+        if (!Path.IsPathRooted(path))
+            return false;
+
+        var userProfileParent = Path.GetDirectoryName(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) ?? string.Empty;
+        if (string.IsNullOrEmpty(userProfileParent)
+            || !path.StartsWith(userProfileParent, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var afterUsersDir = path[(userProfileParent.Length + 1)..];
+        var slashIdx = afterUsersDir.IndexOf(Path.DirectorySeparatorChar);
+        if (slashIdx <= 0)
+            return false;
+
+        var candidate = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            afterUsersDir[(slashIdx + 1)..]);
+        if (!File.Exists(candidate))
+            return false;
+
+        resolvedPath = candidate;
+        return true;
+    }
+
+    private static string? TryGetDatabaseDirectory(Database db)
+    {
+        try
+        {
+            var fileName = db.Filename;
+            return string.IsNullOrWhiteSpace(fileName) ? null : Path.GetDirectoryName(fileName);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
     private static string? TryGetActiveFileName(RasterImageDef def)
@@ -145,4 +264,33 @@ public static class RasterImagePathFixer
             return null;
         }
     }
+
+    private static bool TryFindWithAcad(Database db, string fileName, out string foundPath)
+    {
+        foundPath = string.Empty;
+        FindFileHint[] hints = [FindFileHint.EmbeddedImageFile, FindFileHint.Default];
+        foreach (var hint in hints)
+        {
+            try
+            {
+                var result = HostApplicationServices.Current.FindFile(fileName, db, hint);
+                if (string.IsNullOrEmpty(result) || !File.Exists(result))
+                    continue;
+
+                foundPath = result;
+                return true;
+            }
+            catch (Exception ex) when (IsMissingRaster(ex))
+            {
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsMissingRaster(Exception ex) =>
+        ex is Autodesk.AutoCAD.Runtime.Exception acad
+        && acad.ErrorStatus is ErrorStatus.FilerError
+            or ErrorStatus.FileNotFound
+            or ErrorStatus.FileAccessErr;
 }

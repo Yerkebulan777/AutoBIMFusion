@@ -1,4 +1,4 @@
-using AutoBIMFusion.Common.Helpers;
+using AutoBIMFusion.Merge.Combine;
 using AutoBIMFusion.Merge.Combine.Layouts;
 
 return TestRunner.Run(
@@ -33,69 +33,39 @@ return TestRunner.Run(
         TestRunner.AssertEqual(ViewportTransformer.ModelEntitySelection.Selected, decision);
     })),
     ("Resolves Cyrillic raster by name when RBF temp path is gone", () =>
-    {
-        WithTempDir(root =>
-        {
-            var sourceDir = Path.Combine(root, "source");
-            _ = Directory.CreateDirectory(sourceDir);
-            var fileName = "ST_01_01_S2_KJ_отсоединено-П-образныйстержень-6938401.png";
-            var realImage = Path.Combine(sourceDir, fileName);
-            File.WriteAllBytes(realImage, [0x89, 0x50, 0x4E, 0x47]);
-            var deadRbfPath = Path.Combine(
-                Path.GetTempPath(),
-                "RBF-293a18f3fcde49c08ad711a06c09f833",
-                fileName);
-
-            var found = FileUtil.TryResolveImagePathOnDisk(deadRbfPath, [sourceDir], out var resolved);
-
-            TestRunner.AssertEqual(true, found);
-            TestRunner.AssertEqual(Path.GetFullPath(realImage), Path.GetFullPath(resolved));
-        });
-    }),
+        AssertDiskResolve("ST_01_01_S2_KJ_отсоединено-П-образныйстержень-6938401.png", imageSubdir: null, expectFound: true)),
     ("Resolves raster one subdirectory below the source DWG", () =>
-    {
-        WithTempDir(root =>
-        {
-            var sourceDir = Path.Combine(root, "source");
-            var imageDir = Path.Combine(sourceDir, "images");
-            _ = Directory.CreateDirectory(imageDir);
-            var realImage = Path.Combine(imageDir, "sheet.png");
-            File.WriteAllBytes(realImage, [0x89, 0x50, 0x4E, 0x47]);
-            var deadRbfPath = Path.Combine(Path.GetTempPath(), "RBF-dead", "sheet.png");
-
-            var found = FileUtil.TryResolveImagePathOnDisk(deadRbfPath, [sourceDir], out var resolved);
-
-            TestRunner.AssertEqual(true, found);
-            TestRunner.AssertEqual(Path.GetFullPath(realImage), Path.GetFullPath(resolved));
-        });
-    }),
+        AssertDiskResolve("sheet.png", "images", true)),
     ("Missing raster next to source DWG stays unresolved", () =>
-    {
-        WithTempDir(root =>
-        {
-            var sourceDir = Path.Combine(root, "source");
-            _ = Directory.CreateDirectory(sourceDir);
-            var deadRbfPath = Path.Combine(Path.GetTempPath(), "RBF-dead", "missing.png");
-
-            var found = FileUtil.TryResolveImagePathOnDisk(deadRbfPath, [sourceDir], out var resolved);
-
-            TestRunner.AssertEqual(false, found);
-            TestRunner.AssertEqual(string.Empty, resolved);
-        });
-    }));
+        AssertDiskResolve("missing.png", imageSubdir: null, expectFound: false)));
 
 static Extents3d Bounds(double minX, double minY, double maxX, double maxY)
 {
     return new Extents3d(new Point3d(minX, minY, 0), new Point3d(maxX, maxY, 0));
 }
 
-static void WithTempDir(Action<string> body)
+static void AssertDiskResolve(string fileName, string? imageSubdir, bool expectFound)
 {
     var root = Path.Combine(Path.GetTempPath(), "abf-raster-" + Guid.NewGuid().ToString("N"));
     _ = Directory.CreateDirectory(root);
     try
     {
-        body(root);
+        var sourceDir = Path.Combine(root, "source");
+        var imageDir = imageSubdir is null ? sourceDir : Path.Combine(sourceDir, imageSubdir);
+        _ = Directory.CreateDirectory(imageDir);
+        var realImage = Path.Combine(imageDir, fileName);
+        if (expectFound)
+            File.WriteAllBytes(realImage, [0x89, 0x50, 0x4E, 0x47]);
+
+        var found = RasterImagePathFixer.TryResolveOnDisk(
+            Path.Combine(Path.GetTempPath(), "RBF-dead", fileName),
+            [sourceDir],
+            out var resolved);
+
+        TestRunner.AssertEqual(expectFound, found);
+        TestRunner.AssertEqual(
+            expectFound ? Path.GetFullPath(realImage) : string.Empty,
+            expectFound ? Path.GetFullPath(resolved) : resolved);
     }
     finally
     {
