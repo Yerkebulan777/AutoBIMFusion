@@ -69,6 +69,11 @@ public sealed class CombineCommands
         }
         finally
         {
+            if (!result.Success)
+            {
+                log.Warning("MERGEDWG_BATCH: итог — {Message}", result.Message);
+            }
+
             if (!string.IsNullOrWhiteSpace(statusPath))
             {
                 try
@@ -138,7 +143,13 @@ public sealed class CombineCommands
 
             sw.Stop();
 
-            log.Information("{Command}: завершено, {Stats}, save=\"{SavePath}\", elapsed={Elapsed}", commandName, stats, savePath, sw.Elapsed);
+            string outcome = stats.Failed > 0
+                ? "завершено с ошибками обработки файлов"
+                : stats.Skipped > 0 ? "завершено с пропусками файлов" : "обработка файлов завершена успешно";
+            log.ForContext("SourceContext", "AutoBIMFusion.ExecutionSummary")
+                .Write(stats.Failed > 0 ? Serilog.Events.LogEventLevel.Warning : Serilog.Events.LogEventLevel.Information,
+                    "{Command}: итог — {Outcome}; {Stats}; save=\"{SavePath}\"; elapsed={Elapsed}",
+                    commandName, outcome, stats, savePath, sw.Elapsed);
 
             if (showDialogs)
             {

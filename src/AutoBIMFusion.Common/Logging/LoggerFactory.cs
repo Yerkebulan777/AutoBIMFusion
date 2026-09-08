@@ -61,6 +61,7 @@ public static class LoggerFactory
 
             return new LoggerConfiguration()
                 .MinimumLevel.Is(level)
+                .MinimumLevel.Override("AutoBIMFusion.ExecutionSummary", LogEventLevel.Information)
                 .Enrich.WithProperty("ProcessId", Environment.ProcessId)
                 .Enrich.With<ThreadIdEnricher>()
                 .WriteTo.File(
@@ -81,6 +82,7 @@ public static class LoggerFactory
 
             return new LoggerConfiguration()
                 .MinimumLevel.Is(level)
+                .MinimumLevel.Override("AutoBIMFusion.ExecutionSummary", LogEventLevel.Information)
                 .WriteTo.Sink(new DiagnosticSink())
                 .CreateLogger();
         }
