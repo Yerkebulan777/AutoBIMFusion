@@ -11,7 +11,7 @@ public static class LoggerFactory
 {
     private static readonly Lazy<Logger> SharedLogger = new(CreateLogger);
 
-    private const LogEventLevel Level = LogEventLevel.Debug;
+    private const LogEventLevel DefaultLevel = LogEventLevel.Warning;
     private const long MaxFileSizeBytes = 10L * 1024 * 1024;
     private const int MaxRetainedFiles = 5;
 
@@ -31,8 +31,6 @@ public static class LoggerFactory
 
         string logsDir = Path.Combine(documentsPath, "AutoBIMFusion", "Logs");
 
-        Console.WriteLine(logsDir);
-
         if (!Directory.Exists(logsDir))
         {
             Directory.CreateDirectory(logsDir);
@@ -48,6 +46,13 @@ public static class LoggerFactory
 
     private static Logger CreateLogger()
     {
+        // Detailed logging is opt-in, including in Debug builds.
+        string? configuredLevel = Environment.GetEnvironmentVariable("LOG_LEVEL")?.Trim();
+        LogEventLevel level = Enum.TryParse(configuredLevel, true, out LogEventLevel parsedLevel)
+            && Enum.IsDefined(typeof(LogEventLevel), parsedLevel)
+            ? parsedLevel
+            : DefaultLevel;
+
         try
         {
             string logsDir = GetLogsDirectory();
@@ -55,7 +60,7 @@ public static class LoggerFactory
             string logFile = Path.Combine(logsDir, BuildLogFileName());
 
             return new LoggerConfiguration()
-                .MinimumLevel.Is(Level)
+                .MinimumLevel.Is(level)
                 .Enrich.WithProperty("ProcessId", Environment.ProcessId)
                 .Enrich.With<ThreadIdEnricher>()
                 .WriteTo.File(
@@ -75,7 +80,7 @@ public static class LoggerFactory
             Debug.WriteLine($"[AutoBIMFusion] Logger init failed: {ex}");
 
             return new LoggerConfiguration()
-                .MinimumLevel.Is(Level)
+                .MinimumLevel.Is(level)
                 .WriteTo.Sink(new DiagnosticSink())
                 .CreateLogger();
         }

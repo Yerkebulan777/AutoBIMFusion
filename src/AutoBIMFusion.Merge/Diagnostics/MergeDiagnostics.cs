@@ -102,18 +102,13 @@ public static class MergeDiagnostics
         string eventName,
         IReadOnlyDictionary<string, object?>? properties = null)
     {
-        if (context is null)
+        if (context is null || !IsEnabled())
         {
             return;
         }
 
         string json = BuildEventJson(context, eventName, properties);
         LoggerFactory.GetSharedLogger().Information("{DiagnosticLine}", BuildEventLogLine(eventName, json));
-
-        if (!IsEnabled())
-        {
-            return;
-        }
 
         string? path = GetCurrentDiagnosticFilePath();
         if (string.IsNullOrWhiteSpace(path))

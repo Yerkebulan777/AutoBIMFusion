@@ -56,8 +56,16 @@ Invoke-CoreScript -Name 'fixture' -Lines @(
 if (-not (Test-Path -LiteralPath $fixture)) { throw 'Fixture DWG was not created.' }
 
 $statusPath = Join-Path $runRoot 'status.json'
-Invoke-CoreScript -Name 'merge' -Lines @('FILEDIA', '0', 'SECURELOAD', '0', 'NETLOAD', $pluginPath,
-    'MERGEDWG_BATCH', $inputRoot, $statusPath, '._QUIT', '_Y', '')
+# This smoke test requires a successful-run record; normal logging starts at Warning.
+$previousLogLevel = $env:LOG_LEVEL
+try {
+    $env:LOG_LEVEL = 'Information'
+    Invoke-CoreScript -Name 'merge' -Lines @('FILEDIA', '0', 'SECURELOAD', '0', 'NETLOAD', $pluginPath,
+        'MERGEDWG_BATCH', $inputRoot, $statusPath, '._QUIT', '_Y', '')
+}
+finally {
+    $env:LOG_LEVEL = $previousLogLevel
+}
 $status = Get-Content -LiteralPath $statusPath -Raw | ConvertFrom-Json
 if (-not $status.success -or -not (Test-Path -LiteralPath $status.savePath)) {
     throw "Merge failed: $($status.message)"
