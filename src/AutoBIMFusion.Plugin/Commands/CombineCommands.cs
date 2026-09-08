@@ -77,7 +77,7 @@ public sealed class CombineCommands
             {
                 try
                 {
-                    WriteBatchStatus(statusPath, sourceFolder ?? string.Empty, result, startedAt, DateTimeOffset.Now);
+                    WriteBatchStatus(statusPath!, sourceFolder ?? string.Empty, result, startedAt, DateTimeOffset.Now);
                 }
                 catch (Exception ex)
                 {

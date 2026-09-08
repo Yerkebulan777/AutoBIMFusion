@@ -192,7 +192,7 @@ public static class MergeDiagnostics
             return false;
         }
 
-        return value.Trim().ToUpperInvariant() switch
+        return value!.Trim().ToUpperInvariant() switch
         {
             "1" or "TRUE" or "YES" or "ON" => true,
             _ => false

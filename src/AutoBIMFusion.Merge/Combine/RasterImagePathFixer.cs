@@ -168,7 +168,9 @@ public static class RasterImagePathFixer
         }
 
         resolvedPath = string.Empty;
-        return !string.IsNullOrWhiteSpace(fileName) && TryFindWithAcad(db, fileName, out resolvedPath);
+        return fileName is string name
+            && !string.IsNullOrWhiteSpace(name)
+            && TryFindWithAcad(db, name, out resolvedPath);
     }
 
     private static IEnumerable<string> CandidatePaths(RasterImageDef def)
@@ -176,8 +178,8 @@ public static class RasterImagePathFixer
         if (!string.IsNullOrWhiteSpace(def.SourceFileName))
             yield return def.SourceFileName;
 
-        var active = TryGetActiveFileName(def);
-        if (!string.IsNullOrWhiteSpace(active)
+        if (TryGetActiveFileName(def) is string active
+            && !string.IsNullOrWhiteSpace(active)
             && !string.Equals(active, def.SourceFileName, StringComparison.OrdinalIgnoreCase))
             yield return active;
     }

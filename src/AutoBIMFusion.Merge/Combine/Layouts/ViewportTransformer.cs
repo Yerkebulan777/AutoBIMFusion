@@ -15,9 +15,6 @@ namespace AutoBIMFusion.Merge.Combine.Layouts;
 /// </summary>
 internal static class ViewportTransformer
 {
-    private const double HugeEntityDiagonalRatio = 3.0;
-    private const double SmallEntityDiagonalThreshold = 100.0;
-
     /// <summary>
     ///     Матрица переноса «модель aux-VP → модель main-VP».
     /// </summary>
@@ -351,39 +348,17 @@ internal static class ViewportTransformer
         Extents3d mainWindow,
         Extents3d entityExtents)
     {
-        if (!ExtentsUtils.AabbIntersect(window, entityExtents))
-        {
-            return ModelEntitySelection.OutsideWindow;
-        }
-
-        var entityDiagonal = entityExtents.MinPoint.DistanceTo(entityExtents.MaxPoint);
-
-        if (entityDiagonal <= SmallEntityDiagonalThreshold
-            && !AabbContainsXY(window, entityExtents))
-        {
-            return ModelEntitySelection.SmallPartialOutsideWindow;
-        }
-
-        var windowDiagonal = window.MinPoint.DistanceTo(window.MaxPoint);
-
-        // Большой объект главного VP не должен становиться контентом aux VP.
-        if (windowDiagonal > 0
-            && entityDiagonal > windowDiagonal * HugeEntityDiagonalRatio
-            && ExtentsUtils.AabbIntersect(mainWindow, entityExtents))
-        {
-            return ModelEntitySelection.HugeInMainWindow;
-        }
-
-        return ModelEntitySelection.Selected;
+        return ViewportEntityClassifier.Classify(ToAabb(window), ToAabb(mainWindow), ToAabb(entityExtents));
     }
 
-    private static bool AabbContainsXY(Extents3d outer, Extents3d inner, double tolerance = 1e-6)
-    {
-        return inner.MinPoint.X >= outer.MinPoint.X - tolerance
-               && inner.MaxPoint.X <= outer.MaxPoint.X + tolerance
-               && inner.MinPoint.Y >= outer.MinPoint.Y - tolerance
-               && inner.MaxPoint.Y <= outer.MaxPoint.Y + tolerance;
-    }
+    private static ViewportAabb ToAabb(Extents3d extents)
+        => new(
+            extents.MinPoint.X,
+            extents.MinPoint.Y,
+            extents.MinPoint.Z,
+            extents.MaxPoint.X,
+            extents.MaxPoint.Y,
+            extents.MaxPoint.Z);
 
     /// <summary>
     ///     Удаляет из модели оригинальные объекты вспомогательного VP, которые НЕ входят в окно
@@ -445,14 +420,6 @@ internal static class ViewportTransformer
         {
             SelectedIds.Dispose();
         }
-    }
-
-    internal enum ModelEntitySelection
-    {
-        Selected,
-        OutsideWindow,
-        SmallPartialOutsideWindow,
-        HugeInMainWindow
     }
 
     /// <summary>
