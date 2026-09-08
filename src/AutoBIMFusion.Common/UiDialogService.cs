@@ -50,7 +50,13 @@ public static class UiDialogService
 
     private static Type? ResolveWinFormsType(string typeName)
     {
-        Type? type = Type.GetType($"{typeName}, System.Windows.Forms", false);
+#if NETFRAMEWORK
+        // A cold .NET Framework host needs the full identity to resolve WinForms from the GAC.
+        const string assemblyName = "System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089";
+#else
+        const string assemblyName = "System.Windows.Forms";
+#endif
+        Type? type = Type.GetType($"{typeName}, {assemblyName}", false);
 
         if (type is not null)
         {
@@ -59,7 +65,7 @@ public static class UiDialogService
 
         try
         {
-            Assembly assembly = Assembly.Load("System.Windows.Forms");
+            Assembly assembly = Assembly.Load(assemblyName);
             return assembly.GetType(typeName, false);
         }
         catch

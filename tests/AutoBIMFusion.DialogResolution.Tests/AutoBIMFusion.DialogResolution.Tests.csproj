@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/AutoBIMFusion.Common/UiDialogService.cs" Link="UiDialogService.cs" />
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" Condition="'$(LegacyAutoCAD)' != 'true' And '$(CoreConsoleDiagnostics)' != 'true'" />
+  </ItemGroup>
+</Project>
