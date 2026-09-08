@@ -1,6 +1,7 @@
 param(
-    [string]$AutoCADRoot = "C:\Program Files\Autodesk\AutoCAD 2026",
-    [string]$Configuration = "DebugA26",
+    [string]$AutoCADRoot,
+    [ValidatePattern('^(Debug|Release)A(19|2[0-7])$')]
+    [string]$Configuration,
     [int]$MaxParallel = 1,
     [int]$StartDelaySeconds = 3,
     [int]$TimeoutMinutes = 120,
@@ -98,7 +99,6 @@ function New-AutoCadScript {
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent $scriptRoot
 $workRoot = (Get-Location).ProviderPath
-$acadExe = Join-Path $AutoCADRoot "acad.exe"
 $outputSuffix = -join ([int[]](45, 1089, 1073, 1086, 1088, 1082, 1072) | ForEach-Object { [char]$_ })
 $successMessage = -join ([int[]](1042, 1089, 1077, 32, 1087, 1072, 1087, 1082, 1080, 32, 1091, 1089, 1087, 1077, 1096, 1085, 1086, 32, 1086, 1073, 1088, 1072, 1073, 1086, 1090, 1072, 1085, 1099, 46) | ForEach-Object { [char]$_ })
 
@@ -127,9 +127,19 @@ function Wait-BeforeExit {
     }
 }
 
-if (-not (Test-Path -LiteralPath $acadExe -PathType Leaf)) {
-    throw "AutoCAD was not found: $acadExe"
-}
+. (Join-Path $scriptRoot 'MergeDwgBatchHost.ps1')
+$installations = @(Get-InstalledBatchAutoCAD -AutoCADRoot $AutoCADRoot)
+$pluginRoots = @(
+    (Join-Path $env:APPDATA 'Autodesk\ApplicationPlugins'),
+    (Join-Path $env:ProgramData 'Autodesk\ApplicationPlugins'),
+    (Join-Path $env:ProgramFiles 'Autodesk\ApplicationPlugins')
+)
+$batchHost = Find-MergeDwgBatchHost -Installations $installations -ApplicationPluginsRoots $pluginRoots -Configuration $Configuration
+$acadExe = $batchHost.Exe
+$pluginPath = $batchHost.PluginPath
+$buildRequested = -not [string]::IsNullOrWhiteSpace($Configuration) -and -not $SkipBuild
+Write-Host "Selected AutoCAD $($batchHost.Year): $acadExe"
+Write-Host "Installed plugin: $pluginPath"
 
 $folders = @(Get-ChildItem -LiteralPath $workRoot -Directory |
     Where-Object { -not $_.Name.Contains('#') } |
@@ -147,8 +157,11 @@ $runRoot = Join-Path ([System.IO.Path]::GetTempPath()) "AutoBIMFusion-MERGEDWG-$
 $statusRoot = Join-Path $runRoot "status"
 $scriptTempRoot = Join-Path $runRoot "scripts"
 $tempApplicationPluginsRoot = Join-Path $runRoot "ApplicationPlugins"
-$buildSettings = & (Join-Path $scriptRoot 'Get-AutoCADBuildSettings.ps1') -Configuration $Configuration
-$pluginPath = $buildSettings.TargetPath
+if ($buildRequested) {
+    $buildSettings = & (Join-Path $scriptRoot 'Get-AutoCADBuildSettings.ps1') -Configuration $Configuration
+    $pluginPath = $buildSettings.TargetPath
+    Write-Host "Build requested: $Configuration; plugin: $pluginPath"
+}
 
 New-Item -ItemType Directory -Path $statusRoot, $scriptTempRoot, $tempApplicationPluginsRoot -Force | Out-Null
 
@@ -189,7 +202,7 @@ if ($WhatIf) {
     exit 0
 }
 
-if (-not $SkipBuild) {
+if ($buildRequested) {
     Push-Location $repoRoot
     try {
         & dotnet build "AutoBIMFusion.slnx" -c $Configuration "-p:AutoCADUserPluginsDir=$tempApplicationPluginsRoot\"
@@ -218,7 +231,7 @@ foreach ($item in $items) {
 
     try {
         $arguments = '/nologo /b "{0}"' -f $item.ScriptPath
-        $process = Start-Process -FilePath $acadExe -ArgumentList $arguments -WindowStyle Minimized -PassThru
+        $process = Start-Process -FilePath $acadExe -ArgumentList $arguments -WindowStyle Hidden -PassThru
         $item.Process = $process
         $item.StartedAt = Get-Date
         [void]$active.Add($item)

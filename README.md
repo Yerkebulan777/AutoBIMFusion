@@ -26,18 +26,20 @@ C:\Users\y.zhumabayev\Repository\AutoBIMFusion\tools\Start-MergeDwgBatch.ps1
 > Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 > ```
 
-Скрипт сам собирает плагин (`dotnet build`), запускает AutoCAD для каждой папки и создаёт рядом папку с суффиксом `-сборка` с итоговым DWG.
+Скрипт находит установленные AutoCAD 2019–2027 через реестр и стандартные каталоги Autodesk (также учитывает `ACAD_HOME`). Перебирает версии от новых к старым и выбирает первую с установленным совместимым AutoBIMFusion: проверяет `SeriesMin`/`SeriesMax` в `PackageContents.xml` и наличие DLL плагина и его основных зависимостей. Плагин ищется в `Autodesk\ApplicationPlugins` внутри `%AppData%`, `%ProgramData%` и `%ProgramFiles%`.
+
+По умолчанию используется установленный плагин, без сборки и необходимости в .NET SDK. Скрипт выводит выбранный AutoCAD и путь к DLL, запускает AutoCAD для каждой папки и создаёт рядом папку с суффиксом `-сборка` с итоговым DWG. Если подходящей пары нет, сообщает причину. Для пересборки из исходников укажите `-Configuration`, соответствующую установленному AutoCAD и плагину.
 
 **Параметры:**
 
 | Параметр | Описание |
 |---|---|
 | `-WhatIf` | Показать, какие папки будут обработаны, без запуска AutoCAD |
-| `-SkipBuild` | Пропустить сборку (если плагин уже собран) |
+| `-SkipBuild` | Использовать установленный плагин даже при указании `-Configuration` |
 | `-MaxParallel 2` | Максимум параллельных процессов AutoCAD |
 | `-StartDelaySeconds 10` | Задержка между стартами процессов |
-| `-AutoCADRoot "C:\Program Files\Autodesk\AutoCAD 2027"` | Путь к AutoCAD |
-| `-Configuration DebugA27` | Конфигурация сборки |
+| `-AutoCADRoot "C:\Program Files\Autodesk\AutoCAD 2027"` | Проверить только этот AutoCAD; совместимый установленный плагин обязателен |
+| `-Configuration DebugA27` | Выбрать AutoCAD 2027 и пересобрать плагин; с `-SkipBuild` только ограничить выбор года |
 | `-TimeoutMinutes 120` | Таймаут на один процесс |
 
 ## Сборка
