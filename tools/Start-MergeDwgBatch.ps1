@@ -132,6 +132,7 @@ if (-not (Test-Path -LiteralPath $acadExe -PathType Leaf)) {
 }
 
 $folders = @(Get-ChildItem -LiteralPath $workRoot -Directory |
+    Where-Object { -not $_.Name.Contains('#') } |
     Where-Object { -not $_.Name.EndsWith($outputSuffix, [System.StringComparison]::OrdinalIgnoreCase) } |
     Where-Object { Test-ContainsDwg -FolderPath $_.FullName } |
     Sort-Object Name)
