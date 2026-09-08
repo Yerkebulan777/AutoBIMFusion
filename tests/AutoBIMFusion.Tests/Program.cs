@@ -37,7 +37,23 @@ return TestRunner.Run(
     ("Resolves raster one subdirectory below the source DWG", () =>
         AssertDiskResolve("sheet.png", "images", true)),
     ("Missing raster next to source DWG stays unresolved", () =>
-        AssertDiskResolve("missing.png", imageSubdir: null, expectFound: false)));
+        AssertDiskResolve("missing.png", imageSubdir: null, expectFound: false)),
+    ("Relative raster path stays inside the DWG folder", () =>
+    {
+        var root = Path.Combine(Path.GetTempPath(), "abf-rel-" + Guid.NewGuid().ToString("N"));
+        var dwgDir = Path.Combine(root, "assembly");
+        var image = Path.Combine(dwgDir, "sheet.png");
+        var nested = Path.Combine(dwgDir, "images", "nested.png");
+        var outside = Path.Combine(root, "other", "away.png");
+
+        TestRunner.AssertEqual(true, RasterImagePathFixer.TryMakeRelativePath(dwgDir, image, out var sameFolder));
+        TestRunner.AssertEqual("sheet.png", sameFolder);
+        TestRunner.AssertEqual(true, RasterImagePathFixer.TryMakeRelativePath(dwgDir, nested, out var nestedRel));
+        TestRunner.AssertEqual(Path.Combine("images", "nested.png"), nestedRel);
+        TestRunner.AssertEqual(false, RasterImagePathFixer.TryMakeRelativePath(dwgDir, outside, out _));
+        TestRunner.AssertEqual(false,
+            RasterImagePathFixer.TryMakeRelativePath(dwgDir, Path.Combine(root, "assembly-other", "x.png"), out _));
+    }));
 
 static void AssertDiskResolve(string fileName, string? imageSubdir, bool expectFound)
 {

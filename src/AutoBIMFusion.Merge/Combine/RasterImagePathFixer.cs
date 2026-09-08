@@ -6,8 +6,8 @@ using Exception = System.Exception;
 namespace AutoBIMFusion.Merge.Combine;
 
 /// <summary>
-///     Копирует файлы растровых изображений в папку с целевым DWG
-///     и обновляет пути RasterImageDef на относительные.
+///     Копирует растры в папку целевого DWG и после SaveAs переводит
+///     RasterImageDef.SourceFileName на относительные пути.
 /// </summary>
 public static class RasterImagePathFixer
 {
@@ -32,6 +32,10 @@ public static class RasterImagePathFixer
         }
     }
 
+    /// <summary>
+    ///     Копирует растры рядом с итоговым DWG и ставит абсолютный путь копии.
+    ///     Относительные пути нельзя задавать до SaveAs: у чертежа ещё нет Filename.
+    /// </summary>
     public static void CopyImagesToTargetFolder(Database db, string targetFilePath, Logger log,
         string? sourceSearchDir = null)
     {
@@ -44,63 +48,60 @@ public static class RasterImagePathFixer
 
         _ = Directory.CreateDirectory(targetDir);
 
-        var searchDirs = new[] { targetDir, sourceSearchDir, TryGetDatabaseDirectory(db) };
+        string?[] searchDirs = [targetDir, sourceSearchDir, TryGetDatabaseDirectory(db)];
         Dictionary<string, string> copiedBySourcePath = new(StringComparer.OrdinalIgnoreCase);
         HashSet<string> reservedDestinationPaths = new(StringComparer.OrdinalIgnoreCase);
 
-        using var trx = db.TransactionManager.StartTransaction();
-        var dictId = RasterImageDef.GetImageDictionary(db);
-
-        if (dictId.IsNull)
+        ForEachImageDef(db, log, "не удалось обработать изображение", (def, key) =>
         {
-            trx.Commit();
+            if (!TryResolveExisting(db, def, searchDirs, log, key, out var resolvedPath))
+                return;
+
+            if (copiedBySourcePath.TryGetValue(resolvedPath, out var existingDestPath))
+            {
+                Relink(def, existingDestPath);
+                return;
+            }
+
+            if (!TryCopyBesideDrawing(targetDir, resolvedPath, reservedDestinationPaths, log, key, out var destPath))
+                return;
+
+            copiedBySourcePath[resolvedPath] = destPath;
+            Relink(def, destPath);
+        });
+    }
+
+    /// <summary>
+    ///     Переводит SourceFileName в относительный путь. Вызывать после SaveAs.
+    /// </summary>
+    public static void ConvertPathsToRelative(Database db, string targetFilePath, Logger log)
+    {
+        var drawingPath = string.IsNullOrWhiteSpace(db.Filename) ? targetFilePath : db.Filename;
+        var drawingDir = Path.GetDirectoryName(drawingPath);
+        if (string.IsNullOrEmpty(drawingDir))
+        {
+            log.Warning("RasterImagePathFixer: не удалось определить папку сохранённого DWG");
             return;
         }
 
-        var dict = (DBDictionary)trx.GetObject(dictId, OpenMode.ForRead);
+        ForEachImageDef(db, log, "не удалось задать относительный путь", (def, key) =>
+        {
+            if (!TryResolveExisting(db, def, [drawingDir], log, key, out var resolvedPath))
+                return;
 
-        foreach (var entry in dict)
-            try
+            if (!TryMakeRelativePath(drawingDir, resolvedPath, out var relativePath))
             {
-                if (trx.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def) continue;
-
-                var storedPath = def.SourceFileName;
-                if (string.IsNullOrWhiteSpace(storedPath))
-                {
-                    log.Warning("RasterImageDef '{Key}': путь не задан", entry.Key);
-                    continue;
-                }
-
-                if (!TryResolve(db, def, searchDirs, out var resolvedPath))
-                {
-                    log.Warning("RasterImageDef '{Key}': файл не найден: {Path}", entry.Key, storedPath);
-                    continue;
-                }
-
-                if (copiedBySourcePath.TryGetValue(resolvedPath, out var existingRelativePath)
-                    && !string.IsNullOrEmpty(existingRelativePath))
-                {
-                    Relink(def, existingRelativePath);
-                    continue;
-                }
-
-                var (uniqueDestPath, uniqueFileName) =
-                    FileUtil.BuildUniqueDestination(targetDir, resolvedPath, reservedDestinationPaths);
-
-                if (!string.Equals(Path.GetFullPath(resolvedPath), Path.GetFullPath(uniqueDestPath),
-                        StringComparison.OrdinalIgnoreCase))
-                    File.Copy(resolvedPath, uniqueDestPath, true);
-
-                _ = reservedDestinationPaths.Add(uniqueDestPath);
-                copiedBySourcePath[resolvedPath] = uniqueFileName;
-                Relink(def, uniqueFileName);
-            }
-            catch (Exception ex)
-            {
-                log.Warning(ex, "RasterImageDef '{Key}': не удалось обработать изображение", entry.Key);
+                log.Warning("RasterImageDef '{Key}': файл вне папки DWG, относительный путь не задан: {Path}",
+                    key, resolvedPath);
+                return;
             }
 
-        trx.Commit();
+            if (string.Equals(def.SourceFileName, relativePath, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            Relink(def, relativePath);
+            log.Debug("RasterImageDef '{Key}': {From} → {To}", key, resolvedPath, relativePath);
+        });
     }
 
     /// <summary>
@@ -156,6 +157,108 @@ public static class RasterImagePathFixer
         return false;
     }
 
+    /// <summary>
+    ///     Относительный путь только внутри папки DWG (без '..'): иначе сборка не самодостаточна.
+    /// </summary>
+    internal static bool TryMakeRelativePath(string drawingDir, string imageFullPath, out string relativePath)
+    {
+        relativePath = string.Empty;
+        if (string.IsNullOrWhiteSpace(drawingDir) || string.IsNullOrWhiteSpace(imageFullPath))
+            return false;
+
+        string fromFull;
+        string toFull;
+        try
+        {
+            fromFull = Path.GetFullPath(drawingDir);
+            toFull = Path.GetFullPath(imageFullPath);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+
+        var fromPrefix = fromFull.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                         + Path.DirectorySeparatorChar;
+        if (!toFull.StartsWith(fromPrefix, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var relative = toFull[fromPrefix.Length..];
+        if (string.IsNullOrEmpty(relative))
+            return false;
+
+        relativePath = relative;
+        return true;
+    }
+
+    private static void ForEachImageDef(Database db, Logger log, string failureMessage,
+        Action<RasterImageDef, string> body)
+    {
+        using var trx = db.TransactionManager.StartTransaction();
+        var dict = GetImageDictionary(db, trx);
+        if (dict is null)
+        {
+            trx.Commit();
+            return;
+        }
+
+        UnloadAll(dict, trx);
+
+        foreach (var entry in dict)
+            try
+            {
+                if (trx.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def)
+                    continue;
+
+                body(def, entry.Key);
+            }
+            catch (Exception ex)
+            {
+                log.Warning(ex, "RasterImageDef '{Key}': {Reason}", entry.Key, failureMessage);
+            }
+
+        trx.Commit();
+    }
+
+    private static bool TryResolveExisting(Database db, RasterImageDef def, IEnumerable<string?> searchDirs,
+        Logger log, string key, out string resolvedPath)
+    {
+        resolvedPath = string.Empty;
+        var storedPath = def.SourceFileName;
+        if (string.IsNullOrWhiteSpace(storedPath))
+        {
+            log.Warning("RasterImageDef '{Key}': путь не задан", key);
+            return false;
+        }
+
+        if (TryResolve(db, def, searchDirs, out resolvedPath))
+            return true;
+
+        log.Warning("RasterImageDef '{Key}': файл не найден: {Path}", key, storedPath);
+        return false;
+    }
+
+    private static bool TryCopyBesideDrawing(string targetDir, string resolvedPath,
+        HashSet<string> reservedDestinationPaths, Logger log, string key, out string destPath)
+    {
+        var (uniqueDestPath, _) =
+            FileUtil.BuildUniqueDestination(targetDir, resolvedPath, reservedDestinationPaths);
+
+        if (!PathsEqual(resolvedPath, uniqueDestPath))
+            File.Copy(resolvedPath, uniqueDestPath, true);
+
+        if (!File.Exists(uniqueDestPath))
+        {
+            log.Warning("RasterImageDef '{Key}': копия недоступна: {Path}", key, uniqueDestPath);
+            destPath = string.Empty;
+            return false;
+        }
+
+        _ = reservedDestinationPaths.Add(uniqueDestPath);
+        destPath = uniqueDestPath;
+        return true;
+    }
+
     private static bool TryResolve(Database db, RasterImageDef def, IEnumerable<string?> searchDirs,
         out string resolvedPath)
     {
@@ -206,12 +309,46 @@ public static class RasterImagePathFixer
         }
     }
 
-    private static void Relink(RasterImageDef def, string relativePath)
+    private static DBDictionary? GetImageDictionary(Database db, Transaction trx)
+    {
+        var dictId = RasterImageDef.GetImageDictionary(db);
+        return dictId.IsNull ? null : (DBDictionary)trx.GetObject(dictId, OpenMode.ForRead);
+    }
+
+    private static void UnloadAll(DBDictionary dict, Transaction trx)
+    {
+        foreach (var entry in dict)
+        {
+            if (trx.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def || !def.IsLoaded)
+                continue;
+
+            try
+            {
+                def.Unload(false);
+            }
+            catch (Exception)
+            {
+            }
+        }
+    }
+
+    private static void Relink(RasterImageDef def, string path)
     {
         if (def.IsLoaded)
             def.Unload(false);
-        def.SourceFileName = relativePath;
-        def.Load();
+        def.SourceFileName = path;
+    }
+
+    private static bool PathsEqual(string left, string right)
+    {
+        try
+        {
+            return string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception)
+        {
+            return string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     private static bool TryRemapUserProfilePath(string path, out string resolvedPath)

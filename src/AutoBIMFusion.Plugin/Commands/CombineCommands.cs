@@ -1,5 +1,6 @@
 using AutoBIMFusion.Common;
 using AutoBIMFusion.Common.AcadSupport;
+using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Common.Logging;
 using AutoBIMFusion.Merge.Combine;
@@ -136,6 +137,8 @@ public sealed class CombineCommands
                 RasterImagePathFixer.CopyImagesToTargetFolder(mergeDoc.Database, savePath, log, sourceFolder);
                 DrawingPurger.Optimize(mergeDoc.Database, log);
                 SaveMerged(mergeDoc.Database, savePath);
+                RasterImagePathFixer.ConvertPathsToRelative(mergeDoc.Database, savePath, log);
+                SaveAsMerged(mergeDoc.Database, savePath);
                 TryRunPostMergeViewCommands(mergeDoc, log);
             }
 
@@ -298,8 +301,21 @@ public sealed class CombineCommands
     {
         try
         {
-            mergeDoc.Editor.Command("._REGENALL");
-            mergeDoc.Editor.Command("._ZOOM", "_EXTENTS");
+            if (AcadApp.DocumentManager.MdiActiveDocument != mergeDoc)
+            {
+                AcadApp.DocumentManager.MdiActiveDocument = mergeDoc;
+            }
+
+            Editor editor = mergeDoc.Editor;
+            editor.Regen();
+
+            Extents3d? bounds = ExtentsUtils.ComputeModelSpaceBounds(mergeDoc.Database);
+            if (bounds.HasValue)
+            {
+                bounds.Value.ZoomExtents();
+            }
+
+            editor.UpdateScreen();
         }
         catch (Autodesk.AutoCAD.Runtime.Exception ex)
         {
@@ -359,6 +375,11 @@ public sealed class CombineCommands
             File.Delete(savePath);
         }
 
+        SaveAsMerged(db, savePath);
+    }
+
+    private static void SaveAsMerged(Database db, string savePath)
+    {
         db.SaveAs(savePath, DwgVersion.AC1032);
     }
 
