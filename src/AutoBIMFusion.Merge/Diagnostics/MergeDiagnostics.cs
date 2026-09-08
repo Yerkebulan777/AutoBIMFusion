@@ -61,29 +61,6 @@ public static class MergeDiagnostics
             Path.GetFileName(sourcePath));
     }
 
-    public static IReadOnlyList<T> TakeSample<T>(IEnumerable<T> values, int limit = DefaultSampleLimit)
-    {
-        ArgumentNullException.ThrowIfNull(values);
-
-        if (limit <= 0)
-        {
-            return [];
-        }
-
-        List<T> result = [];
-        foreach (T value in values)
-        {
-            if (result.Count >= limit)
-            {
-                break;
-            }
-
-            result.Add(value);
-        }
-
-        return result;
-    }
-
     public static bool TryAddSample<T>(ICollection<T> samples, T sample, int limit = DefaultSampleLimit)
     {
         ArgumentNullException.ThrowIfNull(samples);
@@ -108,7 +85,6 @@ public static class MergeDiagnostics
         }
 
         string json = BuildEventJson(context, eventName, properties);
-        LoggerFactory.GetSharedLogger().Information("{DiagnosticLine}", BuildEventLogLine(eventName, json));
 
         string? path = GetCurrentDiagnosticFilePath();
         if (string.IsNullOrWhiteSpace(path))
@@ -151,14 +127,6 @@ public static class MergeDiagnostics
         }
     }
 
-    public static string BuildEventLogLine(
-        MergeDiagnosticContext context,
-        string eventName,
-        IReadOnlyDictionary<string, object?>? properties = null)
-    {
-        return BuildEventLogLine(eventName, BuildEventJson(context, eventName, properties));
-    }
-
     public static string BuildEventJson(
         MergeDiagnosticContext context,
         string eventName,
@@ -185,11 +153,6 @@ public static class MergeDiagnostics
         }
 
         return JsonSerializer.Serialize(payload, JsonOptions);
-    }
-
-    private static string BuildEventLogLine(string eventName, string json)
-    {
-        return $"[MERGE_DIAG] {eventName} {json}";
     }
 
     public static IReadOnlyDictionary<string, double> FormatPoint(Point3d point)

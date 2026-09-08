@@ -18,8 +18,6 @@ These are in core business logic (not utility library). Confirmed by grep: no ca
 
 | Symbol | File | Line | Notes |
 |--------|------|------|-------|
-| `AppendDimStyleProperties` | [DimensionStyleDiagnosticUtils.cs](../src/AutoBIMFusion.Merge/Combine/Layouts/DimensionStyleDiagnosticUtils.cs) | 239 | `private static` — duplicate of `FormatUtils.AppendDimStyleProperties` |
-| `AppendProperties` | [DimensionStyleDiagnosticUtils.cs](../src/AutoBIMFusion.Merge/Combine/Layouts/DimensionStyleDiagnosticUtils.cs) | 286 | `private static` — duplicate of `FormatUtils.AppendProperties` |
 | `GetOrCreateStandardDimensionStyle` | [StyleUnificationService.cs](../src/AutoBIMFusion.Merge/Combine/Layouts/StyleUnificationService.cs) | 79 | `internal static` — grep confirms zero callers |
 
 > `ScaleList` (DrawingPurger) appeared in GitNexus index but doesn't exist in source — stale index entry, ignore.

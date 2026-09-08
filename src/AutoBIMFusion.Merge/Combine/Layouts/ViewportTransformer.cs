@@ -282,17 +282,7 @@ internal static class ViewportTransformer
 
             try
             {
-                var oldExt = ExtentsUtils.TryGetExtents(entity);
-
                 _ = EntityTransformUtils.TransformEntity(entity, matrix, trx);
-
-                var newExt = ExtentsUtils.TryGetExtents(entity);
-
-                log.Debug(
-                    "[КЛОН] SourceHandle={SourceHandle} -> ClonedHandle={ClonedHandle}, Type={EntityType}, ExtentsBefore={Before}, ExtentsAfter={After}",
-                    pair.Key, entity.Handle, entity.GetType().Name,
-                    FormatExtentsNullable(oldExt), FormatExtentsNullable(newExt));
-
                 _ = result.ClonedIds.Add(pair.Value);
             }
             catch (Exception ex)
@@ -300,11 +290,8 @@ internal static class ViewportTransformer
                 log.Warning("[ОШИБКА КЛОНА] {EntityType} {Handle}: {Message}", entity.GetType().Name, entity.Handle, ex.Message);
             }
         }
-    }
 
-    private static string FormatExtentsNullable(Extents3d? ext)
-    {
-        return ext.HasValue ? ExtentsUtils.FormatExtents(ext.Value) : "<null>";
+        log.Debug("Clone transform: cloned={Cloned}", result.ClonedIds.Count);
     }
 
     /// <param name="mainWindow">

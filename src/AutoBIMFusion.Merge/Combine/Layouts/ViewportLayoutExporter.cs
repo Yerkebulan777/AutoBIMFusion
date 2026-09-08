@@ -87,13 +87,9 @@ internal static class ViewportLayoutExporter
                 }).ToArray()
             });
 
-            DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "source-before-normalize");
-
             var projection = LayoutProjectionProcessor.ProjectLayoutToModelSpace(db, layoutName, vps, log, diagnosticContext);
 
             if (projection.FrameBounds.HasValue) OutOfFrameEntityCleaner.Clean(db, projection.FrameBounds.Value, log);
-
-            DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "source-after-normalize-before-clone");
 
             return new PreparedSourceDatabase(db, projection.TargetVisualScale, projection.LinearScaleMultiplier);
         }

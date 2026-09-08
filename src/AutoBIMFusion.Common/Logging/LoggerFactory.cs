@@ -3,7 +3,6 @@ using Serilog.Core;
 using Serilog.Events;
 using System.Diagnostics;
 using System.Text;
-using DiagnosticsTrace = System.Diagnostics.Trace;
 
 namespace AutoBIMFusion.Common.Logging;
 
@@ -72,7 +71,6 @@ public static class LoggerFactory
                     retainedFileCountLimit: MaxRetainedFiles,
                     shared: true,
                     outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] (PID:{ProcessId}, TID:{ThreadId}) {Message:lj}{NewLine}{Exception}")
-                .WriteTo.Sink(new DiagnosticSink())
                 .CreateLogger();
         }
         catch (Exception ex)
@@ -83,7 +81,6 @@ public static class LoggerFactory
             return new LoggerConfiguration()
                 .MinimumLevel.Is(level)
                 .MinimumLevel.Override("AutoBIMFusion.ExecutionSummary", LogEventLevel.Information)
-                .WriteTo.Sink(new DiagnosticSink())
                 .CreateLogger();
         }
     }
@@ -126,25 +123,6 @@ public static class LoggerFactory
         {
             _cached ??= propertyFactory.CreateProperty("ThreadId", Environment.CurrentManagedThreadId);
             logEvent.AddPropertyIfAbsent(_cached);
-        }
-    }
-
-    private sealed class DiagnosticSink : ILogEventSink
-    {
-        public void Emit(LogEvent logEvent)
-        {
-            string msg = logEvent.Exception is null
-                ? $"{logEvent.Timestamp:HH:mm:ss.fff} [{logEvent.Level}] {logEvent.RenderMessage()}"
-                : $"{logEvent.Timestamp:HH:mm:ss.fff} [{logEvent.Level}] {logEvent.RenderMessage()}{Environment.NewLine}{logEvent.Exception}";
-
-            if (Debugger.IsAttached)
-            {
-                Debug.WriteLine(msg);
-            }
-            else
-            {
-                DiagnosticsTrace.WriteLine(msg);
-            }
         }
     }
 }

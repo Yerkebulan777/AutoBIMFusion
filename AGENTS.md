@@ -120,7 +120,6 @@ High-blast-radius classes by project:
 - `src/AutoBIMFusion.Merge/Combine/Layouts/LayoutProjectionProcessor.cs`
 - `src/AutoBIMFusion.Merge/Combine/Layouts/ViewportTransformer.cs`
 - `src/AutoBIMFusion.Merge/Combine/Layouts/DimensionStyleNormalizer.cs`
-- `src/AutoBIMFusion.Merge/Combine/Layouts/DimensionStyleDiagnosticUtils.cs`
 - `src/AutoBIMFusion.Common/Helpers/ExtentsUtils.cs`
 - `src/AutoBIMFusion.Common/Logging/LoggerFactory.cs`
 

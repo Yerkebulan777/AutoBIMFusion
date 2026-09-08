@@ -3,7 +3,6 @@ using AutoBIMFusion.Common.AcadSupport;
 using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Common.Logging;
 using AutoBIMFusion.Merge.Combine;
-using AutoBIMFusion.Merge.Combine.Layouts;
 using AutoBIMFusion.Merge.Diagnostics;
 using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
@@ -135,9 +134,8 @@ public sealed class CombineCommands
             using (mergeDoc.LockDocument())
             {
                 RasterImagePathFixer.CopyImagesToTargetFolder(mergeDoc.Database, savePath, log, sourceFolder);
-                DimensionStyleDiagnosticUtils.LogStyleSnapshot(mergeDoc.Database, log, "target-after-merge");
                 DrawingPurger.Optimize(mergeDoc.Database, log);
-                SaveMerged(mergeDoc.Database, savePath, log);
+                SaveMerged(mergeDoc.Database, savePath);
                 TryRunPostMergeViewCommands(mergeDoc, log);
             }
 
@@ -348,7 +346,7 @@ public sealed class CombineCommands
             : Path.Combine(parent.FullName, outputFolderName, outputFileName);
     }
 
-    private static void SaveMerged(Database db, string savePath, Logger log)
+    private static void SaveMerged(Database db, string savePath)
     {
         string? dir = Path.GetDirectoryName(savePath);
         if (!string.IsNullOrEmpty(dir))
@@ -361,7 +359,6 @@ public sealed class CombineCommands
             File.Delete(savePath);
         }
 
-        DimensionStyleDiagnosticUtils.LogStyleSnapshot(db, log, "target-before-save");
         db.SaveAs(savePath, DwgVersion.AC1032);
     }
 

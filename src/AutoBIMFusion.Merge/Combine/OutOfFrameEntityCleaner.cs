@@ -59,6 +59,7 @@ internal static class OutOfFrameEntityCleaner
         Extents3d frameBounds, Logger log)
     {
         List<EntityCandidate> result = [];
+        var missingBounds = 0;
 
         var frameCenter = GetCenter(frameBounds);
         var frameDiagonal = frameBounds.MaxPoint.DistanceTo(frameBounds.MinPoint);
@@ -106,10 +107,13 @@ internal static class OutOfFrameEntityCleaner
                 }
                 else
                 {
-                    log.Debug("Для Entity {EntityType} не удалось вычислить BoundingBox", entity.GetType().Name);
+                    missingBounds++;
                 }
             }
         }
+
+        if (missingBounds > 0)
+            log.Debug("OutOfFrame: не удалось вычислить BoundingBox у {Count} объектов", missingBounds);
 
         return result;
     }

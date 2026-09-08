@@ -1,5 +1,3 @@
-using AutoBIMFusion.Common.Configuration;
-using AutoBIMFusion.Common.Helpers;
 using Autodesk.AutoCAD.AcInfoCenterConn;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
@@ -14,15 +12,6 @@ public static class AcadContext
 {
     public static readonly Tolerance LowTolerance = new(1e-3, 1e-3);
     public static readonly Tolerance MediumTolerance = new(1e-5, 1e-5);
-
-    public static void ReadWriteToFileResource(string name, string ToFilePath)
-    {
-        byte[]? ressource_bytes = Resources.ResourceManager.GetObject(name) as byte[];
-        if (!FileUtil.IsFileLockedOrReadOnly(ToFilePath))
-        {
-            File.WriteAllBytes(ToFilePath, ressource_bytes);
-        }
-    }
 
     public static string GetCurrentDocumentPath()
     {

@@ -1,4 +1,3 @@
-using AutoBIMFusion.Common.Drawing;
 using AutoBIMFusion.Common.AcadSupport;
 using Autodesk.AutoCAD.ApplicationServices;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Application;
@@ -239,36 +238,5 @@ internal static class BlockReferenceExtensions
         trx.Commit();
         blockReference = null;
         return false;
-    }
-
-
-    public static ObjectIdCollection GetAllBlkDefinition(this BlockReference BlockRef, bool IncludeParents = false)
-    {
-        BlockTableRecord BlkDef = BlockRef.GetBlocDefinition();
-        ObjectIdCollection DynamicBlkRefs = BlockReferences.GetDynamicBlockReferences(BlockRef.GetBlockReferenceName());
-        ObjectIdCollection ClassicBlkRefs = BlkDef.GetBlockReferenceIds(!IncludeParents, true);
-        ObjectIdCollection AllBlkRefs = [];
-        AllBlkRefs.Join(DynamicBlkRefs);
-        AllBlkRefs.Join(ClassicBlkRefs);
-        return AllBlkRefs;
-    }
-
-
-    public static void RegenAllBlkDefinition(this BlockReference BlockRef)
-    {
-        Database db = AcadContext.GetDatabase();
-        using Transaction trx = db.TransactionManager.StartTransaction();
-        BlockTableRecord BlkDef = BlockRef.GetBlocDefinition();
-
-        foreach (ObjectId entId in BlockRef.GetAllBlkDefinition(true))
-        {
-            if (entId.GetDBObject(OpenMode.ForWrite) is BlockReference otherBlockRef)
-            {
-                otherBlockRef.RecordGraphicsModified(true);
-            }
-        }
-
-        BlkDef.UpdateAnonymousBlocks();
-        trx.Commit();
     }
 }

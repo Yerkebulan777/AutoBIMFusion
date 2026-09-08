@@ -83,7 +83,7 @@ public static class CombineOrchestrator
         RasterImagePathFixer.CopyImagesToTargetFolder(prepared.Db, targetSavePath, log,
             Path.GetDirectoryName(filePath));
 
-        var worldBounds = InsertIntoTarget(inserter, targetDoc, prepared, layoutName, bounds.Value, log, diagnosticContext);
+        var worldBounds = InsertIntoTarget(inserter, targetDoc, prepared, layoutName, bounds.Value, diagnosticContext);
 
         MergeDiagnostics.WriteEvent(diagnosticContext, "file.done", new Dictionary<string, object?>
         {
@@ -98,16 +98,12 @@ public static class CombineOrchestrator
     }
 
     private static Extents3d? InsertIntoTarget(BlockInserter inserter, Document targetDoc,
-        PreparedSourceDatabase prepared, string layoutName, Extents3d bounds, Logger log,
+        PreparedSourceDatabase prepared, string layoutName, Extents3d bounds,
         MergeDiagnosticContext diagnosticContext)
     {
-        Extents3d? worldBounds;
-
         using (targetDoc.LockDocument())
         {
-            DimensionStyleDiagnosticUtils.LogStyleSnapshot(targetDoc.Database, log, "target-before-clone");
-
-            worldBounds = inserter.InsertNativeObjects(
+            return inserter.InsertNativeObjects(
                 targetDoc.Database,
                 prepared.Db,
                 layoutName,
@@ -115,14 +111,7 @@ public static class CombineOrchestrator
                 prepared.TargetVisualScale,
                 prepared.LinearScaleMultiplier,
                 diagnosticContext);
-
-            if (worldBounds is not null)
-            {
-                DimensionStyleDiagnosticUtils.LogStyleSnapshot(targetDoc.Database, log, "target-after-clone");
-            }
         }
-
-        return worldBounds;
     }
 
     private static CombineResult LogFileFailedAndReturnWarn(MergeDiagnosticContext diagnosticContext, string fileName, string reason, bool isSkipped)

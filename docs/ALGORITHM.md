@@ -120,8 +120,7 @@ VP группируются по `CustomScale` (округление до 4 зн
 *Выполняется внутри `ViewportLayoutExporter.PrepareDatabaseForMerge`.*
 
 1. Если рассчитана рамка листа (`projection.FrameBounds.HasValue`), `OutOfFrameEntityCleaner.Clean` удаляет только малые объекты, центр bbox которых находится за рамкой.
-2. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `source-after-normalize-before-clone` в Debug-сборках или при `LOG_LEVEL=DEBUG`.
-3. После вставки в target `DimensionStyleNormalizer` удаляет DSTYLE overrides из XData/ExtensionDictionary и пересчитывает скопированные размеры.
+2. После вставки в target `DimensionStyleNormalizer` удаляет DSTYLE overrides из XData/ExtensionDictionary и пересчитывает скопированные размеры.
 
 ## 5. Вставка в целевой чертеж
 
@@ -136,17 +135,15 @@ VP группируются по `CustomScale` (округление до 4 зн
 5. К каждому клонированному объекту применяется displacement.
 6. Скопированные размеры приводятся к чистому GOST-стилю, DSTYLE overrides удаляются, dimension blocks пересчитываются.
 7. Следующий лист размещается справа от предыдущего; зазор равен `Max(1.0, Round(Max(width, height) * gapPercent, 0))`.
-8. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `target-after-clone` в Debug-сборках или при `LOG_LEVEL=DEBUG`.
 
 `insertX`/`insertY` рассчитываются из `placementBounds`, которые вычисляются через `ExtentsUtils.ComputeLiveBounds(sourceDb, sourceIds)` после подготовки source DB, нормализации базовых точек блоков и нормализации масштаба block references. Это гарантирует, что вектор сдвига строится по актуальной геометрии, а не по устаревшему `Database.Extmin/Extmax` или cached extents. После clone+displacement `worldBounds` пересчитывается по уже вставленным объектам и используется как `_rightMax` для следующего листа.
 
 ## 6. Финализация
 
 1. `RasterImagePathFixer.CopyImagesToTargetFolder` копирует растры рядом с итоговым DWG и обновляет пути.
-2. `DimensionStyleDiagnosticUtils.LogStyleSnapshot` пишет снимок `target-after-merge` в Debug-сборках или при `LOG_LEVEL=DEBUG`.
-3. `DrawingPurger.Optimize` выполняет до 10 проходов `Purge`.
-4. Итоговый файл сохраняется через `SaveAs(savePath, DwgVersion.AC1032)`.
-5. AutoCAD получает команды `REGENALL` и `ZOOM EXTENTS`.
+2. `DrawingPurger.Optimize` выполняет до 10 проходов `Purge`.
+3. Итоговый файл сохраняется через `SaveAs(savePath, DwgVersion.AC1032)`.
+4. AutoCAD получает команды `REGENALL` и `ZOOM EXTENTS`.
 
 ## 7. Диагностический headless-сценарий
 

@@ -1,5 +1,4 @@
 using Serilog.Core;
-using Exception = System.Exception;
 
 namespace AutoBIMFusion.Common.Helpers;
 
@@ -80,26 +79,6 @@ public static class FileUtil
     }
 
     /// <summary>
-    ///     Создаёт корневую папку назначения, очищает временную папку и удаляет существующий ZIP-файл.
-    /// </summary>
-    public static void PrepareOutputFolders(string destinationRoot, string tempFolder, string zipFilePath)
-    {
-        _ = Directory.CreateDirectory(destinationRoot);
-
-        if (Directory.Exists(tempFolder))
-        {
-            Directory.Delete(tempFolder, true);
-        }
-
-        _ = Directory.CreateDirectory(tempFolder);
-
-        if (File.Exists(zipFilePath))
-        {
-            File.Delete(zipFilePath);
-        }
-    }
-
-    /// <summary>
     ///     Безопасно удаляет временную директорию с обработкой IOException и UnauthorizedAccessException.
     /// </summary>
     public static void TryDeleteDirectory(string tempFolder, Logger log)
@@ -151,69 +130,5 @@ public static class FileUtil
         }
 
         return (destinationPath, Path.GetFileName(destinationPath));
-    }
-
-    /// <summary>
-    ///     Форматирует размер файла из байтов в читаемую строку (KB, MB, GB и т.д.).
-    /// </summary>
-    public static string FormatFileSizeFromByte(long ovalue, int odecimalPlaces = 1)
-    {
-        string[] SizeSuffixes =
-            { "bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
-
-        string SizeSuffix(long value, int decimalPlaces = 1)
-        {
-            if (value < 0)
-            {
-                return "-" + SizeSuffix(-value, decimalPlaces);
-            }
-
-            int i = 0;
-            decimal dValue = value;
-            while (Round(dValue, decimalPlaces) >= 1000)
-            {
-                dValue /= 1024;
-                i++;
-            }
-
-            return string.Format("{0:n" + decimalPlaces + "} {1}", dValue, SizeSuffixes[i]);
-        }
-
-        return SizeSuffix(ovalue, odecimalPlaces);
-    }
-
-    /// <summary>
-    ///     Проверяет, заблокирован ли файл для записи или доступен только для чтения.
-    /// </summary>
-    public static bool IsFileLockedOrReadOnly(string path)
-    {
-        return IsFileLockedOrReadOnly(new FileInfo(path));
-    }
-
-    /// <summary>
-    ///     Проверяет, заблокирован ли файл для записи или доступен только для чтения.
-    /// </summary>
-    public static bool IsFileLockedOrReadOnly(FileInfo fi)
-    {
-        if (!fi.Exists)
-        {
-            return false;
-        }
-
-        try
-        {
-            using FileStream fs = fi.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-        }
-        catch (Exception ex)
-        {
-            if (ex is IOException or UnauthorizedAccessException)
-            {
-                return true;
-            }
-
-            throw;
-        }
-
-        return false;
     }
 }
