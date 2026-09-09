@@ -1,6 +1,5 @@
 using AutoBIMFusion.Common;
 using AutoBIMFusion.Common.AcadSupport;
-using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Common.Logging;
 using AutoBIMFusion.Merge.Combine;
@@ -311,13 +310,6 @@ public sealed class CombineCommands
 
             Editor editor = mergeDoc.Editor;
             editor.Regen();
-
-            Extents3d? bounds = ExtentsUtils.ComputeModelSpaceBounds(mergeDoc.Database);
-            if (bounds.HasValue)
-            {
-                bounds.Value.ZoomExtents();
-            }
-
             editor.UpdateScreen();
         }
         catch (Autodesk.AutoCAD.Runtime.Exception ex)
