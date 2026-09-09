@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <PlatformTarget>x64</PlatformTarget>
+        <Platforms>x64</Platforms>
+        <RootNamespace>AutoBIMFusion.QuickPdf</RootNamespace>
+        <AssemblyName>AutoBIMFusion.QuickPdf</AssemblyName>
+        <Description>Экспорт рамки модели в PDF (ISO / custom, 1:100)</Description>
+        <NoWarn>$(NoWarn);CA1303</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Using Include="Autodesk.AutoCAD.DatabaseServices" />
+        <Using Include="Autodesk.AutoCAD.EditorInput" />
+        <Using Include="Autodesk.AutoCAD.Geometry" />
+        <Using Include="System.Math">
+            <Static>True</Static>
+        </Using>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AutoCAD.NET" ExcludeAssets="runtime" />
+        <PackageReference Include="AutoCAD.NET.Interop" ExcludeAssets="runtime" Condition="'$(LegacyAutoCAD)' != 'true'" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\AutoBIMFusion.Common\AutoBIMFusion.Common.csproj" />
+    </ItemGroup>
+
+</Project>

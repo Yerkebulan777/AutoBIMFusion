@@ -6,7 +6,7 @@
     </ItemGroup>
 
     <Target Name="ValidateAutoCADConfiguration" BeforeTargets="PrepareForBuild"
-            Condition="'$(MSBuildProjectName)' == 'AutoBIMFusion.Plugin' Or '$(MSBuildProjectName)' == 'AutoBIMFusion.Common' Or '$(MSBuildProjectName)' == 'AutoBIMFusion.Merge'">
+            Condition="'$(MSBuildProjectName)' == 'AutoBIMFusion.Plugin' Or '$(MSBuildProjectName)' == 'AutoBIMFusion.Common' Or '$(MSBuildProjectName)' == 'AutoBIMFusion.Merge' Or '$(MSBuildProjectName)' == 'AutoBIMFusion.QuickPdf'">
         <Error Condition="'$(AcadVersion)' == ''"
                Text="Select an AutoCAD configuration: DebugA19–DebugA27 or ReleaseA19–ReleaseA27." />
     </Target>

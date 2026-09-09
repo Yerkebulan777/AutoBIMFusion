@@ -42,7 +42,7 @@ foreach ($buildType in $BuildTypes) {
                 $component.ComponentEntry.ModuleName -ne './Contents/AutoBIMFusion.dll') {
                 throw "Unexpected autoload manifest: $bundle"
             }
-            foreach ($name in @('AutoBIMFusion.dll', 'AutoBIMFusion.Common.dll', 'AutoBIMFusion.Merge.dll', 'Serilog.dll', 'Serilog.Sinks.File.dll')) {
+            foreach ($name in @('AutoBIMFusion.dll', 'AutoBIMFusion.Common.dll', 'AutoBIMFusion.Merge.dll', 'AutoBIMFusion.QuickPdf.dll', 'Serilog.dll', 'Serilog.Sinks.File.dll')) {
                 if (-not (Test-Path -LiteralPath (Join-Path $bundle "Contents\$name"))) {
                     throw "Missing runtime dependency: $name ($configuration $mode)"
                 }

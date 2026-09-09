@@ -12,6 +12,10 @@
         <Compile Include="../../src/AutoBIMFusion.Common/Helpers/NumericUtils.cs" Link="NumericUtils.cs" />
         <Compile Include="../../src/AutoBIMFusion.Common/Compatibility/PriorityQueue.cs" Link="PriorityQueue.cs" />
         <Compile Include="../../src/AutoBIMFusion.Plugin/LegacyDependencyResolver.cs" Link="LegacyDependencyResolver.cs" />
+        <Compile Include="../../src/AutoBIMFusion.QuickPdf/Naming/QuickPdfNaming.cs" Link="QuickPdfNaming.cs" />
+        <Compile Include="../../src/AutoBIMFusion.QuickPdf/Media/IsoMedia.cs" Link="IsoMedia.cs" />
+        <Compile Include="../../src/AutoBIMFusion.QuickPdf/Media/ExactPaper.cs" Link="ExactPaper.cs" />
+        <Compile Include="../../src/AutoBIMFusion.QuickPdf/QuickPdfException.cs" Link="QuickPdfException.cs" />
         <Using Include="System.Math" Static="true" />
         <PackageReference Include="Serilog" />
         <PackageReference Include="Serilog.Sinks.File" />

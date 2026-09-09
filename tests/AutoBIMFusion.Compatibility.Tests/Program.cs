@@ -1,4 +1,6 @@
 using AutoBIMFusion.Common.Helpers;
+using AutoBIMFusion.QuickPdf.Media;
+using AutoBIMFusion.QuickPdf.Naming;
 using Serilog;
 using System.Globalization;
 using System.Text.Json;
@@ -58,7 +60,28 @@ finally
     Directory.Delete(directory);
 }
 
-Console.WriteLine("PASS: escaping, guards, spans, numeric formatting, priority queue, Serilog and JSON.");
+Assert(QuickPdfNaming.SafeName("Plan:A*.dwg") == "Plan_A_", "quickpdf safe name");
+Assert(QuickPdfNaming.SafeName(@"C:\tmp\Frame.dwg") == "Frame", "quickpdf path name");
+Assert(QuickPdfNaming.SafeName("   ") == "Drawing", "quickpdf blank name");
+Assert(QuickPdfNaming.TryReadSheetIndex("Plan_012", "Plan", out int sheet) && sheet == 12, "quickpdf sheet index");
+Assert(!QuickPdfNaming.TryReadSheetIndex("Plan_12a", "Plan", out _), "quickpdf non-digit sheet");
+
+Assert(IsoMedia.IsIsoName("ISO_full_bleed_A4_(210.00_x_297.00_MM)"), "iso prefix");
+Assert(!IsoMedia.IsIsoName("ANSI_A_(8.50_x_11.00_Inches)"), "non-iso prefix");
+Assert(IsoMedia.TryParseSize("ISO_A4_(210.00_x_297.00_MM)", out double isoW, out double isoH) && isoW == 210 && isoH == 297, "iso parse");
+Assert(IsoMedia.PaperCanFit(210, 297, 200, 280), "iso fit");
+Assert(!IsoMedia.PaperCanFit(210, 297, 500, 280), "iso too small");
+Assert(IsoMedia.Kind("ISO_full_bleed_A4_(210.00_x_297.00_MM)") < IsoMedia.Kind("ISO_expand_A4_(210.00_x_297.00_MM)"), "iso kind order");
+
+ExactPaper.Validate(100, 50, 100, 50, [0, 0, 0, 0], 0.01, 0.01);
+try
+{
+    ExactPaper.Validate(100, 50, 210, 297, [0, 0, 0, 0], 0.01, 0.01);
+    throw new InvalidOperationException("Exact paper substitution accepted.");
+}
+catch (AutoBIMFusion.QuickPdf.QuickPdfException) { }
+
+Console.WriteLine("PASS: escaping, guards, spans, numeric formatting, priority queue, Serilog, JSON and QuickPDF helpers.");
 
 static void Assert(bool condition, string name)
 {

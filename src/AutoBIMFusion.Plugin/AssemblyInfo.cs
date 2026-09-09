@@ -6,3 +6,4 @@ using Autodesk.AutoCAD.Runtime;
 [assembly: ExtensionApplication(typeof(AutoBIMFusionExtension))]
 #endif
 [assembly: CommandClass(typeof(CombineCommands))]
+[assembly: CommandClass(typeof(QuickPdfCommands))]

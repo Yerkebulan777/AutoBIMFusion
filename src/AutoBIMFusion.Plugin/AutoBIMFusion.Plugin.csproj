@@ -72,6 +72,7 @@
     <ItemGroup>
         <ProjectReference Include="..\AutoBIMFusion.Common\AutoBIMFusion.Common.csproj" />
         <ProjectReference Include="..\AutoBIMFusion.Merge\AutoBIMFusion.Merge.csproj" />
+        <ProjectReference Include="..\AutoBIMFusion.QuickPdf\AutoBIMFusion.QuickPdf.csproj" />
     </ItemGroup>
 
 
