@@ -81,7 +81,7 @@ public static class CombineOrchestrator
         log.Debug("{FileName}: source bounds before insert {Bounds}", fileName, ExtentsUtils.FormatExtents(bounds.Value));
 
         RasterImagePathFixer.CopyImagesToTargetFolder(prepared.Db, targetSavePath, log,
-            Path.GetDirectoryName(filePath));
+            Path.GetDirectoryName(filePath), $"source:{fileName}");
 
         var worldBounds = InsertIntoTarget(inserter, targetDoc, prepared, layoutName, bounds.Value, diagnosticContext);
 

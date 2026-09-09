@@ -134,11 +134,14 @@ public sealed class CombineCommands
 
             using (mergeDoc.LockDocument())
             {
-                RasterImagePathFixer.CopyImagesToTargetFolder(mergeDoc.Database, savePath, log, sourceFolder);
+                RasterImagePathFixer.CopyImagesToTargetFolder(mergeDoc.Database, savePath, log, sourceFolder,
+                    "target-after-merge");
                 DrawingPurger.Optimize(mergeDoc.Database, log);
+                RasterImagePathFixer.LogDatabaseSaveState(mergeDoc.Database, savePath, log, "before-first-save");
                 SaveMerged(mergeDoc.Database, savePath);
-                RasterImagePathFixer.ConvertPathsToRelative(mergeDoc.Database, savePath, log);
+                RasterImagePathFixer.ConvertPathsToRelative(mergeDoc.Database, savePath, log, "after-first-save");
                 SaveAsMerged(mergeDoc.Database, savePath);
+                RasterImagePathFixer.LogDatabaseSaveState(mergeDoc.Database, savePath, log, "after-second-save");
                 TryRunPostMergeViewCommands(mergeDoc, log);
             }
 
@@ -147,7 +150,7 @@ public sealed class CombineCommands
             string outcome = stats.Failed > 0
                 ? "завершено с ошибками обработки файлов"
                 : stats.Skipped > 0 ? "завершено с пропусками файлов" : "обработка файлов завершена успешно";
-            log.ForContext("SourceContext", "AutoBIMFusion.ExecutionSummary")
+            log.ForContext("SourceContext", LoggerFactory.ExecutionSummaryContext)
                 .Write(stats.Failed > 0 ? Serilog.Events.LogEventLevel.Warning : Serilog.Events.LogEventLevel.Information,
                     "{Command}: итог — {Outcome}; {Stats}; save=\"{SavePath}\"; elapsed={Elapsed}",
                     commandName, outcome, stats, savePath, sw.Elapsed);

@@ -8,6 +8,9 @@ namespace AutoBIMFusion.Common.Logging;
 
 public static class LoggerFactory
 {
+    public const string ExecutionSummaryContext = "AutoBIMFusion.ExecutionSummary";
+    public const string RasterImagesContext = "AutoBIMFusion.RasterImages";
+
     private static readonly Lazy<Logger> SharedLogger = new(CreateLogger);
 
     private const LogEventLevel DefaultLevel = LogEventLevel.Warning;
@@ -58,9 +61,7 @@ public static class LoggerFactory
 
             string logFile = Path.Combine(logsDir, BuildLogFileName());
 
-            return new LoggerConfiguration()
-                .MinimumLevel.Is(level)
-                .MinimumLevel.Override("AutoBIMFusion.ExecutionSummary", LogEventLevel.Information)
+            return ApplyAlwaysOnOverrides(new LoggerConfiguration().MinimumLevel.Is(level))
                 .Enrich.WithProperty("ProcessId", Environment.ProcessId)
                 .Enrich.With<ThreadIdEnricher>()
                 .WriteTo.File(
@@ -78,12 +79,15 @@ public static class LoggerFactory
             TryWriteBootstrapFailure(ex);
             Debug.WriteLine($"[AutoBIMFusion] Logger init failed: {ex}");
 
-            return new LoggerConfiguration()
-                .MinimumLevel.Is(level)
-                .MinimumLevel.Override("AutoBIMFusion.ExecutionSummary", LogEventLevel.Information)
+            return ApplyAlwaysOnOverrides(new LoggerConfiguration().MinimumLevel.Is(level))
                 .CreateLogger();
         }
     }
+
+    private static LoggerConfiguration ApplyAlwaysOnOverrides(LoggerConfiguration configuration) =>
+        configuration
+            .MinimumLevel.Override(ExecutionSummaryContext, LogEventLevel.Information)
+            .MinimumLevel.Override(RasterImagesContext, LogEventLevel.Information);
 
     private static void TryWriteBootstrapFailure(Exception ex)
     {
