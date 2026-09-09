@@ -123,8 +123,9 @@ public static class RasterImagePathFixer
 
         var saveDir = Path.GetDirectoryName(targetFilePath);
         var dbFilename = TryReadFilename(db);
-        var drawingPath = dbFilename ?? targetFilePath;
-        var drawingDir = Path.GetDirectoryName(drawingPath);
+        // SaveAs may leave Filename pointing at the original DWT (AutoCAD 2019).
+        // Persist image paths relative to the file we actually save.
+        var drawingDir = saveDir;
         if (string.IsNullOrEmpty(drawingDir))
         {
             rasterLog.Warning(
@@ -133,14 +134,9 @@ public static class RasterImagePathFixer
             return;
         }
 
-        if (saveDir is not null && !PathsEqual(drawingDir, saveDir))
-            rasterLog.Warning(
-                "Raster relative [{Stage}]: папка DWG не совпадает с savePath: drawingDir=\"{DrawingDir}\" saveDir=\"{SaveDir}\" dbFilename=\"{DbFilename}\" savePath=\"{SavePath}\"",
-                phase, drawingDir, saveDir, NullPath(dbFilename), targetFilePath);
-        else
-            rasterLog.Information(
-                "Raster relative [{Stage}]: start drawingDir=\"{DrawingDir}\" dbFilename=\"{DbFilename}\" savePath=\"{SavePath}\"",
-                phase, drawingDir, NullPath(dbFilename), targetFilePath);
+        rasterLog.Information(
+            "Raster relative [{Stage}]: start drawingDir=\"{DrawingDir}\" dbFilename=\"{DbFilename}\" savePath=\"{SavePath}\"",
+            phase, drawingDir, NullPath(dbFilename), targetFilePath);
 
         var searchDesc = DescribeSearchDirs([drawingDir]);
         var total = 0;
@@ -170,6 +166,7 @@ public static class RasterImagePathFixer
 
             if (string.Equals(def.SourceFileName, relativePath, StringComparison.OrdinalIgnoreCase))
             {
+                Relink(def, relativePath, rasterLog, key, "already-relative", resolvedPath);
                 alreadyRelative++;
                 rasterLog.Debug(
                     "RasterImageDef '{Key}' [{Stage}]: уже относительный \"{Relative}\" resolved=\"{Resolved}\" via={Via} loaded={Loaded}",
@@ -177,8 +174,8 @@ public static class RasterImagePathFixer
                 return;
             }
 
+            Relink(def, relativePath, rasterLog, key, "relative", resolvedPath);
             relinked++;
-            Relink(def, relativePath, rasterLog, key, "relative");
             rasterLog.Debug(
                 "RasterImageDef '{Key}' [{Stage}]: {From} → {To} via={Via} loaded={Loaded}",
                 key, phase, resolvedPath, relativePath, via, def.IsLoaded);
@@ -313,7 +310,6 @@ public static class RasterImagePathFixer
         }
 
         log.Information("Raster [{Stage}]: defs={DefCount}", stage, dict.Count);
-        UnloadAll(dict, trx);
 
         foreach (var entry in dict)
             try
@@ -457,28 +453,27 @@ public static class RasterImagePathFixer
         return dictId.IsNull ? null : (DBDictionary)trx.GetObject(dictId, OpenMode.ForRead);
     }
 
-    private static void UnloadAll(DBDictionary dict, Transaction trx)
-    {
-        foreach (var entry in dict)
-        {
-            if (trx.GetObject(entry.Value, OpenMode.ForWrite) is not RasterImageDef def || !def.IsLoaded)
-                continue;
-
-            try
-            {
-                def.Unload(false);
-            }
-            catch (Exception)
-            {
-            }
-        }
-    }
-
-    private static void Relink(RasterImageDef def, string path, Logger log, string key, string action)
+    private static void Relink(RasterImageDef def, string path, Logger log, string key, string action,
+        string? resolvedPath = null)
     {
         if (def.IsLoaded)
             def.Unload(false);
-        def.SourceFileName = path;
+        try
+        {
+            def.SourceFileName = path;
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception ex) when (
+            ex.ErrorStatus == ErrorStatus.FileAccessErr
+            && resolvedPath is not null && File.Exists(resolvedPath)
+            && string.Equals(def.SourceFileName, path, StringComparison.OrdinalIgnoreCase))
+        {
+            // A19 stores the relative name, then fails to resolve it against the DWT.
+            // Supply the verified active filename below; all other setter failures propagate.
+        }
+        // The active path serves this session even when Filename still names a template.
+        // SourceFileName is the portable path persisted in the resulting DWG.
+        def.ActiveFileName = resolvedPath ?? path;
+        def.Load();
         if (string.Equals(def.SourceFileName, path, StringComparison.OrdinalIgnoreCase))
             return;
 
