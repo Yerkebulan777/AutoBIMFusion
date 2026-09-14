@@ -42,7 +42,8 @@ public static class RasterImagePathFixer
         string? sourceSearchDir = null, string? stage = null)
     {
         var rasterLog = RasterLogger(log);
-        var phase = string.IsNullOrWhiteSpace(stage) ? "copy" : stage;
+        string phase = stage ?? "copy";
+        if (string.IsNullOrWhiteSpace(phase)) phase = "copy";
 
         var targetDir = Path.GetDirectoryName(targetFilePath);
         if (string.IsNullOrEmpty(targetDir))
@@ -119,7 +120,8 @@ public static class RasterImagePathFixer
     public static void ConvertPathsToRelative(Database db, string targetFilePath, Logger log, string? stage = null)
     {
         var rasterLog = RasterLogger(log);
-        var phase = string.IsNullOrWhiteSpace(stage) ? "relative" : stage;
+        string phase = stage ?? "relative";
+        if (string.IsNullOrWhiteSpace(phase)) phase = "relative";
 
         var saveDir = Path.GetDirectoryName(targetFilePath);
         var dbFilename = TryReadFilename(db);
@@ -585,7 +587,11 @@ public static class RasterImagePathFixer
     private static Logger RasterLogger(Logger log) =>
         (Logger)log.ForContext("SourceContext", LoggerFactory.RasterImagesContext);
 
-    private static string NullPath(string? path) => string.IsNullOrWhiteSpace(path) ? "(empty)" : path;
+    private static string NullPath(string? path)
+    {
+        if (path is null || string.IsNullOrWhiteSpace(path)) return "(empty)";
+        return path;
+    }
 
     private static int TryGetEntityCount(RasterImageDef def)
     {
