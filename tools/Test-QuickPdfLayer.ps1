@@ -40,6 +40,8 @@ $scriptPath = Join-Path $runRoot 'quickpdf-layer.scr'
 $lines = @(
     '(setvar "FILEDIA" 0)',
     '(setvar "SECURELOAD" 0)',
+    '(defun entity-color-index (entity / color) (setq color (assoc 62 (entget entity))) (if color (cdr color) 256))',
+    '(setvar "CECOLOR" "1")',
     '_.RECTANG',
     '0,0',
     '50000,40000',
@@ -72,6 +74,7 @@ $lines = @(
     '59998,0',
     '',
     '(setq lineLeft (entlast))',
+    '(setvar "CECOLOR" "BYLAYER")',
     ('(command "_.QSAVE" "' + $drawingPath + '")'),
     '_.NETLOAD',
     $pluginPath,
@@ -95,6 +98,7 @@ $lines = @(
     ('(setq output (open "' + $resultPath + '" "w"))'),
     '(if firstLayer (write-line (strcat (cdr (assoc 2 firstLayer)) "|" (itoa (cdr (assoc 62 firstLayer))) "|" (itoa (cdr (assoc 370 firstLayer))) "|" (itoa (cdr (assoc 290 firstLayer))) "|" (cdr (assoc 6 firstLayer))) output) (write-line "MISSING" output))',
     '(write-line (strcat (cdr (assoc 8 (entget outerFrame))) "|" (cdr (assoc 8 (entget innerFrame))) "|" (cdr (assoc 8 (entget smallFrame))) "|" (cdr (assoc 8 (entget lineBottom))) "|" (cdr (assoc 8 (entget lineRight))) "|" (cdr (assoc 8 (entget lineTop))) "|" (cdr (assoc 8 (entget lineLeft)))) output)',
+    '(write-line (strcat (itoa (entity-color-index outerFrame)) "|" (itoa (entity-color-index lineBottom)) "|" (itoa (entity-color-index lineRight)) "|" (itoa (entity-color-index lineTop)) "|" (itoa (entity-color-index lineLeft))) output)',
     '(if secondLayer (write-line (itoa (cdr (assoc 62 secondLayer))) output) (write-line "MISSING" output))',
     '(write-line (cdr (assoc 8 (entget lateFrame))) output)',
     '(close output)',
@@ -125,18 +129,21 @@ if ($process.ExitCode -ne 0) { throw "Core Console failed with exit $($process.E
 if (-not (Test-Path -LiteralPath $resultPath)) { throw "QuickPDF layer result was not written. See $runRoot" }
 
 $result = @(Get-Content -LiteralPath $resultPath)
-if ($result.Count -ne 4) { throw "Unexpected QuickPDF layer result. See $runRoot" }
+if ($result.Count -ne 5) { throw "Unexpected QuickPDF layer result. See $runRoot" }
 if ($result[0].ToUpperInvariant() -ne 'FRAMELIST|4|50|0|CONTINUOUS') {
     throw "Unexpected initial FRAMELIST settings: $($result[0]). See $runRoot"
 }
 if ($result[1].ToUpperInvariant() -ne 'FRAMELIST|0|0|FRAMELIST|FRAMELIST|FRAMELIST|FRAMELIST') {
     throw "Unexpected recognized entity layers: $($result[1]). See $runRoot"
 }
-if ($result[2] -ne '1') {
-    throw "Existing FRAMELIST layer was modified: color=$($result[2]). See $runRoot"
+if ($result[2] -ne '256|256|256|256|256') {
+    throw "Recognized frame entities are not ByLayer: $($result[2]). See $runRoot"
 }
-if ($result[3] -ne '0') {
-    throw "Second QUICKPDF invocation rescanned the model: layer=$($result[3]). See $runRoot"
+if ($result[3] -ne '1') {
+    throw "Existing FRAMELIST layer was modified: color=$($result[3]). See $runRoot"
+}
+if ($result[4] -ne '0') {
+    throw "Second QUICKPDF invocation rescanned the model: layer=$($result[4]). See $runRoot"
 }
 
-Write-Host "PASS ${Configuration}: FRAMELIST is created atomically, outer frames are assigned once, and later runs do not rescan. Artifacts: $runRoot"
+Write-Host "PASS ${Configuration}: FRAMELIST is created atomically, recognized frames use ByLayer color, and later runs do not rescan. Artifacts: $runRoot"

@@ -221,6 +221,7 @@ public static class FrameListInitializer
 
             entity.UpgradeOpen();
             entity.LayerId = targetLayerId;
+            entity.ColorIndex = 256;
         }
 
         foreach (LayerTableRecord layer in unlockedLayers.Values)
