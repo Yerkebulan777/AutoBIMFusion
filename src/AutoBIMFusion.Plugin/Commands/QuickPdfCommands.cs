@@ -1,4 +1,6 @@
 using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.Colors;
+using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Logging;
@@ -14,6 +16,8 @@ namespace AutoBIMFusion.Plugin.Commands;
 [SupportedOSPlatform("Windows")]
 public sealed class QuickPdfCommands
 {
+    private const string FrameListLayerName = "FRAMELIST";
+
     [CommandMethod("QUICKPDF", CommandFlags.Modal)]
     public static void QuickPdfCommand()
     {
@@ -33,6 +37,11 @@ public sealed class QuickPdfCommands
             {
                 editor.WriteMessage("\nКоманда доступна только в пространстве модели.");
                 return;
+            }
+
+            using (document.LockDocument())
+            {
+                EnsureFrameListLayer(document.Database);
             }
 
             PromptPointResult first = editor.GetPoint("\nУкажите первый угол рамки чертежа: ");
@@ -60,5 +69,27 @@ public sealed class QuickPdfCommands
             log.Error(ex, "QUICKPDF failed");
             editor.WriteMessage("\nQuickPDF: " + ex.Message + "\nЛог: " + LoggerFactory.GetCurrentLogFilePath());
         }
+    }
+
+    private static void EnsureFrameListLayer(Database database)
+    {
+        using Transaction transaction = database.TransactionManager.StartTransaction();
+        LayerTable layerTable = (LayerTable)transaction.GetObject(database.LayerTableId, OpenMode.ForRead);
+        if (layerTable.Has(FrameListLayerName))
+        {
+            return;
+        }
+
+        layerTable.UpgradeOpen();
+        using LayerTableRecord layer = new()
+        {
+            Name = FrameListLayerName,
+            Color = Color.FromColorIndex(ColorMethod.ByAci, 4),
+            LineWeight = LineWeight.LineWeight050,
+            IsPlottable = false
+        };
+        _ = layerTable.Add(layer);
+        transaction.AddNewlyCreatedDBObject(layer, true);
+        transaction.Commit();
     }
 }
