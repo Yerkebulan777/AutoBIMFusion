@@ -12,6 +12,7 @@ public enum IsoMediaKind
 public static class IsoMedia
 {
     public const double FitToleranceMm = 0.05;
+    internal const double MaxExcessMm = 5.0;
 
     public static bool IsIsoName(string? name)
     {
@@ -24,10 +25,28 @@ public static class IsoMedia
         return available + FitToleranceMm >= required;
     }
 
-    public static bool PaperCanFit(double paperWidth, double paperHeight, double needWidth, double needHeight)
+    internal static bool PaperMatches(double paperWidth, double paperHeight, double needWidth, double needHeight)
     {
-        return (FitsMm(paperWidth, needWidth) && FitsMm(paperHeight, needHeight)) ||
-               (FitsMm(paperWidth, needHeight) && FitsMm(paperHeight, needWidth));
+        return OrientationMatches(paperWidth, paperHeight, needWidth, needHeight) ||
+               OrientationMatches(paperWidth, paperHeight, needHeight, needWidth);
+    }
+
+    internal static bool TryGetMatchingArea(
+        string? name,
+        double needWidth,
+        double needHeight,
+        out double paperArea)
+    {
+        paperArea = 0;
+        if (!IsIsoName(name) ||
+            !TryParseSize(name, out double paperWidth, out double paperHeight) ||
+            !PaperMatches(paperWidth, paperHeight, needWidth, needHeight))
+        {
+            return false;
+        }
+
+        paperArea = paperWidth * paperHeight;
+        return true;
     }
 
     public static IsoMediaKind Kind(string name)
@@ -80,5 +99,13 @@ public static class IsoMedia
 
         return length > 0 &&
                double.TryParse(span[..length], NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+    }
+
+    private static bool OrientationMatches(double paperWidth, double paperHeight, double needWidth, double needHeight)
+    {
+        return paperWidth >= needWidth &&
+               paperHeight >= needHeight &&
+               paperWidth - needWidth <= MaxExcessMm &&
+               paperHeight - needHeight <= MaxExcessMm;
     }
 }

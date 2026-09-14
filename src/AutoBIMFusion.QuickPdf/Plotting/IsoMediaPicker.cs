@@ -13,44 +13,30 @@ internal static class IsoMediaPicker
     public static IsoMediaChoice? Pick(PlotSettings settings, PlotSettingsValidator validator, double needWidth, double needHeight)
     {
         bool landscape = needWidth >= needHeight;
-        var queue = new List<IsoMediaCandidate>();
-        foreach (string name in PlotLists.Names(validator.GetCanonicalMediaNameList(settings)))
-        {
-            if (!IsoMedia.IsIsoName(name) ||
-                !IsoMedia.TryParseSize(name, out double parsedWidth, out double parsedHeight) ||
-                !IsoMedia.PaperCanFit(parsedWidth, parsedHeight, needWidth, needHeight))
+        IsoMediaSelection? selection = IsoMediaSelector.Pick(
+            PlotLists.Names(validator.GetCanonicalMediaNameList(settings)),
+            needWidth,
+            needHeight,
+            mediaName =>
             {
-                continue;
-            }
+                if (!TryProbe(settings, validator, mediaName, landscape, needWidth, needHeight,
+                        out IsoMediaChoice choice, out double area))
+                {
+                    return null;
+                }
 
-            queue.Add(new IsoMediaCandidate(name, parsedWidth * parsedHeight, IsoMedia.Kind(name)));
+                return new IsoMediaProbeResult(choice.Rotation == PlotRotation.Degrees090, area);
+            });
+        if (selection is not { } selected)
+        {
+            return null;
         }
 
-        queue.Sort((left, right) => (left.PaperArea, left.Kind).CompareTo((right.PaperArea, right.Kind)));
-
-        IsoMediaChoice? best = null;
-        double bestArea = double.PositiveInfinity;
-        foreach (IsoMediaCandidate candidate in queue)
-        {
-            if (best is not null && candidate.PaperArea >= bestArea)
-            {
-                break;
-            }
-
-            if (!TryProbe(settings, validator, candidate.CanonicalName, landscape, needWidth, needHeight,
-                    out IsoMediaChoice probed, out double area))
-            {
-                continue;
-            }
-
-            if (area < bestArea)
-            {
-                best = probed;
-                bestArea = area;
-            }
-        }
-
-        return best;
+        PlotRotation rotation = selected.Rotated ? PlotRotation.Degrees090 : PlotRotation.Degrees000;
+        validator.SetCanonicalMediaName(settings, selected.CanonicalName);
+        validator.SetPlotPaperUnits(settings, PlotPaperUnit.Millimeters);
+        validator.SetPlotRotation(settings, rotation);
+        return new IsoMediaChoice(selected.CanonicalName, rotation);
     }
 
     internal static void GetPrintable(PlotSettings settings, out double width, out double height)
@@ -91,7 +77,9 @@ internal static class IsoMediaPicker
                 (printableWidth, printableHeight) = (printableHeight, printableWidth);
             }
 
-            if (!IsoMedia.FitsMm(printableWidth, needWidth) || !IsoMedia.FitsMm(printableHeight, needHeight))
+            if (!IsoMedia.PaperMatches(paperWidth, paperHeight, needWidth, needHeight) ||
+                !IsoMedia.FitsMm(printableWidth, needWidth) ||
+                !IsoMedia.FitsMm(printableHeight, needHeight))
             {
                 return false;
             }
@@ -105,6 +93,4 @@ internal static class IsoMediaPicker
             return false;
         }
     }
-
-    private readonly record struct IsoMediaCandidate(string CanonicalName, double PaperArea, IsoMediaKind Kind);
 }

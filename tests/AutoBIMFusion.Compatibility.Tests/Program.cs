@@ -66,12 +66,54 @@ Assert(QuickPdfNaming.SafeName("   ") == "Drawing", "quickpdf blank name");
 Assert(QuickPdfNaming.TryReadSheetIndex("Plan_012", "Plan", out int sheet) && sheet == 12, "quickpdf sheet index");
 Assert(!QuickPdfNaming.TryReadSheetIndex("Plan_12a", "Plan", out _), "quickpdf non-digit sheet");
 
+const string isoA4Name = "ISO_A4_(210.00_x_297.00_MM)";
+const string isoAltName = "ISO_ALT_(211.00_x_297.00_MM)";
 Assert(IsoMedia.IsIsoName("ISO_full_bleed_A4_(210.00_x_297.00_MM)"), "iso prefix");
 Assert(!IsoMedia.IsIsoName("ANSI_A_(8.50_x_11.00_Inches)"), "non-iso prefix");
-Assert(IsoMedia.TryParseSize("ISO_A4_(210.00_x_297.00_MM)", out double isoW, out double isoH) && isoW == 210 && isoH == 297, "iso parse");
-Assert(IsoMedia.PaperCanFit(210, 297, 200, 280), "iso fit");
-Assert(!IsoMedia.PaperCanFit(210, 297, 500, 280), "iso too small");
+Assert(IsoMedia.TryParseSize(isoA4Name, out double isoW, out double isoH) && isoW == 210 && isoH == 297, "iso parse");
+Assert(IsoMedia.TryGetMatchingArea(isoA4Name, 205, 292, out double isoArea) && isoArea == 62370, "iso matching candidate area");
+Assert(!IsoMedia.TryGetMatchingArea(isoA4Name, 200, 280, out _), "iso excessive whitespace candidate rejected");
+Assert(!IsoMedia.TryGetMatchingArea("ANSI_A_(210.00_x_297.00_MM)", 205, 292, out _), "non-iso candidate rejected");
+Assert(IsoMedia.PaperMatches(210, 297, 210, 297), "iso exact dimensions match");
+Assert(IsoMedia.PaperMatches(210, 297, 205, 292), "iso five millimeter excess matches");
+Assert(!IsoMedia.PaperMatches(210, 297, 204.99, 292), "iso width excess over threshold rejected");
+Assert(!IsoMedia.PaperMatches(210, 297, 205, 291.99), "iso height excess over threshold rejected");
+Assert(IsoMedia.PaperMatches(210, 297, 292, 205), "iso rotated dimensions match");
+Assert(!IsoMedia.PaperMatches(210, 297, 200, 280), "iso excessive whitespace rejected");
+Assert(!IsoMedia.PaperMatches(210, 297, 211, 297), "iso undersized width rejected");
+Assert(!IsoMedia.PaperMatches(210, 297, 210.04, 297), "iso slight undersized width rejected");
+Assert(!IsoMedia.PaperMatches(210, 297, 297, 210.04), "iso slight rotated undersized width rejected");
 Assert(IsoMedia.Kind("ISO_full_bleed_A4_(210.00_x_297.00_MM)") < IsoMedia.Kind("ISO_expand_A4_(210.00_x_297.00_MM)"), "iso kind order");
+
+var probedMedia = new List<string>();
+IsoMediaSelection? selectedMedia = IsoMediaSelector.Pick(
+    [isoA4Name, isoAltName],
+    206,
+    292,
+    name =>
+    {
+        probedMedia.Add(name);
+        return name == isoA4Name
+            ? new IsoMediaProbeResult(false, 62370)
+            : new IsoMediaProbeResult(true, 62000);
+    });
+Assert(probedMedia.Count == 2, "all matching iso candidates probed");
+Assert(selectedMedia.HasValue && selectedMedia.Value.CanonicalName == isoAltName && selectedMedia.Value.Rotated,
+    "smallest driver-reported iso selected");
+
+probedMedia.Clear();
+selectedMedia = IsoMediaSelector.Pick(
+    [isoA4Name, isoAltName],
+    206,
+    292,
+    name =>
+    {
+        probedMedia.Add(name);
+        return name == isoA4Name ? new IsoMediaProbeResult(false, 62370) : null;
+    });
+Assert(probedMedia.Count == 2, "trailing iso candidate probed");
+Assert(selectedMedia.HasValue && selectedMedia.Value.CanonicalName == isoA4Name,
+    "rejected trailing iso candidate does not displace winner");
 
 ExactPaper.Validate(100, 50, 100, 50, [0, 0, 0, 0], 0.01, 0.01);
 try
