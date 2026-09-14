@@ -4,6 +4,7 @@ using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.PlottingServices;
 using AutoBIMFusion.Common.Logging;
+using AutoBIMFusion.QuickPdf.Frames;
 using AutoBIMFusion.QuickPdf.Naming;
 using AutoBIMFusion.QuickPdf.Plotting;
 using Serilog;
@@ -16,7 +17,7 @@ using PlotAreaType = Autodesk.AutoCAD.DatabaseServices.PlotType;
 namespace AutoBIMFusion.QuickPdf;
 
 /// <summary>
-///     Экспорт рамки модели в PDF: наименьший ISO (full bleed / expand) или точный custom-лист, масштаб 1:100.
+///     Экспорт рамок FRAMELIST в PDF: участок модели или все рамки, имя файла, ISO / custom, масштаб 1:100.
 /// </summary>
 public static class QuickPdfOrchestrator
 {
@@ -28,7 +29,93 @@ public static class QuickPdfOrchestrator
         "DWG To PDF.pc3"
     ];
 
-    public static void ExportFrame(Document document, Point3d first, Point3d second)
+    public static void ExportFrameList(Document document)
+    {
+        Run(document, area: null, outputPath: null);
+    }
+
+    public static bool TryExportInteractively(Document document)
+    {
+        if (!QuickPdfPrompts.TryCollect(document.Editor, DrawingName(document), out QuickPdfInput input))
+        {
+            return false;
+        }
+
+        Run(document, input.Area, input.OutputPath);
+        return true;
+    }
+
+    private static void Run(Document document, FrameWindow? area, string? outputPath)
+    {
+        ILogger log = LoggerFactory.GetSharedLogger()
+            .ForContext(Constants.SourceContextPropertyName, LoggerFactory.QuickPdfContext);
+        Editor editor = document.Editor;
+        using (document.LockDocument())
+        {
+            IReadOnlyList<DetectedFrame> frames = FrameSheetOrder.Sort(FrameListInitializer.Load(document.Database));
+            if (area is { } window)
+            {
+                frames = FrameAreaFilter.Intersecting(frames, window);
+            }
+
+            if (frames.Count == 0)
+            {
+                throw new QuickPdfException(area is null
+                    ? "На слое " + FrameListInitializer.LayerName + " рамки не найдены."
+                    : "В указанном участке рамки не найдены.");
+            }
+
+            log.Information("QUICKPDF frames: count={FrameCount}; order=right-to-left, top-to-bottom", frames.Count);
+            editor.WriteMessage(
+                "\nQuickPDF: рамок " + frames.Count.ToString(CultureInfo.InvariantCulture) +
+                ". Порядок: справа налево, сверху вниз.");
+
+            PdfDestination destination = QuickPdfNaming.Resolve(outputPath, DrawingName(document));
+            try
+            {
+                _ = Directory.CreateDirectory(destination.Folder);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                throw new QuickPdfException("Не удалось создать папку: " + destination.Folder, ex);
+            }
+
+            using (new SystemVariableScope(("CMDECHO", (short)0), ("BACKGROUNDPLOT", (short)0), ("FILEDIA", (short)0)))
+            using (SilentPdfDevice plotter = SilentPdfDevice.Open(ResolvePdfDevice()))
+            {
+                string device = ResolveBoundDevice(document, plotter, log);
+                log.Information("QUICKPDF device selected: {Device}", device);
+                int index = 0;
+                foreach (DetectedFrame frame in frames)
+                {
+                    index++;
+                    log.Information(
+                        "QUICKPDF frame {Index}/{Count}: {MinX:0.###},{MinY:0.###} - {MaxX:0.###},{MaxY:0.###}",
+                        index, frames.Count, frame.MinX, frame.MinY, frame.MaxX, frame.MaxY);
+                    ExportFrame(
+                        document,
+                        device,
+                        new Point3d(frame.MinX, frame.MinY, 0),
+                        new Point3d(frame.MaxX, frame.MaxY, 0),
+                        destination.Folder,
+                        destination.Prefix);
+                }
+            }
+        }
+    }
+
+    private static string DrawingName(Document document)
+    {
+        return QuickPdfNaming.DrawingName(AcadApp.GetSystemVariable("DWGNAME") as string, document.Name);
+    }
+
+    private static void ExportFrame(
+        Document document,
+        string device,
+        Point3d first,
+        Point3d second,
+        string folder,
+        string prefix)
     {
         ILogger log = LoggerFactory.GetSharedLogger()
             .ForContext(Constants.SourceContextPropertyName, LoggerFactory.QuickPdfContext);
@@ -46,104 +133,107 @@ public static class QuickPdfOrchestrator
         log.Information(
             "QUICKPDF started: drawing={Drawing}; frame={FrameWidth:0.###}x{FrameHeight:0.###}; paper={PaperWidth:0.###}x{PaperHeight:0.###} mm",
             document.Name, width, height, paperWidth, paperHeight);
-        string prefix = QuickPdfNaming.SafeName(
-            AcadApp.GetSystemVariable("DWGNAME") is string { Length: > 0 } name ? name : document.Name);
-        string folder = Path.Combine(QuickPdfNaming.ResolveDesktop(), prefix);
-        try
-        {
-            _ = Directory.CreateDirectory(folder);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            throw new QuickPdfException("Не удалось создать папку: " + folder, ex);
-        }
 
         int sheet = QuickPdfNaming.NextSheetIndex(folder, prefix);
         string pdfPath = Path.Combine(
             folder, prefix + "_" + sheet.ToString("D3", CultureInfo.InvariantCulture) + ".pdf");
         log.Information("QUICKPDF output: {PdfPath}", pdfPath);
 
-        using (document.LockDocument())
-        using (new SystemVariableScope(("CMDECHO", (short)0), ("BACKGROUNDPLOT", (short)0), ("FILEDIA", (short)0)))
-        using (PlotSettings settings = CreateModelPlotSettings(document))
+        using PlotSettings settings = CreateModelPlotSettings(document);
+        PlotSettingsValidator validator = PlotSettingsValidator.Current;
+        BindPdfDevice(settings, validator, device);
+
+        IsoMediaChoice? iso = IsoMediaPicker.Pick(settings, validator, paperWidth, paperHeight);
+        string mediaLabel;
+        MatchingPolicy policy;
+        Action<PlotSettings> verify;
+        if (iso is { } choice)
         {
-            PlotSettingsValidator validator = PlotSettingsValidator.Current;
-            List<string> devices = [.. PlotLists.Names(validator.GetPlotDeviceList())];
-            string? device = null;
-            foreach (string wanted in PreferredDevices)
-            {
-                device = devices.Find(candidate =>
-                    string.Equals(candidate, wanted, StringComparison.OrdinalIgnoreCase));
-                if (device is not null)
-                {
-                    break;
-                }
-            }
+            validator.SetPlotRotation(settings, choice.Rotation);
+            mediaLabel = choice.CanonicalName;
+            policy = MatchingPolicy.MatchEnabled;
+            verify = validated => PlotEngineRunner.VerifyIso(validated, choice, paperWidth, paperHeight);
+        }
+        else
+        {
+            validator.SetPlotRotation(settings, PlotRotation.Degrees000);
+            mediaLabel = "Custom " + paperWidth.ToString("0.000", CultureInfo.InvariantCulture) +
+                         " x " + paperHeight.ToString("0.000", CultureInfo.InvariantCulture) + " mm";
+            policy = MatchingPolicy.MatchEnabledTemporaryCustom;
+            verify = validated => PlotEngineRunner.VerifyCustom(
+                validated, paperWidth, paperHeight, window, settings.CurrentStyleSheet);
+            editor.WriteMessage(
+                $"\nISO-формат {paperWidth:0.00} x {paperHeight:0.00} мм не найден. Печать на пользовательском листе.");
+        }
 
-            if (device is null)
-            {
-                throw new QuickPdfException("PDF-плоттер (pc3) не найден.");
-            }
+        validator.SetPlotPaperUnits(settings, PlotPaperUnit.Millimeters);
+        ApplyPlotOptions(settings, validator, window);
+        log.Information(
+            "QUICKPDF media selected: mode={Mode}; media={Media}; rotation={Rotation}; matching={MatchingPolicy}",
+            iso is null ? "Custom" : "ISO", mediaLabel, settings.PlotRotation, policy);
 
-            BindPdfDevice(settings, validator, device);
-            log.Information("QUICKPDF device selected: {Device}", device);
-
-            IsoMediaChoice? iso = IsoMediaPicker.Pick(settings, validator, paperWidth, paperHeight);
-            string mediaLabel;
-            MatchingPolicy policy;
-            Action<PlotSettings> verify;
-            if (iso is { } choice)
-            {
-                validator.SetPlotRotation(settings, choice.Rotation);
-                mediaLabel = choice.CanonicalName;
-                policy = MatchingPolicy.MatchEnabled;
-                verify = validated => PlotEngineRunner.VerifyIso(validated, choice, paperWidth, paperHeight);
-            }
-            else
-            {
-                validator.SetPlotRotation(settings, PlotRotation.Degrees000);
-                mediaLabel = "Custom " + paperWidth.ToString("0.000", CultureInfo.InvariantCulture) +
-                             " x " + paperHeight.ToString("0.000", CultureInfo.InvariantCulture) + " mm";
-                policy = MatchingPolicy.MatchEnabledTemporaryCustom;
-                verify = validated => PlotEngineRunner.VerifyCustom(
-                    validated, paperWidth, paperHeight, window, settings.CurrentStyleSheet);
-                editor.WriteMessage(
-                    $"\nISO-формат {paperWidth:0.00} x {paperHeight:0.00} мм не найден. Печать на пользовательском листе.");
-            }
-
-            validator.SetPlotPaperUnits(settings, PlotPaperUnit.Millimeters);
-            ApplyPlotOptions(settings, validator, window);
+        using (iso is null ? CustomPaper.Bind(document.Database, settings, paperWidth, paperHeight) : null)
+        {
             log.Information(
-                "QUICKPDF media selected: mode={Mode}; media={Media}; rotation={Rotation}; matching={MatchingPolicy}",
-                iso is null ? "Custom" : "ISO", mediaLabel, settings.PlotRotation, policy);
-
-            using (iso is null ? CustomPaper.Bind(document.Database, settings, paperWidth, paperHeight) : null)
-            {
-                log.Information(
-                    "QUICKPDF settings ready: media={CanonicalMedia}; paper={PaperWidth:0.###}x{PaperHeight:0.###} mm; " +
-                    "margins=({MarginLeft:0.###},{MarginBottom:0.###})-({MarginRight:0.###},{MarginTop:0.###}); begin plot validation",
-                    settings.CanonicalMediaName,
-                    settings.PlotPaperSize.X,
-                    settings.PlotPaperSize.Y,
-                    settings.PlotPaperMargins.MinPoint.X,
-                    settings.PlotPaperMargins.MinPoint.Y,
-                    settings.PlotPaperMargins.MaxPoint.X,
-                    settings.PlotPaperMargins.MaxPoint.Y);
-                editor.WriteMessage(
-                    "\nПринтер: " + device +
-                    "\nБумага: " + mediaLabel + (paperWidth >= paperHeight ? " landscape" : " portrait") +
-                    " | Стандартный масштаб 1:100 | Сдвиг X=0 Y=0 | Центрирование выкл | Рамка на бумаге: " +
-                    paperWidth.ToString("0.0", CultureInfo.InvariantCulture) + " x " +
-                    paperHeight.ToString("0.0", CultureInfo.InvariantCulture) +
-                    " мм (1 мм = 100 единиц чертежа)" +
-                    "\nФайл: " + pdfPath);
-                PlotEngineRunner.Publish(document, settings, pdfPath, policy, verify);
-            }
+                "QUICKPDF settings ready: media={CanonicalMedia}; paper={PaperWidth:0.###}x{PaperHeight:0.###} mm; " +
+                "margins=({MarginLeft:0.###},{MarginBottom:0.###})-({MarginRight:0.###},{MarginTop:0.###}); begin plot validation",
+                settings.CanonicalMediaName,
+                settings.PlotPaperSize.X,
+                settings.PlotPaperSize.Y,
+                settings.PlotPaperMargins.MinPoint.X,
+                settings.PlotPaperMargins.MinPoint.Y,
+                settings.PlotPaperMargins.MaxPoint.X,
+                settings.PlotPaperMargins.MaxPoint.Y);
+            editor.WriteMessage(
+                "\nПринтер: " + device +
+                "\nБумага: " + mediaLabel + (paperWidth >= paperHeight ? " landscape" : " portrait") +
+                " | Стандартный масштаб 1:100 | Сдвиг X=0 Y=0 | Центрирование выкл | Рамка на бумаге: " +
+                paperWidth.ToString("0.0", CultureInfo.InvariantCulture) + " x " +
+                paperHeight.ToString("0.0", CultureInfo.InvariantCulture) +
+                " мм (1 мм = 100 единиц чертежа)" +
+                "\nФайл: " + pdfPath);
+            PlotEngineRunner.Publish(document, settings, pdfPath, policy, verify);
         }
 
         log.Information("QUICKPDF completed: {PdfPath}", pdfPath);
         editor.WriteMessage(
             "\nЛист " + sheet.ToString("D3", CultureInfo.InvariantCulture) + " сохранён: " + pdfPath);
+    }
+
+    private static string ResolveBoundDevice(Document document, SilentPdfDevice plotter, ILogger log)
+    {
+        if (string.Equals(plotter.Name, plotter.Source, StringComparison.OrdinalIgnoreCase))
+        {
+            return plotter.Source;
+        }
+
+        using PlotSettings probe = CreateModelPlotSettings(document);
+        try
+        {
+            BindPdfDevice(probe, PlotSettingsValidator.Current, plotter.Name);
+            return plotter.Name;
+        }
+        catch (Exception ex) when (ex is QuickPdfException or Autodesk.AutoCAD.Runtime.Exception)
+        {
+            log.Warning(ex, "QUICKPDF silent device failed; using {Device}", plotter.Source);
+            return plotter.Source;
+        }
+    }
+
+    private static string ResolvePdfDevice()
+    {
+        List<string> devices = [.. PlotLists.Names(PlotSettingsValidator.Current.GetPlotDeviceList())];
+        foreach (string wanted in PreferredDevices)
+        {
+            string? device = devices.Find(candidate =>
+                string.Equals(candidate, wanted, StringComparison.OrdinalIgnoreCase));
+            if (device is not null)
+            {
+                return device;
+            }
+        }
+
+        throw new QuickPdfException("PDF-плоттер (pc3) не найден.");
     }
 
     private static PlotSettings CreateModelPlotSettings(Document document)

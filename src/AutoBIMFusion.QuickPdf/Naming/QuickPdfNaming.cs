@@ -3,6 +3,19 @@ using System.Text;
 
 namespace AutoBIMFusion.QuickPdf.Naming;
 
+public readonly struct PdfDestination
+{
+    public PdfDestination(string folder, string prefix)
+    {
+        Folder = folder;
+        Prefix = prefix;
+    }
+
+    public string Folder { get; }
+
+    public string Prefix { get; }
+}
+
 public static class QuickPdfNaming
 {
     public static string SafeName(string? drawingName)
@@ -33,6 +46,25 @@ public static class QuickPdfNaming
 
         string trimmed = builder.ToString().Trim(' ', '.');
         return trimmed.Length == 0 ? "Drawing" : trimmed;
+    }
+
+    public static PdfDestination Resolve(string? selectedPath, string? drawingName)
+    {
+        if (string.IsNullOrWhiteSpace(selectedPath))
+        {
+            string prefix = SafeName(drawingName);
+            return new PdfDestination(Path.Combine(ResolveDesktop(), prefix), prefix);
+        }
+
+        string? directory = Path.GetDirectoryName(selectedPath);
+        return new PdfDestination(
+            string.IsNullOrWhiteSpace(directory) ? ResolveDesktop() : directory,
+            SafeName(Path.GetFileName(selectedPath)));
+    }
+
+    public static string DrawingName(string? dwgName, string? documentName)
+    {
+        return dwgName is { Length: > 0 } ? dwgName : documentName ?? string.Empty;
     }
 
     public static string ResolveDesktop()

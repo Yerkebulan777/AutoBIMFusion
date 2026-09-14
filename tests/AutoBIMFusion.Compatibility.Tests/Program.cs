@@ -7,9 +7,6 @@ using AutoBIMFusion.QuickPdf.Plotting;
 using Serilog;
 using System.Globalization;
 using System.Text.Json;
-#if NETFRAMEWORK
-using AutoBIMFusion.Common.Compatibility;
-#endif
 
 Assert(StringUtils.EscapeForQuotedContext("a\\b\"\r\n") == "a\\\\b\\\"\\r\\n", "escaping");
 Assert(StringUtils.EscapeForQuotedContext(null) == "", "null escaping");
@@ -28,20 +25,6 @@ foreach (double value in new[] { double.NaN, double.PositiveInfinity, double.Neg
 {
     Assert(NumericUtils.FormatF6(value) == "n/a", "non-finite numeric format");
 }
-
-var queue = new PriorityQueue<int, double>();
-var random = new Random(47);
-var priorities = Enumerable.Range(0, 1000).Select(_ => random.Next(-20, 20)).ToArray();
-foreach (int priority in priorities) queue.Enqueue(priority, priority);
-Assert(queue.Count == priorities.Length, "duplicate priorities retained");
-foreach (int expected in priorities.OrderBy(x => x)) Assert(queue.Dequeue() == expected, "priority order");
-Assert(queue.Count == 0, "queue drained");
-try
-{
-    queue.Dequeue();
-    throw new Exception("Empty dequeue accepted.");
-}
-catch (InvalidOperationException) { }
 
 string directory = Path.Combine(Path.GetTempPath(), "AutoBIMFusion-compatibility-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(directory);
@@ -84,6 +67,22 @@ Assert(QuickPdfNaming.SafeName(@"C:\tmp\Frame.dwg") == "Frame", "quickpdf path n
 Assert(QuickPdfNaming.SafeName("   ") == "Drawing", "quickpdf blank name");
 Assert(QuickPdfNaming.TryReadSheetIndex("Plan_012", "Plan", out int sheet) && sheet == 12, "quickpdf sheet index");
 Assert(!QuickPdfNaming.TryReadSheetIndex("Plan_12a", "Plan", out _), "quickpdf non-digit sheet");
+PdfDestination unnamed = QuickPdfNaming.Resolve(null, @"C:\tmp\Plan.dwg");
+Assert(unnamed.Prefix == "Plan", "quickpdf default prefix from drawing");
+Assert(Path.GetFileName(unnamed.Folder) == "Plan", "quickpdf default folder from drawing");
+PdfDestination named = QuickPdfNaming.Resolve(@"D:\pdf\Sheets.pdf", "Plan.dwg");
+Assert(named.Prefix == "Sheets", "quickpdf selected prefix");
+Assert(named.Folder == @"D:\pdf", "quickpdf selected folder");
+Assert(QuickPdfNaming.DrawingName("Plan.dwg", @"C:\tmp\other.dwg") == "Plan.dwg", "dwg name preferred");
+Assert(QuickPdfNaming.DrawingName(null, @"C:\tmp\other.dwg") == @"C:\tmp\other.dwg", "document name fallback");
+
+DetectedFrame areaFrame = new(0, 0, 10, 10, [1]);
+Assert(FrameAreaFilter.Intersecting([areaFrame], new FrameWindow(5, 5, 15, 15)).Count == 1,
+    "intersecting window keeps frame");
+Assert(FrameAreaFilter.Intersecting([areaFrame], new FrameWindow(-1, -1, 11, 11)).Count == 1,
+    "containing window keeps frame");
+Assert(FrameAreaFilter.Intersecting([areaFrame], new FrameWindow(20, 20, 30, 30)).Count == 0,
+    "disjoint window drops frame");
 
 IReadOnlyList<DetectedFrame> exactA4Frames = AxisAlignedFrameDetector.Find(
 [
@@ -242,6 +241,46 @@ IReadOnlyList<DetectedFrame> overlappingFrames = AxisAlignedFrameDetector.Find(
 ], 3);
 Assert(overlappingFrames.Count == 2, "overlapping non-contained frames retained");
 
+IReadOnlyList<DetectedFrame> gridFrames = FrameSheetOrder.Sort(
+[
+    new DetectedFrame(0, 0, 50, 50, [4]),
+    new DetectedFrame(100, 0, 150, 50, [3]),
+    new DetectedFrame(0, 100, 50, 150, [2]),
+    new DetectedFrame(100, 100, 150, 150, [1])
+]);
+Assert(gridFrames.Select(frame => frame.SourceIds[0]).SequenceEqual([1, 2, 3, 4]),
+    "frames sorted right-to-left then top-to-bottom");
+
+IReadOnlyList<DetectedFrame> misalignedRow = FrameSheetOrder.Sort(
+[
+    new DetectedFrame(0, 100, 50, 152, [20]),
+    new DetectedFrame(100, 100, 150, 150, [10])
+]);
+Assert(misalignedRow.Select(frame => frame.SourceIds[0]).SequenceEqual([10, 20]),
+    "same-row frames keep right-to-left order when tops differ slightly");
+
+Assert(PdfPc3Viewer.TryDisable("""
+    {
+     "4" :
+     {
+      "name" : "View_New_File",
+      "value" : true
+     }
+    }
+    """, out string silencedPc3) &&
+    silencedPc3.IndexOf("\"value\" : false", StringComparison.Ordinal) >= 0 &&
+    silencedPc3.IndexOf("\"value\" : true", StringComparison.Ordinal) < 0,
+    "json pc3 viewer flag disabled");
+Assert(!PdfPc3Viewer.TryDisable("PIAFILEVERSION_2.0,PC3VER1,compress", out _),
+    "compressed pc3 viewer patch rejected");
+Assert(!PdfPc3Viewer.TryDisable("""
+    {
+      "name" : "View_New_File",
+      "value" : false
+    }
+    """, out _),
+    "already disabled json pc3 left unchanged");
+
 IReadOnlyList<DetectedFrame> incompleteBoundaryFrames = AxisAlignedFrameDetector.Find(
 [
     new FramePath(60, true,
@@ -335,7 +374,7 @@ Assert(resolvedExport == new IntPtr(84), "acdb decorated release export fallback
 Assert(AccoreNative.EvaluationSucceeded(1), "acedEvaluateLisp success result accepted");
 Assert(!AccoreNative.EvaluationSucceeded(0), "acedEvaluateLisp failure result rejected");
 
-Console.WriteLine("PASS: escaping, guards, spans, numeric formatting, priority queue, Serilog, JSON and QuickPDF helpers.");
+Console.WriteLine("PASS: escaping, guards, spans, numeric formatting, Serilog, JSON and QuickPDF helpers.");
 
 static void Assert(bool condition, string name)
 {

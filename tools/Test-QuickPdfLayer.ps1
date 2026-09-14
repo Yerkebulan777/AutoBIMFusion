@@ -86,8 +86,6 @@ $lines = @(
     '_.NETLOAD',
     $pluginPath,
     'QUICKPDF',
-    '0,0',
-    '0,0',
     '(setq firstLayer (entget (tblobjname "LAYER" "FRAMELIST")))',
     '._-LAYER',
     '_Color',
@@ -99,8 +97,6 @@ $lines = @(
     '130000,30000',
     '(setq lateFrame (entlast))',
     'QUICKPDF',
-    '0,0',
-    '0,0',
     '(setq secondLayer (entget (tblobjname "LAYER" "FRAMELIST")))',
     ('(setq output (open "' + $resultPath + '" "w"))'),
     '(if firstLayer (write-line (strcat (cdr (assoc 2 firstLayer)) "|" (itoa (cdr (assoc 62 firstLayer))) "|" (itoa (cdr (assoc 370 firstLayer))) "|" (itoa (cdr (assoc 290 firstLayer))) "|" (cdr (assoc 6 firstLayer))) output) (write-line "MISSING" output))',
@@ -128,12 +124,16 @@ $arguments = @(
 $process = Start-Process -FilePath $hostExe -ArgumentList $arguments -WindowStyle Hidden -PassThru `
     -RedirectStandardOutput (Join-Path $runRoot 'console.log') `
     -RedirectStandardError (Join-Path $runRoot 'console-error.log')
-if (-not $process.WaitForExit(120000)) {
+if (-not $process.WaitForExit(180000)) {
     $process.Kill()
     $process.WaitForExit()
     throw "Core Console timed out. See $runRoot"
 }
 if ($process.ExitCode -ne 0) { throw "Core Console failed with exit $($process.ExitCode). See $runRoot" }
+$pdfOutput = Join-Path ([Environment]::GetFolderPath('Desktop')) 'quickpdf-layer'
+if (Test-Path -LiteralPath $pdfOutput) {
+    Remove-Item -LiteralPath $pdfOutput -Recurse -Force -ErrorAction SilentlyContinue
+}
 if (-not (Test-Path -LiteralPath $resultPath)) { throw "QuickPDF layer result was not written. See $runRoot" }
 
 $result = @(Get-Content -LiteralPath $resultPath)

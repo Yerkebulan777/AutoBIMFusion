@@ -1,9 +1,7 @@
 using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.EditorInput;
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Logging;
 using AutoBIMFusion.QuickPdf;
-using AutoBIMFusion.QuickPdf.Frames;
 using Serilog;
 using Serilog.Core;
 using System.Runtime.Versioning;
@@ -36,25 +34,14 @@ public sealed class QuickPdfCommands
                 return;
             }
 
-            using (document.LockDocument())
+#if CORECONSOLE_DIAGNOSTICS
+            QuickPdfOrchestrator.ExportFrameList(document);
+#else
+            if (!QuickPdfOrchestrator.TryExportInteractively(document))
             {
-                FrameListInitializer.EnsureInitialized(document.Database);
+                editor.WriteMessage("\nQuickPDF: отменено.");
             }
-
-            PromptPointResult first = editor.GetPoint("\nУкажите первый угол рамки чертежа: ");
-            if (first.Status != PromptStatus.OK)
-            {
-                return;
-            }
-
-            PromptCornerOptions cornerOptions = new("\nУкажите противоположный угол: ", first.Value);
-            PromptPointResult second = editor.GetCorner(cornerOptions);
-            if (second.Status != PromptStatus.OK)
-            {
-                return;
-            }
-
-            QuickPdfOrchestrator.ExportFrame(document, first.Value, second.Value);
+#endif
         }
         catch (Exception ex) when (ex is QuickPdfException or Autodesk.AutoCAD.Runtime.Exception)
         {

@@ -33,7 +33,7 @@ internal static class RibbonBuilder
             "QUICKPDF ",
             "icon-quick-pdf-16.png",
             "icon-quick-pdf-32.png",
-            "Экспорт рамки модели в PDF (ISO / custom, 1:100)"));
+            "Экспорт рамок модели в PDF: участок или все рамки, имя файла"));
 
         RibbonTab tab = new() { Id = "AutoBIMFusion.RibbonTab", Title = "AutoBIMFusion" };
         tab.Panels.Add(new RibbonPanel { Source = panelSource });
