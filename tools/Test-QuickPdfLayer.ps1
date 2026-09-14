@@ -41,7 +41,9 @@ $lines = @(
     '(setvar "FILEDIA" 0)',
     '(setvar "SECURELOAD" 0)',
     '(defun entity-color-index (entity / color) (setq color (assoc 62 (entget entity))) (if color (cdr color) 256))',
+    '(defun entity-lineweight (entity / lineweight) (setq lineweight (assoc 370 (entget entity))) (if lineweight (cdr lineweight) -1))',
     '(setvar "CECOLOR" "1")',
+    '(setvar "CELWEIGHT" 70)',
     '_.RECTANG',
     '0,0',
     '50000,40000',
@@ -50,6 +52,7 @@ $lines = @(
     '5000,5000',
     '35000,35000',
     '(setq innerFrame (entlast))',
+    '(setvar "CELWEIGHT" 30)',
     '_.RECTANG',
     '0,-25000',
     '20000,-5000',
@@ -59,22 +62,26 @@ $lines = @(
     '90000,0',
     '',
     '(setq lineBottom (entlast))',
+    '(setvar "CELWEIGHT" 20)',
     '_.LINE',
     '90002,0',
     '90002,30000',
     '',
     '(setq lineRight (entlast))',
+    '(setvar "CELWEIGHT" 35)',
     '_.LINE',
     '90000,30002',
     '60000,30002',
     '',
     '(setq lineTop (entlast))',
+    '(setvar "CELWEIGHT" 40)',
     '_.LINE',
     '59998,30000',
     '59998,0',
     '',
     '(setq lineLeft (entlast))',
     '(setvar "CECOLOR" "BYLAYER")',
+    '(setvar "CELWEIGHT" -1)',
     ('(command "_.QSAVE" "' + $drawingPath + '")'),
     '_.NETLOAD',
     $pluginPath,
@@ -99,6 +106,7 @@ $lines = @(
     '(if firstLayer (write-line (strcat (cdr (assoc 2 firstLayer)) "|" (itoa (cdr (assoc 62 firstLayer))) "|" (itoa (cdr (assoc 370 firstLayer))) "|" (itoa (cdr (assoc 290 firstLayer))) "|" (cdr (assoc 6 firstLayer))) output) (write-line "MISSING" output))',
     '(write-line (strcat (cdr (assoc 8 (entget outerFrame))) "|" (cdr (assoc 8 (entget innerFrame))) "|" (cdr (assoc 8 (entget smallFrame))) "|" (cdr (assoc 8 (entget lineBottom))) "|" (cdr (assoc 8 (entget lineRight))) "|" (cdr (assoc 8 (entget lineTop))) "|" (cdr (assoc 8 (entget lineLeft)))) output)',
     '(write-line (strcat (itoa (entity-color-index outerFrame)) "|" (itoa (entity-color-index lineBottom)) "|" (itoa (entity-color-index lineRight)) "|" (itoa (entity-color-index lineTop)) "|" (itoa (entity-color-index lineLeft))) output)',
+    '(write-line (strcat (itoa (entity-lineweight outerFrame)) "|" (itoa (entity-lineweight lineBottom)) "|" (itoa (entity-lineweight lineRight)) "|" (itoa (entity-lineweight lineTop)) "|" (itoa (entity-lineweight lineLeft))) output)',
     '(if secondLayer (write-line (itoa (cdr (assoc 62 secondLayer))) output) (write-line "MISSING" output))',
     '(write-line (cdr (assoc 8 (entget lateFrame))) output)',
     '(close output)',
@@ -129,7 +137,7 @@ if ($process.ExitCode -ne 0) { throw "Core Console failed with exit $($process.E
 if (-not (Test-Path -LiteralPath $resultPath)) { throw "QuickPDF layer result was not written. See $runRoot" }
 
 $result = @(Get-Content -LiteralPath $resultPath)
-if ($result.Count -ne 5) { throw "Unexpected QuickPDF layer result. See $runRoot" }
+if ($result.Count -ne 6) { throw "Unexpected QuickPDF layer result. See $runRoot" }
 if ($result[0].ToUpperInvariant() -ne 'FRAMELIST|4|50|0|CONTINUOUS') {
     throw "Unexpected initial FRAMELIST settings: $($result[0]). See $runRoot"
 }
@@ -139,11 +147,14 @@ if ($result[1].ToUpperInvariant() -ne 'FRAMELIST|0|0|FRAMELIST|FRAMELIST|FRAMELI
 if ($result[2] -ne '256|256|256|256|256') {
     throw "Recognized frame entities are not ByLayer: $($result[2]). See $runRoot"
 }
-if ($result[3] -ne '1') {
-    throw "Existing FRAMELIST layer was modified: color=$($result[3]). See $runRoot"
+if ($result[3] -ne '-1|-1|-1|-1|-1') {
+    throw "Recognized frame entity lineweights are not ByLayer: $($result[3]). See $runRoot"
 }
-if ($result[4] -ne '0') {
-    throw "Second QUICKPDF invocation rescanned the model: layer=$($result[4]). See $runRoot"
+if ($result[4] -ne '1') {
+    throw "Existing FRAMELIST layer was modified: color=$($result[4]). See $runRoot"
+}
+if ($result[5] -ne '0') {
+    throw "Second QUICKPDF invocation rescanned the model: layer=$($result[5]). See $runRoot"
 }
 
-Write-Host "PASS ${Configuration}: FRAMELIST is created atomically, recognized frames use ByLayer color, and later runs do not rescan. Artifacts: $runRoot"
+Write-Host "PASS ${Configuration}: FRAMELIST is created atomically, recognized frames use ByLayer color and lineweight, and later runs do not rescan. Artifacts: $runRoot"

@@ -222,6 +222,7 @@ public static class FrameListInitializer
             entity.UpgradeOpen();
             entity.LayerId = targetLayerId;
             entity.ColorIndex = 256;
+            entity.LineWeight = LineWeight.ByLayer;
         }
 
         foreach (LayerTableRecord layer in unlockedLayers.Values)
