@@ -1,6 +1,4 @@
-using AutoBIMFusion.Common.Helpers;
 using System.Globalization;
-using System.Runtime.InteropServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Exception = System.Exception;
 
@@ -11,19 +9,19 @@ namespace AutoBIMFusion.QuickPdf.Plotting;
 /// </summary>
 internal static class PlotSettingsDxf
 {
-    private const int RtNorm = 5100;
-
-    public static void ApplyCustomPaper(ObjectId plotSettingsId, string name, double widthMm, double heightMm)
+    public static void ApplyCustomPaper(ObjectId plotSettingsId, double widthMm, double heightMm)
     {
         string handle = plotSettingsId.Handle.Value.ToString("X", CultureInfo.InvariantCulture);
         string width = widthMm.ToString("0.##########", CultureInfo.InvariantCulture);
         string height = heightMm.ToString("0.##########", CultureInfo.InvariantCulture);
-        string escapedName = StringUtils.EscapeForQuotedContext(name);
+        string canonicalMediaName = "UserDefinedMetric (" +
+                                    widthMm.ToString("0.00", CultureInfo.InvariantCulture) + " x " +
+                                    heightMm.ToString("0.00", CultureInfo.InvariantCulture) + "MM)";
         EvaluateLisp(
             "(progn (setq e (handent \"" + handle + "\")) (if (null e) nil (progn " +
             "(setq data (entget e) active nil result nil) (foreach pair data " +
             "(if (= (car pair) 100) (setq active (= (cdr pair) \"AcDbPlotSettings\"))) " +
-            "(cond ((and active (= (car pair) 4)) (setq pair (cons 4 \"" + escapedName + "\"))) " +
+            "(cond ((and active (= (car pair) 4)) (setq pair (cons 4 \"" + canonicalMediaName + "\"))) " +
             "((and active (= (car pair) 44)) (setq pair (cons 44 " + width + "))) " +
             "((and active (= (car pair) 45)) (setq pair (cons 45 " + height + "))) " +
             "((and active (= (car pair) 40)) (setq pair (cons 40 0.0))) " +
@@ -43,7 +41,7 @@ internal static class PlotSettingsDxf
         int status;
         try
         {
-            status = acedEvaluateLisp(expression, out buffer);
+            status = AccoreNative.EvaluateLisp(expression, out buffer);
         }
         catch (DllNotFoundException ex)
         {
@@ -59,7 +57,7 @@ internal static class PlotSettingsDxf
             {
                 try
                 {
-                    acutRelRb(buffer);
+                    _ = AccoreNative.ReleaseResult(buffer);
                 }
                 catch (Exception)
                 {
@@ -68,15 +66,9 @@ internal static class PlotSettingsDxf
             }
         }
 
-        if (status != RtNorm)
+        if (!AccoreNative.EvaluationSucceeded(status))
         {
             throw new QuickPdfException("AutoCAD отклонил временную конфигурацию пользовательского формата.");
         }
     }
-
-    [DllImport("accore.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-    private static extern int acedEvaluateLisp(string lispExpression, out IntPtr result);
-
-    [DllImport("accore.dll", CallingConvention = CallingConvention.Cdecl)]
-    private static extern void acutRelRb(IntPtr resultBuffer);
 }

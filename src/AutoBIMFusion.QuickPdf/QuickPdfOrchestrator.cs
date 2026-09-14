@@ -3,8 +3,11 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.PlottingServices;
+using AutoBIMFusion.Common.Logging;
 using AutoBIMFusion.QuickPdf.Naming;
 using AutoBIMFusion.QuickPdf.Plotting;
+using Serilog;
+using Serilog.Core;
 using System.Globalization;
 using Exception = System.Exception;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
@@ -27,6 +30,8 @@ public static class QuickPdfOrchestrator
 
     public static void ExportFrame(Document document, Point3d first, Point3d second)
     {
+        ILogger log = LoggerFactory.GetSharedLogger()
+            .ForContext(Constants.SourceContextPropertyName, LoggerFactory.QuickPdfContext);
         Editor editor = document.Editor;
         Extents2d window = PlotWindowConverter.ToPlotWindow(editor, first, second);
         double width = Abs(window.MaxPoint.X - window.MinPoint.X);
@@ -38,6 +43,9 @@ public static class QuickPdfOrchestrator
 
         double paperWidth = width / 100.0;
         double paperHeight = height / 100.0;
+        log.Information(
+            "QUICKPDF started: drawing={Drawing}; frame={FrameWidth:0.###}x{FrameHeight:0.###}; paper={PaperWidth:0.###}x{PaperHeight:0.###} mm",
+            document.Name, width, height, paperWidth, paperHeight);
         string prefix = QuickPdfNaming.SafeName(
             AcadApp.GetSystemVariable("DWGNAME") is string { Length: > 0 } name ? name : document.Name);
         string folder = Path.Combine(QuickPdfNaming.ResolveDesktop(), prefix);
@@ -53,6 +61,7 @@ public static class QuickPdfOrchestrator
         int sheet = QuickPdfNaming.NextSheetIndex(folder, prefix);
         string pdfPath = Path.Combine(
             folder, prefix + "_" + sheet.ToString("D3", CultureInfo.InvariantCulture) + ".pdf");
+        log.Information("QUICKPDF output: {PdfPath}", pdfPath);
 
         using (document.LockDocument())
         using (new SystemVariableScope(("CMDECHO", (short)0), ("BACKGROUNDPLOT", (short)0), ("FILEDIA", (short)0)))
@@ -77,6 +86,7 @@ public static class QuickPdfOrchestrator
             }
 
             BindPdfDevice(settings, validator, device);
+            log.Information("QUICKPDF device selected: {Device}", device);
 
             IsoMediaChoice? iso = IsoMediaPicker.Pick(settings, validator, paperWidth, paperHeight);
             string mediaLabel;
@@ -103,9 +113,22 @@ public static class QuickPdfOrchestrator
 
             validator.SetPlotPaperUnits(settings, PlotPaperUnit.Millimeters);
             ApplyPlotOptions(settings, validator, window);
+            log.Information(
+                "QUICKPDF media selected: mode={Mode}; media={Media}; rotation={Rotation}; matching={MatchingPolicy}",
+                iso is null ? "Custom" : "ISO", mediaLabel, settings.PlotRotation, policy);
 
             using (iso is null ? CustomPaper.Bind(document.Database, settings, paperWidth, paperHeight) : null)
             {
+                log.Information(
+                    "QUICKPDF settings ready: media={CanonicalMedia}; paper={PaperWidth:0.###}x{PaperHeight:0.###} mm; " +
+                    "margins=({MarginLeft:0.###},{MarginBottom:0.###})-({MarginRight:0.###},{MarginTop:0.###}); begin plot validation",
+                    settings.CanonicalMediaName,
+                    settings.PlotPaperSize.X,
+                    settings.PlotPaperSize.Y,
+                    settings.PlotPaperMargins.MinPoint.X,
+                    settings.PlotPaperMargins.MinPoint.Y,
+                    settings.PlotPaperMargins.MaxPoint.X,
+                    settings.PlotPaperMargins.MaxPoint.Y);
                 editor.WriteMessage(
                     "\nПринтер: " + device +
                     "\nБумага: " + mediaLabel + (paperWidth >= paperHeight ? " landscape" : " portrait") +
@@ -118,6 +141,7 @@ public static class QuickPdfOrchestrator
             }
         }
 
+        log.Information("QUICKPDF completed: {PdfPath}", pdfPath);
         editor.WriteMessage(
             "\nЛист " + sheet.ToString("D3", CultureInfo.InvariantCulture) + " сохранён: " + pdfPath);
     }

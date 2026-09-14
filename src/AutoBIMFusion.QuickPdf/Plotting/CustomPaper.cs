@@ -40,7 +40,7 @@ internal sealed class CustomPaper : IDisposable
         CustomPaper paper = new(database, id);
         try
         {
-            PlotSettingsDxf.ApplyCustomPaper(id, configName, widthMm, heightMm);
+            PlotSettingsDxf.ApplyCustomPaper(id, widthMm, heightMm);
 
             using (Transaction tr = database.TransactionManager.StartTransaction())
             {

@@ -9,6 +9,7 @@ namespace AutoBIMFusion.Common.Logging;
 public static class LoggerFactory
 {
     public const string ExecutionSummaryContext = "AutoBIMFusion.ExecutionSummary";
+    public const string QuickPdfContext = "AutoBIMFusion.QuickPdf";
     public const string RasterImagesContext = "AutoBIMFusion.RasterImages";
 
     private static readonly Lazy<Logger> SharedLogger = new(CreateLogger);
@@ -84,9 +85,10 @@ public static class LoggerFactory
         }
     }
 
-    private static LoggerConfiguration ApplyAlwaysOnOverrides(LoggerConfiguration configuration) =>
+    internal static LoggerConfiguration ApplyAlwaysOnOverrides(LoggerConfiguration configuration) =>
         configuration
             .MinimumLevel.Override(ExecutionSummaryContext, LogEventLevel.Information)
+            .MinimumLevel.Override(QuickPdfContext, LogEventLevel.Information)
             .MinimumLevel.Override(RasterImagesContext, LogEventLevel.Information);
 
     private static void TryWriteBootstrapFailure(Exception ex)

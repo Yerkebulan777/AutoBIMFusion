@@ -1,6 +1,8 @@
 using AutoBIMFusion.Common.Helpers;
+using AutoBIMFusion.Common.Logging;
 using AutoBIMFusion.QuickPdf.Media;
 using AutoBIMFusion.QuickPdf.Naming;
+using AutoBIMFusion.QuickPdf.Plotting;
 using Serilog;
 using System.Globalization;
 using System.Text.Json;
@@ -43,6 +45,7 @@ catch (InvalidOperationException) { }
 string directory = Path.Combine(Path.GetTempPath(), "AutoBIMFusion-compatibility-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(directory);
 string logFile = Path.Combine(directory, "test.log");
+string quickPdfLogFile = Path.Combine(directory, "quickpdf.log");
 try
 {
     using (var log = new LoggerConfiguration().WriteTo.File(logFile, shared: true).CreateLogger())
@@ -50,6 +53,20 @@ try
         log.Information("Compatibility {Version}", "2019–2027");
     }
     Assert(File.ReadAllText(logFile).Contains("2019–2027"), "Serilog file sink");
+
+    using (var log = LoggerFactory.ApplyAlwaysOnOverrides(
+               new LoggerConfiguration().MinimumLevel.Warning())
+           .WriteTo.File(quickPdfLogFile, shared: true)
+           .CreateLogger())
+    {
+        log.Information("ordinary information");
+        log.ForContext("SourceContext", LoggerFactory.QuickPdfContext)
+            .Information("custom paper diagnostics");
+    }
+    string quickPdfLog = File.ReadAllText(quickPdfLogFile);
+    Assert(quickPdfLog.Contains("custom paper diagnostics"), "quickpdf information always logged");
+    Assert(!quickPdfLog.Contains("ordinary information"), "ordinary information remains opt-in");
+
     string json = JsonSerializer.Serialize(new { Success = true, Message = "Проверка" });
     using var document = JsonDocument.Parse(json);
     Assert(document.RootElement.GetProperty("Message").GetString() == "Проверка", "JSON round trip");
@@ -57,6 +74,7 @@ try
 finally
 {
     File.Delete(logFile);
+    File.Delete(quickPdfLogFile);
     Directory.Delete(directory);
 }
 
@@ -122,6 +140,21 @@ try
     throw new InvalidOperationException("Exact paper substitution accepted.");
 }
 catch (AutoBIMFusion.QuickPdf.QuickPdfException) { }
+
+const string decoratedEvaluateLisp = "?acedEvaluateLisp@@YAHPEB_WAEAPEAUresbuf@@@Z";
+IntPtr resolvedExport = AccoreNative.ResolveEvaluateLisp(
+    name => name == decoratedEvaluateLisp ? new IntPtr(42) : IntPtr.Zero);
+Assert(resolvedExport == new IntPtr(42), "accore decorated export fallback");
+
+const string decoratedReleaseResult = "?acutRelRb@@YAHPEAUresbuf@@@Z";
+resolvedExport = AccoreNative.ResolveReleaseResult(
+    module => module == "acdb24.dll" ? new IntPtr(24) : new IntPtr(1),
+    (module, name) => module == new IntPtr(24) && name == decoratedReleaseResult
+        ? new IntPtr(84)
+        : IntPtr.Zero);
+Assert(resolvedExport == new IntPtr(84), "acdb decorated release export fallback");
+Assert(AccoreNative.EvaluationSucceeded(1), "acedEvaluateLisp success result accepted");
+Assert(!AccoreNative.EvaluationSucceeded(0), "acedEvaluateLisp failure result rejected");
 
 Console.WriteLine("PASS: escaping, guards, spans, numeric formatting, priority queue, Serilog, JSON and QuickPDF helpers.");
 

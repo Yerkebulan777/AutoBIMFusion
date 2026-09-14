@@ -3,6 +3,7 @@ using Autodesk.AutoCAD.EditorInput;
 using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Logging;
 using AutoBIMFusion.QuickPdf;
+using Serilog;
 using Serilog.Core;
 using System.Runtime.Versioning;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
@@ -16,7 +17,8 @@ public sealed class QuickPdfCommands
     [CommandMethod("QUICKPDF", CommandFlags.Modal)]
     public static void QuickPdfCommand()
     {
-        Logger log = LoggerFactory.GetSharedLogger();
+        ILogger log = LoggerFactory.GetSharedLogger()
+            .ForContext(Constants.SourceContextPropertyName, LoggerFactory.QuickPdfContext);
         Document? document = AcadApp.DocumentManager.MdiActiveDocument;
         if (document is null)
         {
@@ -50,13 +52,13 @@ public sealed class QuickPdfCommands
         }
         catch (Exception ex) when (ex is QuickPdfException or Autodesk.AutoCAD.Runtime.Exception)
         {
-            log.Warning("QUICKPDF: {Message}", ex.Message);
-            editor.WriteMessage("\nQuickPDF: " + ex.Message);
+            log.Warning(ex, "QUICKPDF failed: {Message}", ex.Message);
+            editor.WriteMessage("\nQuickPDF: " + ex.Message + "\nЛог: " + LoggerFactory.GetCurrentLogFilePath());
         }
         catch (Exception ex)
         {
-            log.Error(ex, "QUICKPDF");
-            editor.WriteMessage("\nQuickPDF: " + ex.Message);
+            log.Error(ex, "QUICKPDF failed");
+            editor.WriteMessage("\nQuickPDF: " + ex.Message + "\nЛог: " + LoggerFactory.GetCurrentLogFilePath());
         }
     }
 }

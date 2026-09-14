@@ -1,7 +1,10 @@
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.PlottingServices;
+using AutoBIMFusion.Common.Logging;
 using AutoBIMFusion.QuickPdf.Media;
+using Serilog;
+using Serilog.Core;
 using PlotAreaType = Autodesk.AutoCAD.DatabaseServices.PlotType;
 using Exception = System.Exception;
 
@@ -19,6 +22,8 @@ internal static class PlotEngineRunner
         MatchingPolicy matchingPolicy,
         Action<PlotSettings> verify)
     {
+        ILogger log = LoggerFactory.GetSharedLogger()
+            .ForContext(Constants.SourceContextPropertyName, LoggerFactory.QuickPdfContext);
         if (File.Exists(pdfPath))
         {
             throw new QuickPdfException("Не удалось опубликовать PDF: файл назначения уже существует.");
@@ -39,18 +44,15 @@ internal static class PlotEngineRunner
             OverrideSettings = settings
         };
 
-        using PlotInfoValidator validator = new()
-        {
-            MediaMatchingPolicy = matchingPolicy,
-            MediaMatchingThreshold = 0
-        };
-        validator.Validate(plotInfo);
+        ValidatePlotInfo(plotInfo, matchingPolicy, log);
         verify(plotInfo.ValidatedSettings ?? settings);
+        log.Information("QUICKPDF validated settings verified");
 
         try
         {
             using PlotEngine engine = PlotFactory.CreatePublishEngine();
             using PlotPageInfo pageInfo = new();
+            log.Information("QUICKPDF plot engine starting: {TemporaryPdfPath}", tempPath);
             engine.BeginPlot(null, null);
             engine.BeginDocument(plotInfo, document.Name, null, 1, true, tempPath);
             engine.BeginPage(pageInfo, plotInfo, true, null);
@@ -66,11 +68,49 @@ internal static class PlotEngineRunner
             }
 
             File.Move(tempPath, pdfPath);
+            log.Information("QUICKPDF plot engine completed: {PdfPath}", pdfPath);
         }
         finally
         {
             TryDelete(tempPath, document.Editor);
         }
+    }
+
+    private static void ValidatePlotInfo(PlotInfo plotInfo, MatchingPolicy matchingPolicy, ILogger log)
+    {
+        using PlotInfoValidator validator = new()
+        {
+            MediaMatchingPolicy = matchingPolicy,
+            MediaMatchingThreshold = 0
+        };
+        if (matchingPolicy is MatchingPolicy.MatchEnabledCustom or MatchingPolicy.MatchEnabledTemporaryCustom)
+        {
+            int customResult = validator.IsCustomPossible(plotInfo);
+            log.Information("QUICKPDF custom media capability result: {CustomMediaResult}", customResult);
+            if (customResult != 0)
+            {
+                throw new QuickPdfException(
+                    "Плоттер не может создать пользовательский формат (код " + customResult + ").");
+            }
+        }
+
+        log.Information("QUICKPDF validating plot info: matching={MatchingPolicy}", matchingPolicy);
+        try
+        {
+            validator.Validate(plotInfo);
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception ex)
+            when (matchingPolicy == MatchingPolicy.MatchEnabledTemporaryCustom &&
+                  ex.ErrorStatus == Autodesk.AutoCAD.Runtime.ErrorStatus.InvalidInput)
+        {
+            log.Warning(
+                "QUICKPDF temporary custom media validation failed ({ErrorStatus}); retrying with persistent custom media",
+                ex.ErrorStatus);
+            validator.MediaMatchingPolicy = MatchingPolicy.MatchEnabledCustom;
+            validator.Validate(plotInfo);
+        }
+
+        log.Information("QUICKPDF plot info validated");
     }
 
     public static void VerifyIso(PlotSettings settings, IsoMediaChoice expected, double needWidth, double needHeight)
