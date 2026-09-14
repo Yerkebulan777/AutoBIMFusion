@@ -144,9 +144,3 @@ VP группируются по `CustomScale` (округление до 4 зн
 2. `DrawingPurger.Optimize` выполняет до 10 проходов `Purge`.
 3. Итоговый файл сохраняется через `SaveAs(savePath, DwgVersion.AC1032)`.
 4. AutoCAD получает команды `REGENALL` и `ZOOM EXTENTS`.
-
-## 7. Диагностический headless-сценарий
-
-`tools/Run-MergeDwgDiagTest.ps1` строит core bundle с `/p:CoreConsoleDiagnostics=true`, создает script file для `accoreconsole.exe` и вызывает `MERGEDWG_DIAG_TEST`.
-
-В текущих C# исходниках нет `[CommandMethod("MERGEDWG_DIAG_TEST")]`, поэтому сценарий не является рабочим acceptance test до восстановления команды или изменения скрипта.

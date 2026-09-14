@@ -1,9 +1,0 @@
-namespace AutoBIMFusion.Common.Extensions;
-
-public static class IntegerCollectionExtensions
-{
-    public static IntegerCollection ToIntegerCollection(this IEnumerable<int> list)
-    {
-        return [.. list.ToArray()];
-    }
-}

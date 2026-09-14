@@ -4,8 +4,7 @@ This supplements the root `AGENTS.md` with a repo-local ECC baseline.
 
 ## Repo Skill
 
-- Repo-generated Codex skill: `.agents/skills/AutoBIMFusion/SKILL.md`
-- Claude-facing companion skill: `.claude/skills/AutoBIMFusion/SKILL.md`
+- Agentic skill guides: `skills/scaffold.md`, `skills/autocad-api.md`, `skills/code-sleuth.md`
 - Keep user-specific credentials and private MCPs in `~/.codex/config.toml`, not in this repo.
 
 ## MCP Baseline

@@ -1,5 +1,4 @@
 using AutoBIMFusion.Common.Extensions;
-using AutoBIMFusion.Common.AcadSupport;
 using Autodesk.AutoCAD.GraphicsInterface;
 using Serilog.Core;
 
@@ -11,31 +10,6 @@ namespace AutoBIMFusion.Merge.Combine;
 /// </summary>
 public static class DrawingPurger
 {
-    /// <summary>
-    ///     Запускает очистку для указанной базы данных чертежа.
-    /// </summary>
-    public static void Purge(Database db)
-    {
-        var purgeReport = CorePurge(db);
-        var TotalDeletedCount = purgeReport.Values.Sum();
-
-        // Выводим отчёт пользователю.
-        if (TotalDeletedCount == 0)
-        {
-            AcadContext.WriteMessage("Чертёж уже очищен.");
-        }
-        else
-        {
-            var maxLength = purgeReport.Max(p => p.Key.Length);
-            foreach (var entry in purgeReport)
-                AcadContext.WriteMessage($" - {entry.Key.PadRight(maxLength)} : удалено {entry.Value}");
-
-            AcadContext.WriteMessage($"Итого: {TotalDeletedCount} элементов удалено из чертежа");
-        }
-
-        ViewportLock.DoLockUnlock(true);
-    }
-
     /// <summary>
     ///     Выполняет глубокую программную очистку (Purge) базы данных DWG
     ///     перед сохранением итогового файла.

@@ -1,5 +1,3 @@
-using Serilog.Core;
-
 namespace AutoBIMFusion.Common.Helpers;
 
 /// <summary>
@@ -75,28 +73,6 @@ public static class FileUtil
         {
             warn = ex.Message;
             return false;
-        }
-    }
-
-    /// <summary>
-    ///     Безопасно удаляет временную директорию с обработкой IOException и UnauthorizedAccessException.
-    /// </summary>
-    public static void TryDeleteDirectory(string tempFolder, Logger log)
-    {
-        try
-        {
-            if (Directory.Exists(tempFolder))
-            {
-                Directory.Delete(tempFolder, true);
-            }
-        }
-        catch (IOException ex)
-        {
-            log.Warning(ex, "Не удалось удалить временную папку: {TempFolder}", tempFolder);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            log.Warning(ex, "Нет прав на удаление временной папки: {TempFolder}", tempFolder);
         }
     }
 

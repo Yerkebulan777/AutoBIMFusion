@@ -5,16 +5,16 @@ AutoCAD-only guide for this repository. Use it only for desktop AutoCAD plugin w
 ## AutoBIMFusion repository baseline
 
 - Solution: `AutoBIMFusion.slnx`.
-- Project: `AutoBIMFusion/AutoBIMFusion.csproj`.
-- Target: `net8.0`, `PlatformTarget=x64`.
-- Configurations: `DebugA25`, `DebugA26`, `DebugA27`, `ReleaseA25`, `ReleaseA26`, `ReleaseA27`.
+- Plugin project: `src/AutoBIMFusion.Plugin/AutoBIMFusion.Plugin.csproj`.
+- Targets: A19/A20 `net47`, A21–A24 `net48`, A25/A26 `net8.0`, A27 `net10.0`; `PlatformTarget=x64`.
+- Configurations: `DebugA19`–`DebugA27`, `ReleaseA19`–`ReleaseA27`.
 - Package versions: central package management in `Directory.Packages.props`; do not pin AutoCAD package versions in the project file.
-- Bundle deployment: every build creates and deploys `AutoBIMFusion.bundle` to `%AppData%\Autodesk\ApplicationPlugins\`.
-- Core-console diagnostic build: `/p:CoreConsoleDiagnostics=true` excludes `AutoBIMFusionExtension.cs`, `Application/Ribbon/**`, and WPF.
+- Bundle deployment: every desktop build creates and deploys `AutoBIMFusion.bundle` to `%AppData%\Autodesk\ApplicationPlugins\`.
+- Core-console diagnostic build: `/p:CoreConsoleDiagnostics=true` excludes `AutoBIMFusionExtension.cs`, `Ribbon/**`, and WPF.
 
 ## New AutoCAD command checklist
 
-1. Add the command class or method under `AutoBIMFusion/Application/Commands`.
+1. Add the command class or method under `src/AutoBIMFusion.Plugin/Commands`.
 2. Register the command with `[CommandMethod("COMMAND_NAME", CommandFlags.Modal)]` or the existing flag pattern needed by AutoCAD.
 3. For any write to the active drawing, wrap work in `using (doc.LockDocument())`.
 4. Use `TransactionManager.StartTransaction()` and commit explicitly.

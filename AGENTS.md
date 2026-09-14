@@ -48,16 +48,6 @@ NuGet versions are centrally managed in `Directory.Packages.props`. `AutoCAD.NET
 
 - **Auto-load:** After build, launch AutoCAD — the plugin loads automatically from `%AppData%\Autodesk\ApplicationPlugins\`.
 - **Manual load:** AutoCAD command line → `NETLOAD` → select `AutoBIMFusion.dll`.
-- **Headless diagnostic test:**
-
-```powershell
-.\tools\Run-MergeDwgDiagTest.ps1
-.\tools\Run-MergeDwgDiagTest.ps1 -Configuration DebugA27 -AutoCADRoot "C:\Program Files\Autodesk\AutoCAD 2027"
-.\tools\Run-MergeDwgDiagTest.ps1 -SkipBuild
-```
-
-This script builds a local core-console bundle and then tries to run `MERGEDWG_DIAG_TEST` via `accoreconsole.exe`.
-Current code does not register `[CommandMethod("MERGEDWG_DIAG_TEST")]`; treat the script as a known broken diagnostic helper until the command is restored or the script is updated. Do not use it as an acceptance gate.
 
 Compatibility checks: `tools/Test-AutoCADBuildMatrix.ps1` builds all 36 variants and verifies bundles in `out/compatibility`; `dotnet run --project tests/AutoBIMFusion.Compatibility.Tests -c DebugA19` runs host-independent legacy tests. Also test A24, A26 and A27.
 Use `tools/Test-AutoCADHost.ps1 -Configuration DebugA19 -AutoCADRoot $env:ACAD_HOME` for a generated-DWG smoke test in an installed host. Match configuration and host version.
@@ -91,16 +81,14 @@ Multi-project solution:
 src/
 ├── AutoBIMFusion.Plugin/
 │   ├── AutoBIMFusionExtension.cs      ← IExtensionApplication entry point
-│   ├── Commands/                      ← active command: MERGEDWG
-│   │   └── Archive/                   ← excluded commands
+│   ├── Commands/                      ← active commands: MERGEDWG, QUICKPDF
 │   ├── Ribbon/                        ← excluded when CoreConsoleDiagnostics=true
 │   └── Resources/
 ├── AutoBIMFusion.Merge/
 │   └── Combine/                       ← CombineOrchestrator, BlockInserter, layouts, dimensions, optimizer
 ├── AutoBIMFusion.Common/
 │   ├── AcadSupport/                   ← AutoCAD system-variable and unit scopes
-│   ├── Geometry/                      ← Geometric utilities
-│   ├── Extensions/                    ← AutoCAD API extension methods
+│   ├── Extensions/                    ← AutoCAD API extension methods used by merge/plot
 │   └── Logging/                       ← Serilog wiring (including LoggerFactory)
 
 docs/                                  ← repo-level documentation
@@ -122,8 +110,6 @@ High-blast-radius classes by project:
 - `src/AutoBIMFusion.Merge/Combine/Layouts/DimensionStyleNormalizer.cs`
 - `src/AutoBIMFusion.Common/Helpers/ExtentsUtils.cs`
 - `src/AutoBIMFusion.Common/Logging/LoggerFactory.cs`
-
-Archived command classes are excluded from builds but remain under `src/AutoBIMFusion.Plugin/Commands/Archive`.
 
 ---
 
@@ -178,30 +164,30 @@ rg --version           # ripgrep — install: winget install BurntSushi.ripgrep.
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **AutoBIMFusion** (1459 symbols, 3122 relationships, 121 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **AutoBIMFusion** (928 symbols, 2206 relationships, 74 execution flows).
 
-> Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
+> Index stale? Run `node .gitnexus/run.cjs analyze --index-only` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? Bootstrap with `npx`, `bunx`, or `pnpm dlx` — e.g. `bunx gitnexus@latest analyze` (npm 11 npx crash; #1939).
 
 ## Always Do
 
-- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
-- **MUST run `detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows. For regression review, compare against the default branch: `detect_changes({scope: "compare", base_ref: "main"})`.
-- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
-- When exploring unfamiliar code, use `query({search_query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
-- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `context({name: "symbolName"})`.
+- **MUST run impact before editing.** Use `impact({target: "symbolName", direction: "upstream"})` or `node .gitnexus/run.cjs impact "symbolName" --direction upstream --repo .`; report callers, processes, and risk. Never substitute grep for graph analysis.
+- **MUST analyze graph changes before committing.** Use `detect_changes({scope: "all"})` (MCP) or `node .gitnexus/run.cjs detect-changes --scope all --repo .` (CLI fallback). `partial: true` or `truncated: true` is not a clean check — a zero means unseen, not unaffected; re-run it. For regression review: `detect_changes({scope: "compare", base_ref: "main"})` or `node .gitnexus/run.cjs detect-changes --scope compare --base-ref "main" --repo .`.
+- MUST warn on HIGH/CRITICAL `risk` pre-edit; never use `riskSharedAxes` to waive a HIGH/CRITICAL `risk` warning. Compare File/symbol: MCP File omits axes; Graph-RAG expands File.
+- **MUST treat `risk: UNKNOWN` as unresolved, not as low.** An empty caller set is not evidence the symbol is unused — it can also mean the callers are not resolvable by the index (plain-object property access, dynamic dispatch, cross-language calls). `impact` pairs `UNKNOWN` with a `riskNote` saying so. Confirm with a text search before treating the symbol as safe to change or delete; do not proceed on the strength of a zero.
+- **MUST use `query({search_query: "concept"})` for concepts/flows, `context({name: "symbolName"})` for a named symbol, or `impact` for blast radius, on read-only callers, dependencies, imports, or execution flow.** Graph first; text search only for empty/`UNKNOWN`/literals.
 - For security review, `explain({target: "fileOrSymbol"})` lists taint findings (source→sink flows; needs `analyze --pdg`).
 
 ## Never Do
 
-- NEVER edit a function, class, or method without first running `impact` on it.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
+- NEVER edit a function, class, or method before MCP/CLI impact analysis.
+- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis, and never read `UNKNOWN` as an all-clear — it means the walk could not answer, which is the one verdict that requires confirming by other means.
 - NEVER rename symbols with find-and-replace — use `rename` which understands the call graph.
-- NEVER commit changes without running `detect_changes()` to check affected scope.
+- NEVER commit before MCP/CLI graph change analysis.
 
 ## Resources
 
 | Resource | Use for |
-|----------|---------|
+| --- | --- |
 | `gitnexus://repo/AutoBIMFusion/context` | Codebase overview, check index freshness |
 | `gitnexus://repo/AutoBIMFusion/clusters` | All functional areas |
 | `gitnexus://repo/AutoBIMFusion/processes` | All execution flows |
@@ -210,12 +196,12 @@ This project is indexed by GitNexus as **AutoBIMFusion** (1459 symbols, 3122 rel
 ## CLI
 
 | Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+| --- | --- |
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.claude/skills/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.claude/skills/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
