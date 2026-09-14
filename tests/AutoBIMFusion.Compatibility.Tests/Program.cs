@@ -1,5 +1,6 @@
 using AutoBIMFusion.Common.Helpers;
 using AutoBIMFusion.Common.Logging;
+using AutoBIMFusion.QuickPdf.Frames;
 using AutoBIMFusion.QuickPdf.Media;
 using AutoBIMFusion.QuickPdf.Naming;
 using AutoBIMFusion.QuickPdf.Plotting;
@@ -83,6 +84,184 @@ Assert(QuickPdfNaming.SafeName(@"C:\tmp\Frame.dwg") == "Frame", "quickpdf path n
 Assert(QuickPdfNaming.SafeName("   ") == "Drawing", "quickpdf blank name");
 Assert(QuickPdfNaming.TryReadSheetIndex("Plan_012", "Plan", out int sheet) && sheet == 12, "quickpdf sheet index");
 Assert(!QuickPdfNaming.TryReadSheetIndex("Plan_12a", "Plan", out _), "quickpdf non-digit sheet");
+
+IReadOnlyList<DetectedFrame> exactA4Frames = AxisAlignedFrameDetector.Find(
+[
+    new FramePath(1, true,
+    [
+        new FramePoint(0, 0),
+        new FramePoint(21000, 0),
+        new FramePoint(21000, 29700),
+        new FramePoint(0, 29700)
+    ])
+], 3);
+Assert(exactA4Frames.Count == 1, "exact portrait A4 frame accepted");
+
+IReadOnlyList<DetectedFrame> landscapeFrames = AxisAlignedFrameDetector.Find(
+[
+    new FramePath(2, true,
+    [
+        new FramePoint(0, 0),
+        new FramePoint(29700, 0),
+        new FramePoint(29700, 21000),
+        new FramePoint(0, 21000)
+    ])
+], 3);
+Assert(landscapeFrames.Count == 1, "exact landscape A4 frame accepted");
+
+IReadOnlyList<DetectedFrame> diagonalFrames = AxisAlignedFrameDetector.Find(
+[
+    new FramePath(3, true,
+    [
+        new FramePoint(0, 14850),
+        new FramePoint(14850, 0),
+        new FramePoint(29700, 14850),
+        new FramePoint(14850, 29700)
+    ])
+], 3);
+Assert(diagonalFrames.Count == 0, "diagonal quadrilateral rejected");
+
+IReadOnlyList<DetectedFrame> collinearVertexFrames = AxisAlignedFrameDetector.Find(
+[
+    new FramePath(4, true,
+    [
+        new FramePoint(0, 0),
+        new FramePoint(15000, 0),
+        new FramePoint(30000, 0),
+        new FramePoint(30000, 30000),
+        new FramePoint(0, 30000),
+        new FramePoint(0, 12000)
+    ])
+], 3);
+Assert(collinearVertexFrames.Count == 1, "collinear polyline vertices accepted");
+
+IReadOnlyList<DetectedFrame> concaveFrames = AxisAlignedFrameDetector.Find(
+[
+    new FramePath(5, true,
+    [
+        new FramePoint(0, 0),
+        new FramePoint(30000, 0),
+        new FramePoint(30000, 30000),
+        new FramePoint(15000, 30000),
+        new FramePoint(15000, 20000),
+        new FramePoint(0, 20000)
+    ])
+], 3);
+Assert(concaveFrames.Count == 0, "concave orthogonal polyline rejected");
+
+IReadOnlyList<DetectedFrame> nearClosedFrames = AxisAlignedFrameDetector.Find(
+[
+    new FramePath(6, false,
+    [
+        new FramePoint(0, 2.9),
+        new FramePoint(0, 30000),
+        new FramePoint(30000, 30000),
+        new FramePoint(30000, 0),
+        new FramePoint(0, 0)
+    ])
+], 3);
+Assert(nearClosedFrames.Count == 1, "polyline closure gap within tolerance accepted");
+
+IReadOnlyList<DetectedFrame> openFrames = AxisAlignedFrameDetector.Find(
+[
+    new FramePath(7, false,
+    [
+        new FramePoint(0, 3.1),
+        new FramePoint(0, 30000),
+        new FramePoint(30000, 30000),
+        new FramePoint(30000, 0),
+        new FramePoint(0, 0)
+    ])
+], 3);
+Assert(openFrames.Count == 0, "polyline closure gap above tolerance rejected");
+
+IReadOnlyList<DetectedFrame> lineFrames = AxisAlignedFrameDetector.Find(
+[
+    new FramePath(10, false, [new FramePoint(0, 0), new FramePoint(30000, 0)]),
+    new FramePath(11, false, [new FramePoint(30002.9, 0), new FramePoint(30002.9, 30000)]),
+    new FramePath(12, false, [new FramePoint(30000, 30002.9), new FramePoint(0, 30002.9)]),
+    new FramePath(13, false, [new FramePoint(-2.9, 30000), new FramePoint(-2.9, 0)])
+], 3);
+Assert(lineFrames.Count == 1, "four lines with corner gaps within tolerance accepted");
+Assert(lineFrames[0].SourceIds.OrderBy(id => id).SequenceEqual([10, 11, 12, 13]),
+    "all four frame lines selected");
+
+IReadOnlyList<DetectedFrame> brokenLineFrames = AxisAlignedFrameDetector.Find(
+[
+    new FramePath(20, false, [new FramePoint(0, 0), new FramePoint(30000, 0)]),
+    new FramePath(21, false, [new FramePoint(30003.1, 0), new FramePoint(30003.1, 30000)]),
+    new FramePath(22, false, [new FramePoint(30000, 30000), new FramePoint(0, 30000)]),
+    new FramePath(23, false, [new FramePoint(0, 30000), new FramePoint(0, 0)])
+], 3);
+Assert(brokenLineFrames.Count == 0, "line corner gap above tolerance rejected");
+
+IReadOnlyList<DetectedFrame> nestedFrames = AxisAlignedFrameDetector.Find(
+[
+    new FramePath(30, true,
+    [
+        new FramePoint(0, 0), new FramePoint(50000, 0),
+        new FramePoint(50000, 40000), new FramePoint(0, 40000)
+    ]),
+    new FramePath(31, true,
+    [
+        new FramePoint(5000, 5000), new FramePoint(35000, 5000),
+        new FramePoint(35000, 35000), new FramePoint(5000, 35000)
+    ])
+], 3);
+Assert(nestedFrames.Count == 1 && nestedFrames[0].SourceIds.SequenceEqual([30]),
+    "only outer frame retained when candidates are nested");
+
+IReadOnlyList<DetectedFrame> duplicateFrames = AxisAlignedFrameDetector.Find(
+[
+    new FramePath(40, true,
+    [
+        new FramePoint(0, 0), new FramePoint(30000, 0),
+        new FramePoint(30000, 30000), new FramePoint(0, 30000)
+    ]),
+    new FramePath(41, true,
+    [
+        new FramePoint(1, 1), new FramePoint(30001, 1),
+        new FramePoint(30001, 30001), new FramePoint(1, 30001)
+    ])
+], 3);
+Assert(duplicateFrames.Count == 1 && duplicateFrames[0].SourceIds.OrderBy(id => id).SequenceEqual([40, 41]),
+    "coincident frame entities are grouped");
+
+IReadOnlyList<DetectedFrame> overlappingFrames = AxisAlignedFrameDetector.Find(
+[
+    new FramePath(50, true,
+    [
+        new FramePoint(0, 0), new FramePoint(30000, 0),
+        new FramePoint(30000, 30000), new FramePoint(0, 30000)
+    ]),
+    new FramePath(51, true,
+    [
+        new FramePoint(15000, 15000), new FramePoint(45000, 15000),
+        new FramePoint(45000, 45000), new FramePoint(15000, 45000)
+    ])
+], 3);
+Assert(overlappingFrames.Count == 2, "overlapping non-contained frames retained");
+
+IReadOnlyList<DetectedFrame> incompleteBoundaryFrames = AxisAlignedFrameDetector.Find(
+[
+    new FramePath(60, true,
+    [
+        new FramePoint(0, 0),
+        new FramePoint(30000, 0),
+        new FramePoint(0, 0),
+        new FramePoint(0, 30000)
+    ])
+], 3);
+Assert(incompleteBoundaryFrames.Count == 0, "polyline without all four rectangle sides rejected");
+
+IReadOnlyList<DetectedFrame> falseBucketNeighborFrames = AxisAlignedFrameDetector.Find(
+[
+    new FramePath(70, false, [new FramePoint(0, 0), new FramePoint(30000, 0)]),
+    new FramePath(71, false, [new FramePoint(0, 0), new FramePoint(0, 30000)]),
+    new FramePath(72, false, [new FramePoint(30000, 0), new FramePoint(30000, 30000)]),
+    new FramePath(73, false, [new FramePoint(5.9, 30000), new FramePoint(30000, 30000)])
+], 3);
+Assert(falseBucketNeighborFrames.Count == 0, "spatial bucket neighbor outside tolerance rejected");
 
 const string isoA4Name = "ISO_A4_(210.00_x_297.00_MM)";
 const string isoAltName = "ISO_ALT_(211.00_x_297.00_MM)";

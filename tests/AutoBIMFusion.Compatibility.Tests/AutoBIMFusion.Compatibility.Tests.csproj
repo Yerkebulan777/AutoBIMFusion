@@ -14,6 +14,7 @@
         <Compile Include="../../src/AutoBIMFusion.Common/Compatibility/PriorityQueue.cs" Link="PriorityQueue.cs" />
         <Compile Include="../../src/AutoBIMFusion.Plugin/LegacyDependencyResolver.cs" Link="LegacyDependencyResolver.cs" />
         <Compile Include="../../src/AutoBIMFusion.QuickPdf/Naming/QuickPdfNaming.cs" Link="QuickPdfNaming.cs" />
+        <Compile Include="../../src/AutoBIMFusion.QuickPdf/Frames/AxisAlignedFrameDetector.cs" Link="AxisAlignedFrameDetector.cs" />
         <Compile Include="../../src/AutoBIMFusion.QuickPdf/Media/IsoMedia.cs" Link="IsoMedia.cs" />
         <Compile Include="../../src/AutoBIMFusion.QuickPdf/Media/IsoMediaSelector.cs" Link="IsoMediaSelector.cs" />
         <Compile Include="../../src/AutoBIMFusion.QuickPdf/Media/ExactPaper.cs" Link="ExactPaper.cs" />
