@@ -36,8 +36,7 @@ internal static class ViewportScaleNormalizer
 
             if (linearScaleMultiplier is < 0.0001 or > 10000.0)
                 log.Warning(
-                    "[LINEAR-SCALE] подозрительное значение Dimlfac={LinearScaleMultiplier:G10}:" +
-                    " customScale={CustomScale:G10} вне ожидаемого диапазона",
+                    "[LINEAR-SCALE] suspicious Dimlfac={LinearScaleMultiplier:G10}: customScale={CustomScale:G10} is outside the expected range",
                     linearScaleMultiplier, customScale);
         }
 

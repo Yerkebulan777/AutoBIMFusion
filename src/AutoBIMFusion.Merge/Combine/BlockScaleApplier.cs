@@ -1,5 +1,5 @@
 using AutoBIMFusion.Common.Extensions;
-using AutoBIMFusion.Common.Logging;
+using Serilog.Core;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
 namespace AutoBIMFusion.Merge.Combine;
@@ -15,15 +15,15 @@ public static class BlockScaleApplier
     ///     Нормализует масштаб определения блока и всех его вставок в переданной базе.
     /// </summary>
     public static void NormalizeBlockScale(Database db, Transaction trx, BlockReference blockRef,
-        HashSet<string> processedBlocks)
+        HashSet<string> processedBlocks, Logger log)
     {
         ArgumentNullException.ThrowIfNull(blockRef);
-        var log = LoggerFactory.GetSharedLogger();
+        ArgumentNullException.ThrowIfNull(log);
 
         var blockDefinitionId = GetBlockDefinitionId(blockRef);
         if (!blockDefinitionId.IsValid || blockDefinitionId.IsNull)
         {
-            log.Warning("BlockScaleApplier: у вставки блока нет корректного определения.");
+            log.Warning("Block {Handle}: insert has no valid definition", blockRef.Handle);
             return;
         }
 
@@ -35,20 +35,20 @@ public static class BlockScaleApplier
 
         if (btr.IsFromExternalReference || btr.IsDependent)
         {
-            log.Warning("BlockScaleApplier: блок \"{BlockName}\" является внешним или зависимым, нормализация пропущена.", blockName);
+            log.Debug("Block {BlockName}: skipped xref or dependent definition", blockName);
             return;
         }
 
         if (!IsUniformScaleAllowNegative(blockRef))
         {
-            log.Warning("BlockScaleApplier: блок \"{BlockName}\" не имеет равномерного масштаба.", blockName);
+            log.Warning("Block {BlockName}: non-uniform scale, normalization skipped", blockName);
             return;
         }
 
         var refScale = Abs(blockRef.ScaleFactors.X);
         if (refScale < ScaleEpsilon)
         {
-            log.Warning("BlockScaleApplier: блок \"{BlockName}\" имеет нулевой масштаб, нормализация пропущена.", blockName);
+            log.Warning("Block {BlockName}: near-zero scale, normalization skipped", blockName);
             return;
         }
 
@@ -65,7 +65,7 @@ public static class BlockScaleApplier
             }
             catch (Exception ex)
             {
-                log.Warning(ex, "BlockScaleApplier: не удалось масштабировать объект блока \"{BlockName}\".", blockName);
+                log.Warning(ex, "Block {BlockName}: failed to scale nested entity", blockName);
             }
 
         var scaleFactor = 1.0 / refScale;

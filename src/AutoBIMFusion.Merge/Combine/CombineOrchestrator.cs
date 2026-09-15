@@ -28,9 +28,9 @@ public static class CombineOrchestrator
             ["layoutName"] = layoutName
         });
 
-        if (!FileUtil.TryValidateDwg(filePath, out var warn))
+        if (!FileUtil.TryValidateDwg(filePath, out _))
         {
-            return LogFileFailedAndReturnWarn(diagnosticContext, fileName, warn, true);
+            return SkipFile(diagnosticContext, fileName, log, "invalid or missing DWG");
         }
 
         MergeDiagnostics.WriteEvent(diagnosticContext, "file.validated", new Dictionary<string, object?>
@@ -51,7 +51,7 @@ public static class CombineOrchestrator
                 ["exceptionType"] = ex.GetType().FullName,
                 ["isSkipped"] = false
             });
-            log.Error(ex, "Ошибка: {FileName}", fileName);
+            log.Error(ex, "Failed to merge {FileName}", fileName);
             return CombineResult.Fail(fileName, ex.Message, "Ошибка обработки");
         }
     }
@@ -64,7 +64,7 @@ public static class CombineOrchestrator
 
         if (prepared == null)
         {
-            return LogFileFailedAndReturnWarn(diagnosticContext, fileName, "Листы не найдены", true);
+            return SkipFile(diagnosticContext, fileName, log, "no paper-space layouts");
         }
 
         // Нормализуем source DB до расчета габаритов, как в рабочей ветке TEST.
@@ -75,7 +75,7 @@ public static class CombineOrchestrator
 
         if (!bounds.HasValue)
         {
-            return LogFileFailedAndReturnWarn(diagnosticContext, fileName, "Пустой файл", true);
+            return SkipFile(diagnosticContext, fileName, log, "empty model space");
         }
 
         log.Debug("{FileName}: source bounds before insert {Bounds}", fileName, ExtentsUtils.FormatExtents(bounds.Value));
@@ -114,14 +114,19 @@ public static class CombineOrchestrator
         }
     }
 
-    private static CombineResult LogFileFailedAndReturnWarn(MergeDiagnosticContext diagnosticContext, string fileName, string reason, bool isSkipped)
+    private static CombineResult SkipFile(
+        MergeDiagnosticContext diagnosticContext,
+        string fileName,
+        Logger log,
+        string reason)
     {
         MergeDiagnostics.WriteEvent(diagnosticContext, "file.failed", new Dictionary<string, object?>
         {
             ["fileName"] = fileName,
             ["reason"] = reason,
-            ["isSkipped"] = isSkipped
+            ["isSkipped"] = true
         });
+        log.Warning("{FileName}: skipped ({Reason})", fileName, reason);
         return CombineResult.Warn(fileName, reason);
     }
 }

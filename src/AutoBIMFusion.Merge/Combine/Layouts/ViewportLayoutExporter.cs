@@ -58,10 +58,11 @@ internal static class ViewportLayoutExporter
 
             if (!LayoutUtil.TryFindFirstLayout(db, out var layoutName))
             {
-                log.Warning("{FileName}: листы не найдены", fileName);
                 db.Dispose();
                 return null;
             }
+
+            log.Debug("{FileName}: using layout {LayoutName}", fileName, layoutName);
 
             MergeDiagnostics.WriteEvent(diagnosticContext, "layout.selected", new Dictionary<string, object?>
             {

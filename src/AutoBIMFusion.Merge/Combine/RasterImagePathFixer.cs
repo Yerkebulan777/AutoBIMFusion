@@ -1,5 +1,4 @@
 using AutoBIMFusion.Common.Helpers;
-using AutoBIMFusion.Common.Logging;
 using Autodesk.AutoCAD.ApplicationServices;
 using Serilog.Core;
 using Serilog.Events;
@@ -41,15 +40,13 @@ public static class RasterImagePathFixer
     public static void CopyImagesToTargetFolder(Database db, string targetFilePath, Logger log,
         string? sourceSearchDir = null, string? stage = null)
     {
-        var rasterLog = RasterLogger(log);
-        string phase = stage ?? "copy";
-        if (string.IsNullOrWhiteSpace(phase)) phase = "copy";
+        string phase = string.IsNullOrWhiteSpace(stage) ? "copy" : stage;
 
         var targetDir = Path.GetDirectoryName(targetFilePath);
         if (string.IsNullOrEmpty(targetDir))
         {
-            rasterLog.Warning(
-                "Raster copy [{Stage}]: не удалось определить папку целевого файла, targetFilePath=\"{TargetFilePath}\"",
+            log.Warning(
+                "Raster copy [{Stage}]: cannot resolve target folder, targetFilePath=\"{TargetFilePath}\"",
                 phase, targetFilePath);
             return;
         }
@@ -58,7 +55,7 @@ public static class RasterImagePathFixer
 
         string?[] searchDirs = [targetDir, sourceSearchDir, TryGetDatabaseDirectory(db)];
         var searchDesc = DescribeSearchDirs(searchDirs);
-        rasterLog.Information(
+        log.Debug(
             "Raster copy [{Stage}]: start targetDir=\"{TargetDir}\" sourceSearchDir=\"{SourceSearchDir}\" dbFilename=\"{DbFilename}\" search={SearchDirs}",
             phase, targetDir, NullPath(sourceSearchDir), NullPath(TryReadFilename(db)), searchDesc);
 
@@ -71,11 +68,11 @@ public static class RasterImagePathFixer
         var missing = 0;
         var failed = 0;
 
-        ForEachImageDef(db, rasterLog, phase, "не удалось обработать изображение", (def, key) =>
+        ForEachImageDef(db, log, phase, "failed to process image", (def, key) =>
         {
             total++;
             var stored = NullPath(def.SourceFileName);
-            if (!TryResolveExisting(db, def, searchDirs, searchDesc, rasterLog, key, out var resolvedPath, out var via))
+            if (!TryResolveExisting(db, def, searchDirs, searchDesc, log, key, out var resolvedPath, out var via))
             {
                 missing++;
                 return;
@@ -89,7 +86,7 @@ public static class RasterImagePathFixer
                 action = "reused";
                 reused++;
             }
-            else if (!TryCopyBesideDrawing(targetDir, resolvedPath, reservedDestinationPaths, rasterLog, key, phase,
+            else if (!TryCopyBesideDrawing(targetDir, resolvedPath, reservedDestinationPaths, log, key, phase,
                          out destPath, out var alreadyThere))
             {
                 failed++;
@@ -103,14 +100,14 @@ public static class RasterImagePathFixer
                 copiedBySourcePath[resolvedPath] = destPath;
             }
 
-            Relink(def, destPath, rasterLog, key, action);
-            rasterLog.Debug(
+            Relink(def, destPath, log, key, action);
+            log.Debug(
                 "RasterImageDef '{Key}' [{Stage}]: stored=\"{Stored}\" resolved=\"{Resolved}\" via={Via} dest=\"{Dest}\" action={Action} loaded={Loaded}",
                 key, phase, stored, resolvedPath, via, destPath, action, def.IsLoaded);
         });
 
-        rasterLog.Write(missing + failed > 0 ? LogEventLevel.Warning : LogEventLevel.Information,
-            "Raster copy [{Stage}]: итог defs={Total} copied={Copied} alreadyInFolder={AlreadyInFolder} reused={Reused} missing={Missing} failed={Failed}",
+        log.Write(missing + failed > 0 ? LogEventLevel.Warning : LogEventLevel.Debug,
+            "Raster copy [{Stage}]: defs={Total} copied={Copied} alreadyInFolder={AlreadyInFolder} reused={Reused} missing={Missing} failed={Failed}",
             phase, total, copied, alreadyInFolder, reused, missing, failed);
     }
 
@@ -119,9 +116,7 @@ public static class RasterImagePathFixer
     /// </summary>
     public static void ConvertPathsToRelative(Database db, string targetFilePath, Logger log, string? stage = null)
     {
-        var rasterLog = RasterLogger(log);
-        string phase = stage ?? "relative";
-        if (string.IsNullOrWhiteSpace(phase)) phase = "relative";
+        string phase = string.IsNullOrWhiteSpace(stage) ? "relative" : stage;
 
         var saveDir = Path.GetDirectoryName(targetFilePath);
         var dbFilename = TryReadFilename(db);
@@ -130,13 +125,13 @@ public static class RasterImagePathFixer
         var drawingDir = saveDir;
         if (string.IsNullOrEmpty(drawingDir))
         {
-            rasterLog.Warning(
-                "Raster relative [{Stage}]: не удалось определить папку сохранённого DWG, dbFilename=\"{DbFilename}\" savePath=\"{SavePath}\"",
+            log.Warning(
+                "Raster relative [{Stage}]: cannot resolve saved DWG folder, dbFilename=\"{DbFilename}\" savePath=\"{SavePath}\"",
                 phase, NullPath(dbFilename), targetFilePath);
             return;
         }
 
-        rasterLog.Information(
+        log.Debug(
             "Raster relative [{Stage}]: start drawingDir=\"{DrawingDir}\" dbFilename=\"{DbFilename}\" savePath=\"{SavePath}\"",
             phase, drawingDir, NullPath(dbFilename), targetFilePath);
 
@@ -147,10 +142,10 @@ public static class RasterImagePathFixer
         var outsideFolder = 0;
         var missing = 0;
 
-        ForEachImageDef(db, rasterLog, phase, "не удалось задать относительный путь", (def, key) =>
+        ForEachImageDef(db, log, phase, "failed to set relative path", (def, key) =>
         {
             total++;
-            if (!TryResolveExisting(db, def, [drawingDir], searchDesc, rasterLog, key, out var resolvedPath, out var via))
+            if (!TryResolveExisting(db, def, [drawingDir], searchDesc, log, key, out var resolvedPath, out var via))
             {
                 missing++;
                 return;
@@ -159,8 +154,8 @@ public static class RasterImagePathFixer
             if (!TryMakeRelativePath(drawingDir, resolvedPath, out var relativePath))
             {
                 outsideFolder++;
-                rasterLog.Warning(
-                    "RasterImageDef '{Key}' [{Stage}]: файл вне папки DWG, относительный путь не задан. stored=\"{Stored}\" active=\"{Active}\" resolved=\"{Resolved}\" via={Via} drawingDir=\"{DrawingDir}\" sameNameInDwgFolder={SameNameInDwgFolder} entities={Entities} loaded={Loaded}",
+                log.Warning(
+                    "RasterImageDef '{Key}' [{Stage}]: file is outside the DWG folder, relative path not set. stored=\"{Stored}\" active=\"{Active}\" resolved=\"{Resolved}\" via={Via} drawingDir=\"{DrawingDir}\" sameNameInDwgFolder={SameNameInDwgFolder} entities={Entities} loaded={Loaded}",
                     key, phase, NullPath(def.SourceFileName), NullPath(TryGetActiveFileName(def)), resolvedPath, via,
                     drawingDir, SameNameExistsIn(drawingDir, resolvedPath), TryGetEntityCount(def), def.IsLoaded);
                 return;
@@ -168,23 +163,23 @@ public static class RasterImagePathFixer
 
             if (string.Equals(def.SourceFileName, relativePath, StringComparison.OrdinalIgnoreCase))
             {
-                Relink(def, relativePath, rasterLog, key, "already-relative", resolvedPath);
+                Relink(def, relativePath, log, key, "already-relative", resolvedPath);
                 alreadyRelative++;
-                rasterLog.Debug(
-                    "RasterImageDef '{Key}' [{Stage}]: уже относительный \"{Relative}\" resolved=\"{Resolved}\" via={Via} loaded={Loaded}",
+                log.Debug(
+                    "RasterImageDef '{Key}' [{Stage}]: already relative \"{Relative}\" resolved=\"{Resolved}\" via={Via} loaded={Loaded}",
                     key, phase, relativePath, resolvedPath, via, def.IsLoaded);
                 return;
             }
 
-            Relink(def, relativePath, rasterLog, key, "relative", resolvedPath);
+            Relink(def, relativePath, log, key, "relative", resolvedPath);
             relinked++;
-            rasterLog.Debug(
+            log.Debug(
                 "RasterImageDef '{Key}' [{Stage}]: {From} → {To} via={Via} loaded={Loaded}",
                 key, phase, resolvedPath, relativePath, via, def.IsLoaded);
         });
 
-        rasterLog.Write(missing + outsideFolder > 0 ? LogEventLevel.Warning : LogEventLevel.Information,
-            "Raster relative [{Stage}]: итог defs={Total} relinked={Relinked} alreadyRelative={AlreadyRelative} outsideFolder={OutsideFolder} missing={Missing}",
+        log.Write(missing + outsideFolder > 0 ? LogEventLevel.Warning : LogEventLevel.Debug,
+            "Raster relative [{Stage}]: defs={Total} relinked={Relinked} alreadyRelative={AlreadyRelative} outsideFolder={OutsideFolder} missing={Missing}",
             phase, total, relinked, alreadyRelative, outsideFolder, missing);
     }
 
@@ -196,7 +191,7 @@ public static class RasterImagePathFixer
         var dbDir = TryGetDatabaseDirectory(db);
         var saveDir = Path.GetDirectoryName(savePath);
         var sameDir = dbDir is not null && saveDir is not null && PathsEqual(dbDir, saveDir);
-        RasterLogger(log).Information(
+        log.Debug(
             "Raster save [{Step}]: dbFilename=\"{DbFilename}\" savePath=\"{SavePath}\" sameDir={SameDir}",
             step, NullPath(TryReadFilename(db)), savePath, sameDir);
     }
@@ -306,12 +301,12 @@ public static class RasterImagePathFixer
         var dict = GetImageDictionary(db, trx);
         if (dict is null)
         {
-            log.Information("Raster [{Stage}]: словаря ACAD_IMAGE_DICT нет", stage);
+            log.Debug("Raster [{Stage}]: no ACAD_IMAGE_DICT", stage);
             trx.Commit();
             return;
         }
 
-        log.Information("Raster [{Stage}]: defs={DefCount}", stage, dict.Count);
+        log.Debug("Raster [{Stage}]: defs={DefCount}", stage, dict.Count);
 
         foreach (var entry in dict)
             try
@@ -338,7 +333,7 @@ public static class RasterImagePathFixer
         if (string.IsNullOrWhiteSpace(storedPath))
         {
             log.Warning(
-                "RasterImageDef '{Key}': путь не задан, active=\"{Active}\" entities={Entities} loaded={Loaded}",
+                "RasterImageDef '{Key}': empty source path, active=\"{Active}\" entities={Entities} loaded={Loaded}",
                 key, NullPath(TryGetActiveFileName(def)), TryGetEntityCount(def), def.IsLoaded);
             return false;
         }
@@ -347,7 +342,7 @@ public static class RasterImagePathFixer
             return true;
 
         log.Warning(
-            "RasterImageDef '{Key}': файл не найден. stored=\"{Stored}\" active=\"{Active}\" search={SearchDirs} entities={Entities} loaded={Loaded}",
+            "RasterImageDef '{Key}': file not found. stored=\"{Stored}\" active=\"{Active}\" search={SearchDirs} entities={Entities} loaded={Loaded}",
             key, storedPath, NullPath(TryGetActiveFileName(def)), searchDesc, TryGetEntityCount(def), def.IsLoaded);
         return false;
     }
@@ -370,7 +365,7 @@ public static class RasterImagePathFixer
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 log.Warning(ex,
-                    "RasterImageDef '{Key}' [{Stage}]: копирование не удалось, from=\"{From}\" to=\"{To}\"",
+                    "RasterImageDef '{Key}' [{Stage}]: copy failed, from=\"{From}\" to=\"{To}\"",
                     key, stage, resolvedPath, uniqueDestPath);
                 return false;
             }
@@ -382,7 +377,7 @@ public static class RasterImagePathFixer
 
         if (!File.Exists(uniqueDestPath))
         {
-            log.Warning("RasterImageDef '{Key}' [{Stage}]: копия недоступна: {Path}",
+            log.Warning("RasterImageDef '{Key}' [{Stage}]: copy is missing: {Path}",
                 key, stage, uniqueDestPath);
             return false;
         }
@@ -480,7 +475,7 @@ public static class RasterImagePathFixer
             return;
 
         log.Warning(
-            "RasterImageDef '{Key}': Relink {Action} не закрепился, requested=\"{Requested}\" storedAfter=\"{StoredAfter}\" activeAfter=\"{ActiveAfter}\" loaded={Loaded}",
+            "RasterImageDef '{Key}': Relink {Action} did not persist, requested=\"{Requested}\" storedAfter=\"{StoredAfter}\" activeAfter=\"{ActiveAfter}\" loaded={Loaded}",
             key, action, path, NullPath(def.SourceFileName), NullPath(TryGetActiveFileName(def)), def.IsLoaded);
     }
 
@@ -583,9 +578,6 @@ public static class RasterImagePathFixer
         && acad.ErrorStatus is ErrorStatus.FilerError
             or ErrorStatus.FileNotFound
             or ErrorStatus.FileAccessErr;
-
-    private static Logger RasterLogger(Logger log) =>
-        (Logger)log.ForContext("SourceContext", LoggerFactory.RasterImagesContext);
 
     private static string NullPath(string? path)
     {

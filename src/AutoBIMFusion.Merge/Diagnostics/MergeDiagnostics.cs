@@ -44,13 +44,7 @@ public static class MergeDiagnostics
             return null;
         }
 
-        string? logDirectory = Path.GetDirectoryName(LoggerFactory.GetCurrentLogFilePath());
-        if (string.IsNullOrWhiteSpace(logDirectory))
-        {
-            return null;
-        }
-
-        return Path.Combine(logDirectory, $"merge-diagnostics-{DateTime.Today:yyyy-MM-dd}.jsonl");
+        return Path.Combine(LoggerFactory.GetLogsDirectory(), $"merge-diagnostics-{DateTime.Today:yyyy-MM-dd}.jsonl");
     }
 
     public static MergeDiagnosticContext CreateFileContext(string sourcePath)

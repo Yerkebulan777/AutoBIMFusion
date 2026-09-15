@@ -1,6 +1,7 @@
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 
@@ -8,30 +9,29 @@ namespace AutoBIMFusion.Common.Logging;
 
 public static class LoggerFactory
 {
-    public const string ExecutionSummaryContext = "AutoBIMFusion.ExecutionSummary";
-    public const string QuickPdfContext = "AutoBIMFusion.QuickPdf";
-    public const string RasterImagesContext = "AutoBIMFusion.RasterImages";
+    public const string MergeDwgCommand = "MERGEDWG";
+    public const string QuickPdfCommand = "QUICKPDF";
 
-    private static readonly Lazy<Logger> SharedLogger = new(CreateLogger);
+    private static readonly ConcurrentDictionary<string, Logger> CommandLoggers = new(StringComparer.OrdinalIgnoreCase);
 
     private const LogEventLevel DefaultLevel = LogEventLevel.Warning;
     private const long MaxFileSizeBytes = 10L * 1024 * 1024;
     private const int MaxRetainedFiles = 5;
 
-    public static Logger GetSharedLogger()
+    public static Logger GetCommandLogger(string commandName)
     {
-        return SharedLogger.Value;
+        string normalized = NormalizeCommandName(commandName);
+        return CommandLoggers.GetOrAdd(normalized, CreateLogger);
     }
 
-    public static string GetCurrentLogFilePath()
+    public static string GetCurrentLogFilePath(string commandName)
     {
-        return Path.Combine(GetLogsDirectory(), BuildLogFileName());
+        return Path.Combine(GetLogsDirectory(), BuildLogFileName(commandName));
     }
 
-    private static string GetLogsDirectory()
+    public static string GetLogsDirectory()
     {
         string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-
         string logsDir = Path.Combine(documentsPath, "AutoBIMFusion", "Logs");
 
         if (!Directory.Exists(logsDir))
@@ -42,14 +42,26 @@ public static class LoggerFactory
         return logsDir;
     }
 
-    private static string BuildLogFileName()
+    internal static string BuildLogFileName(string commandName)
     {
-        return $"merge-{DateTime.Today:yyyy-MM-dd}.log";
+        string slug = NormalizeCommandName(commandName).ToLowerInvariant().Replace('_', '-');
+        return $"{slug}-{DateTime.Today:yyyy-MM-dd}.log";
     }
 
-    private static Logger CreateLogger()
+    internal static LoggerConfiguration ApplyCommandMinimum(
+        LoggerConfiguration configuration,
+        LogEventLevel configuredLevel) =>
+        configuration.MinimumLevel.Is(
+            configuredLevel < LogEventLevel.Information ? configuredLevel : LogEventLevel.Information);
+
+    private static string NormalizeCommandName(string commandName)
     {
-        // Detailed logging is opt-in, including in Debug builds.
+        ArgumentException.ThrowIfNullOrWhiteSpace(commandName);
+        return commandName.Trim();
+    }
+
+    private static Logger CreateLogger(string commandName)
+    {
         string? configuredLevel = Environment.GetEnvironmentVariable("LOG_LEVEL")?.Trim();
         LogEventLevel level = Enum.TryParse(configuredLevel, true, out LogEventLevel parsedLevel)
             && Enum.IsDefined(typeof(LogEventLevel), parsedLevel)
@@ -58,11 +70,9 @@ public static class LoggerFactory
 
         try
         {
-            string logsDir = GetLogsDirectory();
+            string logFile = Path.Combine(GetLogsDirectory(), BuildLogFileName(commandName));
 
-            string logFile = Path.Combine(logsDir, BuildLogFileName());
-
-            return ApplyAlwaysOnOverrides(new LoggerConfiguration().MinimumLevel.Is(level))
+            return ApplyCommandMinimum(new LoggerConfiguration(), level)
                 .Enrich.WithProperty("ProcessId", Environment.ProcessId)
                 .Enrich.With<ThreadIdEnricher>()
                 .WriteTo.File(
@@ -80,16 +90,9 @@ public static class LoggerFactory
             TryWriteBootstrapFailure(ex);
             Debug.WriteLine($"[AutoBIMFusion] Logger init failed: {ex}");
 
-            return ApplyAlwaysOnOverrides(new LoggerConfiguration().MinimumLevel.Is(level))
-                .CreateLogger();
+            return ApplyCommandMinimum(new LoggerConfiguration(), level).CreateLogger();
         }
     }
-
-    internal static LoggerConfiguration ApplyAlwaysOnOverrides(LoggerConfiguration configuration) =>
-        configuration
-            .MinimumLevel.Override(ExecutionSummaryContext, LogEventLevel.Information)
-            .MinimumLevel.Override(QuickPdfContext, LogEventLevel.Information)
-            .MinimumLevel.Override(RasterImagesContext, LogEventLevel.Information);
 
     private static void TryWriteBootstrapFailure(Exception ex)
     {
@@ -121,10 +124,6 @@ public static class LoggerFactory
     {
         private LogEventProperty? _cached;
 
-        /// <summary>
-        /// Enriches log events with the current thread ID.
-        /// Caches the property for reuse since thread ID doesn't change within the same thread.
-        /// </summary>
         public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
         {
             _cached ??= propertyFactory.CreateProperty("ThreadId", Environment.CurrentManagedThreadId);

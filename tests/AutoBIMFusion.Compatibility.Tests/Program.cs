@@ -5,6 +5,7 @@ using AutoBIMFusion.QuickPdf.Media;
 using AutoBIMFusion.QuickPdf.Naming;
 using AutoBIMFusion.QuickPdf.Plotting;
 using Serilog;
+using Serilog.Events;
 using System.Globalization;
 using System.Text.Json;
 
@@ -38,18 +39,21 @@ try
     }
     Assert(File.ReadAllText(logFile).Contains("2019–2027"), "Serilog file sink");
 
-    using (var log = LoggerFactory.ApplyAlwaysOnOverrides(
-               new LoggerConfiguration().MinimumLevel.Warning())
+    using (var log = LoggerFactory.ApplyCommandMinimum(
+               new LoggerConfiguration(), LogEventLevel.Warning)
            .WriteTo.File(quickPdfLogFile, shared: true)
            .CreateLogger())
     {
-        log.Information("ordinary information");
-        log.ForContext("SourceContext", LoggerFactory.QuickPdfContext)
-            .Information("custom paper diagnostics");
+        log.Information("command summary");
+        log.Debug("verbose details");
     }
-    string quickPdfLog = File.ReadAllText(quickPdfLogFile);
-    Assert(quickPdfLog.Contains("custom paper diagnostics"), "quickpdf information always logged");
-    Assert(!quickPdfLog.Contains("ordinary information"), "ordinary information remains opt-in");
+    string commandLog = File.ReadAllText(quickPdfLogFile);
+    Assert(commandLog.Contains("command summary"), "command information always logged");
+    Assert(!commandLog.Contains("verbose details"), "debug remains opt-in");
+    Assert(LoggerFactory.BuildLogFileName(LoggerFactory.MergeDwgCommand).StartsWith("mergedwg-", StringComparison.Ordinal),
+        "mergedwg log file name");
+    Assert(LoggerFactory.BuildLogFileName(LoggerFactory.QuickPdfCommand).StartsWith("quickpdf-", StringComparison.Ordinal),
+        "quickpdf log file name");
 
     string json = JsonSerializer.Serialize(new { Success = true, Message = "Проверка" });
     using var document = JsonDocument.Parse(json);

@@ -3,7 +3,6 @@ using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Logging;
 using AutoBIMFusion.QuickPdf;
 using Serilog;
-using Serilog.Core;
 using System.Runtime.Versioning;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 using Exception = System.Exception;
@@ -16,12 +15,12 @@ public sealed class QuickPdfCommands
     [CommandMethod("QUICKPDF", CommandFlags.Modal)]
     public static void QuickPdfCommand()
     {
-        ILogger log = LoggerFactory.GetSharedLogger()
-            .ForContext(Constants.SourceContextPropertyName, LoggerFactory.QuickPdfContext);
+        ILogger log = LoggerFactory.GetCommandLogger(LoggerFactory.QuickPdfCommand);
+        string logPath = LoggerFactory.GetCurrentLogFilePath(LoggerFactory.QuickPdfCommand);
         Document? document = AcadApp.DocumentManager.MdiActiveDocument;
         if (document is null)
         {
-            log.Warning("QUICKPDF: нет активного чертежа.");
+            log.Warning("{Command}: no active drawing", LoggerFactory.QuickPdfCommand);
             return;
         }
 
@@ -30,14 +29,15 @@ public sealed class QuickPdfCommands
         {
             if (!editor.IsInModel())
             {
+                log.Warning("{Command}: command requires model space", LoggerFactory.QuickPdfCommand);
                 editor.WriteMessage("\nКоманда доступна только в пространстве модели.");
                 return;
             }
 
 #if CORECONSOLE_DIAGNOSTICS
-            QuickPdfOrchestrator.ExportFrameList(document);
+            QuickPdfOrchestrator.ExportFrameList(document, log);
 #else
-            if (!QuickPdfOrchestrator.TryExportInteractively(document))
+            if (!QuickPdfOrchestrator.TryExportInteractively(document, log))
             {
                 editor.WriteMessage("\nQuickPDF: отменено.");
             }
@@ -45,13 +45,13 @@ public sealed class QuickPdfCommands
         }
         catch (Exception ex) when (ex is QuickPdfException or Autodesk.AutoCAD.Runtime.Exception)
         {
-            log.Warning(ex, "QUICKPDF failed: {Message}", ex.Message);
-            editor.WriteMessage("\nQuickPDF: " + ex.Message + "\nЛог: " + LoggerFactory.GetCurrentLogFilePath());
+            log.Warning(ex, "{Command} failed: {Message}", LoggerFactory.QuickPdfCommand, ex.Message);
+            editor.WriteMessage("\nQuickPDF: " + ex.Message + "\nLog: " + logPath);
         }
         catch (Exception ex)
         {
-            log.Error(ex, "QUICKPDF failed");
-            editor.WriteMessage("\nQuickPDF: " + ex.Message + "\nЛог: " + LoggerFactory.GetCurrentLogFilePath());
+            log.Error(ex, "{Command} failed", LoggerFactory.QuickPdfCommand);
+            editor.WriteMessage("\nQuickPDF: " + ex.Message + "\nLog: " + logPath);
         }
     }
 

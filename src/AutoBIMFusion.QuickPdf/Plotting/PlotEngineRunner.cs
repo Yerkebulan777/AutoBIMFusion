@@ -1,10 +1,8 @@
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.PlottingServices;
-using AutoBIMFusion.Common.Logging;
 using AutoBIMFusion.QuickPdf.Media;
 using Serilog;
-using Serilog.Core;
 using PlotAreaType = Autodesk.AutoCAD.DatabaseServices.PlotType;
 using Exception = System.Exception;
 
@@ -20,10 +18,9 @@ internal static class PlotEngineRunner
         PlotSettings settings,
         string pdfPath,
         MatchingPolicy matchingPolicy,
-        Action<PlotSettings> verify)
+        Action<PlotSettings> verify,
+        ILogger log)
     {
-        ILogger log = LoggerFactory.GetSharedLogger()
-            .ForContext(Constants.SourceContextPropertyName, LoggerFactory.QuickPdfContext);
         if (File.Exists(pdfPath))
         {
             throw new QuickPdfException("Не удалось опубликовать PDF: файл назначения уже существует.");
@@ -46,13 +43,13 @@ internal static class PlotEngineRunner
 
         ValidatePlotInfo(plotInfo, matchingPolicy, log);
         verify(plotInfo.ValidatedSettings ?? settings);
-        log.Information("QUICKPDF validated settings verified");
+        log.Debug("QUICKPDF validated settings verified");
 
         try
         {
             using PlotEngine engine = PlotFactory.CreatePublishEngine();
             using PlotPageInfo pageInfo = new();
-            log.Information("QUICKPDF plot engine starting: {TemporaryPdfPath}", tempPath);
+            log.Debug("QUICKPDF plot engine starting: {TemporaryPdfPath}", tempPath);
             engine.BeginPlot(null, null);
             engine.BeginDocument(plotInfo, document.Name, null, 1, true, tempPath);
             engine.BeginPage(pageInfo, plotInfo, true, null);
@@ -68,7 +65,7 @@ internal static class PlotEngineRunner
             }
 
             File.Move(tempPath, pdfPath);
-            log.Information("QUICKPDF plot engine completed: {PdfPath}", pdfPath);
+            log.Debug("QUICKPDF plot engine completed: {PdfPath}", pdfPath);
         }
         finally
         {
@@ -86,7 +83,7 @@ internal static class PlotEngineRunner
         if (matchingPolicy is MatchingPolicy.MatchEnabledCustom or MatchingPolicy.MatchEnabledTemporaryCustom)
         {
             int customResult = validator.IsCustomPossible(plotInfo);
-            log.Information("QUICKPDF custom media capability result: {CustomMediaResult}", customResult);
+            log.Debug("QUICKPDF custom media capability result: {CustomMediaResult}", customResult);
             if (customResult != 0)
             {
                 throw new QuickPdfException(
@@ -94,7 +91,7 @@ internal static class PlotEngineRunner
             }
         }
 
-        log.Information("QUICKPDF validating plot info: matching={MatchingPolicy}", matchingPolicy);
+        log.Debug("QUICKPDF validating plot info: matching={MatchingPolicy}", matchingPolicy);
         try
         {
             validator.Validate(plotInfo);
@@ -110,7 +107,7 @@ internal static class PlotEngineRunner
             validator.Validate(plotInfo);
         }
 
-        log.Information("QUICKPDF plot info validated");
+        log.Debug("QUICKPDF plot info validated");
     }
 
     public static void VerifyIso(PlotSettings settings, IsoMediaChoice expected, double needWidth, double needHeight)

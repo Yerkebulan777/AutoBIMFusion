@@ -113,7 +113,7 @@ internal static class OutOfFrameEntityCleaner
         }
 
         if (missingBounds > 0)
-            log.Debug("OutOfFrame: не удалось вычислить BoundingBox у {Count} объектов", missingBounds);
+            log.Debug("OutOfFrame: bounding box missing for {Count} entities", missingBounds);
 
         return result;
     }

@@ -55,7 +55,7 @@ public sealed class BlockInserter(double gapPercent, Logger log)
 
             if (clonedCount == 0)
             {
-                log.Warning("{SourceName}: не удалось клонировать объекты", sourceName);
+                log.Warning("{SourceName}: failed to clone entities", sourceName);
                 return null;
             }
 
@@ -72,7 +72,7 @@ public sealed class BlockInserter(double gapPercent, Logger log)
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Ошибка вставки: {SourceName}", sourceName);
+            log.Error(ex, "Insert failed: {SourceName}", sourceName);
             return null;
         }
     }
@@ -92,7 +92,7 @@ public sealed class BlockInserter(double gapPercent, Logger log)
             if (id.IsValidForOperation())
             {
                 if (srcTrx.GetObject(id, OpenMode.ForWrite) is BlockReference blockRef)
-                    BlockScaleApplier.NormalizeBlockScale(sourceDb, srcTrx, blockRef, processedBlocks);
+                    BlockScaleApplier.NormalizeBlockScale(sourceDb, srcTrx, blockRef, processedBlocks, log);
 
                 _ = sourceIds.Add(id);
             }

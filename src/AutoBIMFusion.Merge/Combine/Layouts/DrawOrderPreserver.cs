@@ -64,7 +64,7 @@ internal static class DrawOrderPreserver
 
         if (orderedTargets.Count <= 1)
         {
-            log.Debug("DrawOrderPreserver.Restore: нечего упорядочивать (orderedTargets={Count})", orderedTargets.Count);
+            log.Debug("DrawOrderPreserver.Restore: nothing to reorder (orderedTargets={Count})", orderedTargets.Count);
             return;
         }
 

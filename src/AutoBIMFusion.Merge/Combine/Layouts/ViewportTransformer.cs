@@ -138,8 +138,8 @@ internal static class ViewportTransformer
                     var entType = ent.GetType().Name;
                     var handle = ent.Handle.ToString();
                     log.Warning(
-                        "[АНОМАЛИЯ МАСШТАБА] Тип: {EntityType}, Handle: {Handle}. Диагональ ДО: {OldDiag:F2}, ПОСЛЕ: {NewDiag:F2}",
-                        entType, handle, oldDig, newDig);
+                    "Scale anomaly: {EntityType} handle={Handle} diagonal {OldDiag:F2} -> {NewDiag:F2}",
+                    entType, handle, oldDig, newDig);
 
                     _ = MergeDiagnostics.TryAddSample(anomalySamples, new Dictionary<string, object?>
                     {
@@ -155,7 +155,7 @@ internal static class ViewportTransformer
             {
                 var entType = ent.GetType().Name;
                 var handle = ent.Handle.ToString();
-                log.Error(ex, "[ОШИБКА ТРАНСФОРМАЦИИ] Тип: {EntityType}, Handle: {Handle}. Сообщение: {Message}",
+                log.Error(ex, "Transform failed: {EntityType} handle={Handle}: {Message}",
                     entType, handle, ex.Message);
 
                 errorTypes[entType] = errorTypes.GetValueOrDefault(entType) + 1;
@@ -165,7 +165,7 @@ internal static class ViewportTransformer
         trx.Commit();
 
         log.Debug(
-            "[МАСШТАБ] Итого: {Total}, transformed={Transformed}, viewportSkipped={ViewportSkipped}, hatchSkipped={HatchSkipped}",
+            "[SCALE] total={Total}, transformed={Transformed}, viewportSkipped={ViewportSkipped}, hatchSkipped={HatchSkipped}",
             total, transformed, viewportSkipped, associativeHatchSkipped);
 
         MergeDiagnostics.WriteEvent(diagnosticContext, "model.scaled", new Dictionary<string, object?>
@@ -182,7 +182,7 @@ internal static class ViewportTransformer
         if (errorTypes.Count > 0)
         {
             var errorStr = string.Join(", ", errorTypes.Select(kv => $"{kv.Key}({kv.Value})"));
-            log.Warning("Ошибочные типы (Scale): {ErrorTypes}", errorStr);
+            log.Warning("Scale failed for types: {ErrorTypes}", errorStr);
         }
     }
 
@@ -284,7 +284,7 @@ internal static class ViewportTransformer
             }
             catch (Exception ex)
             {
-                log.Warning("[ОШИБКА КЛОНА] {EntityType} {Handle}: {Message}", entity.GetType().Name, entity.Handle, ex.Message);
+                log.Warning("Clone transform failed: {EntityType} {Handle}: {Message}", entity.GetType().Name, entity.Handle, ex.Message);
             }
         }
 

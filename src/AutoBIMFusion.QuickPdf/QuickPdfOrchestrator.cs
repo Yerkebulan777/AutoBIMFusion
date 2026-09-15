@@ -3,12 +3,10 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.PlottingServices;
-using AutoBIMFusion.Common.Logging;
 using AutoBIMFusion.QuickPdf.Frames;
 using AutoBIMFusion.QuickPdf.Naming;
 using AutoBIMFusion.QuickPdf.Plotting;
 using Serilog;
-using Serilog.Core;
 using System.Globalization;
 using Exception = System.Exception;
 using AcadApp = Autodesk.AutoCAD.ApplicationServices.Core.Application;
@@ -29,26 +27,24 @@ public static class QuickPdfOrchestrator
         "DWG To PDF.pc3"
     ];
 
-    public static void ExportFrameList(Document document)
+    public static void ExportFrameList(Document document, ILogger log)
     {
-        Run(document, area: null, outputPath: null);
+        Run(document, area: null, outputPath: null, log);
     }
 
-    public static bool TryExportInteractively(Document document)
+    public static bool TryExportInteractively(Document document, ILogger log)
     {
         if (!QuickPdfPrompts.TryCollect(document.Editor, DrawingName(document), out QuickPdfInput input))
         {
             return false;
         }
 
-        Run(document, input.Area, input.OutputPath);
+        Run(document, input.Area, input.OutputPath, log);
         return true;
     }
 
-    private static void Run(Document document, FrameWindow? area, string? outputPath)
+    private static void Run(Document document, FrameWindow? area, string? outputPath, ILogger log)
     {
-        ILogger log = LoggerFactory.GetSharedLogger()
-            .ForContext(Constants.SourceContextPropertyName, LoggerFactory.QuickPdfContext);
         Editor editor = document.Editor;
         using (document.LockDocument())
         {
@@ -61,11 +57,6 @@ public static class QuickPdfOrchestrator
                     ? "На слое " + FrameListInitializer.LayerName + " рамки не найдены."
                     : "В указанном участке рамки не найдены.");
             }
-
-            log.Information("QUICKPDF frames: count={FrameCount}; order=right-to-left, top-to-bottom", frames.Count);
-            editor.WriteMessage(
-                "\nQuickPDF: рамок " + frames.Count.ToString(CultureInfo.InvariantCulture) +
-                ". Порядок: справа налево, сверху вниз.");
 
             PdfDestination destination = QuickPdfNaming.Resolve(outputPath, DrawingName(document));
             try
@@ -81,12 +72,17 @@ public static class QuickPdfOrchestrator
             using (SilentPdfDevice plotter = SilentPdfDevice.Open(ResolvePdfDevice()))
             {
                 string device = ResolveBoundDevice(document, plotter, log);
-                log.Information("QUICKPDF device selected: {Device}", device);
+                log.Information(
+                    "QUICKPDF started: drawing={Drawing}; frames={FrameCount}; device={Device}",
+                    document.Name, frames.Count, device);
+                editor.WriteMessage(
+                    "\nQuickPDF: рамок " + frames.Count.ToString(CultureInfo.InvariantCulture) +
+                    ". Порядок: справа налево, сверху вниз.");
                 int index = 0;
                 foreach (DetectedFrame frame in frames)
                 {
                     index++;
-                    log.Information(
+                    log.Debug(
                         "QUICKPDF frame {Index}/{Count}: {MinX:0.###},{MinY:0.###} - {MaxX:0.###},{MaxY:0.###}",
                         index, frames.Count, frame.MinX, frame.MinY, frame.MaxX, frame.MaxY);
                     ExportFrame(
@@ -95,8 +91,11 @@ public static class QuickPdfOrchestrator
                         new Point3d(frame.MinX, frame.MinY, 0),
                         new Point3d(frame.MaxX, frame.MaxY, 0),
                         destination.Folder,
-                        destination.Prefix);
+                        destination.Prefix,
+                        log);
                 }
+
+                log.Information("QUICKPDF completed: sheets={Count}; folder={Folder}", frames.Count, destination.Folder);
             }
         }
     }
@@ -112,10 +111,9 @@ public static class QuickPdfOrchestrator
         Point3d first,
         Point3d second,
         string folder,
-        string prefix)
+        string prefix,
+        ILogger log)
     {
-        ILogger log = LoggerFactory.GetSharedLogger()
-            .ForContext(Constants.SourceContextPropertyName, LoggerFactory.QuickPdfContext);
         Editor editor = document.Editor;
         Extents2d window = PlotWindowConverter.ToPlotWindow(editor, first, second);
         double width = Abs(window.MaxPoint.X - window.MinPoint.X);
@@ -127,14 +125,14 @@ public static class QuickPdfOrchestrator
 
         double paperWidth = width / 100.0;
         double paperHeight = height / 100.0;
-        log.Information(
-            "QUICKPDF started: drawing={Drawing}; frame={FrameWidth:0.###}x{FrameHeight:0.###}; paper={PaperWidth:0.###}x{PaperHeight:0.###} mm",
+        log.Debug(
+            "QUICKPDF frame: drawing={Drawing}; frame={FrameWidth:0.###}x{FrameHeight:0.###}; paper={PaperWidth:0.###}x{PaperHeight:0.###} mm",
             document.Name, width, height, paperWidth, paperHeight);
 
         int sheet = QuickPdfNaming.NextSheetIndex(folder, prefix);
         string pdfPath = Path.Combine(
             folder, prefix + "_" + sheet.ToString("D3", CultureInfo.InvariantCulture) + ".pdf");
-        log.Information("QUICKPDF output: {PdfPath}", pdfPath);
+        log.Debug("QUICKPDF output: {PdfPath}", pdfPath);
 
         using PlotSettings settings = CreateModelPlotSettings(document);
         PlotSettingsValidator validator = PlotSettingsValidator.Current;
@@ -165,15 +163,15 @@ public static class QuickPdfOrchestrator
 
         validator.SetPlotPaperUnits(settings, PlotPaperUnit.Millimeters);
         ApplyPlotOptions(settings, validator, window);
-        log.Information(
-            "QUICKPDF media selected: mode={Mode}; media={Media}; rotation={Rotation}; matching={MatchingPolicy}",
+        log.Debug(
+            "QUICKPDF media: mode={Mode}; media={Media}; rotation={Rotation}; matching={MatchingPolicy}",
             iso is null ? "Custom" : "ISO", mediaLabel, settings.PlotRotation, policy);
 
         using (iso is null ? CustomPaper.Bind(document.Database, settings, paperWidth, paperHeight) : null)
         {
-            log.Information(
-                "QUICKPDF settings ready: media={CanonicalMedia}; paper={PaperWidth:0.###}x{PaperHeight:0.###} mm; " +
-                "margins=({MarginLeft:0.###},{MarginBottom:0.###})-({MarginRight:0.###},{MarginTop:0.###}); begin plot validation",
+            log.Debug(
+                "QUICKPDF settings: media={CanonicalMedia}; paper={PaperWidth:0.###}x{PaperHeight:0.###} mm; " +
+                "margins=({MarginLeft:0.###},{MarginBottom:0.###})-({MarginRight:0.###},{MarginTop:0.###})",
                 settings.CanonicalMediaName,
                 settings.PlotPaperSize.X,
                 settings.PlotPaperSize.Y,
@@ -189,10 +187,10 @@ public static class QuickPdfOrchestrator
                 paperHeight.ToString("0.0", CultureInfo.InvariantCulture) +
                 " мм (1 мм = 100 единиц чертежа)" +
                 "\nФайл: " + pdfPath);
-            PlotEngineRunner.Publish(document, settings, pdfPath, policy, verify);
+            PlotEngineRunner.Publish(document, settings, pdfPath, policy, verify, log);
         }
 
-        log.Information("QUICKPDF completed: {PdfPath}", pdfPath);
+        log.Debug("QUICKPDF sheet saved: {PdfPath}", pdfPath);
         editor.WriteMessage(
             "\nЛист " + sheet.ToString("D3", CultureInfo.InvariantCulture) + " сохранён: " + pdfPath);
     }

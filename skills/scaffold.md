@@ -19,7 +19,7 @@ AutoCAD-only guide for this repository. Use it only for desktop AutoCAD plugin w
 3. For any write to the active drawing, wrap work in `using (doc.LockDocument())`.
 4. Use `TransactionManager.StartTransaction()` and commit explicitly.
 5. Keep AutoCAD API calls on the main thread.
-6. Log through `LoggerFactory.GetSharedLogger()` or the command-specific logger pattern.
+6. Log through `LoggerFactory.GetCommandLogger("COMMAND_NAME")` so each command writes its own file.
 7. Add a Ribbon button only when the command should be exposed in the AutoBIMFusion tab.
 8. Build with the target AutoCAD config, for example:
 

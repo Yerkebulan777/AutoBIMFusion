@@ -22,7 +22,7 @@ public static class DrawingPurger
 
         if (totalDeletedCount == 0) return;
 
-        log.Information("Purge: удалено объектов: {TotalCount}", totalDeletedCount);
+        log.Debug("Purge deleted {TotalCount} objects", totalDeletedCount);
     }
 
     private static Dictionary<string, int> CorePurge(Database db)

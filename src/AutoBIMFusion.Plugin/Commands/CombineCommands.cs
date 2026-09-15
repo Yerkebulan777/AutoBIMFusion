@@ -27,13 +27,7 @@ public sealed class CombineCommands
     [CommandMethod("MERGEDWG", CommandFlags.Modal | CommandFlags.Session)]
     public static void MergeDwgFolderCommand()
     {
-        Logger log = LoggerFactory.GetSharedLogger();
-        ExecutionResult result = ExecuteMerge(null, true, "MERGEDWG");
-
-        if (!result.Success)
-        {
-            log.Warning("MERGEDWG: {Message}", result.Message);
-        }
+        _ = ExecuteMerge(null, true);
     }
 
     [CommandMethod("MERGEDWG_BATCH", CommandFlags.Modal | CommandFlags.Session)]
@@ -46,7 +40,8 @@ public sealed class CombineCommands
 
         ExecutionResult result = default;
 
-        Logger log = LoggerFactory.GetSharedLogger();
+        const string commandName = LoggerFactory.MergeDwgCommand;
+        Logger log = LoggerFactory.GetCommandLogger(commandName);
 
         try
         {
@@ -57,24 +52,20 @@ public sealed class CombineCommands
 
             if (string.IsNullOrWhiteSpace(sourceFolder) || string.IsNullOrWhiteSpace(statusPath))
             {
+                log.Warning("{Command}: missing required parameters", commandName);
                 result = ExecutionResult.Fail(null, "Не переданы обязательные параметры пакетной команды.");
                 return;
             }
 
-            result = ExecuteMerge(sourceFolder, false, "MERGEDWG_BATCH");
+            result = ExecuteMerge(sourceFolder, false);
         }
         catch (Exception ex)
         {
-            log.Error(ex, "MERGEDWG_BATCH");
+            log.Error(ex, "{Command} failed", commandName);
             result = ExecutionResult.Fail(null, ex.Message);
         }
         finally
         {
-            if (!result.Success)
-            {
-                log.Warning("MERGEDWG_BATCH: итог — {Message}", result.Message);
-            }
-
             if (!string.IsNullOrWhiteSpace(statusPath))
             {
                 try
@@ -83,20 +74,21 @@ public sealed class CombineCommands
                 }
                 catch (Exception ex)
                 {
-                    log.Error(ex, "MERGEDWG_BATCH: не удалось записать статус в {StatusPath}", statusPath);
+                    log.Error(ex, "{Command}: failed to write status file {StatusPath}", commandName, statusPath);
                 }
             }
         }
     }
 
-    private static ExecutionResult ExecuteMerge(string? folderPath, bool showDialogs, string commandName)
+    private static ExecutionResult ExecuteMerge(string? folderPath, bool showDialogs)
     {
-        Logger log = LoggerFactory.GetSharedLogger();
+        const string commandName = LoggerFactory.MergeDwgCommand;
+        Logger log = LoggerFactory.GetCommandLogger(commandName);
 
         if (!_mergeGate.Wait(0))
         {
             const string busyMessage = "Операция объединения уже выполняется.";
-            log.Warning("{Command}: {Message}", commandName, busyMessage);
+            log.Warning("{Command}: merge already running", commandName);
             return ExecutionResult.Fail(null, busyMessage);
         }
 
@@ -105,9 +97,9 @@ public sealed class CombineCommands
             using AcadWarningSuppressScope warningSuppress = new();
 
             DocumentCollection docMgr = AcadApp.DocumentManager;
-            if (HasBlockingOpenDocuments(docMgr, log))
+            if (HasBlockingOpenDocuments(docMgr, log, commandName))
             {
-                log.Warning("{Command}: {Message}", commandName, OpenFilesMessage);
+                log.Warning("{Command}: named or non-empty drawings are open", commandName);
                 if (showDialogs)
                 {
                     UiDialogService.ShowMessage(OpenFilesMessage, commandName);
@@ -128,6 +120,7 @@ public sealed class CombineCommands
 
             if (dwgFiles.Length == 0)
             {
+                log.Warning("{Command}: no DWG files in {Folder}", commandName, sourceFolder);
                 if (showDialogs)
                 {
                     UiDialogService.ShowMessage("DWG-файлов нет!", commandName);
@@ -139,7 +132,7 @@ public sealed class CombineCommands
             CombineStatistics stats = new();
             Stopwatch sw = Stopwatch.StartNew();
 
-            MergeDocumentSelection target = SelectMergeDocument(docMgr, log);
+            MergeDocumentSelection target = SelectMergeDocument(docMgr, log, commandName);
             Document mergeDoc = target.Document;
 
             BlockInserter inserter = new(gapPercent, log);
@@ -160,13 +153,9 @@ public sealed class CombineCommands
 
             sw.Stop();
 
-            string outcome = stats.Failed > 0
-                ? "завершено с ошибками обработки файлов"
-                : stats.Skipped > 0 ? "завершено с пропусками файлов" : "обработка файлов завершена успешно";
-            log.ForContext("SourceContext", LoggerFactory.ExecutionSummaryContext)
-                .Write(stats.Failed > 0 ? Serilog.Events.LogEventLevel.Warning : Serilog.Events.LogEventLevel.Information,
-                    "{Command}: итог — {Outcome}; {Stats}; save=\"{SavePath}\"; elapsed={Elapsed}",
-                    commandName, outcome, stats, savePath, sw.Elapsed);
+            log.Write(stats.Failed > 0 ? Serilog.Events.LogEventLevel.Warning : Serilog.Events.LogEventLevel.Information,
+                "{Command} completed: files={Total} ok={Successful} skipped={Skipped} failed={Failed}; save={SavePath}; elapsed={Elapsed}",
+                commandName, stats.TotalFiles, stats.Successful, stats.Skipped, stats.Failed, savePath, sw.Elapsed);
 
             if (showDialogs)
             {
@@ -178,7 +167,7 @@ public sealed class CombineCommands
         }
         catch (Exception ex)
         {
-            log.Error(ex, "Ошибка {Command}", commandName);
+            log.Error(ex, "{Command} failed", commandName);
             return ExecutionResult.Fail(null, ex.Message);
         }
         finally
@@ -220,7 +209,7 @@ public sealed class CombineCommands
             success = result.Success,
             savePath = result.SavePath,
             message = result.Message,
-            logPath = LoggerFactory.GetCurrentLogFilePath(),
+            logPath = LoggerFactory.GetCurrentLogFilePath(LoggerFactory.MergeDwgCommand),
             diagnosticPath = MergeDiagnostics.GetCurrentDiagnosticFilePath(),
             startedAt,
             finishedAt
@@ -229,12 +218,12 @@ public sealed class CombineCommands
         File.WriteAllText(statusPath, JsonSerializer.Serialize(payload, _jsonOptions));
     }
 
-    private static MergeDocumentSelection SelectMergeDocument(DocumentCollection docMgr, Logger log)
+    private static MergeDocumentSelection SelectMergeDocument(DocumentCollection docMgr, Logger log, string commandName)
     {
 #if CORECONSOLE_DIAGNOSTICS
         Document? activeDoc = docMgr.MdiActiveDocument;
 
-        if (activeDoc is not null && CanUseActiveDocument(activeDoc, log))
+        if (activeDoc is not null && CanUseActiveDocument(activeDoc, log, commandName))
         {
             return new MergeDocumentSelection(activeDoc);
         }
@@ -243,17 +232,17 @@ public sealed class CombineCommands
 #else
         Document mergeDoc = docMgr.Add(MetricTemplateFileName);
         docMgr.MdiActiveDocument = mergeDoc;
-        log.Information("MERGEDWG: создан новый чертёж по шаблону \"{Template}\".", MetricTemplateFileName);
-        DiscardOtherEmptyUnnamedDocuments(docMgr, mergeDoc, log);
+        log.Debug("{Command}: created drawing from template {Template}", commandName, MetricTemplateFileName);
+        DiscardOtherEmptyUnnamedDocuments(docMgr, mergeDoc, log, commandName);
         return new MergeDocumentSelection(mergeDoc);
 #endif
     }
 
-    private static bool HasBlockingOpenDocuments(DocumentCollection docMgr, Logger log)
+    private static bool HasBlockingOpenDocuments(DocumentCollection docMgr, Logger log, string commandName)
     {
         foreach (Document doc in docMgr)
         {
-            if (!CanUseActiveDocument(doc, log))
+            if (!CanUseActiveDocument(doc, log, commandName))
             {
                 return true;
             }
@@ -263,13 +252,13 @@ public sealed class CombineCommands
     }
 
 #if !CORECONSOLE_DIAGNOSTICS
-    private static void DiscardOtherEmptyUnnamedDocuments(DocumentCollection docMgr, Document keep, Logger log)
+    private static void DiscardOtherEmptyUnnamedDocuments(DocumentCollection docMgr, Document keep, Logger log, string commandName)
     {
         List<Document> leftovers = [];
 
         foreach (Document doc in docMgr)
         {
-            if (!ReferenceEquals(doc, keep) && CanUseActiveDocument(doc, log))
+            if (!ReferenceEquals(doc, keep) && CanUseActiveDocument(doc, log, commandName))
             {
                 leftovers.Add(doc);
             }
@@ -283,13 +272,13 @@ public sealed class CombineCommands
             }
             catch (Autodesk.AutoCAD.Runtime.Exception ex)
             {
-                log.Warning(ex, "MERGEDWG: не удалось закрыть временный чертёж \"{DocumentName}\".", leftover.Name);
+                log.Warning(ex, "{Command}: failed to close temporary drawing {DocumentName}", commandName, leftover.Name);
             }
         }
     }
 #endif
 
-    private static bool CanUseActiveDocument(Document doc, Logger log)
+    private static bool CanUseActiveDocument(Document doc, Logger log, string commandName)
     {
         if (doc.IsNamedDrawing)
         {
@@ -308,7 +297,8 @@ public sealed class CombineCommands
         catch (Autodesk.AutoCAD.Runtime.Exception ex)
         {
             log.Warning(ex,
-                "MERGEDWG: не удалось проверить текущий документ \"{DocumentName}\", документ блокирует объединение.",
+                "{Command}: cannot inspect drawing {DocumentName}; merge is blocked",
+                commandName,
                 doc.Name);
             return false;
         }

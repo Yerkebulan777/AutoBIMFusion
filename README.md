@@ -160,7 +160,8 @@ dotnet build AutoBIMFusion.slnx -c DebugA19 -p:CoreConsoleDiagnostics=true
 
 ## Логи
 
-Логи слияния: папка «Документы» пользователя, `AutoBIMFusion\Logs\merge-YYYY-MM-DD.log`.
+Логи: папка «Документы» пользователя, `AutoBIMFusion\Logs\`.
+Отдельный файл на команду: `mergedwg-YYYY-MM-DD.log` (включая пакетный запуск), `quickpdf-YYYY-MM-DD.log`.
 
 ## Лицензия
 
