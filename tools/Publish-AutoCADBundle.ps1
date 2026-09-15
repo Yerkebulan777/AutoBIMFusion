@@ -5,6 +5,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'AutoCADPluginBundle.ps1')
 $source = (Resolve-Path -LiteralPath $SourceBundle).ProviderPath.TrimEnd('\')
 $target = [IO.Path]::GetFullPath($TargetBundle).TrimEnd('\')
 if ([IO.Path]::GetFileName($target) -ne 'AutoBIMFusion.bundle' -or $source -eq $target -or
@@ -30,11 +31,7 @@ try {
     if ($manifest.ApplicationPackage.Components.ComponentEntry.ModuleName -ne './Contents/AutoBIMFusion.dll') {
         throw 'Invalid bundle entry point.'
     }
-    foreach ($name in @('AutoBIMFusion', 'AutoBIMFusion.Common', 'AutoBIMFusion.Merge', 'Serilog', 'Serilog.Sinks.File')) {
-        if (-not (Test-Path -LiteralPath (Join-Path $stage "Contents\$name.dll") -PathType Leaf)) {
-            throw "Incomplete bundle: $name.dll is missing."
-        }
-    }
+    Assert-AutoCADPluginContents -ContentsDir (Join-Path $stage 'Contents') -Context $stage
     $hash = [Security.Cryptography.SHA256]::Create()
     try {
         foreach ($file in Get-ChildItem -LiteralPath $source -File -Recurse) {

@@ -1,0 +1,8 @@
+<Project>
+    <!-- Isolate the WiX project from AutoCAD DebugAxx/ReleaseAxx multi-targeting. -->
+    <PropertyGroup>
+        <RepoRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..'))</RepoRoot>
+        <Configurations>Debug;Release</Configurations>
+        <Platforms>x64</Platforms>
+    </PropertyGroup>
+</Project>

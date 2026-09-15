@@ -7,7 +7,7 @@ $publish = Join-Path $PSScriptRoot 'Publish-AutoCADBundle.ps1'
 New-Item -ItemType Directory -Path (Join-Path $source 'Contents') -Force | Out-Null
 '<ApplicationPackage><Components><ComponentEntry ModuleName="./Contents/AutoBIMFusion.dll" /></Components></ApplicationPackage>' |
     Set-Content -LiteralPath (Join-Path $source 'PackageContents.xml')
-foreach ($name in @('AutoBIMFusion', 'AutoBIMFusion.Common', 'AutoBIMFusion.Merge', 'Serilog', 'Serilog.Sinks.File')) {
+foreach ($name in @('AutoBIMFusion', 'AutoBIMFusion.Common', 'AutoBIMFusion.Merge', 'AutoBIMFusion.QuickPdf', 'Serilog', 'Serilog.Sinks.File')) {
     'old' | Set-Content -LiteralPath (Join-Path $source "Contents\$name.dll")
 }
 & $publish -SourceBundle $source -TargetBundle $target
@@ -36,7 +36,7 @@ try {
 finally { $held.Dispose() }
 $expected = if ($failed) { 'new' } else { 'next' }
 if ((Get-Content -LiteralPath $targetDll) -ne $expected) { throw 'Locked-file publication damaged installation.' }
-foreach ($name in @('AutoBIMFusion.Common', 'AutoBIMFusion.Merge', 'Serilog', 'Serilog.Sinks.File')) {
+foreach ($name in @('AutoBIMFusion.Common', 'AutoBIMFusion.Merge', 'AutoBIMFusion.QuickPdf', 'Serilog', 'Serilog.Sinks.File')) {
     if (-not (Test-Path -LiteralPath (Join-Path $target "Contents\$name.dll"))) { throw "Lost $name.dll" }
 }
 

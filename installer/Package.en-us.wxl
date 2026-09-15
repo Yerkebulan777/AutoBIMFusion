@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="en-US">
+    <String Id="DowngradeError" Value="A newer version of AutoBIMFusion is already installed." />
+    <String Id="CloseAutoCAD" Value="AutoCAD is using AutoBIMFusion. Close AutoCAD to continue." />
+    <String Id="CloseCoreConsole" Value="AutoCAD Core Console is using AutoBIMFusion. Close accoreconsole.exe to continue." />
+    <String Id="FeatureDescription" Value="AutoCAD 2019-2027 plugin (MERGEDWG, QUICKPDF)" />
+</WixLocalization>

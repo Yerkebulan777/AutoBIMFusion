@@ -1,0 +1,35 @@
+<Project Sdk="WixToolset.Sdk/4.0.6">
+    <PropertyGroup>
+        <OutputType>Package</OutputType>
+        <InstallerPlatform>x64</InstallerPlatform>
+        <Platform>x64</Platform>
+        <Pedantic>true</Pedantic>
+        <SuppressIces>ICE61</SuppressIces>
+        <Version Condition="'$(Version)' == ''">1.0.0</Version>
+        <DefineConstants>$(DefineConstants);Version=$(Version)</DefineConstants>
+        <PayloadDir Condition="'$(PayloadDir)' == ''">$(RepoRoot)out\installer\payload\AutoBIMFusion.bundle</PayloadDir>
+        <PayloadDirSlash>$(PayloadDir.Replace('\', '/'))</PayloadDirSlash>
+        <OutputName>AutoBIMFusion</OutputName>
+        <OutputPath>$(RepoRoot)out\installer\$(Configuration)\</OutputPath>
+        <IntermediateOutputPath>$(RepoRoot)out\installer\obj\$(Configuration)\</IntermediateOutputPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <BindPath Include="$(PayloadDir)" />
+        <HarvestDirectory Include="$(PayloadDirSlash)">
+            <ComponentGroupName>BundleFiles</ComponentGroupName>
+            <DirectoryRefId>INSTALLFOLDER</DirectoryRefId>
+            <SuppressRootDirectory>true</SuppressRootDirectory>
+            <SuppressCom>true</SuppressCom>
+            <SuppressRegistry>true</SuppressRegistry>
+        </HarvestDirectory>
+        <PackageReference Include="WixToolset.UI.wixext" Version="4.0.6" />
+        <PackageReference Include="WixToolset.Util.wixext" Version="4.0.6" />
+        <PackageReference Include="WixToolset.Heat" Version="4.0.6" />
+    </ItemGroup>
+
+    <Target Name="EnsurePayload" BeforeTargets="PrepareForBuild;HarvestDirectory">
+        <Error Condition="!Exists('$(PayloadDir)\PackageContents.xml') Or !Exists('$(PayloadDir)\Contents')"
+               Text="Stage the multi-version AutoCAD bundle first: tools\Build-Installer.ps1" />
+    </Target>
+</Project>

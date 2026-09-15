@@ -1,0 +1,98 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+    <!-- AutoCAD 2026+ does not autoload from ProgramData; Program Files is trusted for 2019-2027. -->
+    <Package Name="AutoBIMFusion"
+             Manufacturer="AutoBIMFusion"
+             Version="$(Version)"
+             UpgradeCode="1553A50F-8C1B-4672-944A-435FA8B68E52"
+             Language="1033"
+             Scope="perMachine">
+        <SummaryInformation Description="AutoCAD 2019-2027 plugin for batch DWG merge"
+                            Manufacturer="AutoBIMFusion" />
+
+        <!-- Same 1.0.0 rebuilds replace the previous install instead of registering a second product. -->
+        <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)"
+                      AllowSameVersionUpgrades="yes"
+                      Schedule="afterInstallInitialize" />
+
+        <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+        <Property Id="ARPHELPLINK" Value="https://github.com/Yerkebulan777/AutoBIMFusion" />
+        <Property Id="DISABLEADVTSHORTCUTS" Value="1" />
+        <!-- Pending-reboot file ops leave AutoCAD DLLs behind and break the next install. -->
+        <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />
+        <Property Id="REBOOT" Value="ReallySuppress" />
+
+        <Property Id="INSTALLFOLDER_PROP" Secure="yes">
+            <RegistrySearch Id="FindInstallFolder"
+                            Root="HKLM"
+                            Key="Software\AutoBIMFusion"
+                            Name="InstallFolder"
+                            Type="raw" />
+        </Property>
+        <Property Id="PERUSERPLUGINFOLDER"
+                  Secure="yes"
+                  Value="[%APPDATA]\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle" />
+        <Property Id="PROGRAMDATAPLUGINFOLDER"
+                  Secure="yes"
+                  Value="[%ProgramData]\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle" />
+
+        <util:CloseApplication Id="CloseAcad"
+                               Target="acad.exe"
+                               Description="!(loc.CloseAutoCAD)"
+                               CloseMessage="yes"
+                               ElevatedCloseMessage="yes"
+                               EndSessionMessage="yes"
+                               ElevatedEndSessionMessage="yes"
+                               PromptToContinue="yes"
+                               RebootPrompt="no"
+                               TerminateProcess="1"
+                               Timeout="15" />
+        <util:CloseApplication Id="CloseCoreConsole"
+                               Target="accoreconsole.exe"
+                               Description="!(loc.CloseCoreConsole)"
+                               CloseMessage="yes"
+                               ElevatedCloseMessage="yes"
+                               EndSessionMessage="yes"
+                               ElevatedEndSessionMessage="yes"
+                               RebootPrompt="no"
+                               TerminateProcess="1"
+                               Timeout="10" />
+
+        <StandardDirectory Id="ProgramFiles64Folder">
+            <Directory Id="AutodeskFolder" Name="Autodesk">
+                <Directory Id="ApplicationPluginsFolder" Name="ApplicationPlugins">
+                    <Directory Id="INSTALLFOLDER" Name="AutoBIMFusion.bundle" />
+                </Directory>
+            </Directory>
+        </StandardDirectory>
+
+        <Component Id="CleanupOldLocations" Directory="INSTALLFOLDER" Guid="6C8E2B41-9F17-4A3D-B2E8-1D7C4A90E5F3">
+            <RegistryValue Root="HKLM"
+                           Key="Software\AutoBIMFusion"
+                           Name="InstallFolder"
+                           Type="string"
+                           Value="[INSTALLFOLDER]"
+                           KeyPath="yes" />
+            <util:RemoveFolderEx Property="INSTALLFOLDER_PROP" On="uninstall" />
+            <util:RemoveFolderEx Property="PERUSERPLUGINFOLDER" On="both" />
+            <util:RemoveFolderEx Property="PROGRAMDATAPLUGINFOLDER" On="both" />
+            <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
+        </Component>
+
+        <Feature Id="Plugin"
+                 Title="AutoBIMFusion"
+                 Description="!(loc.FeatureDescription)"
+                 Level="1"
+                 AllowAbsent="no"
+                 AllowAdvertise="no">
+            <ComponentGroupRef Id="BundleFiles" />
+            <ComponentRef Id="CleanupOldLocations" />
+        </Feature>
+
+        <!-- Directory picker is omitted on purpose: Autoload only scans ApplicationPlugins. -->
+        <ui:WixUI Id="WixUI_Minimal" />
+        <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+    </Package>
+</Wix>

@@ -93,7 +93,9 @@
             <PackageContentsLines Include="  &lt;CompanyDetails Name=&quot;$(AutoCADCompanyName)&quot; /&gt;" />
             <PackageContentsLines Include="  &lt;Components&gt;" />
             <PackageContentsLines Include="    &lt;RuntimeRequirements OS=&quot;Win64&quot; Platform=&quot;AutoCAD&quot; SeriesMin=&quot;$(AutoCADSeries)&quot; SeriesMax=&quot;$(AutoCADSeries)&quot; /&gt;" />
-            <PackageContentsLines Include="    &lt;ComponentEntry AppName=&quot;$(AssemblyName)&quot; ModuleName=&quot;./Contents/$(AssemblyName).dll&quot; AppDescription=&quot;$(AutoCADAppDescription)&quot; LoadOnAutoCADStartup=&quot;true&quot; /&gt;" />
+            <PackageContentsLines Include="    &lt;ComponentEntry AppName=&quot;$(AssemblyName)&quot; ModuleName=&quot;./Contents/$(AssemblyName).dll&quot; AppDescription=&quot;$(AutoCADAppDescription)&quot; AppType=&quot;.Net&quot; LoadOnAutoCADStartup=&quot;true&quot;&gt;" />
+            <PackageContentsLines Include="      &lt;RuntimeRequirements OS=&quot;Win64&quot; Platform=&quot;AutoCAD&quot; SeriesMin=&quot;$(AutoCADSeries)&quot; SeriesMax=&quot;$(AutoCADSeries)&quot; /&gt;" />
+            <PackageContentsLines Include="    &lt;/ComponentEntry&gt;" />
             <PackageContentsLines Include="  &lt;/Components&gt;" />
             <PackageContentsLines Include="&lt;/ApplicationPackage&gt;" />
             <ResourceIcons Include="Resources\*.png" Condition="'$(CoreConsoleDiagnostics)' != 'true'" />

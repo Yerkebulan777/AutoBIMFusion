@@ -87,11 +87,25 @@ Headless не устанавливается автоматически и не 
 копирует и проверяет весь пакет, затем заменяет каталог с резервной копией и откатом
 при ошибке замены. Перед обновлением закройте AutoCAD, после обновления запустите заново.
 
-Для ручной установки:
+Для ручной установки одной версии (в `%AppData%`, только выбранный год):
 
 ```powershell
 .\tools\Install-AutoBIMFusionBundle.ps1 -Configuration ReleaseA19
 ```
+
+Подписанный MSI на все годы 2019–2027 ставит bundle в
+`C:\Program Files\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`
+(этот каталог AutoCAD считает доверенным; с 2026 `%ProgramData%` больше не загружается).
+
+```powershell
+# Собрать Release A19–A27 и MSI. Без сертификата пакет будет неподписанным.
+.\tools\Build-Installer.ps1
+
+# SHA-256 Authenticode: отпечаток из хранилища или PFX.
+.\tools\Build-Installer.ps1 -SignThumbprint $env:AUTOBIMFUSION_SIGN_THUMBPRINT
+```
+
+Перед установкой, удалением и переустановкой закройте AutoCAD. Тот же MSI (и пересборка той же версии) заменяет предыдущую установку, а не ставит второй продукт. Удаление снимает bundle в Program Files и копии в `%AppData%` / `%ProgramData%`. Готовый файл: `out/installer/AutoBIMFusion-1.0.0.msi`.
 
 ## Проверка совместимости
 
@@ -102,6 +116,12 @@ Headless не устанавливается автоматически и не 
 
 # Установка: замена пакета, неполная копия, заблокированная DLL, параллельный запуск.
 .\tools\Test-AutoCADBundlePublication.ps1
+
+# Multi-year PackageContents для MSI и выбор DLL пакетным хостом.
+.\tools\Test-InstallerPayload.ps1
+
+# Таблицы MSI: same-version upgrade, очистка папки при uninstall, закрытие AutoCAD.
+.\tools\Test-InstallerUninstall.ps1
 
 # Утилиты, очередь приоритетов, Serilog и JSON без установленного AutoCAD.
 dotnet run --project tests/AutoBIMFusion.Compatibility.Tests -c DebugA19

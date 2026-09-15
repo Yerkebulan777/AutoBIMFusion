@@ -7,6 +7,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'AutoCADPluginBundle.ps1')
 $repoRoot = Split-Path $PSScriptRoot -Parent
 $outputRoot = Join-Path $repoRoot 'out\compatibility'
 New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
@@ -37,19 +38,19 @@ foreach ($buildType in $BuildTypes) {
                 2022 { 'R24.1' } 2023 { 'R24.2' } 2024 { 'R24.3' }
                 2025 { 'R25.0' } 2026 { 'R25.1' } 2027 { 'R26.0' }
             }
-            if ($component.RuntimeRequirements.SeriesMin -ne $expectedSeries -or
-                $component.RuntimeRequirements.SeriesMax -ne $expectedSeries -or
-                $component.ComponentEntry.ModuleName -ne './Contents/AutoBIMFusion.dll') {
+            $entry = $component.SelectSingleNode('ComponentEntry')
+            $requirements = $component.SelectSingleNode('RuntimeRequirements')
+            $entryRequirements = $entry.SelectSingleNode('RuntimeRequirements')
+            if ($null -eq $entry -or $null -eq $requirements -or $null -eq $entryRequirements -or
+                $requirements.GetAttribute('SeriesMin') -ne $expectedSeries -or
+                $requirements.GetAttribute('SeriesMax') -ne $expectedSeries -or
+                $entry.GetAttribute('ModuleName') -ne './Contents/AutoBIMFusion.dll' -or
+                $entry.GetAttribute('AppType') -ne '.Net' -or
+                $entryRequirements.GetAttribute('SeriesMin') -ne $expectedSeries -or
+                $entryRequirements.GetAttribute('SeriesMax') -ne $expectedSeries) {
                 throw "Unexpected autoload manifest: $bundle"
             }
-            foreach ($name in @('AutoBIMFusion.dll', 'AutoBIMFusion.Common.dll', 'AutoBIMFusion.Merge.dll', 'AutoBIMFusion.QuickPdf.dll', 'Serilog.dll', 'Serilog.Sinks.File.dll')) {
-                if (-not (Test-Path -LiteralPath (Join-Path $bundle "Contents\$name"))) {
-                    throw "Missing runtime dependency: $name ($configuration $mode)"
-                }
-            }
-            $hostDlls = @(Get-ChildItem -LiteralPath (Join-Path $bundle 'Contents') -Filter '*.dll' |
-                Where-Object Name -Match '^(acmgd|acdbmgd|accoremgd|AdWindows|AcWindows|Autodesk\.|Aecc|AecBase)')
-            if ($hostDlls.Count -gt 0) { throw "Host DLLs in bundle: $($hostDlls.Name -join ', ')" }
+            Assert-AutoCADPluginContents -ContentsDir (Join-Path $bundle 'Contents') -Context "$configuration $mode"
             if ($headless -and (Test-Path -LiteralPath (Join-Path $bundle 'Contents\Resources'))) {
                 throw "Headless bundle contains Ribbon resources."
             }

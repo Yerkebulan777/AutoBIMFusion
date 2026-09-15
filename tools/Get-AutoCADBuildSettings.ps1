@@ -6,7 +6,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $project = Join-Path (Split-Path $PSScriptRoot -Parent) 'src\AutoBIMFusion.Plugin\AutoBIMFusion.Plugin.csproj'
-$output = & dotnet msbuild $project "-p:Configuration=$Configuration" '-p:Platform=x64' '-getProperty:TargetFramework,TargetDir,TargetPath,AcadVersion,AutoCADSeries'
+$output = & dotnet msbuild $project "-p:Configuration=$Configuration" '-p:Platform=x64' '-getProperty:TargetFramework,TargetDir,TargetPath,AcadVersion,AutoCADSeries,Version'
 if ($LASTEXITCODE -ne 0) {
     throw "Cannot evaluate AutoCAD build settings for $Configuration."
 }
