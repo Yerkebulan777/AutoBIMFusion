@@ -93,25 +93,27 @@ Headless не устанавливается автоматически и не 
 .\tools\Install-AutoBIMFusionBundle.ps1 -Configuration ReleaseA19
 ```
 
-Подписанный MSI на все годы 2019–2027 ставит bundle в
-`C:\Program Files\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`
-и копирует его в `%ProgramData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`
+Для каждого года выпускается отдельный MSI. Например, пакет 2020 ставит bundle в
+`C:\Program Files\Autodesk\ApplicationPlugins\AutoBIMFusion-2020.bundle`
+и копирует его в `%ProgramData%\Autodesk\ApplicationPlugins\AutoBIMFusion-2020.bundle`
 (2019–2025 ищут ProgramData; с 2026 `%ProgramData%` больше не загружается, остаётся Program Files).
-Копия в `%AppData%` с тем же ProductCode удаляется, чтобы однолетняя debug-сборка не перекрывала MSI.
+Пакеты разных лет устанавливаются одновременно: у каждого свои UpgradeCode, ProductCode bundle, компоненты и ключ `HKLM\Software\AutoBIMFusion\<год>`. Обновление и удаление затрагивают только выбранный год. Старый общий MSI и debug-копии не удаляются автоматически; перед переходом со старого общего пакета удалите его вручную, чтобы AutoCAD не загружал две копии плагина.
 
 ```powershell
-# Конфигурация Release в Solution: A19–A27 + MSI.
-# То же после desktop-сборки ReleaseA19–ReleaseA27 (в том числе в Visual Studio).
+# Все девять отдельных MSI (2019–2027).
 dotnet build AutoBIMFusion.slnx -c Release
-dotnet build AutoBIMFusion.slnx -c ReleaseA23
+# Только AutoCAD 2020: компиляция плагина и создание его MSI.
+dotnet build AutoBIMFusion.slnx -c ReleaseA20
 
 # Опционально: подписать уже собранный MSI (SHA-256 Authenticode).
-.\tools\Build-Installer.ps1 -SignThumbprint $env:AUTOBIMFUSION_SIGN_THUMBPRINT
+.\tools\Build-Installer.ps1 -Year 2020 -SignThumbprint $env:AUTOBIMFUSION_SIGN_THUMBPRINT
 ```
 
-В Visual Studio конфигурации **Release** и **ReleaseA19**–**ReleaseA27** собирают один MSI на 2019–2027. Готовый файл: `installer/bin/x64/Release/` и копия `out/installer/AutoBIMFusion-1.0.0.msi`. Сборка `ReleaseA23` сначала собирает плагин 2023, затем payload A19–A27 и MSI.
+В Visual Studio выберите **ReleaseA20 | x64 → Сборка → Собрать решение** для пакета 2020. Результат: `out/installer/AutoBIMFusion-AutoCAD2020-1.0.0.msi` (также в `installer/bin/x64/ReleaseA20/en-US/`). Другие `ReleaseAxx` работают аналогично. Обычный **Release** собирает все девять MSI, последовательно и в отдельных папках. `DebugAxx` продолжает собирать только плагин; обычный `Debug` выпускает девять отладочных MSI в `out/installer/Debug/`. Payload изолирован по конфигурациям в `out/installer/payload/ReleaseA20/` и аналогичных папках.
 
-Перед установкой, удалением и переустановкой закройте AutoCAD. Тот же MSI (и пересборка той же версии) заменяет предыдущую установку, а не ставит второй продукт. Удаление снимает bundle в Program Files и копии в `%AppData%` / `%ProgramData%`.
+Для выбранного года автоматически восстанавливаются NuGet-пакеты и компилируется плагин с зависимостями; затем проверяется payload и создаётся MSI. Сборка только проекта плагина не запускает установщик. Перед упаковкой проверяются регистрация выбранного года и корректность .NET DLL, включая зависимости. Текстовые заглушки, повреждённые DLL и payload другого года останавливают сборку даже при `SkipInstallerDependencyBuild=true` (повторная упаковка после подписи).
+
+Перед установкой, удалением и переустановкой закройте AutoCAD. Повторная установка MSI обновляет пакет того же года. Удаление снимает только его bundle в Program Files и копию в `%ProgramData%`.
 
 ## Проверка совместимости
 
@@ -123,11 +125,14 @@ dotnet build AutoBIMFusion.slnx -c ReleaseA23
 # Установка: замена пакета, неполная копия, заблокированная DLL, параллельный запуск.
 .\tools\Test-AutoCADBundlePublication.ps1
 
-# Multi-year PackageContents для MSI и выбор DLL пакетным хостом.
+# Годовые PackageContents для MSI; повреждённый источник сохраняет предыдущий payload.
 .\tools\Test-InstallerPayload.ps1
 
 # Таблицы MSI: same-version upgrade, очистка папки при uninstall, закрытие AutoCAD.
 .\tools\Test-InstallerUninstall.ps1
+
+# Защита MSI от DLL-заглушек, повреждённых зависимостей и неверной серии AutoCAD.
+.\tools\Test-InstallerBuildValidation.ps1
 
 # Утилиты, очередь приоритетов, Serilog и JSON без установленного AutoCAD.
 dotnet run --project tests/AutoBIMFusion.Compatibility.Tests -c DebugA19

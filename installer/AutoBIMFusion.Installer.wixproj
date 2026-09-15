@@ -1,29 +1,33 @@
-<Project Sdk="WixToolset.Sdk/4.0.6">
+<Project>
+    <Import Project="Sdk.props" Sdk="WixToolset.Sdk" Version="4.0.6" />
     <PropertyGroup>
+        <InstallerYear Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(Configuration)', '^(Debug|Release)A(19|2[0-7])$'))">$([System.Text.RegularExpressions.Regex]::Replace('$(Configuration)', '^(Debug|Release)A', '20'))</InstallerYear>
         <OutputType>Package</OutputType>
         <InstallerPlatform>x64</InstallerPlatform>
         <Platform>x64</Platform>
         <Pedantic>true</Pedantic>
         <SuppressIces>ICE61</SuppressIces>
         <Version Condition="'$(Version)' == ''">1.0.0</Version>
-        <DefineConstants>$(DefineConstants);Version=$(Version)</DefineConstants>
-        <PayloadDir Condition="'$(PayloadDir)' == ''">$(RepoRoot)out\installer\payload\AutoBIMFusion.bundle</PayloadDir>
+        <DefineConstants>$(DefineConstants);Version=$(Version);InstallerYear=$(InstallerYear)</DefineConstants>
+        <PayloadDir Condition="'$(PayloadDir)' == ''">$(RepoRoot)out\installer\payload\$(Configuration)\AutoBIMFusion.bundle</PayloadDir>
         <PayloadDirSlash>$(PayloadDir.Replace('\', '/'))</PayloadDirSlash>
-        <OutputName>AutoBIMFusion</OutputName>
+        <OutputName>AutoBIMFusion-AutoCAD$(InstallerYear)</OutputName>
         <BaseOutputPath>bin\</BaseOutputPath>
         <BaseIntermediateOutputPath>obj\</BaseIntermediateOutputPath>
-        <PublishMsiDir>$(RepoRoot)out\installer\</PublishMsiDir>
-        <PluginProject>$(RepoRoot)src\AutoBIMFusion.Plugin\AutoBIMFusion.Plugin.csproj</PluginProject>
+        <PublishMsi Condition="'$(PublishMsi)' == ''">true</PublishMsi>
+        <SkipInstallerDependencyBuild Condition="'$(SkipInstallerDependencyBuild)' == ''">false</SkipInstallerDependencyBuild>
         <PayloadBuildType Condition="'$(Configuration)' == 'Debug' Or $([System.String]::Copy('$(Configuration)').StartsWith('Debug'))">Debug</PayloadBuildType>
         <PayloadBuildType Condition="'$(PayloadBuildType)' == ''">Release</PayloadBuildType>
-        <OutputPath>bin\$(Platform)\$(PayloadBuildType)\</OutputPath>
-        <IntermediateOutputPath>obj\$(Platform)\$(PayloadBuildType)\</IntermediateOutputPath>
+        <PublishMsiDir Condition="'$(PublishMsiDir)' == '' And '$(PayloadBuildType)' == 'Debug'">$(RepoRoot)out\installer\Debug\</PublishMsiDir>
+        <PublishMsiDir Condition="'$(PublishMsiDir)' == ''">$(RepoRoot)out\installer\</PublishMsiDir>
+        <OutputPath>bin\$(Platform)\$(Configuration)\</OutputPath>
+        <IntermediateOutputPath>obj\$(Platform)\$(Configuration)\</IntermediateOutputPath>
     </PropertyGroup>
 
     <ItemGroup>
-        <InstallerYear Include="19;20;21;22;23;24;25;26;27" />
+        <InstallerYearSuffix Include="19;20;21;22;23;24;25;26;27" />
         <BindPath Include="$(PayloadDir)" />
-        <HarvestDirectory Include="$(PayloadDirSlash)">
+        <HarvestDirectory Include="$(PayloadDirSlash)" Condition="'$(InstallerYear)' != ''">
             <ComponentGroupName>BundleFiles</ComponentGroupName>
             <DirectoryRefId>INSTALLFOLDER</DirectoryRefId>
             <SuppressRootDirectory>true</SuppressRootDirectory>
@@ -37,21 +41,22 @@
 
     <Target Name="PrepareInstallerPayload"
             BeforeTargets="EnsurePayload"
-            Condition="'$(SkipInstallerDependencyBuild)' != 'true'">
+            Condition="'$(InstallerYear)' != '' And '$(CoreConsoleDiagnostics)' != 'true' And '$(SkipInstallerDependencyBuild)' != 'true'">
         <Message Importance="high"
-                 Text="Building $(PayloadBuildType)A%(InstallerYear.Identity) for installer payload..." />
-        <MSBuild Projects="$(PluginProject)"
-                 Properties="Configuration=$(PayloadBuildType)A%(InstallerYear.Identity);Platform=x64;CoreConsoleDiagnostics=false;DisableAutoCADDeployment=true;RunAnalyzersDuringBuild=false;EnforceCodeStyleInBuild=false"
-                 BuildInParallel="false" />
-        <Exec Command="&quot;$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;. '$(RepoRoot)tools\New-InstallerPayload.ps1'; New-InstallerPayloadFromYearBuilds -BuildType $(PayloadBuildType) -Destination '$(PayloadDir)' -Version $(Version)&quot;" />
+                 Text="Building AutoCAD $(InstallerYear) plugin and installer..." />
+        <!-- Each year needs its own restore and a fresh project evaluation. A separate build
+             also avoids Visual Studio's solution configuration/reference-build overrides. -->
+        <Exec Command="&quot;$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(RepoRoot)tools\Prepare-YearInstaller.ps1&quot; -Year $(InstallerYear) -BuildType $(PayloadBuildType) -PayloadDir &quot;$(PayloadDir)&quot; -Version &quot;$(Version)&quot;" />
     </Target>
 
-    <Target Name="EnsurePayload" BeforeTargets="PrepareForBuild;HarvestDirectory">
+    <Target Name="EnsurePayload" BeforeTargets="PrepareForBuild;HarvestDirectory" Condition="'$(InstallerYear)' != '' And '$(CoreConsoleDiagnostics)' != 'true'">
         <Error Condition="!Exists('$(PayloadDir)\PackageContents.xml') Or !Exists('$(PayloadDir)\Contents')"
                Text="Installer payload missing at $(PayloadDir). Build this project with Configuration=Release (or Debug), or pass -p:PayloadDir=... -p:SkipInstallerDependencyBuild=true." />
+        <!-- Also mandatory when repacking signed DLLs with SkipInstallerDependencyBuild=true. -->
+        <Exec Command="&quot;$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(RepoRoot)tools\Verify-InstallerPayload.ps1&quot; -PayloadDir &quot;$(PayloadDir)&quot; -Version &quot;$(Version)&quot; -Year $(InstallerYear)" />
     </Target>
 
-    <Target Name="PublishMsiArtifact" AfterTargets="Build" Condition="'$(PublishMsi)' != 'false'">
+    <Target Name="PublishMsiArtifact" AfterTargets="Build" Condition="'$(InstallerYear)' != '' And '$(CoreConsoleDiagnostics)' != 'true' And '$(PublishMsi)' != 'false'">
         <PropertyGroup>
             <_MsiToPublish Condition="Exists('$(TargetDir)$(OutputName).msi')">$(TargetDir)$(OutputName).msi</_MsiToPublish>
             <_MsiToPublish Condition="'$(_MsiToPublish)' == '' And Exists('$(TargetDir)en-US\$(OutputName).msi')">$(TargetDir)en-US\$(OutputName).msi</_MsiToPublish>
@@ -64,4 +69,25 @@
         <Message Importance="high"
                  Text="MSI ready: $(PublishMsiDir)$(OutputName)-$(Version).msi" />
     </Target>
+
+    <Target Name="BuildYearInstallers">
+        <Error Condition="'$(Configuration)' != 'Release' And '$(Configuration)' != 'Debug'" Text="Select Release, Debug, or an AutoCAD configuration A19-A27." />
+        <Exec Command="dotnet build &quot;$(MSBuildProjectFullPath)&quot; --configuration $(PayloadBuildType)A%(InstallerYearSuffix.Identity) --nologo -p:Platform=x64 -p:Version=$(Version) -p:PublishMsi=$(PublishMsi) -p:SkipInstallerDependencyBuild=$(SkipInstallerDependencyBuild)" />
+    </Target>
+    <Target Name="CleanYearInstallers">
+        <Exec Command="dotnet clean &quot;$(MSBuildProjectFullPath)&quot; --configuration $(PayloadBuildType)A%(InstallerYearSuffix.Identity) --nologo -p:Platform=x64" />
+    </Target>
+
+    <Import Project="Sdk.targets" Sdk="WixToolset.Sdk" Version="4.0.6" />
+    <!-- Plain Release/Debug orchestrates separate MSI builds; it never packages a mixed bundle. -->
+    <PropertyGroup Condition="'$(InstallerYear)' == ''">
+        <BuildDependsOn>BuildYearInstallers</BuildDependsOn>
+        <CleanDependsOn>CleanYearInstallers</CleanDependsOn>
+        <RebuildDependsOn>CleanYearInstallers;BuildYearInstallers</RebuildDependsOn>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(CoreConsoleDiagnostics)' == 'true'">
+        <BuildDependsOn />
+        <CleanDependsOn />
+        <RebuildDependsOn />
+    </PropertyGroup>
 </Project>

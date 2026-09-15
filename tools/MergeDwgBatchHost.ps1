@@ -45,33 +45,36 @@ function Find-MergeDwgBatchHost {
     )
 
     $plugins = @()
+    $bundleNames = @(2019..2027 | ForEach-Object { "AutoBIMFusion-$_.bundle" }) + @('AutoBIMFusion.bundle')
     foreach ($root in $ApplicationPluginsRoots) {
-        $bundle = Join-Path $root 'AutoBIMFusion.bundle'
-        $manifest = Join-Path $bundle 'PackageContents.xml'
-        if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) { continue }
-        try {
-            [xml]$xml = Get-Content -LiteralPath $manifest -Raw
-            foreach ($components in $xml.SelectNodes('/ApplicationPackage/Components')) {
-                $requirements = $components.SelectSingleNode('RuntimeRequirements')
-                if ($null -eq $requirements) { continue }
-                if ($requirements.GetAttribute('OS') -ne 'Win64' -or
-                    $requirements.GetAttribute('Platform') -notlike 'AutoCAD*') { continue }
-                $min = [version]($requirements.GetAttribute('SeriesMin') -replace '^R', '')
-                $max = [version]($requirements.GetAttribute('SeriesMax') -replace '^R', '')
-                foreach ($entry in $components.SelectNodes('ComponentEntry')) {
-                    if ($entry.GetAttribute('AppName') -ne 'AutoBIMFusion') { continue }
-                    $dll = [IO.Path]::GetFullPath((Join-Path $bundle $entry.GetAttribute('ModuleName')))
-                    $contents = Split-Path $dll -Parent
-                    $missing = @(@($dll) + @('AutoBIMFusion.Common.dll', 'AutoBIMFusion.Merge.dll',
-                        'Serilog.dll', 'Serilog.Sinks.File.dll' | ForEach-Object { Join-Path $contents $_ }) |
-                        Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) })
-                    if ($missing.Count -gt 0) { continue }
-                    $plugins += [pscustomobject]@{ Path = $dll; Min = $min; Max = $max }
+        foreach ($bundleName in $bundleNames) {
+            $bundle = Join-Path $root $bundleName
+            $manifest = Join-Path $bundle 'PackageContents.xml'
+            if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) { continue }
+            try {
+                [xml]$xml = Get-Content -LiteralPath $manifest -Raw
+                foreach ($components in $xml.SelectNodes('/ApplicationPackage/Components')) {
+                    $requirements = $components.SelectSingleNode('RuntimeRequirements')
+                    if ($null -eq $requirements) { continue }
+                    if ($requirements.GetAttribute('OS') -ne 'Win64' -or
+                        $requirements.GetAttribute('Platform') -notlike 'AutoCAD*') { continue }
+                    $min = [version]($requirements.GetAttribute('SeriesMin') -replace '^R', '')
+                    $max = [version]($requirements.GetAttribute('SeriesMax') -replace '^R', '')
+                    foreach ($entry in $components.SelectNodes('ComponentEntry')) {
+                        if ($entry.GetAttribute('AppName') -ne 'AutoBIMFusion') { continue }
+                        $dll = [IO.Path]::GetFullPath((Join-Path $bundle $entry.GetAttribute('ModuleName')))
+                        $contents = Split-Path $dll -Parent
+                        $missing = @(@($dll) + @('AutoBIMFusion.Common.dll', 'AutoBIMFusion.Merge.dll',
+                            'Serilog.dll', 'Serilog.Sinks.File.dll' | ForEach-Object { Join-Path $contents $_ }) |
+                            Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) })
+                        if ($missing.Count -gt 0) { continue }
+                        $plugins += [pscustomobject]@{ Path = $dll; Min = $min; Max = $max }
+                    }
                 }
             }
-        }
-        catch {
-            Write-Warning "Cannot use installed bundle ${manifest}: $($_.Exception.Message)"
+            catch {
+                Write-Warning "Cannot use installed bundle ${manifest}: $($_.Exception.Message)"
+            }
         }
     }
 

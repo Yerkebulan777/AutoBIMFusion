@@ -1,86 +1,65 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'New-InstallerPayload.ps1')
-. (Join-Path $PSScriptRoot 'MergeDwgBatchHost.ps1')
+. (Join-Path $PSScriptRoot 'TestFixtures\InstallerBundle.ps1')
 
-$root = Join-Path ([IO.Path]::GetTempPath()) ('AutoBIMFusion-installer-' + [Guid]::NewGuid().ToString('N'))
-New-Item -ItemType Directory -Path $root | Out-Null
-
-try {
-    $yearBundles = @{}
-    foreach ($year in 2019..2027) { $yearBundles[$year] = New-InstallerTestBundle -Root $root -Year $year }
-
-    $payload = Join-Path $root 'AutoBIMFusion.bundle'
-    [void](New-InstallerPayload -Destination $payload -Version '1.2.3' -YearBundles $yearBundles)
-
-    [xml]$manifest = Get-Content -LiteralPath (Join-Path $payload 'PackageContents.xml') -Raw -Encoding UTF8
-    $first = $manifest.SelectSingleNode('/ApplicationPackage/Components')
-    $firstEntry = $first.SelectSingleNode('ComponentEntry')
-    if ($first.SelectSingleNode('RuntimeRequirements').GetAttribute('Platform') -ne 'AutoCAD*' -or
-        $first.SelectSingleNode('RuntimeRequirements').GetAttribute('SupportPath') -ne './Contents/2019' -or
-        $firstEntry.GetAttribute('ModuleName') -ne './Contents/2019/AutoBIMFusion.dll' -or
-        $firstEntry.GetAttribute('AppType') -ne '.Net' -or
-        $firstEntry.SelectSingleNode('RuntimeRequirements').GetAttribute('Platform') -ne 'AutoCAD*' -or
-        $firstEntry.SelectSingleNode('RuntimeRequirements').GetAttribute('SupportPath') -ne './Contents/2019') {
-        throw 'Installer payload did not remap the plugin PackageContents into year folders.'
+$root = Join-Path (Split-Path $PSScriptRoot -Parent) ('out\installer-payload-test-' + [Guid]::NewGuid().ToString('N'))
+$payload = Join-Path $root 'AutoBIMFusion.bundle'
+$manifestPath = Join-Path $payload 'PackageContents.xml'
+foreach ($year in 2019..2027) {
+    $source = New-InstallerTestBundle -Root $root -Year $year
+    [void](New-InstallerPayload -SourceBundle $source -Destination $payload -Version '1.2.3' -Year $year)
+    [xml]$manifest = Get-Content -LiteralPath $manifestPath -Raw
+    if ($manifest.ApplicationPackage.Name -ne "AutoBIMFusion $year" -or
+        $manifest.ApplicationPackage.ProductCode -ne "{4F3E42D4-4D2F-4A2E-8A2A-BB771A0D$year}" -or
+        $manifest.ApplicationPackage.Components.ComponentEntry.ModuleName -ne "./Contents/$year/AutoBIMFusion.dll") {
+        throw "Payload did not receive final AutoCAD $year identity."
     }
-
-    try {
-        Assert-AutoCADPluginContents -ContentsDir (Join-Path $yearBundles[2019] 'Contents') -Context 'fixture' -RequireAssemblies
-        throw 'Stub assembly check failed.'
-    }
-    catch {
-        if ($_.Exception.Message -notlike '*Not a real plugin assembly*') { throw }
-    }
-
-    $incompleteAutoload = New-InstallerTestBundle -Root (Join-Path $root 'no-apptype') -Year 2019
-    [xml]$broken = Get-Content -LiteralPath (Join-Path $incompleteAutoload 'PackageContents.xml') -Raw
-    $broken.SelectSingleNode('/ApplicationPackage/Components/ComponentEntry').RemoveAttribute('AppType')
-    $broken.Save((Join-Path $incompleteAutoload 'PackageContents.xml'))
-    try {
-        New-InstallerPayload -Destination (Join-Path $root 'no-apptype\AutoBIMFusion.bundle') -Version '1.0.0' -YearBundles @{ 2019 = $incompleteAutoload }
-        throw 'Missing AppType check failed.'
-    }
-    catch {
-        if ($_.Exception.Message -notlike '*AppType=.Net*') { throw }
-    }
-
-    $hosts = @(
-        [pscustomobject]@{ Exe = (Join-Path $root 'acad-2019.exe'); Year = 2019; Series = [version]'23.0' }
-        [pscustomobject]@{ Exe = (Join-Path $root 'acad-2026.exe'); Year = 2026; Series = [version]'25.1' }
-        [pscustomobject]@{ Exe = (Join-Path $root 'acad-2027.exe'); Year = 2027; Series = [version]'26.0' }
-    )
-    foreach ($item in $hosts) { 'fixture' | Set-Content -LiteralPath $item.Exe }
-
-    $selected = Find-MergeDwgBatchHost -Installations $hosts -ApplicationPluginsRoots @((Split-Path $payload -Parent))
-    if ($selected.Year -ne 2027 -or $selected.PluginPath -notlike '*\Contents\2027\AutoBIMFusion.dll') {
-        throw "Expected AutoCAD 2027 payload DLL; got Year=$($selected.Year) Path=$($selected.PluginPath)"
-    }
-    $selected = Find-MergeDwgBatchHost -Installations $hosts -ApplicationPluginsRoots @((Split-Path $payload -Parent)) -Configuration 'ReleaseA19'
-    if ($selected.PluginPath -notlike '*\Contents\2019\AutoBIMFusion.dll') {
-        throw "Expected AutoCAD 2019 payload DLL; got $($selected.PluginPath)"
-    }
-
-    try {
-        New-InstallerPayload -Destination (Join-Path $root 'wrong-name') -Version '1.0.0' -YearBundles @{ 2019 = $yearBundles[2019] }
-        throw 'Destination name check failed.'
-    }
-    catch {
-        if ($_.Exception.Message -notlike 'Payload destination must be named AutoBIMFusion.bundle.') { throw }
-    }
-
-    $hostDllBundle = New-InstallerTestBundle -Root (Join-Path $root 'host-source') -Year 2019
-    'fake' | Set-Content -LiteralPath (Join-Path $hostDllBundle 'Contents\acmgd.dll')
-    try {
-        New-InstallerPayload -Destination (Join-Path $root 'host-dll\AutoBIMFusion.bundle') -Version '1.0.0' -YearBundles @{ 2019 = $hostDllBundle }
-        throw 'Host DLL check failed.'
-    }
-    catch {
-        if ($_.Exception.Message -notlike 'Host DLLs in AutoCAD 2019 bundle:*') { throw }
-    }
-
-    Write-Host "PASS: plugin PackageContents remap, batch host year folders, validation. Fixtures: $root"
+    $directories = @(Get-ChildItem -LiteralPath (Join-Path $payload 'Contents') -Directory)
+    if ($directories.Count -ne 1 -or $directories[0].Name -ne [string]$year) { throw 'Replacement retained old year files.' }
 }
-finally {
-    if (Test-Path -LiteralPath $root) { Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue }
+
+# Bad source must preserve the complete previously published package, including its identity.
+$hashes = @{}
+foreach ($file in Get-ChildItem -LiteralPath $payload -File -Recurse) {
+    $hashes[$file.FullName] = (Get-FileHash -LiteralPath $file.FullName).Hash
 }
+$source = New-InstallerTestBundle -Root $root -Year 2020
+$sourceManifestPath = Join-Path $source 'PackageContents.xml'
+$originalXml = Get-Content -LiteralPath $sourceManifestPath -Raw
+$cases = @(
+    @{ XPath = '/ApplicationPackage/Components/RuntimeRequirements'; Attribute = 'SeriesMin'; Value = 'R25.1' },
+    @{ XPath = '/ApplicationPackage/Components/ComponentEntry/RuntimeRequirements'; Attribute = 'SeriesMax'; Value = 'R25.1' },
+    @{ XPath = '/ApplicationPackage/Components/ComponentEntry/RuntimeRequirements'; Attribute = 'OS'; Value = 'Win32' },
+    @{ XPath = '/ApplicationPackage/Components/ComponentEntry'; Attribute = 'LoadOnAutoCADStartup'; Value = 'false' },
+    @{ XPath = '/ApplicationPackage/Components/ComponentEntry'; Attribute = 'AppName'; Value = 'OtherPlugin' },
+    @{ XPath = '/ApplicationPackage/Components/ComponentEntry'; Attribute = 'AppType'; Value = '' }
+)
+foreach ($case in $cases) {
+    [xml]$broken = $originalXml
+    $broken.SelectSingleNode($case.XPath).SetAttribute($case.Attribute, $case.Value)
+    $broken.Save($sourceManifestPath)
+    $failed = $false
+    try { [void](New-InstallerPayload -SourceBundle $source -Destination $payload -Version '1.2.4' -Year 2020) }
+    catch { $failed = $true }
+    if (-not $failed) { throw "Accepted invalid source: $($case.Attribute)=$($case.Value)" }
+}
+$originalXml | Set-Content -LiteralPath $sourceManifestPath
+foreach ($badName in @('acmgd.dll', 'ExtraDependency.dll', 'AutoBIMFusion.dll')) {
+    $badPath = Join-Path $source "Contents\$badName"
+    'MZ-not-a-managed-assembly' | Set-Content -LiteralPath $badPath
+    $failed = $false
+    try { [void](New-InstallerPayload -SourceBundle $source -Destination $payload -Version '1.2.4' -Year 2020) }
+    catch { $failed = $true }
+    if (-not $failed) { throw "Accepted invalid DLL: $badName" }
+    Remove-Item -LiteralPath $badPath
+}
+$files = @(Get-ChildItem -LiteralPath $payload -File -Recurse)
+if ($files.Count -ne $hashes.Count) { throw 'Rejected source changed published file count.' }
+foreach ($file in $files) {
+    if ((Get-FileHash -LiteralPath $file.FullName).Hash -ne $hashes[$file.FullName]) { throw "Rejected source changed $($file.FullName)." }
+}
+if (@(Get-ChildItem -LiteralPath $root -Directory -Filter '.AutoBIMFusion-*').Count -ne 0) {
+    throw 'Payload preparation left temporary directories.'
+}
+Write-Host "PASS: all nine year identities, replacement without stale files, invalid registration/DLL rejection preserves previous payload. Artifacts: $root"

@@ -9,7 +9,8 @@ $ErrorActionPreference = 'Stop'
 $source = (Resolve-Path -LiteralPath $SourceBundle).ProviderPath.TrimEnd('\')
 $target = [IO.Path]::GetFullPath($TargetBundle).TrimEnd('\')
 if ([IO.Path]::GetFileName($target) -ne 'AutoBIMFusion.bundle' -or $source -eq $target -or
-    $target.StartsWith($source + '\', [StringComparison]::OrdinalIgnoreCase)) {
+    $target.StartsWith($source + '\', [StringComparison]::OrdinalIgnoreCase) -or
+    $source.StartsWith($target + '\', [StringComparison]::OrdinalIgnoreCase)) {
     throw 'Publication requires a separate target named AutoBIMFusion.bundle.'
 }
 $parent = [IO.Path]::GetDirectoryName($target)
@@ -28,10 +29,13 @@ $published = $false
 try {
     Copy-Item -LiteralPath $source -Destination $stage -Recurse
     [xml]$manifest = Get-Content -LiteralPath (Join-Path $stage 'PackageContents.xml') -Raw
-    if ($manifest.ApplicationPackage.Components.ComponentEntry.ModuleName -ne './Contents/AutoBIMFusion.dll') {
+    $entries = @($manifest.SelectNodes('/ApplicationPackage/Components/ComponentEntry'))
+    if ($entries.Count -ne 1 -or
+        $entries[0].GetAttribute('ModuleName') -notmatch '^\./Contents/(20(?:19|2[0-7])/)?AutoBIMFusion\.dll$') {
         throw 'Invalid bundle entry point.'
     }
-    Assert-AutoCADPluginContents -ContentsDir (Join-Path $stage 'Contents') -Context $stage
+    $module = Join-Path $stage $entries[0].GetAttribute('ModuleName').Substring(2)
+    Assert-AutoCADPluginContents -ContentsDir (Split-Path $module -Parent) -Context $stage
     $hash = [Security.Cryptography.SHA256]::Create()
     try {
         foreach ($file in Get-ChildItem -LiteralPath $source -File -Recurse) {

@@ -5,9 +5,9 @@ $testRoot = Join-Path ([IO.Path]::GetTempPath()) ('AutoBIMFusion-host-test-' + [
 New-Item -ItemType Directory -Path $testRoot | Out-Null
 
 function New-TestBundle {
-    param([string]$Name, [string]$Min, [string]$Max)
+    param([string]$Name, [string]$Min, [string]$Max, [string]$BundleName = 'AutoBIMFusion.bundle')
     $root = Join-Path $testRoot $Name
-    $bundle = Join-Path $root 'AutoBIMFusion.bundle'
+    $bundle = Join-Path $root $BundleName
     $contents = Join-Path $bundle 'Contents'
     New-Item -ItemType Directory -Path $contents -Force | Out-Null
     foreach ($name in @('AutoBIMFusion', 'AutoBIMFusion.Common', 'AutoBIMFusion.Merge', 'Serilog', 'Serilog.Sinks.File')) {
@@ -62,6 +62,13 @@ $null = Assert-Selection $hosts @($legacy, $modern, $latest) 2019 'ReleaseA19'
 Assert-NoSelection $hosts @($legacy) 'DebugA27'
 Assert-NoSelection @() @($legacy)
 Assert-NoSelection $hosts @()
+
+# Separate MSI years coexist in one ApplicationPlugins directory.
+$sideBySide = New-TestBundle 'side-by-side' 'R23.0' 'R23.0' 'AutoBIMFusion-2019.bundle'
+$null = New-TestBundle 'side-by-side' 'R25.1' 'R25.1' 'AutoBIMFusion-2026.bundle'
+$null = Assert-Selection $hosts @($sideBySide) 2026
+$selected = Assert-Selection $hosts @($sideBySide) 2019 'ReleaseA19'
+if ($selected.PluginPath -notlike '*AutoBIMFusion-2019.bundle*') { throw 'Wrong year-specific bundle selected.' }
 
 # A missing dependency disqualifies the newest bundle; malformed XML also falls back.
 Remove-Item -LiteralPath (Join-Path $latest 'AutoBIMFusion.bundle\Contents\AutoBIMFusion.Merge.dll')

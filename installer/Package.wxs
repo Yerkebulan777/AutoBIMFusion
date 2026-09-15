@@ -4,13 +4,13 @@
     <!-- Program Files is required for AutoCAD 2026+ (ProgramData is blocked).
          ProgramData is still the all-users Autoloader folder for 2019-2025.
          The MSI keeps one harvested copy in Program Files and mirrors it to ProgramData. -->
-    <Package Name="AutoBIMFusion"
+    <Package Name="AutoBIMFusion for AutoCAD $(InstallerYear)"
              Manufacturer="AutoBIMFusion"
              Version="$(Version)"
-             UpgradeCode="1553A50F-8C1B-4672-944A-435FA8B68E52"
+             UpgradeCode="1553A50F-8C1B-4672-944A-435FA8B6$(InstallerYear)"
              Language="1033"
              Scope="perMachine">
-        <SummaryInformation Description="AutoCAD 2019-2027 plugin for batch DWG merge"
+        <SummaryInformation Description="AutoCAD $(InstallerYear) plugin for batch DWG merge"
                             Manufacturer="AutoBIMFusion" />
 
         <!-- Same 1.0.0 rebuilds replace the previous install instead of registering a second product. -->
@@ -29,16 +29,13 @@
         <Property Id="INSTALLFOLDER_PROP" Secure="yes">
             <RegistrySearch Id="FindInstallFolder"
                             Root="HKLM"
-                            Key="Software\AutoBIMFusion"
+                            Key="Software\AutoBIMFusion\$(InstallerYear)"
                             Name="InstallFolder"
                             Type="raw" />
         </Property>
-        <Property Id="PERUSERPLUGINFOLDER"
-                  Secure="yes"
-                  Value="[%APPDATA]\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle" />
         <Property Id="PROGRAMDATAPLUGINFOLDER"
                   Secure="yes"
-                  Value="[%ProgramData]\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle" />
+                  Value="[%ProgramData]\Autodesk\ApplicationPlugins\AutoBIMFusion-$(InstallerYear).bundle" />
 
         <util:CloseApplication Id="CloseAcad"
                                Target="acad.exe"
@@ -65,34 +62,33 @@
         <StandardDirectory Id="ProgramFiles64Folder">
             <Directory Id="AutodeskFolder" Name="Autodesk">
                 <Directory Id="ApplicationPluginsFolder" Name="ApplicationPlugins">
-                    <Directory Id="INSTALLFOLDER" Name="AutoBIMFusion.bundle" />
+                    <Directory Id="INSTALLFOLDER" Name="AutoBIMFusion-$(InstallerYear).bundle" />
                 </Directory>
             </Directory>
         </StandardDirectory>
         <StandardDirectory Id="CommonAppDataFolder">
             <Directory Id="AutodeskCommonDataFolder" Name="Autodesk">
                 <Directory Id="ProgramDataPluginsFolder" Name="ApplicationPlugins">
-                    <Directory Id="PROGRAMDATAINSTALLFOLDER" Name="AutoBIMFusion.bundle" />
+                    <Directory Id="PROGRAMDATAINSTALLFOLDER" Name="AutoBIMFusion-$(InstallerYear).bundle" />
                 </Directory>
             </Directory>
         </StandardDirectory>
 
-        <Component Id="CleanupOldLocations" Directory="INSTALLFOLDER" Guid="6C8E2B41-9F17-4A3D-B2E8-1D7C4A90E5F3">
+        <Component Id="CleanupOldLocations" Directory="INSTALLFOLDER" Guid="*">
             <RegistryValue Root="HKLM"
-                           Key="Software\AutoBIMFusion"
+                           Key="Software\AutoBIMFusion\$(InstallerYear)"
                            Name="InstallFolder"
                            Type="string"
                            Value="[INSTALLFOLDER]"
                            KeyPath="yes" />
             <util:RemoveFolderEx Property="INSTALLFOLDER_PROP" On="uninstall" />
-            <!-- Per-user debug deploys use the same ProductCode and would hide the MSI bundle. -->
-            <util:RemoveFolderEx Property="PERUSERPLUGINFOLDER" On="both" />
+            <!-- Only this year's paths belong to this MSI; never remove another year's bundle. -->
             <util:RemoveFolderEx Property="PROGRAMDATAPLUGINFOLDER" On="both" />
             <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
         </Component>
-        <Component Id="ProgramDataBundleFolder" Directory="PROGRAMDATAINSTALLFOLDER" Guid="A7D41E28-3C6F-4B91-9E50-2F8A6C1B4D73">
+        <Component Id="ProgramDataBundleFolder" Directory="PROGRAMDATAINSTALLFOLDER" Guid="*">
             <RegistryValue Root="HKLM"
-                           Key="Software\AutoBIMFusion"
+                           Key="Software\AutoBIMFusion\$(InstallerYear)"
                            Name="ProgramDataFolder"
                            Type="string"
                            Value="[PROGRAMDATAINSTALLFOLDER]"
@@ -117,8 +113,8 @@
         </InstallExecuteSequence>
 
         <Feature Id="Plugin"
-                 Title="AutoBIMFusion"
-                 Description="!(loc.FeatureDescription)"
+                 Title="AutoBIMFusion $(InstallerYear)"
+                 Description="AutoCAD $(InstallerYear) plugin (MERGEDWG, QUICKPDF)"
                  Level="1"
                  AllowAbsent="no"
                  AllowAdvertise="no">

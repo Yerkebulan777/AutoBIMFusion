@@ -13,13 +13,11 @@ function Test-AutoCADPluginAssembly {
     param([Parameter(Mandatory = $true)][string]$Path)
 
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
-    $stream = [IO.File]::OpenRead($Path)
     try {
-        $mz = $stream.ReadByte()
-        $z = $stream.ReadByte()
-        $mz -eq 0x4D -and $z -eq 0x5A
+        [void][Reflection.AssemblyName]::GetAssemblyName($Path)
+        return $true
     }
-    finally { $stream.Dispose() }
+    catch { return $false }
 }
 
 function Assert-AutoCADPluginContents {
@@ -34,13 +32,17 @@ function Assert-AutoCADPluginContents {
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
             throw "Incomplete ${Context}: $name is missing in $ContentsDir"
         }
-        if ($RequireAssemblies -and -not (Test-AutoCADPluginAssembly $path)) {
-            throw "Not a real plugin assembly in ${Context}: $name"
-        }
     }
     $hostDlls = @(Get-ChildItem -LiteralPath $ContentsDir -Filter '*.dll' -File |
         Where-Object Name -Match '^(acmgd|acdbmgd|accoremgd|AdWindows|AcWindows|Autodesk\.|Aecc|AecBase)')
     if ($hostDlls.Count -gt 0) {
         throw "Host DLLs in ${Context}: $($hostDlls.Name -join ', ')"
+    }
+    if ($RequireAssemblies) {
+        foreach ($dll in Get-ChildItem -LiteralPath $ContentsDir -Filter '*.dll' -File -Recurse) {
+            if (-not (Test-AutoCADPluginAssembly $dll.FullName)) {
+                throw "Invalid managed DLL in ${Context}: $($dll.FullName)"
+            }
+        }
     }
 }

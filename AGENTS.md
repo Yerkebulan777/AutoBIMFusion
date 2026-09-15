@@ -14,7 +14,7 @@ Solution uses the **new `.slnx` format** (XML, not legacy `.sln`). `dotnet build
 dotnet build AutoBIMFusion.slnx -c DebugA26
 dotnet clean AutoBIMFusion.slnx -c DebugA26
 
-# Multi-year MSI: Release, or any desktop ReleaseAxx (Visual Studio Build Solution).
+# Separate yearly MSIs: Release builds all nine; desktop ReleaseAxx builds one.
 dotnet build AutoBIMFusion.slnx -c Release
 dotnet build AutoBIMFusion.slnx -c ReleaseA23
 
@@ -22,7 +22,9 @@ dotnet build AutoBIMFusion.slnx -c ReleaseA23
 dotnet build AutoBIMFusion.slnx -c DebugA26 /p:CoreConsoleDiagnostics=true
 ```
 
-`Release` / `Debug` build only `installer/AutoBIMFusion.Installer.wixproj`, which rebuilds A19–A27 desktop plugin projects, stages the payload, and writes `installer/bin/x64/Release/` plus `out/installer/AutoBIMFusion-*.msi`. Desktop `ReleaseA19`–`ReleaseA27` also build that installer project. `DebugAxx` and headless builds do not. The MSI installs the bundle to Program Files and mirrors it to `%ProgramData%\Autodesk\ApplicationPlugins` so AutoCAD 2019–2025 and 2026+ both autoload; it removes a same-ProductCode copy from `%AppData%`.
+`Release` / `Debug` build only `installer/AutoBIMFusion.Installer.wixproj`, which builds nine separate yearly MSIs. Desktop `ReleaseA19`–`ReleaseA27` build only the selected year and its MSI, after the solution plugin build. `DebugAxx` and headless builds do not build MSI. Each year restores its own NuGet packages; payload, output and intermediate directories are isolated by year/configuration. Artifacts: `out/installer/AutoBIMFusion-AutoCAD2020-1.0.0.msi` and `installer/bin/x64/ReleaseA20/en-US/` for 2020. DLL/manifest validation is mandatory even with `SkipInstallerDependencyBuild=true`.
+
+Yearly MSI installations coexist. Bundle folders are `AutoBIMFusion-<year>.bundle` in Program Files and `%ProgramData%\Autodesk\ApplicationPlugins`; registry keys and MSI/bundle identities are year-specific. Upgrade/uninstall owns only that year. Preserve other years, the old shared MSI and per-user debug installs. When migrating from the old shared MSI, uninstall it explicitly to avoid duplicate loading. `tools/Build-Installer.ps1 -Year <year>` signs an already built yearly package.
 
 Only `src/AutoBIMFusion.Plugin` creates and deploys the `.bundle` to `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`.
 Desktop `dotnet clean` removes it. Headless builds/cleans do not deploy or remove the desktop installation.
@@ -61,14 +63,14 @@ The host test uses `/isolate` and verifies a log record containing the unique ru
 `tools/Test-AutoCADBundlePublication.ps1` verifies replacement and installation failure handling in temporary workspace folders.
 Legacy BCL dependency binding uses `LegacyDependencyResolver`; never rely on plugin DLL.config redirects or modify host executable configuration.
 Core Console requires an open, empty, unnamed drawing; never compile `DocumentCollection.Add` into its document-selection path because it loads desktop modules.
-The installed bundle targets one selected year and is replaced by subsequent builds.
+The per-user debug bundle targets one selected year and is replaced by subsequent builds; yearly MSI bundles coexist.
 There is **no CI pipeline**.
 
 ---
 
 ## Hard constraints (never violate)
 
-- Public autoload names stay stable: `AutoBIMFusion.bundle`, `AutoBIMFusion.dll`, `./Contents/AutoBIMFusion.dll` in `PackageContents.xml`.
+- Plugin/debug autoload names stay stable: `AutoBIMFusion.bundle`, `AutoBIMFusion.dll`, `./Contents/AutoBIMFusion.dll`. Yearly MSI bundles use `AutoBIMFusion-<year>.bundle` and `./Contents/<year>/AutoBIMFusion.dll`, with one matching year in `PackageContents.xml`.
 - Never copy host DLLs to output. AutoCAD/Civil/Plant assemblies must use `ExcludeAssets="runtime"` (NuGet) or `<Private>false</Private>` (direct refs).
 - All AutoCAD API calls must stay on the main thread. The API is not thread-safe.
 - **`DocumentLock` required for every write:** `using (doc.LockDocument()) { ... }`

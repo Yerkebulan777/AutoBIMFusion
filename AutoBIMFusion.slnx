@@ -43,6 +43,7 @@
         <Build Solution="Release|x64" Project="false"/>
     </Project>
     <Project Path="installer/AutoBIMFusion.Installer.wixproj">
+        <BuildDependency Project="src/AutoBIMFusion.Plugin/AutoBIMFusion.Plugin.csproj"/>
         <Platform Project="x64"/>
         <Build Solution="Debug|x64" Project="true"/>
         <Build Solution="Release|x64" Project="true"/>

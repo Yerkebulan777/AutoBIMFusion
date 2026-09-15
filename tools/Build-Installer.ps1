@@ -1,4 +1,5 @@
 param(
+    [Parameter(Mandatory = $true)][ValidateRange(2019, 2027)][int]$Year,
     [ValidateSet('Debug', 'Release')]
     [string]$BuildType = 'Release',
     [string]$Version = '1.0.0',
@@ -59,11 +60,14 @@ function Invoke-AuthenticodeSign {
 }
 
 $wixProject = Join-Path $repoRoot 'installer\AutoBIMFusion.Installer.wixproj'
-$payload = Join-Path $repoRoot 'out\installer\payload\AutoBIMFusion.bundle'
-$releaseMsi = Join-Path $repoRoot "out\installer\AutoBIMFusion-$Version.msi"
+$configuration = "$BuildType`A$($Year - 2000)"
+$payload = Join-Path $repoRoot "out\installer\payload\$configuration\AutoBIMFusion.bundle"
+$releaseDir = Join-Path $repoRoot 'out\installer'
+if ($BuildType -eq 'Debug') { $releaseDir = Join-Path $releaseDir 'Debug' }
+$releaseMsi = Join-Path $releaseDir "AutoBIMFusion-AutoCAD$Year-$Version.msi"
 if (-not (Test-Path -LiteralPath $payload -PathType Container) -or
     -not (Test-Path -LiteralPath $releaseMsi -PathType Leaf)) {
-    throw "Build the installer first: dotnet build AutoBIMFusion.slnx -c $BuildType"
+    throw "Build the installer first: dotnet build AutoBIMFusion.slnx -c $configuration"
 }
 
 $payloadDlls = @(Get-ChildItem -LiteralPath $payload -Recurse -Filter '*.dll' -File |
@@ -73,7 +77,7 @@ if ($payloadDlls.Count -gt 0) {
     $signedPayload = Invoke-AuthenticodeSign -Files $payloadDlls
     if ($signedPayload) {
         Write-Host "Signed $($payloadDlls.Count) payload DLLs; rebuilding MSI to embed signatures."
-        & dotnet build $wixProject -c $BuildType -p:Platform=x64 "-p:Version=$Version" `
+        & dotnet build $wixProject -c $configuration -p:Platform=x64 "-p:Version=$Version" `
             '-p:SkipInstallerDependencyBuild=true'
         if ($LASTEXITCODE -ne 0) { throw 'Installer rebuild after signing failed.' }
     }
@@ -87,4 +91,4 @@ elseif (-not $SkipSign -and -not $signedPayload) {
 }
 
 Write-Host "MSI ready: $releaseMsi"
-Write-Host 'Installs to: C:\Program Files\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle'
+Write-Host "Installs to: $env:ProgramFiles\Autodesk\ApplicationPlugins\AutoBIMFusion-$Year.bundle"
