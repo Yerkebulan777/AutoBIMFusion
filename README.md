@@ -98,14 +98,16 @@ Headless не устанавливается автоматически и не 
 (этот каталог AutoCAD считает доверенным; с 2026 `%ProgramData%` больше не загружается).
 
 ```powershell
-# Собрать Release A19–A27 и MSI. Без сертификата пакет будет неподписанным.
-.\tools\Build-Installer.ps1
+# Конфигурация Release в Solution (или эта команда): A19–A27 + MSI.
+dotnet build AutoBIMFusion.slnx -c Release
 
-# SHA-256 Authenticode: отпечаток из хранилища или PFX.
+# Опционально: подписать уже собранный MSI (SHA-256 Authenticode).
 .\tools\Build-Installer.ps1 -SignThumbprint $env:AUTOBIMFUSION_SIGN_THUMBPRINT
 ```
 
-Перед установкой, удалением и переустановкой закройте AutoCAD. Тот же MSI (и пересборка той же версии) заменяет предыдущую установку, а не ставит второй продукт. Удаление снимает bundle в Program Files и копии в `%AppData%` / `%ProgramData%`. Готовый файл: `out/installer/AutoBIMFusion-1.0.0.msi`.
+В Visual Studio выберите конфигурацию **Release** (не `ReleaseA26`) и Build Solution — появится проект `AutoBIMFusion.Installer`. Готовый файл: `installer/bin/x64/Release/` и копия `out/installer/AutoBIMFusion-1.0.0.msi`.
+
+Перед установкой, удалением и переустановкой закройте AutoCAD. Тот же MSI (и пересборка той же версии) заменяет предыдущую установку, а не ставит второй продукт. Удаление снимает bundle в Program Files и копии в `%AppData%` / `%ProgramData%`.
 
 ## Проверка совместимости
 

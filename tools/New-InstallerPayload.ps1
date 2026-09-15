@@ -177,3 +177,33 @@ function Assert-InstallerPayload {
         if (-not (Test-Path -LiteralPath $dll -PathType Leaf)) { throw "Payload is missing $module" }
     }
 }
+
+function New-InstallerPayloadFromYearBuilds {
+    param(
+        [ValidateSet('Debug', 'Release')]
+        [string]$BuildType = 'Release',
+        [Parameter(Mandatory = $true)]
+        [string]$Destination,
+        [string]$Version = '1.0.0',
+        [ValidateRange(2019, 2027)]
+        [int[]]$Years = @(2019..2027)
+    )
+
+    if ($Version -notmatch '^\d+\.\d+\.\d+$') {
+        throw "MSI ProductVersion must be major.minor.build (got '$Version')."
+    }
+
+    $yearBundles = @{}
+    foreach ($year in $Years) {
+        $configuration = "$BuildType`A$($year - 2000)"
+        $settings = & (Join-Path $PSScriptRoot 'Get-AutoCADBuildSettings.ps1') -Configuration $configuration
+        $bundle = Join-Path $settings.TargetDir 'AutoBIMFusion.bundle'
+        if (-not (Test-Path -LiteralPath (Join-Path $bundle 'PackageContents.xml') -PathType Leaf)) {
+            throw "Missing bundle for $configuration. Expected: $bundle"
+        }
+        $yearBundles[$year] = $bundle
+    }
+
+    Write-Host "Staging multi-version bundle: $Destination"
+    [void](New-InstallerPayload -Destination $Destination -Version $Version -YearBundles $yearBundles)
+}

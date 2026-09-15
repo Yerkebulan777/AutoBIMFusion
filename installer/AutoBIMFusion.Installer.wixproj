@@ -10,11 +10,13 @@
         <PayloadDir Condition="'$(PayloadDir)' == ''">$(RepoRoot)out\installer\payload\AutoBIMFusion.bundle</PayloadDir>
         <PayloadDirSlash>$(PayloadDir.Replace('\', '/'))</PayloadDirSlash>
         <OutputName>AutoBIMFusion</OutputName>
-        <OutputPath>$(RepoRoot)out\installer\$(Configuration)\</OutputPath>
-        <IntermediateOutputPath>$(RepoRoot)out\installer\obj\$(Configuration)\</IntermediateOutputPath>
+        <BaseOutputPath>bin\</BaseOutputPath>
+        <BaseIntermediateOutputPath>obj\</BaseIntermediateOutputPath>
+        <PublishMsiDir>$(RepoRoot)out\installer\</PublishMsiDir>
     </PropertyGroup>
 
     <ItemGroup>
+        <InstallerYear Include="19;20;21;22;23;24;25;26;27" />
         <BindPath Include="$(PayloadDir)" />
         <HarvestDirectory Include="$(PayloadDirSlash)">
             <ComponentGroupName>BundleFiles</ComponentGroupName>
@@ -28,8 +30,33 @@
         <PackageReference Include="WixToolset.Heat" Version="4.0.6" />
     </ItemGroup>
 
+    <Target Name="PrepareInstallerPayload"
+            BeforeTargets="EnsurePayload"
+            Condition="'$(SkipInstallerDependencyBuild)' != 'true'">
+        <Message Importance="high"
+                 Text="Building $(Configuration)A%(InstallerYear.Identity) for installer payload..." />
+        <MSBuild Projects="$(RepoRoot)AutoBIMFusion.slnx"
+                 Properties="Configuration=$(Configuration)A%(InstallerYear.Identity);Platform=x64;CoreConsoleDiagnostics=false;DisableAutoCADDeployment=true;RunAnalyzersDuringBuild=false;EnforceCodeStyleInBuild=false"
+                 BuildInParallel="false" />
+        <Exec Command="&quot;$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;. '$(RepoRoot)tools\New-InstallerPayload.ps1'; New-InstallerPayloadFromYearBuilds -BuildType $(Configuration) -Destination '$(PayloadDir)' -Version $(Version)&quot;" />
+    </Target>
+
     <Target Name="EnsurePayload" BeforeTargets="PrepareForBuild;HarvestDirectory">
         <Error Condition="!Exists('$(PayloadDir)\PackageContents.xml') Or !Exists('$(PayloadDir)\Contents')"
-               Text="Stage the multi-version AutoCAD bundle first: tools\Build-Installer.ps1" />
+               Text="Installer payload missing at $(PayloadDir). Build this project with Configuration=Release (or Debug), or pass -p:PayloadDir=... -p:SkipInstallerDependencyBuild=true." />
+    </Target>
+
+    <Target Name="PublishMsiArtifact" AfterTargets="Build" Condition="'$(PublishMsi)' != 'false'">
+        <PropertyGroup>
+            <_MsiToPublish Condition="Exists('$(TargetDir)$(OutputName).msi')">$(TargetDir)$(OutputName).msi</_MsiToPublish>
+            <_MsiToPublish Condition="'$(_MsiToPublish)' == '' And Exists('$(TargetDir)en-US\$(OutputName).msi')">$(TargetDir)en-US\$(OutputName).msi</_MsiToPublish>
+        </PropertyGroup>
+        <Error Condition="'$(_MsiToPublish)' == ''" Text="MSI was not produced under $(TargetDir)." />
+        <MakeDir Directories="$(PublishMsiDir)" />
+        <Copy SourceFiles="$(_MsiToPublish)"
+              DestinationFiles="$(PublishMsiDir)$(OutputName)-$(Version).msi"
+              OverwriteReadOnlyFiles="true" />
+        <Message Importance="high"
+                 Text="MSI ready: $(PublishMsiDir)$(OutputName)-$(Version).msi" />
     </Target>
 </Project>

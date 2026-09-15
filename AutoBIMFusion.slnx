@@ -1,5 +1,7 @@
 <Solution>
     <Configurations>
+        <BuildType Name="Debug"/>
+        <BuildType Name="Release"/>
         <BuildType Name="DebugA19"/>
         <BuildType Name="DebugA20"/>
         <BuildType Name="DebugA21"/>
@@ -22,14 +24,45 @@
     </Configurations>
     <Project Path="src/AutoBIMFusion.Common/AutoBIMFusion.Common.csproj">
         <Platform Project="x64"/>
+        <Build Solution="Debug|x64" Project="false"/>
+        <Build Solution="Release|x64" Project="false"/>
     </Project>
     <Project Path="src/AutoBIMFusion.Merge/AutoBIMFusion.Merge.csproj">
         <Platform Project="x64"/>
+        <Build Solution="Debug|x64" Project="false"/>
+        <Build Solution="Release|x64" Project="false"/>
     </Project>
     <Project Path="src/AutoBIMFusion.QuickPdf/AutoBIMFusion.QuickPdf.csproj">
         <Platform Project="x64"/>
+        <Build Solution="Debug|x64" Project="false"/>
+        <Build Solution="Release|x64" Project="false"/>
     </Project>
     <Project Path="src/AutoBIMFusion.Plugin/AutoBIMFusion.Plugin.csproj">
         <Platform Project="x64"/>
+        <Build Solution="Debug|x64" Project="false"/>
+        <Build Solution="Release|x64" Project="false"/>
+    </Project>
+    <Project Path="installer/AutoBIMFusion.Installer.wixproj">
+        <Platform Project="x64"/>
+        <Build Solution="Debug|x64" Project="true"/>
+        <Build Solution="Release|x64" Project="true"/>
+        <Build Solution="DebugA19|x64" Project="false"/>
+        <Build Solution="DebugA20|x64" Project="false"/>
+        <Build Solution="DebugA21|x64" Project="false"/>
+        <Build Solution="DebugA22|x64" Project="false"/>
+        <Build Solution="DebugA23|x64" Project="false"/>
+        <Build Solution="DebugA24|x64" Project="false"/>
+        <Build Solution="DebugA25|x64" Project="false"/>
+        <Build Solution="DebugA26|x64" Project="false"/>
+        <Build Solution="DebugA27|x64" Project="false"/>
+        <Build Solution="ReleaseA19|x64" Project="false"/>
+        <Build Solution="ReleaseA20|x64" Project="false"/>
+        <Build Solution="ReleaseA21|x64" Project="false"/>
+        <Build Solution="ReleaseA22|x64" Project="false"/>
+        <Build Solution="ReleaseA23|x64" Project="false"/>
+        <Build Solution="ReleaseA24|x64" Project="false"/>
+        <Build Solution="ReleaseA25|x64" Project="false"/>
+        <Build Solution="ReleaseA26|x64" Project="false"/>
+        <Build Solution="ReleaseA27|x64" Project="false"/>
     </Project>
 </Solution>

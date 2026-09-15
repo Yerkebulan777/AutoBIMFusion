@@ -14,9 +14,14 @@ Solution uses the **new `.slnx` format** (XML, not legacy `.sln`). `dotnet build
 dotnet build AutoBIMFusion.slnx -c DebugA26
 dotnet clean AutoBIMFusion.slnx -c DebugA26
 
+# Multi-year MSI: solution configuration Release (not ReleaseAxx)
+dotnet build AutoBIMFusion.slnx -c Release
+
 # Headless/core-console build (strips Ribbon/WPF for accoreconsole.exe)
 dotnet build AutoBIMFusion.slnx -c DebugA26 /p:CoreConsoleDiagnostics=true
 ```
+
+`Release` / `Debug` build only `installer/AutoBIMFusion.Installer.wixproj`, which rebuilds A19–A27 desktop bundles, stages the payload, and writes `installer/bin/x64/Release/` plus `out/installer/AutoBIMFusion-*.msi`. Year configs (`ReleaseA26`, …) never build the installer.
 
 Only `src/AutoBIMFusion.Plugin` creates and deploys the `.bundle` to `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`.
 Desktop `dotnet clean` removes it. Headless builds/cleans do not deploy or remove the desktop installation.

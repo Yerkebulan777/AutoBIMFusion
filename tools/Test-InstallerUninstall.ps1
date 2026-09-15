@@ -26,7 +26,8 @@ try {
 
     $wixProject = Join-Path $repoRoot 'installer\AutoBIMFusion.Installer.wixproj'
     & dotnet build $wixProject -c Release -p:Platform=x64 '-p:Version=1.0.0' `
-        "-p:PayloadDir=$payload" "-p:OutputPath=$root\msi\" "-p:IntermediateOutputPath=$root\obj\" -v:q
+        "-p:PayloadDir=$payload" "-p:OutputPath=$root\msi\" "-p:IntermediateOutputPath=$root\obj\" `
+        '-p:SkipInstallerDependencyBuild=true' '-p:PublishMsi=false' -v:q
     if ($LASTEXITCODE -ne 0) { throw 'WiX MSI build failed.' }
     $msi = Get-ChildItem -LiteralPath (Join-Path $root 'msi') -Recurse -Filter 'AutoBIMFusion.msi' -File |
         Select-Object -First 1 -ExpandProperty FullName
