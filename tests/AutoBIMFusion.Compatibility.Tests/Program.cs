@@ -83,6 +83,12 @@ Assert(FrameAreaFilter.Intersecting([areaFrame], new FrameWindow(-1, -1, 11, 11)
     "containing window keeps frame");
 Assert(FrameAreaFilter.Intersecting([areaFrame], new FrameWindow(20, 20, 30, 30)).Count == 0,
     "disjoint window drops frame");
+DetectedFrame westFrame = new(0, 0, 21000, 29700, [10]);
+DetectedFrame eastFrame = new(40000, 0, 61000, 29700, [20]);
+IReadOnlyList<DetectedFrame> zoneFrames = FrameAreaFilter.Intersecting(
+    [westFrame, eastFrame], new FrameWindow(39000, -100, 62000, 30000));
+Assert(zoneFrames.Count == 1 && zoneFrames[0].SourceIds.SequenceEqual([20]),
+    "selected zone keeps only intersecting frame sources");
 
 IReadOnlyList<DetectedFrame> exactA4Frames = AxisAlignedFrameDetector.Find(
 [

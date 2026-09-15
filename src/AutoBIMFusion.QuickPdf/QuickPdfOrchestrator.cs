@@ -52,11 +52,8 @@ public static class QuickPdfOrchestrator
         Editor editor = document.Editor;
         using (document.LockDocument())
         {
-            IReadOnlyList<DetectedFrame> frames = FrameSheetOrder.Sort(FrameListInitializer.Load(document.Database));
-            if (area is { } window)
-            {
-                frames = FrameAreaFilter.Intersecting(frames, window);
-            }
+            IReadOnlyList<DetectedFrame> frames = FrameSheetOrder.Sort(
+                FrameListInitializer.Load(document.Database, area));
 
             if (frames.Count == 0)
             {

@@ -40,7 +40,7 @@ internal static class QuickPdfPrompts
     {
         area = null;
         PromptPointResult first = editor.GetPoint(new PromptPointOptions(
-            "\nУкажите первый угол участка с рамками (Escape — все рамки):")
+            "\nУкажите первый угол участка с рамками (Escape или Enter — все рамки):")
         {
             AllowNone = true
         });

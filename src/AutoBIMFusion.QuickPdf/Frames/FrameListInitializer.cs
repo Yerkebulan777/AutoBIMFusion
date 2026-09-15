@@ -4,6 +4,7 @@ namespace AutoBIMFusion.QuickPdf.Frames;
 
 /// <summary>
 ///     Один раз создаёт слой рамок и классифицирует геометрию пространства модели.
+///     Если задан участок, на слой переносятся только рамки этого участка.
 ///     Вызывающий код должен удерживать <see cref="Autodesk.AutoCAD.ApplicationServices.DocumentLock"/>.
 /// </summary>
 internal static class FrameListInitializer
@@ -11,24 +12,27 @@ internal static class FrameListInitializer
     internal const string LayerName = "FRAMELIST";
     private const double CoordinateTolerance = 3;
 
-    internal static IReadOnlyList<DetectedFrame> Load(Database database)
+    internal static IReadOnlyList<DetectedFrame> Load(Database database, FrameWindow? area)
     {
         using Transaction transaction = database.TransactionManager.StartTransaction();
         LayerTable layerTable = (LayerTable)transaction.GetObject(database.LayerTableId, OpenMode.ForRead);
-        bool created = !layerTable.Has(LayerName);
-        ObjectId frameLayerId = created ? CreateLayer(layerTable, transaction) : layerTable[LayerName];
+        ObjectId existingLayer = layerTable.Has(LayerName) ? layerTable[LayerName] : ObjectId.Null;
         Dictionary<int, ObjectId> sourceObjects = [];
-        IReadOnlyList<FramePath> paths = ReadModelPaths(
-            database, transaction, sourceObjects, created ? ObjectId.Null : frameLayerId);
+        IReadOnlyList<FramePath> paths = ReadModelPaths(database, transaction, sourceObjects, existingLayer);
         IReadOnlyList<DetectedFrame> frames = AxisAlignedFrameDetector.Find(paths, CoordinateTolerance);
-        if (created)
+        if (area is { } window)
+        {
+            frames = FrameAreaFilter.Intersecting(frames, window);
+        }
+
+        if (existingLayer.IsNull && frames.Count > 0)
         {
             ObjectId[] selectedObjects = frames
                 .SelectMany(frame => frame.SourceIds)
                 .Distinct()
                 .Select(sourceId => sourceObjects[sourceId])
                 .ToArray();
-            MoveToLayer(selectedObjects, frameLayerId, transaction);
+            MoveToLayer(selectedObjects, CreateLayer(layerTable, transaction), transaction);
         }
 
         transaction.Commit();
