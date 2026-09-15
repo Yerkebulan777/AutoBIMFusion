@@ -13,6 +13,11 @@
         <BaseOutputPath>bin\</BaseOutputPath>
         <BaseIntermediateOutputPath>obj\</BaseIntermediateOutputPath>
         <PublishMsiDir>$(RepoRoot)out\installer\</PublishMsiDir>
+        <PluginProject>$(RepoRoot)src\AutoBIMFusion.Plugin\AutoBIMFusion.Plugin.csproj</PluginProject>
+        <PayloadBuildType Condition="'$(Configuration)' == 'Debug' Or $([System.String]::Copy('$(Configuration)').StartsWith('Debug'))">Debug</PayloadBuildType>
+        <PayloadBuildType Condition="'$(PayloadBuildType)' == ''">Release</PayloadBuildType>
+        <OutputPath>bin\$(Platform)\$(PayloadBuildType)\</OutputPath>
+        <IntermediateOutputPath>obj\$(Platform)\$(PayloadBuildType)\</IntermediateOutputPath>
     </PropertyGroup>
 
     <ItemGroup>
@@ -34,11 +39,11 @@
             BeforeTargets="EnsurePayload"
             Condition="'$(SkipInstallerDependencyBuild)' != 'true'">
         <Message Importance="high"
-                 Text="Building $(Configuration)A%(InstallerYear.Identity) for installer payload..." />
-        <MSBuild Projects="$(RepoRoot)AutoBIMFusion.slnx"
-                 Properties="Configuration=$(Configuration)A%(InstallerYear.Identity);Platform=x64;CoreConsoleDiagnostics=false;DisableAutoCADDeployment=true;RunAnalyzersDuringBuild=false;EnforceCodeStyleInBuild=false"
+                 Text="Building $(PayloadBuildType)A%(InstallerYear.Identity) for installer payload..." />
+        <MSBuild Projects="$(PluginProject)"
+                 Properties="Configuration=$(PayloadBuildType)A%(InstallerYear.Identity);Platform=x64;CoreConsoleDiagnostics=false;DisableAutoCADDeployment=true;RunAnalyzersDuringBuild=false;EnforceCodeStyleInBuild=false"
                  BuildInParallel="false" />
-        <Exec Command="&quot;$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;. '$(RepoRoot)tools\New-InstallerPayload.ps1'; New-InstallerPayloadFromYearBuilds -BuildType $(Configuration) -Destination '$(PayloadDir)' -Version $(Version)&quot;" />
+        <Exec Command="&quot;$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;. '$(RepoRoot)tools\New-InstallerPayload.ps1'; New-InstallerPayloadFromYearBuilds -BuildType $(PayloadBuildType) -Destination '$(PayloadDir)' -Version $(Version)&quot;" />
     </Target>
 
     <Target Name="EnsurePayload" BeforeTargets="PrepareForBuild;HarvestDirectory">

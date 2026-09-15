@@ -20,7 +20,7 @@ foreach ($buildType in $BuildTypes) {
             $logPath = Join-Path $outputRoot "$configuration-$mode.log"
             $properties = @("-p:CoreConsoleDiagnostics=$($headless.ToString().ToLowerInvariant())",
                 "-p:AutoCADUserPluginsDir=$outputRoot\deploy\")
-            & dotnet build (Join-Path $repoRoot 'AutoBIMFusion.slnx') -c $configuration @properties -v:q *> $logPath
+            & dotnet build (Join-Path $repoRoot 'src\AutoBIMFusion.Plugin\AutoBIMFusion.Plugin.csproj') -c $configuration @properties -v:q *> $logPath
             if ($LASTEXITCODE -ne 0) {
                 Get-Content -LiteralPath $logPath -Tail 30
                 throw "Build failed: $configuration $mode"

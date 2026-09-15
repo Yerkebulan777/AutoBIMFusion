@@ -211,7 +211,7 @@ if ($WhatIf) {
 if ($buildRequested) {
     Push-Location $repoRoot
     try {
-        & dotnet build "AutoBIMFusion.slnx" -c $Configuration "-p:AutoCADUserPluginsDir=$tempApplicationPluginsRoot\"
+        & dotnet build "src\AutoBIMFusion.Plugin\AutoBIMFusion.Plugin.csproj" -c $Configuration "-p:AutoCADUserPluginsDir=$tempApplicationPluginsRoot\"
 
         if ($LASTEXITCODE -ne 0) {
             throw "Build failed with exit code $LASTEXITCODE."

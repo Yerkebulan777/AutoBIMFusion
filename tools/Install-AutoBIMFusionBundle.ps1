@@ -7,7 +7,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
 # Always build desktop: an existing bundle may be stale or produced with different options.
-& dotnet build (Join-Path $repoRoot 'AutoBIMFusion.slnx') -c $Configuration '-p:CoreConsoleDiagnostics=false' '-p:DisableAutoCADDeployment=true'
+& dotnet build (Join-Path $repoRoot 'src\AutoBIMFusion.Plugin\AutoBIMFusion.Plugin.csproj') -c $Configuration '-p:CoreConsoleDiagnostics=false' '-p:DisableAutoCADDeployment=true'
 if ($LASTEXITCODE -ne 0) { throw "Build failed with exit code $LASTEXITCODE." }
 $settings = & (Join-Path $PSScriptRoot 'Get-AutoCADBuildSettings.ps1') -Configuration $Configuration
 & (Join-Path $PSScriptRoot 'Publish-AutoCADBundle.ps1') `

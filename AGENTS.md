@@ -14,14 +14,15 @@ Solution uses the **new `.slnx` format** (XML, not legacy `.sln`). `dotnet build
 dotnet build AutoBIMFusion.slnx -c DebugA26
 dotnet clean AutoBIMFusion.slnx -c DebugA26
 
-# Multi-year MSI: solution configuration Release (not ReleaseAxx)
+# Multi-year MSI: Release, or any desktop ReleaseAxx (Visual Studio Build Solution).
 dotnet build AutoBIMFusion.slnx -c Release
+dotnet build AutoBIMFusion.slnx -c ReleaseA23
 
 # Headless/core-console build (strips Ribbon/WPF for accoreconsole.exe)
 dotnet build AutoBIMFusion.slnx -c DebugA26 /p:CoreConsoleDiagnostics=true
 ```
 
-`Release` / `Debug` build only `installer/AutoBIMFusion.Installer.wixproj`, which rebuilds A19–A27 desktop bundles, stages the payload, and writes `installer/bin/x64/Release/` plus `out/installer/AutoBIMFusion-*.msi`. Year configs (`ReleaseA26`, …) never build the installer.
+`Release` / `Debug` build only `installer/AutoBIMFusion.Installer.wixproj`, which rebuilds A19–A27 desktop plugin projects, stages the payload, and writes `installer/bin/x64/Release/` plus `out/installer/AutoBIMFusion-*.msi`. Desktop `ReleaseA19`–`ReleaseA27` also build that installer project. `DebugAxx` and headless builds do not. The MSI installs the bundle to Program Files and mirrors it to `%ProgramData%\Autodesk\ApplicationPlugins` so AutoCAD 2019–2025 and 2026+ both autoload; it removes a same-ProductCode copy from `%AppData%`.
 
 Only `src/AutoBIMFusion.Plugin` creates and deploys the `.bundle` to `%AppData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`.
 Desktop `dotnet clean` removes it. Headless builds/cleans do not deploy or remove the desktop installation.

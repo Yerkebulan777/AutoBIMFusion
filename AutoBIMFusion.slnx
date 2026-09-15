@@ -55,14 +55,14 @@
         <Build Solution="DebugA25|x64" Project="false"/>
         <Build Solution="DebugA26|x64" Project="false"/>
         <Build Solution="DebugA27|x64" Project="false"/>
-        <Build Solution="ReleaseA19|x64" Project="false"/>
-        <Build Solution="ReleaseA20|x64" Project="false"/>
-        <Build Solution="ReleaseA21|x64" Project="false"/>
-        <Build Solution="ReleaseA22|x64" Project="false"/>
-        <Build Solution="ReleaseA23|x64" Project="false"/>
-        <Build Solution="ReleaseA24|x64" Project="false"/>
-        <Build Solution="ReleaseA25|x64" Project="false"/>
-        <Build Solution="ReleaseA26|x64" Project="false"/>
-        <Build Solution="ReleaseA27|x64" Project="false"/>
+        <Build Solution="ReleaseA19|x64" Project="true"/>
+        <Build Solution="ReleaseA20|x64" Project="true"/>
+        <Build Solution="ReleaseA21|x64" Project="true"/>
+        <Build Solution="ReleaseA22|x64" Project="true"/>
+        <Build Solution="ReleaseA23|x64" Project="true"/>
+        <Build Solution="ReleaseA24|x64" Project="true"/>
+        <Build Solution="ReleaseA25|x64" Project="true"/>
+        <Build Solution="ReleaseA26|x64" Project="true"/>
+        <Build Solution="ReleaseA27|x64" Project="true"/>
     </Project>
 </Solution>

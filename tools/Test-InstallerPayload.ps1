@@ -17,10 +17,20 @@ try {
     $first = $manifest.SelectSingleNode('/ApplicationPackage/Components')
     $firstEntry = $first.SelectSingleNode('ComponentEntry')
     if ($first.SelectSingleNode('RuntimeRequirements').GetAttribute('Platform') -ne 'AutoCAD*' -or
+        $first.SelectSingleNode('RuntimeRequirements').GetAttribute('SupportPath') -ne './Contents/2019' -or
         $firstEntry.GetAttribute('ModuleName') -ne './Contents/2019/AutoBIMFusion.dll' -or
         $firstEntry.GetAttribute('AppType') -ne '.Net' -or
-        $firstEntry.SelectSingleNode('RuntimeRequirements').GetAttribute('Platform') -ne 'AutoCAD*') {
+        $firstEntry.SelectSingleNode('RuntimeRequirements').GetAttribute('Platform') -ne 'AutoCAD*' -or
+        $firstEntry.SelectSingleNode('RuntimeRequirements').GetAttribute('SupportPath') -ne './Contents/2019') {
         throw 'Installer payload did not remap the plugin PackageContents into year folders.'
+    }
+
+    try {
+        Assert-AutoCADPluginContents -ContentsDir (Join-Path $yearBundles[2019] 'Contents') -Context 'fixture' -RequireAssemblies
+        throw 'Stub assembly check failed.'
+    }
+    catch {
+        if ($_.Exception.Message -notlike '*Not a real plugin assembly*') { throw }
     }
 
     $incompleteAutoload = New-InstallerTestBundle -Root (Join-Path $root 'no-apptype') -Year 2019

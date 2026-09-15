@@ -56,7 +56,11 @@ try {
     if ($closeApps -notcontains 'acad.exe' -or $closeApps -notcontains 'accoreconsole.exe') {
         throw "CloseApplication targets missing: $($closeApps -join ', ')"
     }
-    Write-Host "PASS: same-version upgrade, remembered install folder, uninstall folder cleanup, AutoCAD close. MSI: $msi"
+    $copyAction = Get-MsiColumn $db "SELECT Action FROM CustomAction WHERE Action='CopyBundleToProgramData'"
+    if ($copyAction.Count -eq 0) {
+        throw 'MSI is missing CopyBundleToProgramData (ProgramData Autoloader mirror).'
+    }
+    Write-Host "PASS: same-version upgrade, remembered install folder, uninstall folder cleanup, AutoCAD close, ProgramData copy. MSI: $msi"
 }
 finally {
     if (Test-Path -LiteralPath $root) { Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue }

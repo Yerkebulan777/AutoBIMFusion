@@ -61,6 +61,9 @@ function Add-InstallerYearComponents {
     }
     $req.SetAttribute('Platform', 'AutoCAD*')
     $entryReq.SetAttribute('Platform', 'AutoCAD*')
+    $yearPath = "./Contents/$Year"
+    $req.SetAttribute('SupportPath', $yearPath)
+    $entryReq.SetAttribute('SupportPath', $yearPath)
     $entry.SetAttribute('ModuleName', "./Contents/$Year/AutoBIMFusion.dll")
     [void]$Manifest.DocumentElement.AppendChild($imported)
 }
@@ -167,10 +170,12 @@ function Assert-InstallerPayload {
         $entryReq = $entry.SelectSingleNode('RuntimeRequirements')
         if ($req.GetAttribute('Platform') -ne 'AutoCAD*' -or
             $req.GetAttribute('SeriesMax') -ne $series -or
+            $req.GetAttribute('SupportPath') -ne "./Contents/$year" -or
             $entry.GetAttribute('AppType') -ne '.Net' -or
             $null -eq $entryReq -or
             $entryReq.GetAttribute('Platform') -ne 'AutoCAD*' -or
-            $entryReq.GetAttribute('SeriesMin') -ne $series) {
+            $entryReq.GetAttribute('SeriesMin') -ne $series -or
+            $entryReq.GetAttribute('SupportPath') -ne "./Contents/$year") {
             throw "AutoCAD $year ComponentEntry/RuntimeRequirements are invalid."
         }
         $dll = Join-Path $Destination ($module.Substring(2).Replace('/', '\'))
@@ -201,6 +206,7 @@ function New-InstallerPayloadFromYearBuilds {
         if (-not (Test-Path -LiteralPath (Join-Path $bundle 'PackageContents.xml') -PathType Leaf)) {
             throw "Missing bundle for $configuration. Expected: $bundle"
         }
+        Assert-AutoCADPluginContents -ContentsDir (Join-Path $bundle 'Contents') -Context "AutoCAD $year bundle" -RequireAssemblies
         $yearBundles[$year] = $bundle
     }
 

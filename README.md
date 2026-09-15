@@ -95,17 +95,21 @@ Headless не устанавливается автоматически и не 
 
 Подписанный MSI на все годы 2019–2027 ставит bundle в
 `C:\Program Files\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`
-(этот каталог AutoCAD считает доверенным; с 2026 `%ProgramData%` больше не загружается).
+и копирует его в `%ProgramData%\Autodesk\ApplicationPlugins\AutoBIMFusion.bundle`
+(2019–2025 ищут ProgramData; с 2026 `%ProgramData%` больше не загружается, остаётся Program Files).
+Копия в `%AppData%` с тем же ProductCode удаляется, чтобы однолетняя debug-сборка не перекрывала MSI.
 
 ```powershell
-# Конфигурация Release в Solution (или эта команда): A19–A27 + MSI.
+# Конфигурация Release в Solution: A19–A27 + MSI.
+# То же после desktop-сборки ReleaseA19–ReleaseA27 (в том числе в Visual Studio).
 dotnet build AutoBIMFusion.slnx -c Release
+dotnet build AutoBIMFusion.slnx -c ReleaseA23
 
 # Опционально: подписать уже собранный MSI (SHA-256 Authenticode).
 .\tools\Build-Installer.ps1 -SignThumbprint $env:AUTOBIMFUSION_SIGN_THUMBPRINT
 ```
 
-В Visual Studio выберите конфигурацию **Release** (не `ReleaseA26`) и Build Solution — появится проект `AutoBIMFusion.Installer`. Готовый файл: `installer/bin/x64/Release/` и копия `out/installer/AutoBIMFusion-1.0.0.msi`.
+В Visual Studio конфигурации **Release** и **ReleaseA19**–**ReleaseA27** собирают один MSI на 2019–2027. Готовый файл: `installer/bin/x64/Release/` и копия `out/installer/AutoBIMFusion-1.0.0.msi`. Сборка `ReleaseA23` сначала собирает плагин 2023, затем payload A19–A27 и MSI.
 
 Перед установкой, удалением и переустановкой закройте AutoCAD. Тот же MSI (и пересборка той же версии) заменяет предыдущую установку, а не ставит второй продукт. Удаление снимает bundle в Program Files и копии в `%AppData%` / `%ProgramData%`.
 
