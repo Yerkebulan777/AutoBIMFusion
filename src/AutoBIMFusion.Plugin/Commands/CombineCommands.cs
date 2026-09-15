@@ -19,6 +19,8 @@ namespace AutoBIMFusion.Plugin.Commands;
 public sealed class CombineCommands
 {
     private const double gapPercent = 0.1; // Зазор 10%
+    private const string OpenFilesMessage = "Закройте открытые файлы и повторите команду.";
+    private const string MetricTemplateFileName = "acadiso.dwt";
     private static readonly SemaphoreSlim _mergeGate = new(1, 1);
     private static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
 
@@ -102,6 +104,18 @@ public sealed class CombineCommands
         {
             using AcadWarningSuppressScope warningSuppress = new();
 
+            DocumentCollection docMgr = AcadApp.DocumentManager;
+            if (HasBlockingOpenDocuments(docMgr, log))
+            {
+                log.Warning("{Command}: {Message}", commandName, OpenFilesMessage);
+                if (showDialogs)
+                {
+                    UiDialogService.ShowMessage(OpenFilesMessage, commandName);
+                }
+
+                return ExecutionResult.Fail(null, OpenFilesMessage);
+            }
+
             string? sourceFolder = folderPath ?? (UiDialogService.TrySelectFolder("Выберите папку с файлами DWG", out string? selectedFolder) ? selectedFolder : null);
 
             if (sourceFolder is null)
@@ -125,7 +139,7 @@ public sealed class CombineCommands
             CombineStatistics stats = new();
             Stopwatch sw = Stopwatch.StartNew();
 
-            MergeDocumentSelection target = SelectMergeDocument(AcadApp.DocumentManager, log);
+            MergeDocumentSelection target = SelectMergeDocument(docMgr, log);
             Document mergeDoc = target.Document;
 
             BlockInserter inserter = new(gapPercent, log);
@@ -217,6 +231,7 @@ public sealed class CombineCommands
 
     private static MergeDocumentSelection SelectMergeDocument(DocumentCollection docMgr, Logger log)
     {
+#if CORECONSOLE_DIAGNOSTICS
         Document? activeDoc = docMgr.MdiActiveDocument;
 
         if (activeDoc is not null && CanUseActiveDocument(activeDoc, log))
@@ -224,14 +239,55 @@ public sealed class CombineCommands
             return new MergeDocumentSelection(activeDoc);
         }
 
-#if CORECONSOLE_DIAGNOSTICS
         throw new InvalidOperationException("Core Console requires an open, empty, unnamed drawing for MERGEDWG_BATCH.");
 #else
-        Document mergeDoc = docMgr.Add(string.Empty);
+        Document mergeDoc = docMgr.Add(MetricTemplateFileName);
         docMgr.MdiActiveDocument = mergeDoc;
+        log.Information("MERGEDWG: создан новый чертёж по шаблону \"{Template}\".", MetricTemplateFileName);
+        DiscardOtherEmptyUnnamedDocuments(docMgr, mergeDoc, log);
         return new MergeDocumentSelection(mergeDoc);
 #endif
     }
+
+    private static bool HasBlockingOpenDocuments(DocumentCollection docMgr, Logger log)
+    {
+        foreach (Document doc in docMgr)
+        {
+            if (!CanUseActiveDocument(doc, log))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+#if !CORECONSOLE_DIAGNOSTICS
+    private static void DiscardOtherEmptyUnnamedDocuments(DocumentCollection docMgr, Document keep, Logger log)
+    {
+        List<Document> leftovers = [];
+
+        foreach (Document doc in docMgr)
+        {
+            if (!ReferenceEquals(doc, keep) && CanUseActiveDocument(doc, log))
+            {
+                leftovers.Add(doc);
+            }
+        }
+
+        foreach (Document leftover in leftovers)
+        {
+            try
+            {
+                leftover.CloseAndDiscard();
+            }
+            catch (Autodesk.AutoCAD.Runtime.Exception ex)
+            {
+                log.Warning(ex, "MERGEDWG: не удалось закрыть временный чертёж \"{DocumentName}\".", leftover.Name);
+            }
+        }
+    }
+#endif
 
     private static bool CanUseActiveDocument(Document doc, Logger log)
     {
@@ -252,7 +308,7 @@ public sealed class CombineCommands
         catch (Autodesk.AutoCAD.Runtime.Exception ex)
         {
             log.Warning(ex,
-                "MERGEDWG: не удалось проверить текущий документ \"{DocumentName}\", результат будет собран во временном документе.",
+                "MERGEDWG: не удалось проверить текущий документ \"{DocumentName}\", документ блокирует объединение.",
                 doc.Name);
             return false;
         }
