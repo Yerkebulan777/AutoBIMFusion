@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 
 namespace AutoBIMFusion.QuickPdf.Naming;
@@ -71,37 +70,5 @@ public static class QuickPdfNaming
     {
         string desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
         return desktop.Length > 0 ? desktop : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-    }
-
-    public static int NextSheetIndex(string folder, string prefix)
-    {
-        int max = -1;
-        foreach (string file in Directory.EnumerateFiles(folder, prefix + "_*.pdf"))
-        {
-            if (TryReadSheetIndex(Path.GetFileNameWithoutExtension(file), prefix, out int index) && index > max)
-            {
-                max = index;
-            }
-        }
-
-        return max + 1;
-    }
-
-    public static bool TryReadSheetIndex(string baseName, string prefix, out int index)
-    {
-        index = 0;
-        if (string.IsNullOrEmpty(baseName) || string.IsNullOrEmpty(prefix))
-        {
-            return false;
-        }
-
-        if (!baseName.StartsWith(prefix + "_", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        string suffix = baseName[(prefix.Length + 1)..];
-        return suffix.Length > 0 && suffix.All(char.IsDigit) &&
-               int.TryParse(suffix, NumberStyles.None, CultureInfo.InvariantCulture, out index);
     }
 }

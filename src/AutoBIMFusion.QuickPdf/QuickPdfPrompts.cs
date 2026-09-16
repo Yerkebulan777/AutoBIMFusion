@@ -1,6 +1,6 @@
 using AutoBIMFusion.QuickPdf.Frames;
 using AutoBIMFusion.QuickPdf.Naming;
-using AutoBIMFusion.QuickPdf.Plotting;
+using SaveFileDialog = Autodesk.AutoCAD.Windows.SaveFileDialog;
 
 namespace AutoBIMFusion.QuickPdf;
 
@@ -26,7 +26,7 @@ internal static class QuickPdfPrompts
     {
         input = default;
         if (!TryPickArea(editor, out FrameWindow? area) ||
-            !TryPromptPath(editor, QuickPdfNaming.SafeName(drawingName), out string? outputPath) ||
+            !TryPromptPath(QuickPdfNaming.SafeName(drawingName), out string? outputPath) ||
             outputPath is null)
         {
             return false;
@@ -74,27 +74,26 @@ internal static class QuickPdfPrompts
         return true;
     }
 
-    private static bool TryPromptPath(Editor editor, string defaultName, out string? path)
+    private static bool TryPromptPath(string defaultName, out string? path)
     {
         path = null;
-        PromptSaveFileOptions options = new("\nИмя распечатываемого файла:")
-        {
-            DialogCaption = "Сохранить PDF",
-            Filter = "PDF (*.pdf)|*.pdf",
-            InitialDirectory = QuickPdfNaming.ResolveDesktop(),
-            InitialFileName = defaultName + ".pdf"
-        };
-        using (new SystemVariableScope(("FILEDIA", (short)1)))
-        {
-            PromptFileNameResult result = editor.GetFileNameForSave(options);
-            if (result.Status != PromptStatus.OK || string.IsNullOrWhiteSpace(result.StringResult))
-            {
-                return false;
-            }
+        SaveFileDialog dialog = new(
+            "Сохранить PDF",
+            Path.Combine(QuickPdfNaming.ResolveDesktop(), defaultName + ".pdf"),
+            "pdf",
+            "QuickPDF",
+            SaveFileDialog.SaveFileDialogFlags.DoNotWarnIfFileExist);
 
-            path = result.StringResult;
-            return true;
+        // DialogResult lives in WinForms; avoid a desktop framework reference in headless builds.
+        object? result = typeof(SaveFileDialog).GetMethod(nameof(SaveFileDialog.ShowDialog), Type.EmptyTypes)!
+            .Invoke(dialog, null);
+        if (!string.Equals(result?.ToString(), "OK", StringComparison.Ordinal) || string.IsNullOrWhiteSpace(dialog.Filename))
+        {
+            return false;
         }
+
+        path = dialog.Filename;
+        return true;
     }
 
     private static bool IsAllFrames(PromptStatus status)

@@ -20,6 +20,7 @@
         <Compile Include="../../src/AutoBIMFusion.QuickPdf/Media/ExactPaper.cs" Link="ExactPaper.cs" />
         <Compile Include="../../src/AutoBIMFusion.QuickPdf/Plotting/AccoreNative.cs" Link="AccoreNative.cs" />
         <Compile Include="../../src/AutoBIMFusion.QuickPdf/Plotting/PdfPc3Viewer.cs" Link="PdfPc3Viewer.cs" />
+        <Compile Include="../../src/AutoBIMFusion.QuickPdf/Plotting/PdfFilePublication.cs" Link="PdfFilePublication.cs" />
         <Compile Include="../../src/AutoBIMFusion.QuickPdf/QuickPdfException.cs" Link="QuickPdfException.cs" />
         <Using Include="System.Math" Static="true" />
         <PackageReference Include="Serilog" />

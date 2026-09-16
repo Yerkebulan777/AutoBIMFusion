@@ -92,6 +92,7 @@ public static class QuickPdfOrchestrator
                         new Point3d(frame.MaxX, frame.MaxY, 0),
                         destination.Folder,
                         destination.Prefix,
+                        index - 1,
                         log);
                 }
 
@@ -112,6 +113,7 @@ public static class QuickPdfOrchestrator
         Point3d second,
         string folder,
         string prefix,
+        int sheet,
         ILogger log)
     {
         Editor editor = document.Editor;
@@ -129,7 +131,6 @@ public static class QuickPdfOrchestrator
             "QUICKPDF frame: drawing={Drawing}; frame={FrameWidth:0.###}x{FrameHeight:0.###}; paper={PaperWidth:0.###}x{PaperHeight:0.###} mm",
             document.Name, width, height, paperWidth, paperHeight);
 
-        int sheet = QuickPdfNaming.NextSheetIndex(folder, prefix);
         string pdfPath = Path.Combine(
             folder, prefix + "_" + sheet.ToString("D3", CultureInfo.InvariantCulture) + ".pdf");
         log.Debug("QUICKPDF output: {PdfPath}", pdfPath);

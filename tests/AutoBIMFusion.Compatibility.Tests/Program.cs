@@ -59,8 +59,6 @@ finally
 Assert(QuickPdfNaming.SafeName("Plan:A*.dwg") == "Plan_A_", "quickpdf safe name");
 Assert(QuickPdfNaming.SafeName(@"C:\tmp\Frame.dwg") == "Frame", "quickpdf path name");
 Assert(QuickPdfNaming.SafeName("   ") == "Drawing", "quickpdf blank name");
-Assert(QuickPdfNaming.TryReadSheetIndex("Plan_012", "Plan", out int sheet) && sheet == 12, "quickpdf sheet index");
-Assert(!QuickPdfNaming.TryReadSheetIndex("Plan_12a", "Plan", out _), "quickpdf non-digit sheet");
 PdfDestination unnamed = QuickPdfNaming.Resolve(null, @"C:\tmp\Plan.dwg");
 Assert(unnamed.Prefix == "Plan", "quickpdf default prefix from drawing");
 Assert(Path.GetFileName(unnamed.Folder) == "Plan", "quickpdf default folder from drawing");
@@ -240,6 +238,7 @@ IReadOnlyList<DetectedFrame> overlappingFrames = AxisAlignedFrameDetector.Find(
 Assert(overlappingFrames.Count == 2, "overlapping non-contained frames retained");
 
 FrameSheetOrderTests.Run();
+PdfFilePublicationTests.Run();
 
 Assert(PdfPc3Viewer.TryDisable("""
     {

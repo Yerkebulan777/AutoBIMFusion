@@ -21,11 +21,6 @@ internal static class PlotEngineRunner
         Action<PlotSettings> verify,
         ILogger log)
     {
-        if (File.Exists(pdfPath))
-        {
-            throw new QuickPdfException("Не удалось опубликовать PDF: файл назначения уже существует.");
-        }
-
         if (PlotFactory.ProcessPlotState != ProcessPlotState.NotPlotting)
         {
             throw new QuickPdfException("AutoCAD уже печатает. Подождите и повторите.");
@@ -59,12 +54,7 @@ internal static class PlotEngineRunner
             engine.EndDocument(null);
             engine.EndPlot(null);
 
-            if (!File.Exists(tempPath) || new FileInfo(tempPath).Length == 0)
-            {
-                throw new QuickPdfException("Плоттер не создал непустой PDF.");
-            }
-
-            File.Move(tempPath, pdfPath);
+            PdfFilePublication.Commit(tempPath, pdfPath);
             log.Debug("QUICKPDF plot engine completed: {PdfPath}", pdfPath);
         }
         finally
