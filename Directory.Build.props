@@ -54,6 +54,8 @@
     <PropertyGroup Condition="'$(Configuration)' == 'DebugA25' Or '$(Configuration)' == 'ReleaseA25'">
         <AcadVersion>2025</AcadVersion>
         <AcadPackageVersion>25.0</AcadPackageVersion>
+        <!-- Host is .NET 8; AutoCAD.NET 25.0.2 targets net10 and 25.0.0 needs unpublished Core 25.0.0-V058. -->
+        <AcadNetPackageVersion>[25.0.1, 25.0.2)</AcadNetPackageVersion>
         <AcadInteropPackageVersion>2025</AcadInteropPackageVersion>
         <AutoCADSeries>R25.0</AutoCADSeries>
         <DefineConstants>$(DefineConstants);ACAD2025</DefineConstants>
@@ -62,6 +64,8 @@
     <PropertyGroup Condition="'$(Configuration)' == 'DebugA26' Or '$(Configuration)' == 'ReleaseA26'">
         <AcadVersion>2026</AcadVersion>
         <AcadPackageVersion>25.1</AcadPackageVersion>
+        <!-- Host is .NET 8; AutoCAD.NET 25.1.1 targets net10. -->
+        <AcadNetPackageVersion>[25.1.0, 25.1.1)</AcadNetPackageVersion>
         <AcadInteropPackageVersion>2026.0</AcadInteropPackageVersion>
         <AutoCADSeries>R25.1</AutoCADSeries>
         <DefineConstants>$(DefineConstants);ACAD2026</DefineConstants>
@@ -76,6 +80,7 @@
     </PropertyGroup>
 
     <PropertyGroup>
+        <AcadNetPackageVersion Condition="'$(AcadNetPackageVersion)' == '' And '$(AcadPackageVersion)' != ''">$(AcadPackageVersion).*</AcadNetPackageVersion>
         <LangVersion>14.0</LangVersion>
         <PolyArgumentExceptions>true</PolyArgumentExceptions>
         <PolyUseEmbeddedAttribute>true</PolyUseEmbeddedAttribute>

@@ -18,7 +18,7 @@ AutoCAD-only reference for this repository. Use it only for desktop AutoCAD plug
 - `Directory.Build.props` selects the framework for all three projects: A19/A20 `net47`, A21–A24 `net48`, A25/A26 .NET 8, A27 .NET 10. Modern desktop targets add `-windows`.
 - Configurations: `DebugA19`–`DebugA27`, `ReleaseA19`–`ReleaseA27`. Build with .NET SDK 10.0.300+.
 - Package versions are centralized:
-  - `AutoCAD.NET`: `$(AcadPackageVersion).*`, except A26 `[25.1.0, 25.1.1)` for .NET 8 compatibility
+  - `AutoCAD.NET`: `$(AcadNetPackageVersion)` from the year config (default `$(AcadPackageVersion).*`; A25 `[25.0.1, 25.0.2)`, A26 `[25.1.0, 25.1.1)` for .NET 8)
   - `AutoCAD.NET.Interop`: `$(AcadInteropPackageVersion).*` in A25–A27; unused by legacy configurations
   - `Serilog`: `4.0.0`
   - `Serilog.Sinks.File`: `6.0.0`

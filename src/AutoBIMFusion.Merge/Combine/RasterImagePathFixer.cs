@@ -40,7 +40,7 @@ public static class RasterImagePathFixer
     public static void CopyImagesToTargetFolder(Database db, string targetFilePath, Logger log,
         string? sourceSearchDir = null, string? stage = null)
     {
-        string phase = string.IsNullOrWhiteSpace(stage) ? "copy" : stage;
+        var phase = stage is null || string.IsNullOrWhiteSpace(stage) ? "copy" : stage;
 
         var targetDir = Path.GetDirectoryName(targetFilePath);
         if (string.IsNullOrEmpty(targetDir))
@@ -116,7 +116,7 @@ public static class RasterImagePathFixer
     /// </summary>
     public static void ConvertPathsToRelative(Database db, string targetFilePath, Logger log, string? stage = null)
     {
-        string phase = string.IsNullOrWhiteSpace(stage) ? "relative" : stage;
+        var phase = stage is null || string.IsNullOrWhiteSpace(stage) ? "relative" : stage;
 
         var saveDir = Path.GetDirectoryName(targetFilePath);
         var dbFilename = TryReadFilename(db);

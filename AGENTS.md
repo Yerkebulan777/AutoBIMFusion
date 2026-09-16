@@ -48,7 +48,7 @@ Both automatic and manual installation use `tools/Publish-AutoCADBundle.ps1`: st
 | A26 | 2026 | 25.1 | 2026.0 | `ACAD2026` |
 | A27 | 2027 | 26.0 | 2026.0 | `ACAD2027` |
 
-NuGet versions are centrally managed in `Directory.Packages.props`. `AutoCAD.NET` floats as `$(AcadPackageVersion).*`; `AutoCAD.NET.Interop` floats as `$(AcadInteropPackageVersion).*`; `Serilog` is fixed at `4.0.0`; `Serilog.Sinks.File` is fixed at `6.0.0`. A26 retains the range `[25.1.0, 25.1.1)` because later packages require .NET 10. Legacy builds omit unused COM interop references. Do not pin AutoCAD package versions manually.
+NuGet versions are centrally managed in `Directory.Packages.props`. `AutoCAD.NET` uses `$(AcadNetPackageVersion)` from the year config (default `$(AcadPackageVersion).*`; A25 `[25.0.1, 25.0.2)`, A26 `[25.1.0, 25.1.1)` because later patches require .NET 10). `AutoCAD.NET.Interop` floats as `$(AcadInteropPackageVersion).*`; `Serilog` is fixed at `4.0.0`; `Serilog.Sinks.File` is fixed at `6.0.0`. Legacy builds omit unused COM interop references. Do not pin AutoCAD package versions in project files.
 
 ---
 
