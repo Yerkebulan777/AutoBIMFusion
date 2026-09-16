@@ -33,14 +33,34 @@ internal static class FrameSheetOrderTests
             Sheet(0, 0, width: 50), Sheet(100, 0, width: 500), Sheet(-100, 0, width: 400));
 
         AssertOrder(
-            "center Y takes precedence over top edges",
-            [(100, 100), (0, 0)],
+            "small frame inside tall frame band joins its row",
+            [(0, 0), (100, 100)],
             Sheet(0, 0, height: 400), Sheet(100, 100, height: 20));
 
         AssertOrder(
-            "distinct center heights are not merged by frame size",
-            [(100, 101), (0, 100)],
+            "near centers with tall frames form one row",
+            [(0, 100), (100, 101)],
             Sheet(0, 100, height: 1000), Sheet(100, 101, height: 1000));
+
+        AssertOrder(
+            "bottom-aligned frames of different heights form one row",
+            [(0, 100), (100, 10)],
+            Sheet(0, 100, height: 200), Sheet(100, 10, height: 20));
+
+        AssertOrder(
+            "top-aligned frames of different heights form one row",
+            [(0, 100), (100, 190)],
+            Sheet(0, 100, height: 200), Sheet(100, 190, height: 20));
+
+        AssertOrder(
+            "vertical jitter within half height keeps one row",
+            [(0, 0), (100, 10)],
+            Sheet(0, 0), Sheet(100, 10));
+
+        AssertOrder(
+            "stacked wide sheets with a gap stay separate rows",
+            [(0, 200), (0, 0)],
+            Sheet(0, 0, width: 1000, height: 100), Sheet(0, 200, width: 1000, height: 100));
 
         AssertOrder(
             "negative coordinates use the same directions",
