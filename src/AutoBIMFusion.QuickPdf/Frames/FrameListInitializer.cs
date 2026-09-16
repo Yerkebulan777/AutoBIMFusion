@@ -3,8 +3,8 @@ using Autodesk.AutoCAD.Colors;
 namespace AutoBIMFusion.QuickPdf.Frames;
 
 /// <summary>
-///     Один раз создаёт слой рамок и классифицирует геометрию пространства модели.
-///     Если задан участок, на слой переносятся только рамки этого участка.
+///     Классифицирует геометрию модели и переносит найденные рамки на непечатаемый слой FRAMELIST.
+///     Если задан участок, переносятся только его рамки.
 ///     Вызывающий код должен удерживать <see cref="Autodesk.AutoCAD.ApplicationServices.DocumentLock"/>.
 /// </summary>
 internal static class FrameListInitializer
@@ -16,23 +16,26 @@ internal static class FrameListInitializer
     {
         using Transaction transaction = database.TransactionManager.StartTransaction();
         LayerTable layerTable = (LayerTable)transaction.GetObject(database.LayerTableId, OpenMode.ForRead);
-        ObjectId existingLayer = layerTable.Has(LayerName) ? layerTable[LayerName] : ObjectId.Null;
+        ObjectId frameLayer = layerTable.Has(LayerName) ? layerTable[LayerName] : ObjectId.Null;
         Dictionary<int, ObjectId> sourceObjects = [];
-        IReadOnlyList<FramePath> paths = ReadModelPaths(database, transaction, sourceObjects, existingLayer);
+        IReadOnlyList<FramePath> paths = ReadModelPaths(database, transaction, sourceObjects);
         IReadOnlyList<DetectedFrame> frames = AxisAlignedFrameDetector.Find(paths, CoordinateTolerance);
         if (area is { } window)
         {
             frames = FrameAreaFilter.Intersecting(frames, window);
         }
 
-        if (existingLayer.IsNull && frames.Count > 0)
+        if (frames.Count > 0)
         {
-            ObjectId[] selectedObjects = frames
-                .SelectMany(frame => frame.SourceIds)
-                .Distinct()
-                .Select(sourceId => sourceObjects[sourceId])
-                .ToArray();
-            MoveToLayer(selectedObjects, CreateLayer(layerTable, transaction), transaction);
+            if (frameLayer.IsNull)
+            {
+                frameLayer = CreateLayer(layerTable, transaction);
+            }
+
+            MoveToLayer(
+                frames.SelectMany(frame => frame.SourceIds).Distinct().Select(sourceId => sourceObjects[sourceId]),
+                frameLayer,
+                transaction);
         }
 
         transaction.Commit();
@@ -57,8 +60,7 @@ internal static class FrameListInitializer
     private static IReadOnlyList<FramePath> ReadModelPaths(
         Database database,
         Transaction transaction,
-        IDictionary<int, ObjectId> sourceObjects,
-        ObjectId layerId)
+        IDictionary<int, ObjectId> sourceObjects)
     {
         BlockTable blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
         BlockTableRecord modelSpace = (BlockTableRecord)transaction.GetObject(
@@ -68,7 +70,6 @@ internal static class FrameListInitializer
         {
             Entity? entity = transaction.GetObject(objectId, OpenMode.ForRead, false) as Entity;
             if (entity is null ||
-                (layerId != ObjectId.Null && entity.LayerId != layerId) ||
                 !TryReadPoints(entity, transaction, out bool closed, out FramePoint[] points))
             {
                 continue;
@@ -219,6 +220,11 @@ internal static class FrameListInitializer
         foreach (ObjectId objectId in objectIds)
         {
             Entity entity = (Entity)transaction.GetObject(objectId, OpenMode.ForRead);
+            if (entity.LayerId == targetLayerId)
+            {
+                continue;
+            }
+
             LayerTableRecord sourceLayer = (LayerTableRecord)transaction.GetObject(entity.LayerId, OpenMode.ForRead);
             if (sourceLayer.IsLocked && !unlockedLayers.ContainsKey(sourceLayer.ObjectId))
             {

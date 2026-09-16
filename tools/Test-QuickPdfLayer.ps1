@@ -153,8 +153,8 @@ if ($result[3] -ne '-1|-1|-1|-1|-1') {
 if ($result[4] -ne '1') {
     throw "Existing FRAMELIST layer was modified: color=$($result[4]). See $runRoot"
 }
-if ($result[5] -ne '0') {
-    throw "Second QUICKPDF invocation rescanned the model: layer=$($result[5]). See $runRoot"
+if ($result[5].ToUpperInvariant() -ne 'FRAMELIST') {
+    throw "Second QUICKPDF invocation did not classify a later frame: layer=$($result[5]). See $runRoot"
 }
 
-Write-Host "PASS ${Configuration}: FRAMELIST is created atomically, recognized frames use ByLayer color and lineweight, and later runs do not rescan. Artifacts: $runRoot"
+Write-Host "PASS ${Configuration}: FRAMELIST is created atomically, recognized frames use ByLayer color and lineweight, and later runs still classify new frames. Artifacts: $runRoot"

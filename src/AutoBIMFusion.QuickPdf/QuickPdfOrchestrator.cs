@@ -15,7 +15,7 @@ using PlotAreaType = Autodesk.AutoCAD.DatabaseServices.PlotType;
 namespace AutoBIMFusion.QuickPdf;
 
 /// <summary>
-///     Экспорт рамок FRAMELIST в PDF: участок модели или все рамки, имя файла, ISO / custom, масштаб 1:100.
+///     Экспорт рамок в PDF: участок модели или все рамки, имя файла, ISO / custom, масштаб 1:100.
 /// </summary>
 public static class QuickPdfOrchestrator
 {
@@ -54,7 +54,7 @@ public static class QuickPdfOrchestrator
             if (frames.Count == 0)
             {
                 throw new QuickPdfException(area is null
-                    ? "На слое " + FrameListInitializer.LayerName + " рамки не найдены."
+                    ? "Рамки не найдены."
                     : "В указанном участке рамки не найдены.");
             }
 
