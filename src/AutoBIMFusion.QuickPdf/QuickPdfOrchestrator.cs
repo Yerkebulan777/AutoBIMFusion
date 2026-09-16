@@ -77,7 +77,7 @@ public static class QuickPdfOrchestrator
                     document.Name, frames.Count, device);
                 editor.WriteMessage(
                     "\nQuickPDF: рамок " + frames.Count.ToString(CultureInfo.InvariantCulture) +
-                    ". Порядок: справа налево, сверху вниз.");
+                    ". Порядок: слева направо, сверху вниз.");
                 int index = 0;
                 foreach (DetectedFrame frame in frames)
                 {

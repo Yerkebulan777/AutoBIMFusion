@@ -1,8 +1,8 @@
 namespace AutoBIMFusion.QuickPdf.Frames;
 
 /// <summary>
-///     Порядок листов: справа налево внутри ряда, ряды сверху вниз.
-///     Ряд задаётся верхней кромкой рамки с допуском 25% медианы высоты.
+///     Порядок листов: слева направо внутри ряда, ряды сверху вниз.
+///     Ряд — префикс списка, отсортированного по верхней кромке, с допуском 25% медианы высоты.
 /// </summary>
 internal static class FrameSheetOrder
 {
@@ -21,32 +21,20 @@ internal static class FrameSheetOrder
             .ElementAt(frames.Count / 2);
         double rowTolerance = Max(medianHeight * RowBandFraction, 1);
 
-        List<DetectedFrame> remaining =
-        [
-            .. frames
-                .OrderByDescending(frame => frame.MaxY)
-                .ThenByDescending(frame => frame.MaxX)
-        ];
+        List<DetectedFrame> byTop = [.. frames.OrderByDescending(frame => frame.MaxY)];
         List<DetectedFrame> ordered = [];
-        while (remaining.Count > 0)
+        int index = 0;
+        while (index < byTop.Count)
         {
-            double rowY = remaining[0].MaxY;
+            double rowY = byTop[index].MaxY;
             List<DetectedFrame> row = [];
-            List<DetectedFrame> rest = [];
-            foreach (DetectedFrame frame in remaining)
+            while (index < byTop.Count && Abs(byTop[index].MaxY - rowY) <= rowTolerance)
             {
-                if (Abs(frame.MaxY - rowY) <= rowTolerance)
-                {
-                    row.Add(frame);
-                }
-                else
-                {
-                    rest.Add(frame);
-                }
+                row.Add(byTop[index]);
+                index++;
             }
 
-            ordered.AddRange(row.OrderByDescending(frame => frame.MaxX).ThenByDescending(frame => frame.MaxY));
-            remaining = rest;
+            ordered.AddRange(row.OrderBy(frame => frame.MinX));
         }
 
         return ordered;

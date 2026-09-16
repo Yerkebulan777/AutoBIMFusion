@@ -239,23 +239,7 @@ IReadOnlyList<DetectedFrame> overlappingFrames = AxisAlignedFrameDetector.Find(
 ], 3);
 Assert(overlappingFrames.Count == 2, "overlapping non-contained frames retained");
 
-IReadOnlyList<DetectedFrame> gridFrames = FrameSheetOrder.Sort(
-[
-    new DetectedFrame(0, 0, 50, 50, [4]),
-    new DetectedFrame(100, 0, 150, 50, [3]),
-    new DetectedFrame(0, 100, 50, 150, [2]),
-    new DetectedFrame(100, 100, 150, 150, [1])
-]);
-Assert(gridFrames.Select(frame => frame.SourceIds[0]).SequenceEqual([1, 2, 3, 4]),
-    "frames sorted right-to-left then top-to-bottom");
-
-IReadOnlyList<DetectedFrame> misalignedRow = FrameSheetOrder.Sort(
-[
-    new DetectedFrame(0, 100, 50, 152, [20]),
-    new DetectedFrame(100, 100, 150, 150, [10])
-]);
-Assert(misalignedRow.Select(frame => frame.SourceIds[0]).SequenceEqual([10, 20]),
-    "same-row frames keep right-to-left order when tops differ slightly");
+FrameSheetOrderTests.Run();
 
 Assert(PdfPc3Viewer.TryDisable("""
     {
