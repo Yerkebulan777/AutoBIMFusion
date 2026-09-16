@@ -244,28 +244,6 @@ public static class ExtentsUtils
     }
 
     /// <summary>
-    ///     Получает габариты всей базы данных.
-    /// </summary>
-    /// <param name="db">База данных AutoCAD.</param>
-    /// <returns>Габариты или null, если база пуста или некорректна.</returns>
-    public static Extents3d? GetDatabaseExtents(Database db)
-    {
-        try
-        {
-            db.UpdateExt(true);
-            Point3d min = db.Extmin;
-            Point3d max = db.Extmax;
-
-            // В AutoCAD, если база пуста, Extmin > Extmax
-            return min.X > max.X || min.Y > max.Y || min.Z > max.Z ? null : new Extents3d(min, max);
-        }
-        catch (Exception)
-        {
-            return null;
-        }
-    }
-
-    /// <summary>
     ///     Трансформирует габариты с помощью матрицы.
     /// </summary>
     /// <param name="ext">Габариты.</param>

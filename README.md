@@ -18,7 +18,7 @@ D:\DWG-Batch\
 
 ```powershell
 cd D:\DWG-Batch
-C:\Users\y.zhumabayev\Repository\AutoBIMFusion\tools\Start-MergeDwgBatch.ps1
+<path-to-repo>\tools\Start-MergeDwgBatch.ps1
 ```
 
 > Если скрипт не запускается из-за политики выполнения, сначала выполните:
@@ -83,37 +83,41 @@ Reference assemblies .NET Framework восстанавливаются авто�
 промежуточные файлы и NuGet assets — в отдельных каталогах `obj`.
 Headless не устанавливается автоматически и не удаляет обычный пакет при очистке.
 `-p:DisableAutoCADDeployment=true` создаёт локальный bundle без установки.
-Установщик всегда собирает свежий desktop-пакет. Общий скрипт публикации сначала
-копирует и проверяет весь пакет, затем заменяет каталог с резервной копией и откатом
-при ошибке замены. Перед обновлением закройте AutoCAD, после обновления запустите заново.
 
-Для ручной установки одной версии (в `%AppData%`, только выбранный год):
+Для ручной установки в `%AppData%` (только выбранный год):
 
 ```powershell
 .\tools\Install-AutoBIMFusionBundle.ps1 -Configuration ReleaseA19
 ```
 
-Для каждого года выпускается отдельный MSI. Например, пакет 2020 ставит bundle в
-`C:\Program Files\Autodesk\ApplicationPlugins\AutoBIMFusion-2020.bundle`
-и копирует его в `%ProgramData%\Autodesk\ApplicationPlugins\AutoBIMFusion-2020.bundle`
-(2019–2025 ищут ProgramData; с 2026 `%ProgramData%` больше не загружается, остаётся Program Files).
-Пакеты разных лет устанавливаются одновременно: у каждого свои UpgradeCode, ProductCode bundle, компоненты и ключ `HKLM\Software\AutoBIMFusion\<год>`. Обновление и удаление затрагивают только выбранный год. Старый общий MSI и debug-копии не удаляются автоматически; перед переходом со старого общего пакета удалите его вручную, чтобы AutoCAD не загружал две копии плагина.
+## Установщик
+
+Нужен .NET SDK 10.0.300+. WiX ставится из NuGet, отдельно ничего ставить не нужно.
+Суффикс конфигурации — год AutoCAD: `A19`…`A27`.
 
 ```powershell
-# Все девять отдельных MSI (2019–2027).
-dotnet build AutoBIMFusion.slnx -c Release
-# Только AutoCAD 2020: компиляция плагина и создание его MSI.
-dotnet build AutoBIMFusion.slnx -c ReleaseA20
+# Один год: собирает плагин и MSI
+dotnet build AutoBIMFusion.slnx -c ReleaseA26
 
-# Опционально: подписать уже собранный MSI (SHA-256 Authenticode).
-.\tools\Build-Installer.ps1 -Year 2020 -SignThumbprint $env:AUTOBIMFUSION_SIGN_THUMBPRINT
+# Все девять MSI (2019–2027)
+dotnet build AutoBIMFusion.slnx -c Release
 ```
 
-В Visual Studio выберите **ReleaseA20 | x64 → Сборка → Собрать решение** для пакета 2020. Результат: `out/installer/AutoBIMFusion-AutoCAD2020-1.0.0.msi` (также в `installer/bin/x64/ReleaseA20/en-US/`). Другие `ReleaseAxx` работают аналогично. Обычный **Release** собирает все девять MSI, последовательно и в отдельных папках. `DebugAxx` продолжает собирать только плагин; обычный `Debug` выпускает девять отладочных MSI в `out/installer/Debug/`. Payload изолирован по конфигурациям в `out/installer/payload/ReleaseA20/` и аналогичных папках.
+Готовый файл: `out/installer/AutoBIMFusion-AutoCAD2026-1.0.0.msi`
 
-Для выбранного года автоматически восстанавливаются NuGet-пакеты и компилируется плагин с зависимостями; затем проверяется payload и создаётся MSI. Сборка только проекта плагина не запускает установщик. Перед упаковкой проверяются регистрация выбранного года и корректность .NET DLL, включая зависимости. Текстовые заглушки, повреждённые DLL и payload другого года останавливают сборку даже при `SkipInstallerDependencyBuild=true` (повторная упаковка после подписи).
+В Visual Studio: **ReleaseA26 | x64** → Собрать решение.
 
-Перед установкой, удалением и переустановкой закройте AutoCAD. Повторная установка MSI обновляет пакет того же года. Удаление снимает только его bundle в Program Files и копию в `%ProgramData%`.
+`DebugAxx` MSI не собирает. Обычный `Debug` даёт девять отладочных MSI в `out/installer/Debug/`.
+
+Перед установкой закройте AutoCAD. Пакеты разных лет ставятся и удаляются независимо.
+
+Подпись уже собранного MSI (необязательно, нужен `signtool` и сертификат):
+
+```powershell
+.\tools\Build-Installer.ps1 -Year 2026
+```
+
+Отпечаток берётся из `AUTOBIMFUSION_SIGN_THUMBPRINT` или `-SignThumbprint`.
 
 ## Проверка совместимости
 
@@ -155,19 +159,20 @@ dotnet build AutoBIMFusion.slnx -c DebugA19 -p:CoreConsoleDiagnostics=true
 свой bundle и не заменяет установленную версию с лентой AutoCAD.
 
 Компиляция по всем SDK не заменяет проверку на реальных чертежах в каждом AutoCAD.
+
 ## Команды
 
 | Команда | Описание |
 |---|---|
 | `MERGEDWG` | Выбрать папку → слияние всех DWG в текущий чертёж |
 | `MERGEDWG_BATCH` | Внутренняя команда для пакетного запуска (не вызывать вручную) |
+| `QUICKPDF` | Печать рамок текущего чертежа в PDF |
 
 ## Документация
 
-- [Техническое описание](docs/TECHNICAL_DOCUMENTATION.md)
 - [Алгоритм слияния](docs/ALGORITHM.md)
-- [Структура проекта](docs/PROJECT_STRUCTURE.md)
-- [Известные проблемы](docs/KNOWN_ISSUES.md)
+- [Пакетная очистка Recent Documents](docs/BATCH-RECENT-DOCUMENTS.md)
+- [Логирование](docs/LOGGING.md)
 
 ## Логи
 

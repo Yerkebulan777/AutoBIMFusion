@@ -35,18 +35,4 @@ public static class StringUtils
 
         return span.Length <= maxLength ? span.ToString() : span[..maxLength].ToString();
     }
-
-    /// <summary>
-    ///     Экранирует спецсимволы в строке для безопасного включения в закавыченный контекст
-    ///     (логирование, сериализация).
-    ///     Обратный слэш → \\, двойная кавычка → \", CR → \r, LF → \n.
-    /// </summary>
-    public static string EscapeForQuotedContext(string? value)
-    {
-        return (value ?? string.Empty)
-            .Replace("\\", "\\\\")
-            .Replace("\"", "\\\"")
-            .Replace("\r", "\\r")
-            .Replace("\n", "\\n");
-    }
 }

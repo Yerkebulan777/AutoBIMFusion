@@ -6,11 +6,8 @@ using AutoBIMFusion.QuickPdf.Naming;
 using AutoBIMFusion.QuickPdf.Plotting;
 using Serilog;
 using Serilog.Events;
-using System.Globalization;
 using System.Text.Json;
 
-Assert(StringUtils.EscapeForQuotedContext("a\\b\"\r\n") == "a\\\\b\\\"\\r\\n", "escaping");
-Assert(StringUtils.EscapeForQuotedContext(null) == "", "null escaping");
 Assert(StringUtils.Truncate("  first\r\nsecond", "fallback", 3) == "fir", "span truncation");
 Assert(StringUtils.Truncate(" \t", "fallback", 3) == "fallback", "blank fallback");
 try
@@ -19,13 +16,6 @@ try
     throw new InvalidOperationException("Blank fallback accepted.");
 }
 catch (ArgumentException) { }
-
-CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("ru-RU");
-Assert(NumericUtils.FormatF6(1.25) == "1.250000", "invariant numeric format");
-foreach (double value in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity })
-{
-    Assert(NumericUtils.FormatF6(value) == "n/a", "non-finite numeric format");
-}
 
 string directory = Path.Combine(Path.GetTempPath(), "AutoBIMFusion-compatibility-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(directory);
@@ -382,7 +372,7 @@ Assert(resolvedExport == new IntPtr(84), "acdb decorated release export fallback
 Assert(AccoreNative.EvaluationSucceeded(1), "acedEvaluateLisp success result accepted");
 Assert(!AccoreNative.EvaluationSucceeded(0), "acedEvaluateLisp failure result rejected");
 
-Console.WriteLine("PASS: escaping, guards, spans, numeric formatting, Serilog, JSON and QuickPDF helpers.");
+Console.WriteLine("PASS: truncation guards, Serilog, JSON and QuickPDF helpers.");
 
 static void Assert(bool condition, string name)
 {

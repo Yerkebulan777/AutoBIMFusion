@@ -1,5 +1,4 @@
 using Autodesk.AutoCAD.ApplicationServices;
-using AutoBIMFusion.Common.Extensions;
 using AutoBIMFusion.Common.Logging;
 using AutoBIMFusion.QuickPdf;
 using Serilog;
@@ -27,7 +26,7 @@ public sealed class QuickPdfCommands
         Editor editor = document.Editor;
         try
         {
-            if (!editor.IsInModel())
+            if (!document.Database.TileMode)
             {
                 log.Warning("{Command}: command requires model space", LoggerFactory.QuickPdfCommand);
                 editor.WriteMessage("\nКоманда доступна только в пространстве модели.");

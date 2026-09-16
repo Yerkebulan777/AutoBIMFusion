@@ -4,11 +4,6 @@ namespace AutoBIMFusion.Common.Extensions;
 
 public static class ViewportsExtensions
 {
-    public static bool IsInModel(this Editor editor)
-    {
-        return editor.Document.Database.TileMode;
-    }
-
     public static Point3d GetViewCenterWcs(this Viewport vp)
     {
         return new Point3d(vp.ViewCenter.X, vp.ViewCenter.Y, 0).TransformBy(vp.GetDcsToWcsMatrix());

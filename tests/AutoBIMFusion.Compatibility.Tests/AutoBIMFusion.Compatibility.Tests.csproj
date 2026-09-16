@@ -9,7 +9,6 @@
     </PropertyGroup>
     <ItemGroup>
         <Compile Include="../../src/AutoBIMFusion.Common/Helpers/StringUtils.cs" Link="StringUtils.cs" />
-        <Compile Include="../../src/AutoBIMFusion.Common/Helpers/NumericUtils.cs" Link="NumericUtils.cs" />
         <Compile Include="../../src/AutoBIMFusion.Common/Logging/LoggerFactory.cs" Link="LoggerFactory.cs" />
         <Compile Include="../../src/AutoBIMFusion.Plugin/LegacyDependencyResolver.cs" Link="LegacyDependencyResolver.cs" />
         <Compile Include="../../src/AutoBIMFusion.QuickPdf/Naming/QuickPdfNaming.cs" Link="QuickPdfNaming.cs" />

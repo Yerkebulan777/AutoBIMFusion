@@ -19,6 +19,13 @@ vendor/
 *.userosscache
 *.userprefs
 
+# Local leftovers
+*.log
+*.tmp
+*.bak
+*.orig
+.claude/settings.local.json
+
 # OS
 .DS_Store
 Thumbs.db
