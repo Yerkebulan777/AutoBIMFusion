@@ -53,8 +53,11 @@ internal sealed class DetectedFrame
 
 internal static class AxisAlignedFrameDetector
 {
-    private const double A4ShortSide = 21000;
-    private const double A4LongSide = 29700;
+    private const double ModelUnitsPerMm = 100;
+    private const double A4ShortSide = 210 * ModelUnitsPerMm;
+    private const double A4LongSide = 297 * ModelUnitsPerMm;
+    private const double A0x3ShortSide = 1189 * ModelUnitsPerMm;
+    private const double A0x3LongSide = 2523 * ModelUnitsPerMm;
 
     internal static IReadOnlyList<DetectedFrame> Find(IReadOnlyList<FramePath> paths, double tolerance)
     {
@@ -84,9 +87,7 @@ internal static class AxisAlignedFrameDetector
             double maxY = path.Points.Max(point => point.Y);
             double width = maxX - minX;
             double height = maxY - minY;
-            bool largeEnough = width >= A4ShortSide && height >= A4LongSide ||
-                               width >= A4LongSide && height >= A4ShortSide;
-            if (!largeEnough)
+            if (!FitsPrintableSheet(width, height))
             {
                 continue;
             }
@@ -197,6 +198,14 @@ internal static class AxisAlignedFrameDetector
         return (frame.MaxX - frame.MinX) * (frame.MaxY - frame.MinY);
     }
 
+    private static bool FitsPrintableSheet(double width, double height)
+    {
+        double shortSide = Min(width, height);
+        double longSide = Max(width, height);
+        return shortSide >= A4ShortSide && longSide >= A4LongSide &&
+               shortSide <= A0x3ShortSide && longSide <= A0x3LongSide;
+    }
+
     private static void AddLineFrames(
         IReadOnlyList<FramePath> paths,
         double tolerance,
@@ -285,8 +294,7 @@ internal static class AxisAlignedFrameDetector
         double maxY = points.Max(point => point.Y);
         double width = maxX - minX;
         double height = maxY - minY;
-        if (!(width >= A4ShortSide && height >= A4LongSide ||
-              width >= A4LongSide && height >= A4ShortSide))
+        if (!FitsPrintableSheet(width, height))
         {
             return;
         }

@@ -94,29 +94,27 @@ IReadOnlyList<DetectedFrame> zoneFrames = FrameAreaFilter.Intersecting(
 Assert(zoneFrames.Count == 1 && zoneFrames[0].SourceIds.SequenceEqual([20]),
     "selected zone keeps only intersecting frame sources");
 
-IReadOnlyList<DetectedFrame> exactA4Frames = AxisAlignedFrameDetector.Find(
+const double a4Short = 210 * 100;
+const double a4Long = 297 * 100;
+const double a0x3Short = 1189 * 100;
+const double a0x3Long = 2523 * 100;
+Assert(AxisAlignedFrameDetector.Find([ClosedRect(1, a4Short, a4Long)], 3).Count == 1,
+    "exact portrait A4 frame accepted");
+Assert(AxisAlignedFrameDetector.Find([ClosedRect(2, a4Long, a4Short)], 3).Count == 1,
+    "exact landscape A4 frame accepted");
+Assert(AxisAlignedFrameDetector.Find([ClosedRect(80, a0x3Short, a0x3Long)], 3).Count == 1,
+    "exact portrait A0x3 frame accepted");
+Assert(AxisAlignedFrameDetector.Find([ClosedRect(81, a0x3Long, a0x3Short)], 3).Count == 1,
+    "exact landscape A0x3 frame accepted");
+Assert(AxisAlignedFrameDetector.Find([ClosedRect(82, a0x3Short, a0x3Long + 1)], 3).Count == 0,
+    "frame larger than A0x3 rejected");
+Assert(AxisAlignedFrameDetector.Find(
 [
-    new FramePath(1, true,
-    [
-        new FramePoint(0, 0),
-        new FramePoint(21000, 0),
-        new FramePoint(21000, 29700),
-        new FramePoint(0, 29700)
-    ])
-], 3);
-Assert(exactA4Frames.Count == 1, "exact portrait A4 frame accepted");
-
-IReadOnlyList<DetectedFrame> landscapeFrames = AxisAlignedFrameDetector.Find(
-[
-    new FramePath(2, true,
-    [
-        new FramePoint(0, 0),
-        new FramePoint(29700, 0),
-        new FramePoint(29700, 21000),
-        new FramePoint(0, 21000)
-    ])
-], 3);
-Assert(landscapeFrames.Count == 1, "exact landscape A4 frame accepted");
+    new FramePath(83, false, [new FramePoint(0, 0), new FramePoint(a0x3Long + 1, 0)]),
+    new FramePath(84, false, [new FramePoint(a0x3Long + 1, 0), new FramePoint(a0x3Long + 1, a0x3Short)]),
+    new FramePath(85, false, [new FramePoint(a0x3Long + 1, a0x3Short), new FramePoint(0, a0x3Short)]),
+    new FramePath(86, false, [new FramePoint(0, a0x3Short), new FramePoint(0, 0)])
+], 3).Count == 0, "line frame larger than A0x3 rejected");
 
 IReadOnlyList<DetectedFrame> diagonalFrames = AxisAlignedFrameDetector.Find(
 [
@@ -389,4 +387,15 @@ Console.WriteLine("PASS: escaping, guards, spans, numeric formatting, Serilog, J
 static void Assert(bool condition, string name)
 {
     if (!condition) throw new InvalidOperationException(name);
+}
+
+static FramePath ClosedRect(int id, double width, double height)
+{
+    return new FramePath(id, true,
+    [
+        new FramePoint(0, 0),
+        new FramePoint(width, 0),
+        new FramePoint(width, height),
+        new FramePoint(0, height)
+    ]);
 }
