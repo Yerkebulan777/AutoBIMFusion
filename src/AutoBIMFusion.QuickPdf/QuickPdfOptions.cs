@@ -8,14 +8,14 @@ namespace AutoBIMFusion.QuickPdf;
 /// </summary>
 public readonly struct QuickPdfOptions
 {
-    public static readonly QuickPdfOptions Default = new(DefaultScaleDenominator, false);
-
     /// <summary>
     ///     Все стандартные уменьшения AutoCAD (1:1–1:100) плюс 1:200 и 1:500.
     ///     1:200 и 1:500 отсутствуют в <c>StdScaleType</c>, поэтому печатаются
     ///     произвольным масштабом 1:N.
     /// </summary>
     public static readonly int[] SupportedScales = [1, 2, 4, 5, 8, 10, 16, 20, 30, 40, 50, 100, 200, 500];
+
+    public static readonly QuickPdfOptions Default = new(DefaultScaleDenominator, false);
 
     public const int DefaultScaleDenominator = 100;
 
