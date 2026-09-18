@@ -15,7 +15,8 @@ using PlotAreaType = Autodesk.AutoCAD.DatabaseServices.PlotType;
 namespace AutoBIMFusion.QuickPdf;
 
 /// <summary>
-///     Экспорт рамок в PDF: участок модели или все рамки, имя файла, ISO / custom, масштаб 1:100.
+///     Экспорт рамок в PDF: участок модели или все рамки, имя файла, ISO / custom,
+///     масштаб 1:1–1:100, 1:200, 1:500, цветной или черно-белый.
 /// </summary>
 public static class QuickPdfOrchestrator
 {
@@ -29,21 +30,26 @@ public static class QuickPdfOrchestrator
 
     public static void ExportFrameList(Document document, ILogger log)
     {
-        Run(document, area: null, outputPath: null, log);
+        Run(document, area: null, outputPath: null, QuickPdfOptions.Default, log);
     }
 
     public static bool TryExportInteractively(Document document, ILogger log)
+    {
+        return TryExportInteractively(document, log, QuickPdfOptions.Default);
+    }
+
+    public static bool TryExportInteractively(Document document, ILogger log, QuickPdfOptions options)
     {
         if (!QuickPdfPrompts.TryCollect(document.Editor, DrawingName(document), out QuickPdfInput input))
         {
             return false;
         }
 
-        Run(document, input.Area, input.OutputPath, log);
+        Run(document, input.Area, input.OutputPath, options, log);
         return true;
     }
 
-    private static void Run(Document document, FrameWindow? area, string? outputPath, ILogger log)
+    private static void Run(Document document, FrameWindow? area, string? outputPath, QuickPdfOptions options, ILogger log)
     {
         Editor editor = document.Editor;
         using (document.LockDocument())
@@ -56,6 +62,14 @@ public static class QuickPdfOrchestrator
                 throw new QuickPdfException(area is null
                     ? "Рамки не найдены."
                     : "В указанном участке рамки не найдены.");
+            }
+
+            if ((long)options.StartSheet + frames.Count - 1 > QuickPdfOptions.MaxStartSheet)
+            {
+                throw new QuickPdfException(
+                    "Нумерация листов превысит 999: начальный номер " + options.StartSheetLabel +
+                    ", рамок " + frames.Count.ToString(CultureInfo.InvariantCulture) +
+                    ". Уменьшите начальный номер.");
             }
 
             PdfDestination destination = QuickPdfNaming.Resolve(outputPath, DrawingName(document));
@@ -73,8 +87,8 @@ public static class QuickPdfOrchestrator
             {
                 string device = ResolveBoundDevice(document, plotter, log);
                 log.Information(
-                    "QUICKPDF started: drawing={Drawing}; frames={FrameCount}; device={Device}",
-                    document.Name, frames.Count, device);
+                    "QUICKPDF started: drawing={Drawing}; frames={FrameCount}; device={Device}; scale={Scale}; color={Color}; start={Start}",
+                    document.Name, frames.Count, device, options.ScaleLabel, options.ColorLabel, options.StartSheetLabel);
                 editor.WriteMessage(
                     "\nQuickPDF: рамок " + frames.Count.ToString(CultureInfo.InvariantCulture) +
                     ". Порядок: слева направо, сверху вниз.");
@@ -93,6 +107,7 @@ public static class QuickPdfOrchestrator
                         destination.Folder,
                         destination.Prefix,
                         index - 1,
+                        options,
                         log);
                 }
 
@@ -113,7 +128,8 @@ public static class QuickPdfOrchestrator
         Point3d second,
         string folder,
         string prefix,
-        int sheet,
+        int sheetIndex,
+        QuickPdfOptions options,
         ILogger log)
     {
         Editor editor = document.Editor;
@@ -125,14 +141,15 @@ public static class QuickPdfOrchestrator
             throw new QuickPdfException("Рамка слишком мала.");
         }
 
-        double paperWidth = width / 100.0;
-        double paperHeight = height / 100.0;
+        int denominator = options.ScaleDenominator;
+        double paperWidth = width / denominator;
+        double paperHeight = height / denominator;
         log.Debug(
             "QUICKPDF frame: drawing={Drawing}; frame={FrameWidth:0.###}x{FrameHeight:0.###}; paper={PaperWidth:0.###}x{PaperHeight:0.###} mm",
             document.Name, width, height, paperWidth, paperHeight);
 
         string pdfPath = Path.Combine(
-            folder, prefix + "_" + sheet.ToString("D3", CultureInfo.InvariantCulture) + ".pdf");
+            folder, prefix + "_" + (options.StartSheet + sheetIndex).ToString("D3", CultureInfo.InvariantCulture) + ".pdf");
         log.Debug("QUICKPDF output: {PdfPath}", pdfPath);
 
         using PlotSettings settings = CreateModelPlotSettings(document);
@@ -148,7 +165,7 @@ public static class QuickPdfOrchestrator
             validator.SetPlotRotation(settings, choice.Rotation);
             mediaLabel = choice.CanonicalName;
             policy = MatchingPolicy.MatchEnabled;
-            verify = validated => PlotEngineRunner.VerifyIso(validated, choice, paperWidth, paperHeight);
+            verify = validated => PlotEngineRunner.VerifyIso(validated, choice, paperWidth, paperHeight, options);
         }
         else
         {
@@ -157,13 +174,13 @@ public static class QuickPdfOrchestrator
                          " x " + paperHeight.ToString("0.000", CultureInfo.InvariantCulture) + " mm";
             policy = MatchingPolicy.MatchEnabledTemporaryCustom;
             verify = validated => PlotEngineRunner.VerifyCustom(
-                validated, paperWidth, paperHeight, window, settings.CurrentStyleSheet);
+                validated, paperWidth, paperHeight, window, settings.CurrentStyleSheet, options);
             editor.WriteMessage(
                 $"\nISO-формат {paperWidth:0.00} x {paperHeight:0.00} мм не найден. Печать на пользовательском листе.");
         }
 
         validator.SetPlotPaperUnits(settings, PlotPaperUnit.Millimeters);
-        ApplyPlotOptions(settings, validator, window);
+        ApplyPlotOptions(settings, validator, window, options, log, editor);
         log.Debug(
             "QUICKPDF media: mode={Mode}; media={Media}; rotation={Rotation}; matching={MatchingPolicy}",
             iso is null ? "Custom" : "ISO", mediaLabel, settings.PlotRotation, policy);
@@ -183,17 +200,19 @@ public static class QuickPdfOrchestrator
             editor.WriteMessage(
                 "\nПринтер: " + device +
                 "\nБумага: " + mediaLabel + (paperWidth >= paperHeight ? " landscape" : " portrait") +
-                " | Стандартный масштаб 1:100 | Сдвиг X=0 Y=0 | Центрирование выкл | Рамка на бумаге: " +
+                " | " + options.ScaleModeLabel + " | Цвет: " + options.ColorLabel +
+                " | Сдвиг X=0 Y=0 | Центрирование выкл | Рамка на бумаге: " +
                 paperWidth.ToString("0.0", CultureInfo.InvariantCulture) + " x " +
                 paperHeight.ToString("0.0", CultureInfo.InvariantCulture) +
-                " мм (1 мм = 100 единиц чертежа)" +
+                " мм (1 мм = " + denominator.ToString(CultureInfo.InvariantCulture) + " единиц чертежа)" +
                 "\nФайл: " + pdfPath);
             PlotEngineRunner.Publish(document, settings, pdfPath, policy, verify, log);
         }
 
         log.Debug("QUICKPDF sheet saved: {PdfPath}", pdfPath);
         editor.WriteMessage(
-            "\nЛист " + sheet.ToString("D3", CultureInfo.InvariantCulture) + " сохранён: " + pdfPath);
+            "\nЛист " + (options.StartSheet + sheetIndex).ToString("D3", CultureInfo.InvariantCulture) +
+            " сохранён: " + pdfPath);
     }
 
     private static string ResolveBoundDevice(Document document, SilentPdfDevice plotter, ILogger log)
@@ -264,15 +283,31 @@ public static class QuickPdfOrchestrator
         validator.RefreshLists(settings);
     }
 
-    private static void ApplyPlotOptions(PlotSettings settings, PlotSettingsValidator validator, Extents2d window)
+    private static void ApplyPlotOptions(
+        PlotSettings settings,
+        PlotSettingsValidator validator,
+        Extents2d window,
+        QuickPdfOptions options,
+        ILogger log,
+        Editor editor)
     {
         validator.SetPlotWindowArea(settings, window);
         validator.SetPlotType(settings, PlotAreaType.Window);
-        validator.SetUseStandardScale(settings, true);
-        validator.SetStdScaleType(settings, StdScaleType.StdScale1To100);
+        if (options.StdScaleOrNull is { } stdScale)
+        {
+            validator.SetUseStandardScale(settings, true);
+            validator.SetStdScaleType(settings, stdScale);
+        }
+        else
+        {
+            // 1:200 и 1:500 отсутствуют в StdScaleType — печатаем произвольным масштабом 1:N.
+            validator.SetUseStandardScale(settings, false);
+            validator.SetCustomPrintScale(settings, new CustomScale(1.0, options.ScaleDenominator));
+        }
+
         validator.SetPlotCentered(settings, false);
         validator.SetPlotOrigin(settings, new Point2d(0, 0));
-        validator.SetCurrentStyleSheet(settings, FindStyleSheet(validator));
+        validator.SetCurrentStyleSheet(settings, FindStyleSheet(validator, options.Monochrome, log, editor));
         settings.PlotPlotStyles = true;
         settings.PrintLineweights = true;
         settings.PlotHidden = false;
@@ -280,13 +315,36 @@ public static class QuickPdfOrchestrator
         settings.ShadePlotResLevel = ShadePlotResLevel.Normal;
     }
 
-    private static string FindStyleSheet(PlotSettingsValidator validator)
+    private static string FindStyleSheet(
+        PlotSettingsValidator validator,
+        bool monochrome,
+        ILogger log,
+        Editor editor)
     {
-        string wanted = Convert.ToInt16(AcadApp.GetSystemVariable("PSTYLEMODE"), CultureInfo.InvariantCulture) == 1
-            ? "acad.ctb"
-            : "acad.stb";
-        return PlotLists.Names(validator.GetPlotStyleSheetList())
-            .FirstOrDefault(name => string.Equals(name, wanted, StringComparison.OrdinalIgnoreCase))
-            ?? throw new QuickPdfException("Стандартная таблица стилей печати не найдена: " + wanted);
+        bool namedStyles = Convert.ToInt16(AcadApp.GetSystemVariable("PSTYLEMODE"), CultureInfo.InvariantCulture) != 1;
+        string ext = namedStyles ? "stb" : "ctb";
+        List<string> sheets = [.. PlotLists.Names(validator.GetPlotStyleSheetList())];
+        string? Match(string baseName) => sheets.FirstOrDefault(name =>
+            string.Equals(name, baseName + "." + ext, StringComparison.OrdinalIgnoreCase));
+
+        if (monochrome && Match("monochrome") is { } mono)
+        {
+            return mono;
+        }
+
+        if (Match("acad") is { } color)
+        {
+            if (monochrome)
+            {
+                log.Warning("QUICKPDF monochrome style sheet missing; using {StyleSheet}", color);
+                editor.WriteMessage(
+                    "\nТаблица monochrome." + ext + " не найдена — печатаю цветной (" + color + ").");
+            }
+
+            return color;
+        }
+
+        throw new QuickPdfException(
+            "Стандартная таблица стилей печати не найдена: " + (monochrome ? "monochrome." : "acad.") + ext);
     }
 }

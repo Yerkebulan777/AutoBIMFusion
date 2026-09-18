@@ -6,7 +6,7 @@ namespace AutoBIMFusion.QuickPdf.Plotting;
 internal readonly record struct IsoMediaChoice(string CanonicalName, PlotRotation Rotation);
 
 /// <summary>
-///     Наименьший ISO-лист, в который рамка влезает на 1:100.
+///     Наименьший ISO-лист, в который рамка влезает в выбранном стандартном масштабе.
 /// </summary>
 internal static class IsoMediaPicker
 {

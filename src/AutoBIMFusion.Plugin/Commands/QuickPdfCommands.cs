@@ -36,7 +36,16 @@ public sealed class QuickPdfCommands
 #if CORECONSOLE_DIAGNOSTICS
             QuickPdfOrchestrator.ExportFrameList(document, log);
 #else
-            if (!QuickPdfOrchestrator.TryExportInteractively(document, log))
+            if (!QuickPdfOptionsDialog.TryShow(out QuickPdfOptions options))
+            {
+                editor.WriteMessage("\nQuickPDF: отменено.");
+                return;
+            }
+
+            log.Information(
+                "QUICKPDF options: scale={Scale}; color={Color}; start={Start}",
+                options.ScaleLabel, options.ColorLabel, options.StartSheetLabel);
+            if (!QuickPdfOrchestrator.TryExportInteractively(document, log, options))
             {
                 editor.WriteMessage("\nQuickPDF: отменено.");
             }

@@ -7,7 +7,7 @@
         <Platforms>x64</Platforms>
         <RootNamespace>AutoBIMFusion.QuickPdf</RootNamespace>
         <AssemblyName>AutoBIMFusion.QuickPdf</AssemblyName>
-        <Description>Экспорт рамки модели в PDF (ISO / custom, 1:100)</Description>
+        <Description>Экспорт рамки модели в PDF (ISO / custom, 1:1-1:500)</Description>
         <NoWarn>$(NoWarn);CA1303</NoWarn>
     </PropertyGroup>
 

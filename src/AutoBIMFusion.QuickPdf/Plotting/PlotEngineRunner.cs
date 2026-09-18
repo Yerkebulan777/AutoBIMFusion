@@ -100,7 +100,12 @@ internal static class PlotEngineRunner
         log.Debug("QUICKPDF plot info validated");
     }
 
-    public static void VerifyIso(PlotSettings settings, IsoMediaChoice expected, double needWidth, double needHeight)
+    public static void VerifyIso(
+        PlotSettings settings,
+        IsoMediaChoice expected,
+        double needWidth,
+        double needHeight,
+        QuickPdfOptions options)
     {
         if (!string.Equals(settings.CanonicalMediaName, expected.CanonicalName, StringComparison.OrdinalIgnoreCase) ||
             settings.PlotRotation != expected.Rotation ||
@@ -118,13 +123,19 @@ internal static class PlotEngineRunner
 
         if (!IsoMedia.FitsMm(printableWidth, needWidth) || !IsoMedia.FitsMm(printableHeight, needHeight))
         {
-            throw new QuickPdfException("Плоттер изменил формат: рамка не помещается в 1:100.");
+            throw new QuickPdfException("Плоттер изменил формат: рамка не помещается в " + options.ScaleLabel + ".");
         }
 
-        VerifyPlacement(settings);
+        VerifyPlacement(settings, options);
     }
 
-    public static void VerifyCustom(PlotSettings settings, double width, double height, Extents2d expectedWindow, string expectedStyle)
+    public static void VerifyCustom(
+        PlotSettings settings,
+        double width,
+        double height,
+        Extents2d expectedWindow,
+        string expectedStyle,
+        QuickPdfOptions options)
     {
         Point2d paper = settings.PlotPaperSize;
         Extents2d margins = settings.PlotPaperMargins;
@@ -136,8 +147,9 @@ internal static class PlotEngineRunner
             paper.X,
             paper.Y,
             [margins.MinPoint.X, margins.MinPoint.Y, margins.MaxPoint.X, margins.MaxPoint.Y],
-            ExactPaper.WantedScale,
-            actualScale);
+            options.ScaleRatio,
+            actualScale,
+            options.ScaleLabel);
 
         if (settings.PlotPaperUnits != PlotPaperUnit.Millimeters ||
             settings.PlotRotation != PlotRotation.Degrees000 ||
@@ -146,10 +158,12 @@ internal static class PlotEngineRunner
             settings.ShadePlot != PlotSettingsShadePlotType.AsDisplayed ||
             settings.ShadePlotResLevel != ShadePlotResLevel.Normal)
         {
-            throw new QuickPdfException("Ожидались стандарт 1:100, нулевой сдвиг, без центрирования и неизменные единицы, поворот, стиль и качество.");
+            throw new QuickPdfException(
+                "Ожидались масштаб " + options.ScaleModeLabel +
+                ", нулевой сдвиг, без центрирования и неизменные единицы, поворот, стиль и качество.");
         }
 
-        VerifyPlacement(settings);
+        VerifyPlacement(settings, options);
 
         if (settings.PlotWindowArea != expectedWindow ||
             !string.Equals(settings.CurrentStyleSheet, expectedStyle, StringComparison.OrdinalIgnoreCase))
@@ -158,11 +172,30 @@ internal static class PlotEngineRunner
         }
     }
 
-    private static void VerifyPlacement(PlotSettings settings)
+    private static void VerifyPlacement(PlotSettings settings, QuickPdfOptions options)
     {
-        if (!settings.UseStandardScale || settings.StdScaleType != StdScaleType.StdScale1To100)
+        if (options.StdScaleOrNull is { } stdScale)
         {
-            throw new QuickPdfException("Плоттер изменил стандартный масштаб 1:100.");
+            if (!settings.UseStandardScale || settings.StdScaleType != stdScale)
+            {
+                throw new QuickPdfException("Плоттер изменил стандартный масштаб " + options.ScaleLabel + ".");
+            }
+
+            return;
+        }
+
+        // Произвольный масштаб 1:N (1:200, 1:500): проверяем отношение напрямую.
+        if (settings.UseStandardScale)
+        {
+            throw new QuickPdfException("Плоттер изменил масштаб " + options.ScaleLabel + " на стандартный.");
+        }
+
+        CustomScale scale = settings.CustomPrintScale;
+        double actualScale = scale.Denominator == 0 ? 0 : scale.Numerator / scale.Denominator;
+        if (!ExactPaper.IsFinitePositive(actualScale) ||
+            Abs(actualScale / options.ScaleRatio - 1.0) > ExactPaper.ScaleRatioTolerance)
+        {
+            throw new QuickPdfException("Плоттер изменил масштаб " + options.ScaleLabel + ".");
         }
 
         if (settings.PlotCentered ||

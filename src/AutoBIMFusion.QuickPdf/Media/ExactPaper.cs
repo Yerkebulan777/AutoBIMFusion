@@ -1,7 +1,7 @@
 namespace AutoBIMFusion.QuickPdf.Media;
 
 /// <summary>
-///     Проверка, что драйвер не подменил размер, поля и масштаб 1:100.
+///     Проверка, что драйвер не подменил размер, поля и стандартный масштаб.
 /// </summary>
 public static class ExactPaper
 {
@@ -9,7 +9,6 @@ public static class ExactPaper
     public const double MarginToleranceMm = 0.001;
     public const double ScaleRatioTolerance = 1e-9;
     public const double OriginTolerance = 1e-8;
-    public const double WantedScale = 0.01;
 
     public static void Validate(
         double wantedWidth,
@@ -18,7 +17,8 @@ public static class ExactPaper
         double actualHeight,
         IReadOnlyList<double> margins,
         double wantedScale,
-        double actualScale)
+        double actualScale,
+        string scaleLabel)
     {
         if (!IsFinitePositive(wantedWidth) || !IsFinitePositive(wantedHeight) ||
             !IsFinitePositive(actualWidth) || !IsFinitePositive(actualHeight) ||
@@ -40,11 +40,11 @@ public static class ExactPaper
 
         if (Abs(actualScale / wantedScale - 1.0) > ScaleRatioTolerance)
         {
-            throw new QuickPdfException("Драйвер изменил физический масштаб 1:100. Печать отменена.");
+            throw new QuickPdfException("Драйвер изменил физический масштаб " + scaleLabel + ". Печать отменена.");
         }
     }
 
-    private static bool IsFinitePositive(double value)
+    internal static bool IsFinitePositive(double value)
     {
         return IsFinite(value) && value > 0;
     }
